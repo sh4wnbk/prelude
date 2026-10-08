@@ -12,44 +12,100 @@
         "badge": "AT VENUE · GPS",
         "title": "ARGENTINA vs ENGLAND",
         "venue": "Estadio Azteca · Mexico City",
-        "state": {"period": 2, "period_label": "2H", "display_minute": 48, "home_goals": 0, "away_goals": 0, "score": "ARG 0 - 0 ENG"},
+        "state": {
+          "period": 2,
+          "period_label": "2H",
+          "display_minute": 48,
+          "home_goals": 0,
+          "away_goals": 0,
+          "score": "ARG 0 - 0 ENG"
+        },
         "status": "Play data connected · AI narration ready"
       },
       "live_seated": {
         "venue": "Estadio Azteca",
         "ticket": "Ticket: Sec 108 · Row 14",
-        "state": {"period": 2, "period_label": "2H", "half_label": "SECOND HALF", "display_minute": 48, "home_goals": 0, "away_goals": 0},
+        "state": {
+          "period": 2,
+          "period_label": "2H",
+          "half_label": "SECOND HALF",
+          "display_minute": 48,
+          "home_goals": 0,
+          "away_goals": 0
+        },
         "caption": "You're in your seat. We'll catch anything you miss."
       },
       "hero": {
-        "event": {"period": 2, "minute": 54, "second": 18, "player": "Diego Armando Maradona", "team": "Argentina", "shot_type": "Open Play"},
+        "event": {
+          "period": 2,
+          "minute": 54,
+          "second": 18,
+          "player": "Diego Armando Maradona",
+          "team": "Argentina",
+          "shot_type": "Open Play"
+        },
         "period_label": "2H",
         "display_minute": 55,
         "caption": "2H · 55' · Maradona's solo run from his own half, past four England players",
         "quote": "«...Maradona, inside his own half, past Beardsley, past Butcher, past Fenwick, rounds Shilton, and finishes.»",
-        "quote_names": ["Maradona", "Beardsley", "Butcher", "Fenwick", "Shilton"]
+        "quote_names": [
+          "Maradona",
+          "Beardsley",
+          "Butcher",
+          "Fenwick",
+          "Shilton"
+        ]
       },
       "moments_subtitle": "ARGENTINA vs ENGLAND · TONIGHT'S RETROSPECTIVE",
       "synced_count": 3,
       "moments": [
         {
-          "tag": "GOAL", "period_label": "2H", "display_minute": 55,
-          "event": {"period": 2, "minute": 54, "second": 18, "player": "Diego Armando Maradona", "team": "Argentina", "shot_type": "Open Play"},
-          "title": "Maradona's solo goal",
-          "body": "Maradona's solo run from his own half, past four England players."
-        },
-        {
-          "tag": "GOAL", "period_label": "2H", "display_minute": 51,
-          "event": {"period": 2, "minute": 50, "second": 27, "player": "Diego Armando Maradona", "team": "Argentina", "shot_type": "Open Play"},
+          "tag": "GOAL",
+          "period_label": "2H",
+          "display_minute": 51,
+          "event": {
+            "period": 2,
+            "minute": 50,
+            "second": 27,
+            "player": "Diego Armando Maradona",
+            "team": "Argentina",
+            "shot_type": "Open Play"
+          },
           "title": "Maradona's opener",
           "body": "Maradona recovers Reid's error and scores from nine yards."
         },
         {
-          "tag": "GOAL", "period_label": "2H", "display_minute": 81,
-          "event": {"period": 2, "minute": 80, "second": 37, "player": "Gary Lineker", "team": "England", "shot_type": "Open Play"},
+          "tag": "GOAL",
+          "period_label": "2H",
+          "display_minute": 55,
+          "event": {
+            "period": 2,
+            "minute": 54,
+            "second": 18,
+            "player": "Diego Armando Maradona",
+            "team": "Argentina",
+            "shot_type": "Open Play"
+          },
+          "title": "Maradona's solo goal",
+          "body": "Maradona's solo run from his own half, past four England players."
+        },
+        {
+          "tag": "GOAL",
+          "period_label": "2H",
+          "display_minute": 81,
+          "event": {
+            "period": 2,
+            "minute": 80,
+            "second": 37,
+            "player": "Gary Lineker",
+            "team": "England",
+            "shot_type": "Open Play"
+          },
           "title": "Lineker pulls one back",
           "body": "England's late header sets up a tense finish.",
-          "grounding": {"body_part": "Head"}
+          "grounding": {
+            "body_part": "Head"
+          }
         }
       ]
     },
@@ -61,70 +117,172 @@
       "home_abbr": "ARG",
       "away_abbr": "FRA",
       "picker": {
-        "badge": "REMOTE FEED",
+        "badge": "AT VENUE · GPS",
         "title": "ARGENTINA vs FRANCE",
         "venue": "Lusail Stadium · Lusail, Qatar",
-        "state": {"period": 1, "period_label": "1H", "display_minute": 35, "home_goals": 1, "away_goals": 0, "score": "ARG 1 - 0 FRA"},
+        "state": {
+          "period": 1,
+          "period_label": "1H",
+          "display_minute": 35,
+          "home_goals": 1,
+          "away_goals": 0,
+          "score": "ARG 1 - 0 FRA"
+        },
         "status": "Play-by-play stream active"
       },
       "live_seated": {
         "venue": "Lusail Stadium",
-        "ticket": null,
-        "state": {"period": 1, "period_label": "1H", "half_label": "FIRST HALF", "display_minute": 35, "home_goals": 1, "away_goals": 0},
+        "ticket": "Ticket: Sec 215 · Row 9",
+        "state": {
+          "period": 1,
+          "period_label": "1H",
+          "half_label": "FIRST HALF",
+          "display_minute": 35,
+          "home_goals": 1,
+          "away_goals": 0
+        },
         "caption": "You're in your seat. We'll catch anything you miss."
       },
       "hero": {
-        "event": {"period": 1, "minute": 35, "second": 22, "player": "Ángel Fabián Di María Hernández", "team": "Argentina", "shot_type": "Open Play"},
+        "event": {
+          "period": 1,
+          "minute": 35,
+          "second": 22,
+          "player": "Ángel Fabián Di María Hernández",
+          "team": "Argentina",
+          "shot_type": "Open Play"
+        },
         "period_label": "1H",
         "display_minute": 36,
         "caption": "1H · 36' · Di María finishes a counter that began in Argentina's own half",
         "quote": "«...Molina to Mac Allister, on to Messi, Messi to Álvarez, Álvarez back to Mac Allister, and Mac Allister squares it for Di María, who finishes.»",
-        "quote_names": ["Molina", "Mac Allister", "Messi", "Álvarez", "Di María"]
+        "quote_names": [
+          "Molina",
+          "Mac Allister",
+          "Messi",
+          "Álvarez",
+          "Di María"
+        ]
       },
       "moments_subtitle": "ARGENTINA vs FRANCE · TONIGHT'S RETROSPECTIVE",
       "synced_count": 6,
       "moments": [
         {
-          "tag": "PENALTY", "period_label": "1H", "display_minute": 23,
-          "event": {"period": 1, "minute": 22, "second": 24, "player": "Lionel Andrés Messi Cuccittini", "team": "Argentina", "shot_type": "Penalty"},
+          "tag": "PENALTY",
+          "period_label": "1H",
+          "display_minute": 23,
+          "event": {
+            "period": 1,
+            "minute": 22,
+            "second": 24,
+            "player": "Lionel Andrés Messi Cuccittini",
+            "team": "Argentina",
+            "shot_type": "Penalty"
+          },
           "title": "Messi from the spot",
           "body": "Messi scores Argentina's penalty with his left foot.",
-          "grounding": {"body_part": "Left Foot"}
+          "grounding": {
+            "body_part": "Left Foot"
+          }
         },
         {
-          "tag": "GOAL", "period_label": "1H", "display_minute": 36,
-          "event": {"period": 1, "minute": 35, "second": 22, "player": "Ángel Fabián Di María Hernández", "team": "Argentina", "shot_type": "Open Play"},
+          "tag": "GOAL",
+          "period_label": "1H",
+          "display_minute": 36,
+          "event": {
+            "period": 1,
+            "minute": 35,
+            "second": 22,
+            "player": "Ángel Fabián Di María Hernández",
+            "team": "Argentina",
+            "shot_type": "Open Play"
+          },
           "title": "Di María doubles it",
           "body": "Di María finishes a counter with his left foot, set up by Mac Allister.",
-          "grounding": {"body_part": "Left Foot", "play_pattern": "From Counter", "assist": "Alexis Mac Allister"}
+          "grounding": {
+            "body_part": "Left Foot",
+            "play_pattern": "From Counter",
+            "assist": "Alexis Mac Allister"
+          }
         },
         {
-          "tag": "PENALTY", "period_label": "2H", "display_minute": 80,
-          "event": {"period": 2, "minute": 79, "second": 24, "player": "Kylian Mbappé Lottin", "team": "France", "shot_type": "Penalty"},
+          "tag": "PENALTY",
+          "period_label": "2H",
+          "display_minute": 80,
+          "event": {
+            "period": 2,
+            "minute": 79,
+            "second": 24,
+            "player": "Kylian Mbappé Lottin",
+            "team": "France",
+            "shot_type": "Penalty"
+          },
           "title": "Mbappé from the spot",
           "body": "Mbappé scores France's penalty with his right foot.",
-          "grounding": {"body_part": "Right Foot"}
+          "grounding": {
+            "body_part": "Right Foot"
+          }
         },
         {
-          "tag": "GOAL", "period_label": "2H", "display_minute": 81,
-          "event": {"period": 2, "minute": 80, "second": 59, "player": "Kylian Mbappé Lottin", "team": "France", "shot_type": "Open Play"},
+          "tag": "GOAL",
+          "period_label": "2H",
+          "display_minute": 81,
+          "event": {
+            "period": 2,
+            "minute": 80,
+            "second": 59,
+            "player": "Kylian Mbappé Lottin",
+            "team": "France",
+            "shot_type": "Open Play"
+          },
           "title": "Mbappé levels it",
           "body": "Mbappé scores again from a throw-in, 95 seconds after his penalty.",
-          "grounding": {"body_part": "Right Foot", "play_pattern": "From Throw In", "seconds_after_previous_goal": 95}
+          "grounding": {
+            "body_part": "Right Foot",
+            "play_pattern": "From Throw In",
+            "seconds_after_previous_goal": 95
+          }
         },
         {
-          "tag": "GOAL", "period_label": "ET", "display_minute": 108,
-          "event": {"period": 4, "minute": 107, "second": 58, "player": "Lionel Andrés Messi Cuccittini", "team": "Argentina", "shot_type": "Open Play"},
+          "tag": "GOAL",
+          "period_label": "ET",
+          "display_minute": 108,
+          "event": {
+            "period": 4,
+            "minute": 107,
+            "second": 58,
+            "player": "Lionel Andrés Messi Cuccittini",
+            "team": "Argentina",
+            "shot_type": "Open Play"
+          },
           "title": "Messi puts Argentina back in front",
           "body": "Messi scores with his right foot in the second half of extra time.",
-          "grounding": {"body_part": "Right Foot"}
+          "grounding": {
+            "body_part": "Right Foot"
+          }
         },
         {
-          "tag": "PENALTY", "period_label": "ET", "display_minute": 118,
-          "event": {"period": 4, "minute": 117, "second": 5, "player": "Kylian Mbappé Lottin", "team": "France", "shot_type": "Penalty"},
+          "tag": "PENALTY",
+          "period_label": "ET",
+          "display_minute": 118,
+          "event": {
+            "period": 4,
+            "minute": 117,
+            "second": 5,
+            "player": "Kylian Mbappé Lottin",
+            "team": "France",
+            "shot_type": "Penalty"
+          },
           "title": "Mbappé's third makes it level",
           "body": "Mbappé scores his third of the match from the spot, for 3-3.",
-          "grounding": {"body_part": "Right Foot", "player_goal_number": 3, "score_after": [3, 3]}
+          "grounding": {
+            "body_part": "Right Foot",
+            "player_goal_number": 3,
+            "score_after": [
+              3,
+              3
+            ]
+          }
         }
       ]
     }

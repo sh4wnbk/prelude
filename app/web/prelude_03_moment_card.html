@@ -4,10 +4,11 @@
     }
   </style>
 <link href="phone-frame.css?v=__V__" rel="stylesheet"/>
-</head><body class="bg-surface text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.35)]"><div class="h-16 px-screen-edge-mobile flex items-center justify-between"><div class="flex items-center gap-space-sm"><a aria-label="Prelude home" class="font-label-lg text-label-lg tracking-[0.2em] font-semibold text-on-surface uppercase select-none hover:text-primary-container transition-colors" href="prelude_01_picker.html?v=__V__">PRELUDE</a></div><div class="flex items-center gap-space-sm"><div class="inline-flex items-center gap-space-xs px-space-sm py-1.5 rounded-full bg-surface-container-high/80 backdrop-blur-md shadow-[0_1px_4px_rgba(0,0,0,0.2)]"><span class="w-1.5 h-1.5 rounded-full bg-primary-container pulse-live"></span><span class="font-label-sm text-label-sm text-on-surface font-semibold tracking-wider uppercase">ARG vs ENG · LIVE</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 pb-24 bg-surface min-h-screen"><div class="flex flex-col w-full px-screen-edge-mobile py-space-sm gap-space-md">
+<script src="match-content.js?v=__V__"></script>
+</head><body class="bg-surface text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.35)]"><div class="h-16 px-screen-edge-mobile flex items-center justify-between"><div class="flex items-center gap-space-sm"><a aria-label="Prelude home" class="font-label-lg text-label-lg tracking-[0.2em] font-semibold text-on-surface uppercase select-none hover:text-primary-container transition-colors" href="prelude_01_picker.html?v=__V__">PRELUDE</a></div><div class="flex items-center gap-space-sm"><div class="inline-flex items-center gap-space-xs px-space-sm py-1.5 rounded-full bg-surface-container-high/80 backdrop-blur-md shadow-[0_1px_4px_rgba(0,0,0,0.2)]"><span class="w-1.5 h-1.5 rounded-full bg-primary-container pulse-live"></span><span class="font-label-sm text-label-sm text-on-surface font-semibold tracking-wider uppercase" data-field="chip">ARG vs ENG · LIVE</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 pb-24 bg-surface min-h-screen"><div class="flex flex-col w-full px-screen-edge-mobile py-space-sm gap-space-md">
 <!-- Back to Flow Bar & Live State Telemetry -->
 <div class="flex items-center justify-between">
-<button class="flex items-center gap-space-2xs text-on-surface-variant hover:text-on-surface transition-colors py-1" onclick="window.location.href='prelude_02_live_seated.html?v=__V__'" type="button">
+<button class="flex items-center gap-space-2xs text-on-surface-variant hover:text-on-surface transition-colors py-1" onclick="window.location.href=Prelude.url('prelude_02_live_seated.html')" type="button">
 <span class="material-symbols-outlined text-[18px]">arrow_back</span>
 <span class="font-label-sm text-label-sm tracking-widest uppercase">MATCH STREAM</span>
 </button>
@@ -26,7 +27,7 @@
 <h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface tracking-tight mt-1">
         You stepped away. Here’s the buildup you missed.
       </h1>
-<p class="font-label-lg text-label-lg text-on-surface-variant mt-0.5">2H · 55' · Maradona's solo run from his own half, past four England players</p>
+<p class="font-label-lg text-label-lg text-on-surface-variant mt-0.5" data-field="hero_caption">2H · 55' · Maradona's solo run from his own half, past four England players</p>
 </div>
 <!-- Audio Narration Player Surface -->
 <div class="relative z-10 w-full rounded-xl bg-surface-container-high p-card-padding-md flex flex-col gap-space-md shadow-md border border-surface-container-highest/40">
@@ -83,7 +84,7 @@
 <!-- Editorial Broadcast Quote Snippet -->
 <div class="relative bg-surface-container-low p-card-padding-md rounded-lg flex gap-space-sm border border-surface-container-highest/20">
 <span class="material-symbols-outlined text-primary-container shrink-0 text-[24px]">format_quote</span>
-<p class="font-body-md text-body-md text-on-surface leading-relaxed italic">«...Maradona, inside his own half, past Beardsley, past Butcher, past Fenwick, rounds Shilton, and finishes.»</p>
+<p class="font-body-md text-body-md text-on-surface leading-relaxed italic" data-field="hero_quote">«...Maradona, inside his own half, past Beardsley, past Butcher, past Fenwick, rounds Shilton, and finishes.»</p>
 </div>
 <!-- Trust Verification Marker -->
 <div class="flex items-center gap-space-xs px-space-xs py-space-2xs rounded-lg bg-surface-container-lowest"><span class="material-symbols-outlined text-[16px] text-primary-container shrink-0" style="font-variation-settings: &quot;FILL&quot; 1;">verified</span><span class="font-label-sm text-label-sm text-secondary truncate">Verified from play data</span></div>

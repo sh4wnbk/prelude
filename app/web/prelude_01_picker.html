@@ -5,7 +5,8 @@
     }
   </style>
 <link href="phone-frame.css?v=__V__" rel="stylesheet"/>
-</head><body class="bg-surface text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.35)]"><div class="h-16 px-screen-edge-mobile flex items-center justify-between"><div class="flex items-center gap-space-sm"><a aria-label="Prelude home" class="font-label-lg text-label-lg tracking-[0.2em] font-semibold text-on-surface uppercase select-none hover:text-primary-container transition-colors" href="prelude_01_picker.html?v=__V__">PRELUDE</a></div><div class="flex items-center gap-space-sm"><div class="inline-flex items-center gap-space-xs px-space-sm py-1.5 rounded-full bg-surface-container-high/80 backdrop-blur-md shadow-[0_1px_4px_rgba(0,0,0,0.2)]"><span class="w-1.5 h-1.5 rounded-full bg-primary-container pulse-live"></span><span class="font-label-sm text-label-sm text-on-surface font-semibold tracking-wider uppercase">ARG vs ENG · LIVE</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 pb-24 bg-surface min-h-screen"><div class="flex flex-col w-full px-screen-edge-mobile pb-space-2xl">
+<script src="match-content.js?v=__V__"></script>
+</head><body class="bg-surface text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.35)]"><div class="h-16 px-screen-edge-mobile flex items-center justify-between"><div class="flex items-center gap-space-sm"><a aria-label="Prelude home" class="font-label-lg text-label-lg tracking-[0.2em] font-semibold text-on-surface uppercase select-none hover:text-primary-container transition-colors" href="prelude_01_picker.html?v=__V__">PRELUDE</a></div><div class="flex items-center gap-space-sm"><div class="inline-flex items-center gap-space-xs px-space-sm py-1.5 rounded-full bg-surface-container-high/80 backdrop-blur-md shadow-[0_1px_4px_rgba(0,0,0,0.2)]"><span class="w-1.5 h-1.5 rounded-full bg-primary-container pulse-live"></span><span class="font-label-sm text-label-sm text-on-surface font-semibold tracking-wider uppercase" data-field="chip">ARG vs ENG · LIVE</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 pb-24 bg-surface min-h-screen"><div class="flex flex-col w-full px-screen-edge-mobile pb-space-2xl">
 <!-- Eyebrow & Title Section -->
 <div class="flex flex-col mt-space-md mb-space-lg"><div class="flex items-center gap-space-xs mb-space-xs"><span class="w-1.5 h-1.5 rounded-full bg-primary-container pulse-live"></span><span class="font-label-sm text-label-sm uppercase tracking-widest text-primary-container">EVENT SELECTOR</span></div><h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface tracking-tight font-bold">PICK YOUR EVENT</h1><p class="font-body-md text-body-md text-secondary mt-space-xs leading-relaxed">Sets your venue, play-data stream, and AI narration.</p></div>
 <!-- Venue GPS Geofence Status Indicator Bar -->
@@ -13,7 +14,7 @@
 <!-- Event List Section -->
 <div aria-label="Tonight's matches" class="flex flex-col gap-space-md" role="radiogroup">
 <!-- CARD 1: Selected / In-Arena Active -->
-<div class="event-card relative flex flex-col p-card-padding-md rounded-xl bg-surface-container-high ring-1 ring-primary-container/40 shadow-xl cursor-pointer transition-all duration-300" id="card-arg-eng" onclick="selectEvent('card-arg-eng')">
+<div class="event-card relative flex flex-col p-card-padding-md rounded-xl bg-surface-container-high ring-1 ring-primary-container/40 shadow-xl cursor-pointer transition-all duration-300" data-match="3750191" id="card-arg-eng" onclick="selectEvent('card-arg-eng')">
 <!-- Inward Stadium Amber Active Bar -->
 <div class="absolute inset-y-3 left-0 w-1 bg-primary-container rounded-r"></div>
 <div class="flex items-start justify-between gap-space-sm pl-2">
@@ -29,14 +30,14 @@
 <!-- Match Play Data Strip -->
 <div class="mt-space-md pt-space-sm bg-surface-container-lowest/70 px-space-sm py-2 rounded-lg pl-3"><div class="flex items-center justify-between font-label-md text-label-md"><div class="flex items-center gap-space-xs text-on-surface"><span class="font-semibold text-primary">2H · 48'</span><span class="text-secondary-container">•</span><span class="text-secondary">ARG 0 - 0 ENG</span></div><span class="font-label-sm text-label-sm text-primary-container flex items-center gap-1"><span class="material-symbols-outlined text-[13px]">graphic_eq</span> PLAY DATA SYNC</span></div><p class="font-label-sm text-label-sm text-secondary mt-1">Play data connected · AI narration ready</p></div>
 </div>
-<!-- CARD 2: Remote Feed -->
-<div class="event-card relative flex flex-col p-card-padding-md rounded-xl bg-surface-container-low shadow-sm cursor-pointer hover:bg-surface-container transition-all duration-300" id="card-arg-fra" onclick="selectEvent('card-arg-fra')">
+<!-- CARD 2: second venue -->
+<div class="event-card relative flex flex-col p-card-padding-md rounded-xl bg-surface-container-low shadow-sm cursor-pointer hover:bg-surface-container transition-all duration-300" data-match="3869685" id="card-arg-fra" onclick="selectEvent('card-arg-fra')">
 <div class="absolute inset-y-3 left-0 w-1 bg-transparent rounded-r transition-colors"></div>
 <div class="flex items-start justify-between gap-space-sm pl-2">
 <div class="flex flex-col">
-<div class="inline-flex items-center gap-1.5 w-fit px-2 py-0.5 rounded bg-surface-variant/50 mb-2">
-<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
-<span class="font-label-sm text-label-sm text-secondary uppercase font-medium">REMOTE FEED</span>
+<div class="inline-flex items-center gap-1.5 w-fit px-2 py-0.5 rounded bg-primary-container/15 mb-2">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<span class="font-label-sm text-label-sm text-primary-container uppercase font-semibold">AT VENUE · GPS</span>
 </div>
 <h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight">ARGENTINA vs FRANCE</h2>
 <span class="font-body-md text-body-md text-secondary mt-0.5">Lusail Stadium · Lusail, Qatar</span>
@@ -44,7 +45,7 @@
 <div class="radio-indicator flex items-center justify-center w-6 h-6 rounded-full bg-surface-container-high text-on-surface-variant flex-shrink-0"><span class="w-2 h-2 rounded-full bg-secondary-container"></span></div>
 </div>
 <div class="mt-space-md bg-surface-container-lowest/40 px-space-sm py-2 rounded-lg pl-3">
-<div class="flex items-center justify-between font-label-md text-label-md"><span class="text-secondary font-medium">ET · 108'</span><span class="font-label-sm text-label-sm text-secondary">ARG 3 - 2 FRA</span></div>
+<div class="flex items-center justify-between font-label-md text-label-md"><span class="text-secondary font-medium">1H · 35'</span><span class="font-label-sm text-label-sm text-secondary">ARG 1 - 0 FRA</span></div>
 <p class="font-label-sm text-label-sm text-outline mt-0.5">Play-by-play stream active</p>
 </div>
 </div>
@@ -57,7 +58,11 @@
 <div class="mt-space-xl flex flex-col gap-space-xs"><button class="w-full h-touch-target-min rounded-full bg-primary-container text-on-primary-container font-label-lg text-label-lg font-bold tracking-wider uppercase flex items-center justify-center gap-space-xs shadow-lg active:scale-[0.99] transition-transform" id="confirm-btn" onclick="triggerFeedConfirmation()"><span class="material-symbols-outlined text-[20px]">sensors</span><span class="" id="btn-text">CONFIRM EVENT</span></button><p class="font-body-md text-[13px] text-outline text-center mt-space-2xs">Sets your venue, play-data stream, and AI narration.</p></div>
 </div>
 <script>
+  let selectedMatch = Prelude.matchId;
+
   function selectEvent(cardId) {
+    const picked = document.getElementById(cardId);
+    if (picked && picked.dataset.match) selectedMatch = Number(picked.dataset.match);
     const cards = [
       { id: 'card-arg-eng', name: 'Estadio Azteca', title: 'ARGENTINA vs ENGLAND' },
       { id: 'card-arg-fra', name: 'Lusail Stadium', title: 'ARGENTINA vs FRANCE' }
@@ -94,7 +99,7 @@
       label.innerText = 'Connected to Venue Feed';
       // Confirmed, so move on to the live screen rather than resetting.
       setTimeout(() => {
-        window.location.href = 'prelude_02_live_seated.html?v=__V__';
+        window.location.href = Prelude.url('prelude_02_live_seated.html', selectedMatch);
       }, 700);
     }, 800);
   }

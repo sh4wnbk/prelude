@@ -230,6 +230,51 @@ def check_match(entry, fail, note):
         fail(where, f"goals with no moment: {sorted(missing)}")
 
 
+WEB = ROOT / "app" / "web"
+DEFAULT_MATCH = 3750191
+
+
+def check_screens(doc, fail, note):
+    """The markup and matches.json must agree.
+
+    The picker lists both matches statically, and the other screens carry the
+    default match inline as the copy shown before the renderer runs. Either can
+    drift from matches.json without anything else noticing, so both are checked
+    against it here.
+    """
+    picker = (WEB / "prelude_01_picker.html").read_text(encoding="utf-8")
+    for entry in doc["matches"]:
+        p = entry["picker"]
+        for label, value in (("badge", p["badge"]), ("title", p["title"]),
+                             ("venue", p["venue"]), ("score", p["state"]["score"]),
+                             ("status", p["status"])):
+            if value not in picker:
+                fail(f"picker card {entry['match_id']}",
+                     f"{label} {value!r} is in matches.json but not in the markup")
+        minute = f"{p['state']['period_label']} \u00b7 {p['state']['display_minute']}'"
+        if minute not in picker:
+            fail(f"picker card {entry['match_id']}", f"state {minute!r} is not in the markup")
+    note(f"  picker markup carries both cards from matches.json")
+
+    default = next(e for e in doc["matches"] if e["match_id"] == DEFAULT_MATCH)
+    inline = {
+        "prelude_02_live_seated.html": [
+            default["live_seated"]["venue"], default["live_seated"]["ticket"],
+            default["live_seated"]["caption"],
+        ],
+        "prelude_03_moment_card.html": [default["hero"]["caption"], default["hero"]["quote"]],
+        "prelude_04_moments.html": [default["moments_subtitle"]]
+            + [m["title"] for m in default["moments"]]
+            + [m["body"] for m in default["moments"]],
+    }
+    for name, values in inline.items():
+        markup = (WEB / name).read_text(encoding="utf-8")
+        for value in values:
+            if value and value not in markup:
+                fail(name, f"inline copy does not carry {value!r} from matches.json")
+    note(f"  inline copy on the other screens matches the default match {DEFAULT_MATCH}")
+
+
 def main():
     failures = []
     notes = []
@@ -245,6 +290,7 @@ def main():
     for entry in doc["matches"]:
         check_match(entry, fail, note)
         notes.append("")
+    check_screens(doc, fail, note)
     print("\n".join(notes).rstrip())
 
     if failures:

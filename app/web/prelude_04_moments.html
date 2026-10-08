@@ -5,7 +5,8 @@
     }
   </style>
 <link href="phone-frame.css?v=__V__" rel="stylesheet"/>
-</head><body class="bg-surface text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.35)]"><div class="h-16 px-screen-edge-mobile flex items-center justify-between"><div class="flex items-center gap-space-sm"><a aria-label="Prelude home" class="font-label-lg text-label-lg tracking-[0.2em] font-semibold text-on-surface uppercase select-none hover:text-primary-container transition-colors" href="prelude_01_picker.html?v=__V__">PRELUDE</a></div><div class="flex items-center gap-space-sm"><div class="inline-flex items-center gap-space-xs px-space-sm py-1.5 rounded-full bg-surface-container-high/80 backdrop-blur-md shadow-[0_1px_4px_rgba(0,0,0,0.2)]"><span class="w-1.5 h-1.5 rounded-full bg-primary-container pulse-live"></span><span class="font-label-sm text-label-sm text-on-surface font-semibold tracking-wider uppercase">ARG vs ENG · LIVE</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 pb-24 bg-surface min-h-screen"><div class="flex flex-col w-full px-screen-edge-mobile space-y-space-lg">
+<script src="match-content.js?v=__V__"></script>
+</head><body class="bg-surface text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.35)]"><div class="h-16 px-screen-edge-mobile flex items-center justify-between"><div class="flex items-center gap-space-sm"><a aria-label="Prelude home" class="font-label-lg text-label-lg tracking-[0.2em] font-semibold text-on-surface uppercase select-none hover:text-primary-container transition-colors" href="prelude_01_picker.html?v=__V__">PRELUDE</a></div><div class="flex items-center gap-space-sm"><div class="inline-flex items-center gap-space-xs px-space-sm py-1.5 rounded-full bg-surface-container-high/80 backdrop-blur-md shadow-[0_1px_4px_rgba(0,0,0,0.2)]"><span class="w-1.5 h-1.5 rounded-full bg-primary-container pulse-live"></span><span class="font-label-sm text-label-sm text-on-surface font-semibold tracking-wider uppercase" data-field="chip">ARG vs ENG · LIVE</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 pb-24 bg-surface min-h-screen"><div class="flex flex-col w-full px-screen-edge-mobile space-y-space-lg">
 <!-- Interactive script to align active tab in shell -->
 <script>
     (function syncTab() {
@@ -22,15 +23,86 @@
 <h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-semibold tracking-tight">MOMENTS</h1>
 <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high">
 <span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
-<span class="font-label-sm text-label-sm text-primary uppercase tracking-wider">3 Synced</span>
+<span class="font-label-sm text-label-sm text-primary uppercase tracking-wider" data-field="synced">3 Synced</span>
 </div>
 </div>
-<p class="font-label-md text-label-md text-secondary tracking-widest uppercase">ARGENTINA vs ENGLAND · TONIGHT'S RETROSPECTIVE</p>
+<p class="font-label-md text-label-md text-secondary tracking-widest uppercase" data-field="moments_subtitle">ARGENTINA vs ENGLAND · TONIGHT'S RETROSPECTIVE</p>
 </div>
 <!-- Filter & Telemetry Bar -->
 <div class="flex items-center gap-space-xs overflow-x-auto pb-1 select-none no-scrollbar"><div class="px-3 py-1.5 rounded-full bg-surface-container-high text-primary font-label-md text-label-md tracking-wider uppercase whitespace-nowrap shadow-sm border border-outline-variant/40">ALL</div><div class="px-3 py-1.5 rounded-full bg-surface-container-low text-secondary font-label-md text-label-md tracking-wider uppercase whitespace-nowrap border border-transparent hover:border-outline-variant/30 transition-colors">GOALS</div><div class="px-3 py-1.5 rounded-full bg-surface-container-low text-secondary font-label-md text-label-md tracking-wider uppercase whitespace-nowrap border border-transparent hover:border-outline-variant/30 transition-colors">PENALTIES</div><div class="px-3 py-1.5 rounded-full bg-surface-container-low text-secondary font-label-md text-label-md tracking-wider uppercase whitespace-nowrap border border-transparent hover:border-outline-variant/30 transition-colors">CARDS</div><div class="px-3 py-1.5 rounded-full bg-surface-container-low text-secondary font-label-md text-label-md tracking-wider uppercase whitespace-nowrap border border-transparent hover:border-outline-variant/30 transition-colors">CHANCES</div></div>
 <!-- Moments Stream -->
-<div class="flex flex-col space-y-space-md">
+<div class="flex flex-col space-y-space-md" data-field="moments_list">
+<!-- Moment Card 2 -->
+<div class="flex flex-col bg-surface-container-low rounded-xl border border-surface-container-high/60 overflow-hidden shadow-md">
+<!-- Sleek Abstract Audio Graphic Header -->
+<div class="relative w-full h-32 bg-surface-container-lowest overflow-hidden flex flex-col justify-between p-3.5 border-b border-surface-container-high/50">
+<!-- Background Acoustic Soundwave Vectors -->
+<div class="absolute inset-0 flex items-center justify-between px-4 opacity-25 pointer-events-none">
+<div class="w-1 bg-secondary rounded-full h-4"></div>
+<div class="w-1 bg-secondary rounded-full h-8"></div>
+<div class="w-1 bg-primary/60 rounded-full h-14"></div>
+<div class="w-1 bg-primary/80 rounded-full h-22"></div>
+<div class="w-1 bg-primary rounded-full h-20"></div>
+<div class="w-1 bg-primary/70 rounded-full h-16"></div>
+<div class="w-1 bg-secondary rounded-full h-10"></div>
+<div class="w-1 bg-primary/80 rounded-full h-18"></div>
+<div class="w-1 bg-primary rounded-full h-24"></div>
+<div class="w-1 bg-primary/60 rounded-full h-12"></div>
+<div class="w-1 bg-secondary rounded-full h-6"></div>
+<div class="w-1 bg-secondary rounded-full h-4"></div>
+</div>
+<div class="relative z-10 flex items-center justify-between w-full">
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high/90 border border-outline-variant/30">
+<span class="material-symbols-outlined text-primary-container text-[14px]">trending_up</span>
+<span class="font-label-sm text-label-sm text-primary font-semibold tracking-wider uppercase" data-field="tag">GOAL</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary tracking-widest uppercase bg-surface-container/80 px-2 py-0.5 rounded"></span>
+</div>
+<div class="relative z-10 flex items-center justify-between">
+<span class="font-label-md text-label-md text-primary font-semibold tracking-widest uppercase" data-field="clock">2H · 51'</span>
+<span class="material-symbols-outlined text-secondary text-[18px]">podcasts</span>
+</div>
+</div>
+<!-- Card Body -->
+<div class="p-card-padding-md flex flex-col space-y-space-sm">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold leading-tight" data-field="title">Maradona's opener</h2>
+<p class="font-body-md text-body-md text-secondary pt-1" data-field="body">Maradona recovers Reid's error and scores from nine yards.</p>
+</div>
+<!-- Telemetry Scrubber Strip & Controls -->
+<div class="flex items-center gap-3 pt-2">
+<button aria-label="Play Maradona's opener narration" class="w-11 h-11 shrink-0 rounded-full bg-surface-container-highest text-primary hover:bg-primary-container hover:text-on-primary flex items-center justify-center shadow transition-colors active:scale-95" type="button">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+<div class="flex flex-col flex-1 space-y-1.5 min-w-0">
+<div class="flex items-center justify-between font-label-sm text-label-sm text-secondary">
+<span class="text-primary font-medium tracking-wider truncate">AI AUDIO NARRATION · PLAY DATA SYNC</span>
+<span class="tracking-widest shrink-0 ml-2"></span>
+</div>
+<div class="h-6 w-full flex items-end gap-1 px-1.5 py-1 rounded bg-surface-container-highest">
+<div class="w-1 bg-primary-container rounded-full h-1"></div>
+<div class="w-1 bg-primary-container rounded-full h-2"></div>
+<div class="w-1 bg-primary-container rounded-full h-3"></div>
+<div class="w-1 bg-primary-container rounded-full h-2"></div>
+<div class="w-1 bg-primary-container rounded-full h-4"></div>
+<div class="w-1 bg-primary-container rounded-full h-5"></div>
+<div class="w-1 bg-primary-container rounded-full h-6"></div>
+<div class="w-1 bg-primary-container rounded-full h-5"></div>
+<div class="w-1 bg-primary-container rounded-full h-4"></div>
+<div class="w-1 bg-primary-container rounded-full h-5"></div>
+<div class="w-1 bg-primary-container rounded-full h-6"></div>
+<div class="w-1 bg-primary-container rounded-full h-6"></div>
+<div class="w-1 bg-primary-container rounded-full h-5"></div>
+<div class="w-1 bg-primary-container rounded-full h-6"></div>
+<div class="w-1 bg-primary-container rounded-full h-6"></div>
+<div class="w-1 bg-primary-container rounded-full h-5"></div>
+<div class="w-1 bg-primary-container rounded-full h-4"></div>
+<div class="w-1 bg-secondary-container rounded-full h-1"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
 <!-- Moment Card 1 -->
 <div class="flex flex-col bg-surface-container-low rounded-xl border border-surface-container-high/60 overflow-hidden shadow-md">
 <!-- Sleek Abstract Audio Graphic Header -->
@@ -56,21 +128,21 @@
 <div class="relative z-10 flex items-center justify-between w-full">
 <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high/90 border border-outline-variant/30">
 <span class="material-symbols-outlined text-primary-container text-[14px]">graphic_eq</span>
-<span class="font-label-sm text-label-sm text-primary font-semibold tracking-wider uppercase">GOAL</span>
+<span class="font-label-sm text-label-sm text-primary font-semibold tracking-wider uppercase" data-field="tag">GOAL</span>
 </div>
 <span class="font-label-sm text-label-sm text-secondary tracking-widest uppercase bg-surface-container/80 px-2 py-0.5 rounded"></span>
 </div>
 <!-- Lower Tag Line -->
 <div class="relative z-10 flex items-center justify-between">
-<span class="font-label-md text-label-md text-primary font-semibold tracking-widest uppercase">2H · 55'</span>
+<span class="font-label-md text-label-md text-primary font-semibold tracking-widest uppercase" data-field="clock">2H · 55'</span>
 <span class="material-symbols-outlined text-secondary text-[18px]">podcasts</span>
 </div>
 </div>
 <!-- Play Content & Details -->
 <div class="p-card-padding-md flex flex-col space-y-space-sm">
 <div>
-<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold leading-tight">Maradona's solo goal</h2>
-<p class="font-body-md text-body-md text-secondary pt-1">Maradona's solo run from his own half, past four England players.</p>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold leading-tight" data-field="title">Maradona's solo goal</h2>
+<p class="font-body-md text-body-md text-secondary pt-1" data-field="body">Maradona's solo run from his own half, past four England players.</p>
 </div>
 <!-- Telemetry Scrubber Strip & Controls -->
 <div class="flex items-center gap-3 pt-2">
@@ -110,77 +182,6 @@
 </div>
 </div>
 </div>
-<!-- Moment Card 2 -->
-<div class="flex flex-col bg-surface-container-low rounded-xl border border-surface-container-high/60 overflow-hidden shadow-md">
-<!-- Sleek Abstract Audio Graphic Header -->
-<div class="relative w-full h-32 bg-surface-container-lowest overflow-hidden flex flex-col justify-between p-3.5 border-b border-surface-container-high/50">
-<!-- Background Acoustic Soundwave Vectors -->
-<div class="absolute inset-0 flex items-center justify-between px-4 opacity-25 pointer-events-none">
-<div class="w-1 bg-secondary rounded-full h-4"></div>
-<div class="w-1 bg-secondary rounded-full h-8"></div>
-<div class="w-1 bg-primary/60 rounded-full h-14"></div>
-<div class="w-1 bg-primary/80 rounded-full h-22"></div>
-<div class="w-1 bg-primary rounded-full h-20"></div>
-<div class="w-1 bg-primary/70 rounded-full h-16"></div>
-<div class="w-1 bg-secondary rounded-full h-10"></div>
-<div class="w-1 bg-primary/80 rounded-full h-18"></div>
-<div class="w-1 bg-primary rounded-full h-24"></div>
-<div class="w-1 bg-primary/60 rounded-full h-12"></div>
-<div class="w-1 bg-secondary rounded-full h-6"></div>
-<div class="w-1 bg-secondary rounded-full h-4"></div>
-</div>
-<div class="relative z-10 flex items-center justify-between w-full">
-<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high/90 border border-outline-variant/30">
-<span class="material-symbols-outlined text-primary-container text-[14px]">trending_up</span>
-<span class="font-label-sm text-label-sm text-primary font-semibold tracking-wider uppercase">GOAL</span>
-</div>
-<span class="font-label-sm text-label-sm text-secondary tracking-widest uppercase bg-surface-container/80 px-2 py-0.5 rounded"></span>
-</div>
-<div class="relative z-10 flex items-center justify-between">
-<span class="font-label-md text-label-md text-primary font-semibold tracking-widest uppercase">2H · 51'</span>
-<span class="material-symbols-outlined text-secondary text-[18px]">podcasts</span>
-</div>
-</div>
-<!-- Card Body -->
-<div class="p-card-padding-md flex flex-col space-y-space-sm">
-<div>
-<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold leading-tight">Maradona's opener</h2>
-<p class="font-body-md text-body-md text-secondary pt-1">Maradona recovers Reid's error and scores from nine yards.</p>
-</div>
-<!-- Telemetry Scrubber Strip & Controls -->
-<div class="flex items-center gap-3 pt-2">
-<button aria-label="Play Maradona's opener narration" class="w-11 h-11 shrink-0 rounded-full bg-surface-container-highest text-primary hover:bg-primary-container hover:text-on-primary flex items-center justify-center shadow transition-colors active:scale-95" type="button">
-<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
-</button>
-<div class="flex flex-col flex-1 space-y-1.5 min-w-0">
-<div class="flex items-center justify-between font-label-sm text-label-sm text-secondary">
-<span class="text-primary font-medium tracking-wider truncate">AI AUDIO NARRATION · PLAY DATA SYNC</span>
-<span class="tracking-widest shrink-0 ml-2"></span>
-</div>
-<div class="h-6 w-full flex items-end gap-1 px-1.5 py-1 rounded bg-surface-container-highest">
-<div class="w-1 bg-primary-container rounded-full h-1"></div>
-<div class="w-1 bg-primary-container rounded-full h-2"></div>
-<div class="w-1 bg-primary-container rounded-full h-3"></div>
-<div class="w-1 bg-primary-container rounded-full h-2"></div>
-<div class="w-1 bg-primary-container rounded-full h-4"></div>
-<div class="w-1 bg-primary-container rounded-full h-5"></div>
-<div class="w-1 bg-primary-container rounded-full h-6"></div>
-<div class="w-1 bg-primary-container rounded-full h-5"></div>
-<div class="w-1 bg-primary-container rounded-full h-4"></div>
-<div class="w-1 bg-primary-container rounded-full h-5"></div>
-<div class="w-1 bg-primary-container rounded-full h-6"></div>
-<div class="w-1 bg-primary-container rounded-full h-6"></div>
-<div class="w-1 bg-primary-container rounded-full h-5"></div>
-<div class="w-1 bg-primary-container rounded-full h-6"></div>
-<div class="w-1 bg-primary-container rounded-full h-6"></div>
-<div class="w-1 bg-primary-container rounded-full h-5"></div>
-<div class="w-1 bg-primary-container rounded-full h-4"></div>
-<div class="w-1 bg-secondary-container rounded-full h-1"></div>
-</div>
-</div>
-</div>
-</div>
-</div>
 <!-- Moment Card 3 -->
 <div class="flex flex-col bg-surface-container-low rounded-xl border border-surface-container-high/60 overflow-hidden shadow-md">
 <!-- Sleek Abstract Audio Graphic Header -->
@@ -202,20 +203,20 @@
 <div class="relative z-10 flex items-center justify-between w-full">
 <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high/90 border border-outline-variant/30">
 <span class="material-symbols-outlined text-primary-container text-[14px]">bolt</span>
-<span class="font-label-sm text-label-sm text-primary font-semibold tracking-wider uppercase">GOAL</span>
+<span class="font-label-sm text-label-sm text-primary font-semibold tracking-wider uppercase" data-field="tag">GOAL</span>
 </div>
 <span class="font-label-sm text-label-sm text-secondary tracking-widest uppercase bg-surface-container/80 px-2 py-0.5 rounded"></span>
 </div>
 <div class="relative z-10 flex items-center justify-between">
-<span class="font-label-md text-label-md text-primary font-semibold tracking-widest uppercase">2H · 81'</span>
+<span class="font-label-md text-label-md text-primary font-semibold tracking-widest uppercase" data-field="clock">2H · 81'</span>
 <span class="material-symbols-outlined text-secondary text-[18px]">podcasts</span>
 </div>
 </div>
 <!-- Card Body -->
 <div class="p-card-padding-md flex flex-col space-y-space-sm">
 <div>
-<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold leading-tight">Lineker pulls one back</h2>
-<p class="font-body-md text-body-md text-secondary pt-1">England's late header sets up a tense finish.</p>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold leading-tight" data-field="title">Lineker pulls one back</h2>
+<p class="font-body-md text-body-md text-secondary pt-1" data-field="body">England's late header sets up a tense finish.</p>
 </div>
 <!-- Telemetry Scrubber Strip & Controls -->
 <div class="flex items-center gap-3 pt-2">
