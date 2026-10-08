@@ -32,12 +32,12 @@ Each row pairs a judging criterion with something a reader can actually run and
 watch succeed. Rows stay empty until the code that proves them exists; an
 entry is earned by a command, not by a description.
 
-| Judging criterion (5 points each) | Runnable evidence |
-| --------------------------------- | ----------------- |
-| Completeness and feasibility      |                   |
-| Creativity and innovation         |                   |
-| Design and usability              |                   |
-| Effectiveness and efficiency      |                   |
+| Judging criterion            | Runnable evidence |
+| ---------------------------- | ----------------- |
+| Completeness and feasibility |                   |
+| Creativity and innovation    |                   |
+| Design and usability         |                   |
+| Effectiveness and efficiency |                   |
 
 ## Capability honesty
 
