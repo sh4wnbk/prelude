@@ -1,0 +1,6 @@
+# Files that must never be read into a session or included in an export to
+# bob_sessions/. See bob_sessions/README.md.
+#
+# .env holds live credentials. Never open, print, or edit it; use .env.example
+# for the variable names.
+.env

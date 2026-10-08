@@ -163,18 +163,23 @@ From `docs/DESIGN.md`, all verified against the markup:
 - **`scripts/scan_copy.py` was not requested.** The exit condition was a scan
   result, and a one-off grep is not evidence anyone else can reproduce, so the
   scan is a committed script that exits non-zero on a hit.
-- **The screens were never rendered.** No browser or screenshot tooling is
-  available in this session, so "logo visible in both places" is verified
-  structurally: the `<img>` is present in both footers, the `src` resolves to a
-  real file from each screen's directory, the copy is hash-identical to the
-  source, and the rendered sizes compute to 105 by 16 px on the picker and 79
-  by 12 px on Moments. Nobody has looked at the pages.
-- **Two placeholders on the moment card were left in place**, because the
-  instructions scoped those fixes to the Moments screen:
-  `prelude_03_moment_card.html:44` still reads `0:47 / 1:00` with the script
-  capping at 60 seconds, which still encodes the 60-second framing; and the play
-  button at `prelude_03_moment_card.html:34` keeps the generic aria-label
-  `Play Narration` while the three Moments buttons are descriptive.
+- **The screens were rendered during review, in Edge rather than Chrome.**
+  Chrome is not installed on this machine; Edge is the same Blink engine, driven
+  headless with `--screenshot`. Both credit rows were confirmed by eye: the
+  reversed logo reads correctly as orange and white on the dark surface, beside
+  "Powered by StatsBomb play-by-play data" on the picker and "Data: StatsBomb"
+  on Moments. That render is also what surfaced the credit truncation and the
+  horizontal overflow noted above.
+- **The moment-card timer was cleared in review** (`c7934d6`). The display and
+  the 60-second cap in the script are both gone, and `#timerReadout` stays in
+  place and empty for Phase 5. The play button at
+  `prelude_03_moment_card.html:34` still keeps the generic aria-label
+  `Play Narration` while the three Moments buttons are descriptive; that was
+  not part of the three labels specified and remains open.
+- **`truncate` was dropped from the picker credit** (`c7934d6`). Rendering
+  showed the logo squeezing the attribution to "play-by-play da...", which is
+  not an intact credit. The text now wraps to two lines and reads in full. This
+  changed an existing class rather than only copy.
 - **Three claims in `DESIGN.md` were wrong on the first pass** and were
   corrected before commit by verification rather than shipped: the Material
   Symbol count, an omission in the unused spacing list, and a claim that
@@ -192,22 +197,50 @@ The EventFeed and moment-detection module is reserved for IBM Bob. Per
 `CLAUDE.md` it must not be implemented in this repo by anyone else, not even as
 a stub that grows or a helper that does the same job under another name.
 
-**Blocker: `docs/bob_brief.md` does not exist.** It is not in the working tree
-and not in any commit, so there is currently nothing for Bob to build against.
-Writing it is the real first action, and it has to come from whoever owns the
-interface, not be invented here. Until it exists, Phase 3 cannot start as
-stated.
+Everything Bob needs is in the repo:
 
-**What the brief needs to pin down**, based on what the rest of the system
-already assumes:
+| What | Where |
+| ---- | ----- |
+| The brief | `docs/bob_brief.md` |
+| The contract | `app/event_feed.py`, shapes and protocol, no implementation |
+| The tests | `tests/test_event_feed.py`, 14 tests, all failing |
+| What to build | `app/statsbomb_event_feed.py`, class `StatsBombEventFeed` |
 
-- The shape of a moment as the module emits it, since every downstream caller
-  reads that shape.
-- How a moment refers back to the event data, because "Verified from play data"
-  is a claim that each narration line traces to a specific event in
-  `data/raw/`.
-- Which of the three real inputs the module consumes. The system has exactly
-  three: play data, GPS presence, and audio narration.
+All 14 tests fail with one message, that
+`app/statsbomb_event_feed.py` does not exist. Nothing else in the suite is
+broken. Run them with
+`.\.venv-prelude\Scripts\python.exe -m pytest`.
+
+**Session exports go in `bob_sessions/`,** one per task, committed rather than
+ignored, and scrubbed of credentials before each commit. See
+`bob_sessions/README.md` and `.bobignore`.
 
 **Before starting:** run `scripts/fetch_statsbomb.py`, since `data/raw/` is
 gitignored and absent from a fresh clone.
+
+### Settled during the Phase 2 review
+
+- **2022 defining moments are periods 1 to 4 only.** A shootout has no buildup
+  to narrate, so excluding it is the right default.
+- **`Moment` carries no period field.** Accepted as it stands. Bob can add one
+  later, with the tests, if the module needs it.
+
+## Phase 5 backlog
+
+Items found during Phase 2 that belong with the wiring, not before it:
+
+- **Keyboard focus states.** `docs/DESIGN.md` records that focus is defined only
+  on the picker's text inputs. Every button in the system has no focus style,
+  and the toggle at `prelude_04_moments.html:263` sets `focus:outline-none` with
+  no replacement, so it has no visible keyboard focus. This is a real
+  accessibility gap and a cheap win on the design and usability axis.
+- **Horizontal overflow.** All four screens render wider than a phone viewport.
+  At a 390 px window the header pill, the primary buttons, and the bottom nav
+  label are all clipped at the right edge. Confirmed by rendering the picker
+  with and without the StatsBomb logo: the clipping is identical, so it predates
+  that change and is a property of the screens themselves. No breakpoint
+  utilities are used anywhere, so there is no responsive behaviour to fall back
+  on.
+- **The empty placeholders.** The Moments meta badges, the three Moments player
+  timers, and the moment card's `#timerReadout` are all present and empty,
+  waiting for real values from the fixture.
