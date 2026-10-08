@@ -72,9 +72,15 @@ def squeeze(s):
 
 
 def block_anchors(block):
-    """The backticked strings in a block that could identify an element."""
+    """The backticked strings in a block that could identify an element.
+
+    A span containing an ellipsis is an explicit elision, never a verbatim
+    quote, so it is not an anchor.
+    """
     return [s for s in CODE_SPAN.findall(block)
-            if len(squeeze(s)) >= MIN_ANCHOR and not re.fullmatch(r"0[1-4]", s.strip())]
+            if len(squeeze(s)) >= MIN_ANCHOR
+            and "..." not in s
+            and not re.fullmatch(r"0[1-4]", s.strip())]
 
 
 def design_blocks(doc):
@@ -104,6 +110,15 @@ def check_design_citations(fail):
         if not anchors:
             unanchored += len(cites)
             continue
+        # Every anchor must be in at least one screen the block cites. Without
+        # this a renamed class slips through whenever a sibling anchor in the
+        # same block still matches.
+        for a in anchors:
+            if not any(squeeze(a) in text[key] for key in cites):
+                fail("DESIGN.md",
+                     f"quotes {a.strip()[:70]!r} beside {', '.join(cites)}, but it is in "
+                     "none of them")
+        # And every cited screen must carry at least one of them.
         for key in cites:
             if any(squeeze(a) in text[key] for a in anchors):
                 anchored += 1

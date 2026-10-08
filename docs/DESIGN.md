@@ -25,7 +25,7 @@ breakpoints, or components the screens do not have.
 
 | Property | Value | Source |
 | -------- | ----- | ------ |
-| Mode | dark only, `darkMode: "class"`, `<html class="dark">` | `03` |
+| Mode | dark only, `darkMode: "class"`, `<html class="dark"` | `03` |
 | Page background | `#101319`, set on `html,body` in `@layer base` | `03` |
 | Viewport | `width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover` | all four, line 1 |
 | Body min height | `max(884px, 100dvh)` | `01`, `03`, `04` |
@@ -213,10 +213,10 @@ Borders are always a surface token at 20 to 60 percent opacity, never a solid li
 
 | Role | Spec | Source |
 | ---- | ---- | ------ |
-| Primary CTA | `w-full h-touch-target-min rounded-full bg-primary-container text-on-primary-container font-label-lg uppercase tracking-wider font-bold`, `active:scale-[0.99]` | `01` |
-| Primary play | `w-14 h-14 rounded-full bg-primary-container text-on-primary shadow-lg shadow-primary-container/20`, `hover:scale-105 active:scale-95` | `03` |
-| Secondary play, active | `w-11 h-11 rounded-full bg-primary-container text-on-primary shadow-lg`, `active:scale-95` | `04` |
-| Secondary play, idle | `w-11 h-11 rounded-full bg-surface-container-highest text-primary`, `hover:bg-primary-container hover:text-on-primary` | `04` |
+| Primary CTA | `w-full h-touch-target-min rounded-full bg-primary-container text-on-primary-container font-label-lg text-label-lg font-bold`, `active:scale-[0.99]` | `01` |
+| Primary play | `w-14 h-14 rounded-full bg-primary-container text-on-primary` with `shadow-lg shadow-primary-container/20`, `hover:scale-105 active:scale-95` | `03` |
+| Secondary play, active | `w-11 h-11 shrink-0 rounded-full bg-primary-container text-on-primary`, `active:scale-95` | `04` |
+| Secondary play, idle | `w-11 h-11 shrink-0 rounded-full bg-surface-container-highest text-primary`, `hover:bg-primary-container hover:text-on-primary` | `04` |
 | Tertiary action | `h-16 rounded-xl bg-surface-container hover:bg-surface-container-high`, `active:scale-98`, icon over `label-sm` caption | `03` |
 
 Press feedback is a scale transform in every case: 0.99, 0.95 or 0.98. The
@@ -261,9 +261,9 @@ a `placeholder` and has no associated `<label>` element.
 
 ### Toggle switch
 
-`h-6 w-11 rounded-full border-2 border-transparent bg-primary-container` with
+`h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-primary-container` with
 `role="switch"`, `aria-checked="true"`, `aria-label`, and an `sr-only` caption.
-The knob is `h-5 w-5 rounded-full bg-on-primary translate-x-5`, moved by
+The knob is `translate-x-5 inline-block h-5 w-5 transform rounded-full bg-on-primary`, moved by
 `transition duration-200 ease-in-out`. `04`. Only the checked
 appearance exists; the unchecked colors are not defined anywhere.
 
@@ -273,7 +273,7 @@ Text credit plus the reversed Hudl StatsBomb logo:
 
 - Picker: `Powered by StatsBomb play-by-play data` in `body-md text-secondary`,
   logo at `h-4 w-auto ml-auto` (105px by 16px). `01`.
-- Moments: `Data: StatsBomb` in `label-sm text-secondary uppercase`, logo at
+- Moments: `Data: StatsBomb` in `text-label-sm text-secondary tracking-wider uppercase`, logo at
   `h-3 w-auto` (79px by 12px). `04`.
 
 Both sit on a `bg-surface-container-lowest` panel with a
