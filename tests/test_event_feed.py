@@ -23,7 +23,7 @@ from pathlib import Path
 
 import pytest
 
-from app.event_feed import EventFeed, EventWindow, Moment
+from app.event_feed import EventFeed, EventWindow
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw"
@@ -49,6 +49,11 @@ GOALS_1986 = [
 LAST_MATCH_PERIOD = 4
 
 
+# The module Bob builds. Named once so the checks and the messages below cannot
+# drift apart.
+IMPL_MODULE = "app.statsbomb_event_feed"
+
+
 def make_feed() -> EventFeed:
     """The implementation under test.
 
@@ -58,11 +63,21 @@ def make_feed() -> EventFeed:
     """
     try:
         from app.statsbomb_event_feed import StatsBombEventFeed
+    except ModuleNotFoundError as exc:
+        if exc.name != IMPL_MODULE:
+            # The module exists but one of ITS imports is missing. That is a
+            # broken implementation, not an absent one, so let it surface with
+            # a real traceback rather than be reported as "not built yet".
+            raise
+        pytest.fail(
+            f"No EventFeed implementation yet: {IMPL_MODULE} does not exist. "
+            "This is the expected failure until Bob builds the module; "
+            "see docs/bob_brief.md."
+        )
     except ImportError as exc:
         pytest.fail(
-            "No EventFeed implementation yet: app/statsbomb_event_feed.py does "
-            f"not provide StatsBombEventFeed ({exc}). This is the expected "
-            "failure until Bob builds the module; see docs/bob_brief.md."
+            f"{IMPL_MODULE} exists but does not provide StatsBombEventFeed "
+            f"({exc})."
         )
     return StatsBombEventFeed()
 
