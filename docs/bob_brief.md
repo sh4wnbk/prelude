@@ -175,21 +175,39 @@ These come from `CLAUDE.md`, which applies to the whole repo.
 reviewable afterwards and the reasoning behind a detection rule is not lost with
 the session.
 
-`bob_sessions/` is not in the repo yet and is not in `.gitignore`. Decide with
-the repo owner whether exports are committed or ignored before you push the
-first one, since that choice is hard to reverse once they are in history.
+`bob_sessions/` is in the repo and the policy is settled: **exports are
+committed, not ignored**, and each one is scrubbed of credentials before it is
+committed. `bob_sessions/README.md` carries the scrub list and the file naming.
+`.bobignore` lists what must never be read into a session or appear in an
+export, starting with `.env`.
 
-## Open questions
+## Defaults and stop conditions
 
-Worth settling before or while you build, rather than guessing:
+The interface leaves some things open. Each one below has a default. Apply the
+default rather than guessing, and do not invent an alternative. Where a task
+cannot be done under the default, stop and report the collision instead of
+deciding unilaterally.
 
-- Should `Moment` carry `period`? Without it the shootout exclusion cannot be
-  expressed by a caller. See above.
-- Are goals the only defining moments? The interface says "defining moments" and
-  the tests only cover goals. Red cards, penalties awarded, and near misses are
-  plausible and unspecified.
-- What should `event_window` do at the start of a period, when the requested span
-  runs past the first event? The tests require only that returned events sit
-  within the span, so a short window passes; they do not pin down the behaviour.
-- Where does GPS presence enter, if at all? It is one of the three real inputs
-  but appears nowhere in this interface.
+**`Moment` carries no `period` field.** Default: leave it that way. Excluding
+the shootout is therefore a rule the implementation applies, not something a
+caller filters afterwards. Adding `period` is allowed if the module genuinely
+needs it, but change `app/event_feed.py` and `tests/test_event_feed.py` in the
+same commit, so the contract and its tests never disagree.
+
+**Goals are the only defining moments.** Default: `defining_moments` returns
+Goal-outcome shots from periods 1 to 4 and nothing else. Red cards, penalties
+awarded and near misses are plausible kinds, but they are unspecified and
+`Moment.type` has no agreed vocabulary beyond `"Goal"`. **Stop and report** if a
+task requires a kind other than a goal. Do not invent type names: downstream
+copy keys off them.
+
+**A short window at the start of a period is correct.** Default: when
+`seconds_before` reaches back past the first event of the period, return what
+exists and truncate there. Do not pad the window, and do not cross a period
+boundary to fill it. `EventWindow.seconds_before` still reports the span that
+was requested rather than the span covered, which is what the contract says.
+
+**GPS presence does not enter this interface.** Default: `EventFeed` reads play
+data only. Do not add a GPS parameter, a fourth input, or a stand-in for one.
+**Stop and report** if a task appears to require GPS presence inside this
+module.
