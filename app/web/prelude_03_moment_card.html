@@ -41,7 +41,7 @@
 <span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
 <span class="font-label-sm text-label-sm text-on-surface font-medium uppercase tracking-wider">AI AUDIO NARRATION</span>
 </div>
-<span class="font-label-md text-label-md text-primary-container font-semibold tracking-wider font-label-sm" id="timerReadout">0:47 / 1:00</span>
+<span class="font-label-md text-label-md text-primary-container font-semibold tracking-wider font-label-sm" id="timerReadout"></span>
 </div>
 <!-- Dynamic Audio Waveform Track -->
 <div class="relative w-full h-10 flex items-center cursor-pointer select-none bg-surface-container-lowest/60 rounded-lg px-2.5" id="scrubTrack">
@@ -116,36 +116,17 @@
     const shareAction = document.getElementById('shareAction');
 
     let isPlaying = false;
-    let seconds = 47;
-    let timer = null;
 
+    // No clock here. #timerReadout stays empty until Phase 5 wires the real
+    // runtime from the fixture; there is no fixed duration to count against.
     function togglePlay() {
       isPlaying = !isPlaying;
-      if (isPlaying) {
-        playIcon.textContent = 'pause';
-        timer = setInterval(() => {
-          if (seconds < 60) {
-            seconds++;
-            const secStr = seconds < 10 ? '0' + seconds : seconds;
-            timerReadout.textContent = '0:' + secStr + ' / 1:00';
-          } else {
-            clearInterval(timer);
-            isPlaying = false;
-            playIcon.textContent = 'replay';
-          }
-        }, 1000);
-      } else {
-        playIcon.textContent = 'play_arrow';
-        if (timer) clearInterval(timer);
-      }
+      playIcon.textContent = isPlaying ? 'pause' : 'play_arrow';
     }
 
     playBtn?.addEventListener('click', togglePlay);
 
     replayAction?.addEventListener('click', () => {
-      seconds = Math.max(0, seconds - 10);
-      const secStr = seconds < 10 ? '0' + seconds : seconds;
-      timerReadout.textContent = '0:' + secStr + ' / 1:00';
       if (!isPlaying) {
         togglePlay();
       }
