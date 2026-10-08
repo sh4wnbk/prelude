@@ -2,3 +2,5 @@
 .env
 __pycache__/
 *.pyc
+voice_test/
+data/raw/
