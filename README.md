@@ -2,7 +2,7 @@
 
 Prelude narrates a football moment in audio, saying only what the play data can prove.
 
-> **Status: skeleton.** This README is structure first — the sections below are
+> **Status: skeleton.** This README is structure first. The sections below are
 > headings awaiting the code that fills them, and the evidence column is
 > deliberately empty. What actually runs today is listed under
 > [Capability honesty](#capability-honesty), and nothing else here should be read
@@ -46,9 +46,9 @@ Everything above it is structure.
 
 **Runs today:**
 
-- `scripts/fetch_statsbomb.py` — downloads the StatsBomb open-data files the
+- `scripts/fetch_statsbomb.py`: downloads the StatsBomb open-data files the
   project uses into `data/raw/` (gitignored, reproducible).
-- `scripts/data_check.py` — reads the 1986 Argentina vs England event feed,
+- `scripts/data_check.py`: reads the 1986 Argentina vs England event feed,
   lists every goal and the shot counts per team, and writes
   [`docs/data_check.md`](docs/data_check.md) from that output.
 

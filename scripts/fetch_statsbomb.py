@@ -2,9 +2,9 @@
 
 Fetches two matches and their event feeds:
 
-  * 1986 World Cup, Argentina vs England (quarter-final) -- the match id is
+  * 1986 World Cup, Argentina vs England (quarter-final). The match id is
     pinned, since that is the game the project is built around.
-  * 2022 World Cup final -- resolved at runtime by reading the competition
+  * 2022 World Cup final, resolved at runtime by reading the competition
     and match indexes, so no remembered id is baked in here.
 
 Raw data is gitignored; re-run this script instead of committing it.
@@ -59,6 +59,11 @@ def find_final(matches):
 
 
 def main():
+    # Create the destination up front so the directory exists even if the first
+    # download fails; a fresh clone has no data/raw/, since it is gitignored.
+    DATA_RAW.mkdir(parents=True, exist_ok=True)
+    print(f"data dir  {DATA_RAW}")
+
     competitions = fetch("competitions.json")
 
     # 1986: Argentina vs England, pinned.

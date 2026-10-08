@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Working rules for this repo. These are constraints, not suggestions — prefer
+Working rules for this repo. These are constraints, not suggestions. Prefer
 stopping and asking over working around one.
 
 ## Environment
@@ -15,8 +15,8 @@ stopping and asking over working around one.
 
 The system has exactly three real inputs:
 
-1. **Play data** — StatsBomb open event data.
-2. **GPS presence** — whether GPS tracking exists for a given match.
+1. **Play data**: StatsBomb open event data.
+2. **GPS presence**: whether GPS tracking exists for a given match.
 3. **Audio narration.**
 
 Do not invent a fourth. If something seems to need another input, say so and
@@ -26,7 +26,7 @@ substitute.
 ## Grounding: "Verified from play data"
 
 The phrase **"Verified from play data"** may appear only over narration whose
-claims trace back to the event data — a specific event, player, team, or clock
+claims trace back to the event data: a specific event, player, team, or clock
 value that can be pointed at in `data/raw/`. If any part of a line is inferred,
 embellished, or recalled rather than read, that line does not get the label.
 There is no partial credit and no softened variant of the phrase.
@@ -43,7 +43,7 @@ as a judgement the data did not make.
 
 Do not open, read, print, echo, copy, edit, or commit `.env`. Not to check a
 key's format, not to debug, not to confirm a variable exists. `.env.example`
-lists the variable names — use that. If a credential appears to be missing or
+lists the variable names; use that. If a credential appears to be missing or
 wrong, report the symptom and let the user inspect `.env` themselves.
 
 ## Reserved: EventFeed and moment detection
@@ -57,14 +57,22 @@ collision instead of building it.
 
 ## Docs describe only code that exists
 
-Every document in this repo — `README.md`, `HANDOFF.md`, anything in `docs/` —
+Every document in this repo (`README.md`, `HANDOFF.md`, anything in `docs/`)
 describes only code that is present and runnable at that commit. No aspirational
 features in the present tense, no capabilities that a reader could not exercise.
 Planned work is labelled as planned, or left out. When code is removed, the docs
 that describe it are updated in the same commit.
 
+## No em dashes
+
+No em dashes in any doc or UI copy. Use a colon, a semicolon, parentheses, or
+two sentences instead. This covers generated copy too: text assembled in a
+script and written to `docs/` is doc copy and follows the same rule. A literal
+`--` standing in for a dash is the same construction and is also out; `--` is
+fine only inside a command-line flag.
+
 ## Reporting
 
-Report executed evidence — the command run and its real output — not a claim
-that something works. Values in docs come from program output, not from memory
+Report executed evidence, meaning the command run and its real output, not a
+claim that something works. Values in docs come from program output, not from memory
 or hand-editing. Don't guess IDs, counts, or names; read them from the data.

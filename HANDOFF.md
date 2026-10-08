@@ -5,10 +5,10 @@ that ran; see `docs/data_check.md` for the generated report.
 
 ## What was built
 
-**Scaffold** (`d11f686`) — `app/`, `scripts/`, `tests/`, `docs/`, and
+**Scaffold** (`d11f686`): `app/`, `scripts/`, `tests/`, `docs/`, and
 `data/raw/`. `data/raw/` is gitignored; raw StatsBomb data is never committed.
 
-**`scripts/fetch_statsbomb.py`** (`17795e9`) — downloads from
+**`scripts/fetch_statsbomb.py`** (`17795e9`): downloads from
 `github.com/hudl/open-data` into `data/raw/`:
 
 | File | Size |
@@ -20,14 +20,14 @@ that ran; see `docs/data_check.md` for the generated report.
 | `events/3869685.json` (2022 final) | 3,757,121 bytes |
 
 The 2022 season id (`106`) and the final's match id (`3869685`, Argentina vs
-France, 2022-12-18) are resolved at runtime — season by `season_name == "2022"`
+France, 2022-12-18) are resolved at runtime: season by `season_name == "2022"`
 in `competitions.json`, match by `competition_stage.name == "Final"`, failing
 hard unless exactly one match matches. Nothing is hardcoded from memory.
 
-**`scripts/data_check.py`** (`bdb83e7`) — reads `events/3750191.json`, lists
+**`scripts/data_check.py`** (`bdb83e7`): reads `events/3750191.json`, lists
 goals and shots per team, and generates `docs/data_check.md`.
 
-**Docs** (this commit) — `CLAUDE.md`, `README.md` skeleton, this file.
+**Docs** (`ae582d2`, `f59e135`): `CLAUDE.md`, `README.md` skeleton, this file.
 
 ## Data-check findings
 
@@ -45,7 +45,7 @@ StatsBomb's `minute` floors the match clock, so `50:27` is the 51st minute as a
 broadcast would caption it. The three goals reconcile with the `2-1` scoreline
 in the match index, which is an independent file.
 
-**Shots: 27 total — Argentina 15, England 12.**
+**Shots: 27 total. Argentina 15, England 12.**
 
 **The 13-of-15 claim does not hold.** Both halves are wrong: Argentina took 15
 shots, not 13, and the match total is 27, not 15. Argentina's share is 15/27
@@ -60,8 +60,8 @@ use 15-of-27, and a line built on "13 of 15" could not carry
 
 - **`.gitkeep` files.** Git cannot track empty directories, so `app/`,
   `scripts/`, `tests/`, and `docs/` each got a `.gitkeep`. `data/raw/`
-  deliberately did not — it is ignored, so a placeholder there would be ignored
-  too. A fresh clone has no `data/raw/`; `fetch_statsbomb.py` creates it.
+  deliberately did not, since it is ignored and a placeholder there would be
+  ignored too. A fresh clone has no `data/raw/`; `fetch_statsbomb.py` creates it.
 - **`competitions.json` was also downloaded.** Not in the task list, but
   resolving the 2022 season id without it would have meant hardcoding the id.
 - **`.gitignore` carried a pre-existing uncommitted line.** `voice_test/` was
@@ -80,7 +80,7 @@ Phase 2's scope was not specified to me, so treat this as a recommendation
 rather than a decision already made.
 
 **Recommended first action:** build the grounding layer that sits *downstream*
-of the EventFeed — a function that takes a match id and an event index and
+of the EventFeed: a function that takes a match id and an event index and
 returns the set of facts that are verifiable from the play data for that moment
 (player, team, clock, event type, and the related events around it). That is the
 thing "Verified from play data" is a claim about, and it is the largest piece
