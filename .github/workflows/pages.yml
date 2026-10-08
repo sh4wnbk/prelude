@@ -1,0 +1,56 @@
+# Publishes the screens to GitHub Pages.
+#
+# Only app/web/ is uploaded: the four screens, index.html, phone-frame.css and
+# the StatsBomb logo. Nothing else in the repo reaches the site. Raw StatsBomb
+# data cannot be published from here even by accident, because data/raw/ is
+# gitignored and so is never in the checkout this job sees.
+
+name: Deploy screens to Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/web/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time, and never cancel one in flight.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Fail if raw data is somehow tracked
+        run: |
+          if git ls-files --error-unmatch data/raw >/dev/null 2>&1; then
+            echo "data/raw is tracked; refusing to publish." >&2
+            exit 1
+          fi
+          echo "data/raw is not tracked, as expected."
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload app/web only
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: app/web
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
