@@ -132,6 +132,45 @@ def check_referenced_paths(fail):
     print(f"  paths: {checked} references checked")
 
 
+QUOTED_SCREEN_COPY = re.compile(
+    r"\"([^\"]{10,})\"\s*\(((?:`(?:0[1-4]:\d+|removed)`(?:,\s*)?)+)\)"
+)
+CITATION = re.compile(r"`(0[1-4]):(\d+)`|`(removed)`")
+
+
+def check_quoted_screen_copy(fail):
+    """HANDOFF quotes screen copy and cites where it lives.
+
+    A quote followed by `NN:MMM` must appear on that line of that screen. A
+    quote followed by `removed` must appear on no screen at all, which keeps
+    "we took this out" claims honest. Quotes with no citation are prose and are
+    not checked, so commit messages and rule text can be quoted freely.
+    """
+    doc = (ROOT / "HANDOFF.md").read_text(encoding="utf-8")
+    flat = " ".join(doc.split())
+    screens = {k: " ".join(v.read_text(encoding="utf-8").split()) for k, v in SCREENS.items()}
+    lines = {k: v.read_text(encoding="utf-8").splitlines() for k, v in SCREENS.items()}
+
+    found = 0
+    for quote, cites in QUOTED_SCREEN_COPY.findall(flat):
+        wanted = " ".join(quote.split())
+        for key, number, removed in CITATION.findall(cites):
+            found += 1
+            if removed:
+                hit = [k for k, text in screens.items() if wanted in text]
+                if hit:
+                    fail("HANDOFF.md", f"{wanted[:50]!r} is marked removed but is still on {', '.join(hit)}")
+            else:
+                n = int(number)
+                if n > len(lines[key]):
+                    fail("HANDOFF.md", f"cites {key}:{n} but that screen has {len(lines[key])} lines")
+                elif wanted not in " ".join(lines[key][n - 1].split()):
+                    fail("HANDOFF.md", f"{wanted[:50]!r} is not on {key}:{n}")
+    if not found:
+        fail("HANDOFF.md", "no cited screen copy found; has the convention changed?")
+    print(f"  HANDOFF.md: {found} cited screen quotes checked")
+
+
 def check_no_em_dashes(fail):
     """CLAUDE.md bans em dashes in docs. Scripts are exempt; they may hold one
     as a search pattern."""
@@ -155,6 +194,7 @@ def main():
         check_quoted_failure,
         check_test_count,
         check_referenced_paths,
+        check_quoted_screen_copy,
         check_no_em_dashes,
     ):
         check(fail)

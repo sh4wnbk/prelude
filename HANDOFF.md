@@ -118,15 +118,15 @@ Two card bodies were tested against `shot.body_part.name`:
 
 - **50:27 Maradona** records `Other`, with `technique: Normal`, `type: Open
   Play`, `xg: 0.379`, location `[110.8, 40.1]`. Nothing in the feed records an
-  aerial duel, so "Maradona rises with Shilton and the ball is in" was not
-  supported and was rewritten. The surrounding events do support a replacement:
+  aerial duel, so "Maradona rises with Shilton and the ball is in" (`removed`)
+  was not supported and was rewritten. The surrounding events do support a replacement:
   Peter Reid has both a `Clearance` and an `Error` at 50:26, then Maradona has
   `Ball Recovery`, `Carry` and `Shot` at 50:27. The body now reads "Maradona
-  recovers Reid's error and scores from nine yards." Nine yards is
+  recovers Reid's error and scores from nine yards." (`04:147`) Nine yards is
   `120 - 110.8` on StatsBomb's 120-yard pitch. A trailing "the body part is
   recorded as Other" was cut in review as a data note rather than card copy.
 - **80:37 Lineker** records `Head` at minute 80, so "England's late header sets
-  up a tense finish" is supported on both counts and was left alone.
+  up a tense finish" (`04:217`) is supported on both counts and was left alone.
 
 ### Hero copy checked against possession 117
 
@@ -150,18 +150,19 @@ is 60 on a 120-yard pitch, so the run starts inside his own half. The shot is at
 
 Three claims did not survive that:
 
-- **"past five England players" was one too many.** Four players are recorded as
-  dribbled past. The likely fifth is Peter Reid, who has a `Pressure` event at
-  54:08 but no `Dribbled Past`, so the feed does not record him as beaten.
+- **"past five England players" (`removed`) was one too many.** Four are
+  recorded as dribbled past. The likely fifth is Peter Reid, who has a
+  `Pressure` event at 54:08 but no `Dribbled Past`, so the feed does not record
+  him as beaten.
 - **"60-yard" was a rounded figure.** The run spans 58.2 yards. The copy now
   says "from his own half", which is what `x = 55.2` supports.
-- **"turns away from two, still going" has nothing behind it** in the feed and
-  was cut.
+- **"turns away from two, still going" (`removed`) has nothing behind it** in
+  the feed and was cut.
 
 The hero line on both screens now reads "Maradona's solo run from his own half,
-past four England players", and the quote names all four in feed order:
-"«...Maradona, inside his own half, past Beardsley, past Butcher, past Fenwick,
-rounds Shilton, and finishes.»"
+past four England players" (`03:28`, `04:72`), and the quote names all four in
+feed order: "«...Maradona, inside his own half, past Beardsley, past Butcher,
+past Fenwick, rounds Shilton, and finishes.»" (`03:85`)
 
 ### Design tokens worth carrying forward
 
