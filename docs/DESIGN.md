@@ -100,7 +100,7 @@ Three families, loaded from Google Fonts at `03:1`:
 
 Material Symbols Outlined is loaded with axes `wght,FILL@100..700,0..1` (`03:1`)
 and used in 52 places across the four screens. Icons that read as filled set
-`font-variation-settings: 'FILL' 1` inline, for example `03:35` and `03:88`.
+`font-variation-settings: 'FILL' 1` inline, for example `03:36` and `03:89`.
 
 ### Scale
 
@@ -124,7 +124,7 @@ tightening as text gets larger and opening as it gets smaller. Labels are
 monospace, uppercase in use, and carry the widest tracking.
 
 Each `fontSize` token has a `fontFamily` token of the same name, so a text
-element carries both, for example `font-label-sm text-label-sm` at `03:88`.
+element carries both, for example `font-label-sm text-label-sm` at `03:89`.
 
 ## Spacing
 
@@ -158,11 +158,11 @@ Every screen is a fixed header, a scrolling `main`, and a fixed bottom nav.
 
 - **Header**: `fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl
   shadow-[0_1px_8px_rgba(0,0,0,0.35)]`, inner row `h-16 px-screen-edge-mobile`.
-  `01:7`, `02:2`, `03:6`, `04:7`.
+  `01:8`, `02:3`, `03:7`, `04:8`.
 - **Bottom nav**: `fixed bottom-0 w-full z-50 pb-safe bg-surface/90
   backdrop-blur-xl shadow-[0_-1px_12px_rgba(0,0,0,0.4)]`, inner row `h-16`.
-  `01:100`, `02:131`, `03:159`, `04:270`.
-- **Main**: `pt-16 pb-24` clears both bars. `03:6`, `04:7`.
+  `01:101`, `02:132`, `03:160`, `04:271`.
+- **Main**: `pt-16 pb-24` clears both bars. `03:7`, `04:8`.
 - **Nav items**: three per screen (`LIVE`, `MOMENTS`, `PROFILE`), each
   `min-w-[44px] min-h-[44px]`, active item `text-primary-container` with
   `aria-current="page"`, inactive `text-on-surface-variant`. Same four lines.
@@ -173,7 +173,7 @@ The header is translucent at 85% and the nav at 90%, both over `backdrop-blur-xl
 
 `rounded-full bg-surface-container-high/80 backdrop-blur-md` with a
 `w-1.5 h-1.5 rounded-full bg-primary-container pulse-live` dot and a `label-sm`
-uppercase caption. Present in all four headers: `01:7`, `02:2`, `03:6`, `04:7`.
+uppercase caption. Present in all four headers: `01:8`, `02:3`, `03:7`, `04:8`.
 
 ### Pulse animation
 
@@ -183,8 +183,8 @@ uppercase caption. Present in all four headers: `01:7`, `02:2`, `03:6`, `04:7`.
 .pulse-live { animation: pulse-amber 2s cubic-bezier(0.4,0,0.6,1) infinite; }
 ```
 
-Defined at `03:1`, applied at 11 sites including `01:9`, `01:21`, `02:63`,
-`03:14`. It is the only animation in the system; everything else is a CSS
+Defined at `03:1`, applied at 11 sites including `01:10`, `01:22`, `02:64`,
+`03:15`. It is the only animation in the system; everything else is a CSS
 transition.
 
 ### Card
@@ -193,11 +193,11 @@ transition.
 border at low opacity and a shadow:
 
 - `rounded-xl bg-surface-container ... border border-surface-container-highest/30
-  shadow-xl` at `03:19`.
+  shadow-xl` at `03:20`.
 - `rounded-xl bg-surface-container-low ... border border-surface-container-high/60
-  shadow-md` at `04:34`, `04:113`, `04:184`.
+  shadow-md` at `04:35`, `04:114`, `04:185`.
 - Inner panel: `rounded-xl bg-surface-container-high p-card-padding-md ...
-  border border-surface-container-highest/40 shadow-md` at `03:31`.
+  border border-surface-container-highest/40 shadow-md` at `03:32`.
 
 Borders are always a surface token at 20 to 60 percent opacity, never a solid line.
 
@@ -205,11 +205,11 @@ Borders are always a surface token at 20 to 60 percent opacity, never a solid li
 
 | Role | Spec | Source |
 | ---- | ---- | ------ |
-| Primary CTA | `w-full h-touch-target-min rounded-full bg-primary-container text-on-primary-container font-label-lg uppercase tracking-wider font-bold`, `active:scale-[0.99]` | `01:56` |
-| Primary play | `w-14 h-14 rounded-full bg-primary-container text-on-primary shadow-lg shadow-primary-container/20`, `hover:scale-105 active:scale-95` | `03:34` |
-| Secondary play, active | `w-11 h-11 rounded-full bg-primary-container text-on-primary shadow-lg`, `active:scale-95` | `04:76` |
-| Secondary play, idle | `w-11 h-11 rounded-full bg-surface-container-highest text-primary`, `hover:bg-primary-container hover:text-on-primary` | `04:151`, `04:221` |
-| Tertiary action | `h-16 rounded-xl bg-surface-container hover:bg-surface-container-high`, `active:scale-98`, icon over `label-sm` caption | `03:93`, `03:98`, `03:103` |
+| Primary CTA | `w-full h-touch-target-min rounded-full bg-primary-container text-on-primary-container font-label-lg uppercase tracking-wider font-bold`, `active:scale-[0.99]` | `01:57` |
+| Primary play | `w-14 h-14 rounded-full bg-primary-container text-on-primary shadow-lg shadow-primary-container/20`, `hover:scale-105 active:scale-95` | `03:35` |
+| Secondary play, active | `w-11 h-11 rounded-full bg-primary-container text-on-primary shadow-lg`, `active:scale-95` | `04:77` |
+| Secondary play, idle | `w-11 h-11 rounded-full bg-surface-container-highest text-primary`, `hover:bg-primary-container hover:text-on-primary` | `04:152`, `04:222` |
+| Tertiary action | `h-16 rounded-xl bg-surface-container hover:bg-surface-container-high`, `active:scale-98`, icon over `label-sm` caption | `03:94`, `03:99`, `03:104` |
 
 Press feedback is a scale transform in every case: 0.99, 0.95 or 0.98. The
 minimum touch target is 2.75rem (44px), which `touch-target-min` and the
@@ -220,7 +220,7 @@ minimum touch target is 2.75rem (44px), which `touch-target-min` and the
 Single row, horizontally scrollable, `overflow-x-auto no-scrollbar`. Selected
 chip `bg-surface-container-high text-primary border border-outline-variant/40`;
 unselected `bg-surface-container-low text-secondary border border-transparent
-hover:border-outline-variant/30`. Five chips at `04:30`.
+hover:border-outline-variant/30`. Five chips at `04:31`.
 
 ### Waveform
 
@@ -228,27 +228,27 @@ Static bars, no canvas. Two variants:
 
 - Moment card: `w-[3px]` bars, heights `h-2` to `h-9`, played bars
   `bg-primary-container`, unplayed `bg-secondary-container/70`, on a
-  `bg-surface-container-lowest/60 rounded-lg` track. 24 bars, `03:50` to `03:74`.
-  A playhead at `03:77` is `w-1.5 h-7 bg-primary rounded-full` with
+  `bg-surface-container-lowest/60 rounded-lg` track. 24 bars, `03:51` to `03:75`.
+  A playhead at `03:78` is `w-1.5 h-7 bg-primary rounded-full` with
   `shadow-[0_0_8px_rgba(255,219,160,0.8)]`, positioned `left-[78%]`.
 - Moments cards: `w-1` bars on a `h-6 rounded bg-surface-container-highest`
-  track, same played and unplayed colors. `04:85`, `04:159`, `04:229`.
+  track, same played and unplayed colors. `04:86`, `04:160`, `04:230`.
 
 Card headers also carry a decorative bar field at `opacity-25` with
-`pointer-events-none`, for example `04:38`.
+`pointer-events-none`, for example `04:39`.
 
 ### Verified marker
 
 `rounded-lg bg-surface-container-lowest` holding a filled `verified` Material
 Symbol at `text-[16px] text-primary-container` and a `label-sm text-secondary`
-caption reading "Verified from play data". `02:83`, `03:88`.
+caption reading "Verified from play data". `02:84`, `03:89`.
 
 ### Text input
 
 `w-full bg-surface-container px-3 py-1.5 rounded text-body-md text-on-surface
 border border-outline-variant/30`, with the only real focus treatment in the
 system: `focus:outline-none focus:border-primary-container`, so the border
-changes color rather than gaining a ring. Three instances at `01:11`. Each uses
+changes color rather than gaining a ring. Three instances at `01:12`. Each uses
 a `placeholder` and has no associated `<label>` element.
 
 ### Toggle switch
@@ -256,7 +256,7 @@ a `placeholder` and has no associated `<label>` element.
 `h-6 w-11 rounded-full border-2 border-transparent bg-primary-container` with
 `role="switch"`, `aria-checked="true"`, `aria-label`, and an `sr-only` caption.
 The knob is `h-5 w-5 rounded-full bg-on-primary translate-x-5`, moved by
-`transition duration-200 ease-in-out`. `04:263` to `04:265`. Only the checked
+`transition duration-200 ease-in-out`. `04:264` to `04:266`. Only the checked
 appearance exists; the unchecked colors are not defined anywhere.
 
 ### Credit footer
@@ -264,9 +264,9 @@ appearance exists; the unchecked colors are not defined anywhere.
 Text credit plus the reversed Hudl StatsBomb logo:
 
 - Picker: `Powered by StatsBomb play-by-play data` in `body-md text-secondary`,
-  logo at `h-4 w-auto ml-auto` (105px by 16px). `01:54`.
+  logo at `h-4 w-auto ml-auto` (105px by 16px). `01:55`.
 - Moments: `Data: StatsBomb` in `label-sm text-secondary uppercase`, logo at
-  `h-3 w-auto` (79px by 12px). `04:260`.
+  `h-3 w-auto` (79px by 12px). `04:261`.
 
 Logo file `app/web/assets/hudl-statsbomb-logo-reversed.png`, 2258 by 344, so
 6.56:1.
@@ -277,9 +277,9 @@ Not present anywhere in the four files, so not specified: light mode, disabled
 states, error or empty states, toasts, modals, form validation, and the
 unchecked state of the toggle switch.
 
-Focus is defined only on the text input (`01:11`). Every button in the system
+Focus is defined only on the text input (`01:12`). Every button in the system
 relies on `active:` scale and `hover:` color, with no focus style at all, and
-the toggle at `04:263` sets `focus:outline-none` without a replacement, so it
+the toggle at `04:264` sets `focus:outline-none` without a replacement, so it
 has no visible keyboard focus.
 
 No breakpoint utilities are used: zero occurrences of `sm:`, `md:`, `lg:`,

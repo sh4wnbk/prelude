@@ -1,0 +1,62 @@
+/* Phone frame for wide viewports.
+ *
+ * The screens are built for a 390 x 844 phone. Opened on a desktop they stretch
+ * to the window, which misreads the design. Above the breakpoint this puts each
+ * screen inside a generic bezel at its real size; at or below it, nothing here
+ * applies and the app fills the window exactly as before.
+ *
+ * It is presentation only. No app layout, copy or component is touched: the
+ * frame is built entirely from `body` and `body > main`, which the screens
+ * already have.
+ *
+ * The one piece of real machinery is `transform` on `body`. The header and the
+ * bottom nav are `position: fixed`, so they would otherwise pin to the window
+ * and sit outside the frame. A transformed ancestor becomes the containing
+ * block for fixed descendants, which lands both bars inside the bezel. `body`
+ * then has to stop scrolling (`overflow: hidden`) and `main` has to start
+ * (`overflow-y: auto`), or the bars would scroll away with the content.
+ *
+ * Colours are existing tokens. The bezel thickness and radius are not in the
+ * token scale, whose largest non-pill radius is 0.75rem; see docs/DESIGN.md.
+ */
+
+@media (min-width: 501px) {
+  html {
+    /* surface-container-lowest, one step below the app's own surface so the
+       frame reads as sitting on top of the page */
+    background-color: #0b0e13;
+    width: auto;
+    min-height: 100vh;
+    padding: 32px 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    /* content-box so width/height describe the screen area, not the bezel */
+    box-sizing: content-box;
+    width: 390px !important;
+    height: 844px !important;
+    min-height: 844px !important;
+    max-height: 844px;
+    margin: 0 auto !important;
+
+    /* the bezel: surface-container-highest */
+    border: 16px solid #32353b;
+    border-radius: 48px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+
+    /* containing block for the fixed header and nav */
+    transform: translateZ(0);
+
+    /* the frame never scrolls; main does */
+    overflow: hidden;
+  }
+
+  body > main {
+    height: 844px !important;
+    min-height: 0 !important;
+    max-height: 844px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}

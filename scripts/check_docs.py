@@ -56,23 +56,81 @@ def run_pytest(*args):
     return result.stdout + result.stderr
 
 
-def check_design_citations(fail):
-    """DESIGN.md cites `NN:MMM`. The line must exist and must not be blank."""
-    doc = (ROOT / "docs" / "DESIGN.md").read_text(encoding="utf-8")
-    cites = sorted(set(re.findall(r"`(0[1-4]):(\d+)`", doc)))
-    if not cites:
-        fail("DESIGN.md", "no citations found at all; has the format changed?")
-        return
-    for key, number in cites:
-        lines = SCREENS[key].read_text(encoding="utf-8").splitlines()
-        n = int(number)
-        name = SCREENS[key].name
-        if n > len(lines):
-            fail("DESIGN.md", f"cites {key}:{n} but {name} has {len(lines)} lines")
-        elif not lines[n - 1].strip():
-            fail("DESIGN.md", f"cites {key}:{n} but that line in {name} is blank")
-    print(f"  DESIGN.md: {len(cites)} citations checked")
+CODE_SPAN = re.compile(r"`([^`\n]+)`")
+CITE = re.compile(r"`(0[1-4]):(\d+)`")
+SHIFT_RANGE = range(-6, 7)
 
+
+def check_design_citations(fail):
+    """DESIGN.md cites `NN:MMM`. Check the line exists, and that the set of
+    citations has not drifted as a block.
+
+    Range alone is too weak: inserting one line near the top of a screen shifts
+    every citation below it, and each one still points at a real, non-blank
+    line, so a range check stays green while the whole file is wrong. That
+    happened once, when the phone-frame stylesheet link was added.
+
+    Matching each citation individually against nearby markup is too noisy the
+    other way: anchors go through HTML entity escaping, describe a container on
+    a neighbouring line, or name a utility by how it is used rather than where
+    it is declared. All three produce false alarms.
+
+    So this scores the citations per screen. Each citation that sits beside a
+    backticked code span found in that screen votes for the offset at which its
+    anchor lands. If some non-zero offset explains more citations than zero
+    does, the citations for that screen have drifted together, which is the
+    failure worth reporting.
+    """
+    doc = (ROOT / "docs" / "DESIGN.md").read_text(encoding="utf-8")
+    lines_by = {k: v.read_text(encoding="utf-8").splitlines() for k, v in SCREENS.items()}
+
+    votes = {k: [] for k in SCREENS}
+    total = 0
+    for block in re.split(r"\n\s*\n|\n(?=[-*|] )", doc):
+        cites = CITE.findall(block)
+        if not cites:
+            continue
+        anchors = [s for s in CODE_SPAN.findall(block)
+                   if len(s) >= 10 and not re.fullmatch(r"0[1-4]:\d+", s)]
+        for key, number in cites:
+            total += 1
+            n = int(number)
+            lines = lines_by[key]
+            if n > len(lines):
+                fail("DESIGN.md", f"cites {key}:{n} but {SCREENS[key].name} has {len(lines)} lines")
+                continue
+            if not lines[n - 1].strip():
+                fail("DESIGN.md", f"cites {key}:{n} but that line is blank")
+                continue
+            usable = [a for a in anchors if any(a in l for l in lines)]
+            if usable:
+                votes[key].append((n, usable))
+
+    anchored = 0
+    for key, cites in votes.items():
+        if not cites:
+            continue
+        lines = lines_by[key]
+
+        def score(offset):
+            hit = 0
+            for n, anchors in cites:
+                i = n - 1 + offset
+                if 0 <= i < len(lines) and any(a in lines[i] for a in anchors):
+                    hit += 1
+            return hit
+
+        at_zero = score(0)
+        anchored += at_zero
+        best = max(SHIFT_RANGE, key=lambda o: (score(o), -abs(o)))
+        if best != 0 and score(best) > at_zero:
+            fail(
+                "DESIGN.md",
+                f"citations for screen {key} look shifted by {best:+d}: "
+                f"{score(best)} of {len(cites)} anchors land at that offset, "
+                f"only {at_zero} land where cited",
+            )
+    print(f"  DESIGN.md: {total} citations, {anchored} anchored to their line")
 
 def check_quoted_failure(fail):
     """bob_brief.md quotes the message the suite actually prints."""
