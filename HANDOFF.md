@@ -1,9 +1,12 @@
 # HANDOFF
 
-State of the repo at the end of Phase 1. Every number below came from a command
-that ran; see `docs/data_check.md` for the generated report.
+State of the repo at the end of Phase 2. Every number below came from a command
+that ran; see `docs/data_check.md` and `docs/DESIGN.md` for the generated and
+derived reports.
 
 ## What was built
+
+### Phase 1
 
 **Scaffold** (`d11f686`): `app/`, `scripts/`, `tests/`, `docs/`, and
 `data/raw/`. `data/raw/` is gitignored; raw StatsBomb data is never committed.
@@ -29,17 +32,49 @@ goals and shots per team, and generates `docs/data_check.md`.
 
 **Docs** (`ae582d2`, `f59e135`): `CLAUDE.md`, `README.md` skeleton, this file.
 
+### Phase 2
+
+**Housekeeping** (`c52358c`): `data_check.py` writes with `newline="\n"`, so
+the generated report stays LF and no longer trips git's CRLF normalization
+warning. `fetch_statsbomb.py` creates `data/raw/` explicitly at startup, which
+was verified by deleting the directory and re-running. The voice test leftovers
+moved into the already-ignored `voice_test/`. 20 em dashes removed from the
+docs and the no-em-dash rule recorded in `CLAUDE.md`.
+
+**Screens** (`ee7ba82`): four screens into `app/web/`, 750 lines in total.
+
+| Screen | Size |
+| ------ | ---: |
+| `prelude_01_picker.html` | 17,815 bytes |
+| `prelude_02_live_seated.html` | 14,554 bytes |
+| `prelude_03_moment_card.html` | 17,522 bytes |
+| `prelude_04_moments.html` | 24,548 bytes |
+
+Copy-only fixes: the buildup headline and share title replace the 60-second
+framing, the narration quote ends at "and finishes.", the 60S and 45S BUILDUP
+meta values and the three player timers are gone (spans left in place and
+empty, for Phase 5 to fill from real fixtures), and the nicknamed accessibility
+labels are now descriptive. The reversed Hudl StatsBomb logo sits beside both
+text credits, copied unrenamed and byte-identical from the supplied set.
+
+**`scripts/scan_copy.py`** (`ee7ba82`): gates the banned strings across the
+screens and exits non-zero on any hit.
+
+**`docs/DESIGN.md`** (`1b56a62`): the design system as the screens define it,
+derived from the inline `tailwind.config` and the markup that uses it, with a
+file and line citation on every value. 291 lines.
+
 ## Data-check findings
 
 Match `3750191`, Argentina 2-1 England, quarter-final, 1986-06-22. 2,748 events.
 
 **Goals (3):**
 
-| Player | Team | Minute | Second | Period |
-| ------ | ---- | -----: | -----: | -----: |
-| Diego Armando Maradona | Argentina | 50 | 27 | 2 |
-| Diego Armando Maradona | Argentina | 54 | 18 | 2 |
-| Gary Lineker | England | 80 | 37 | 2 |
+| Player | Team | Minute | Second | Period | `shot.body_part.name` |
+| ------ | ---- | -----: | -----: | -----: | --------------------- |
+| Diego Armando Maradona | Argentina | 50 | 27 | 2 | `Other` |
+| Diego Armando Maradona | Argentina | 54 | 18 | 2 | `Left Foot` |
+| Gary Lineker | England | 80 | 37 | 2 | `Head` |
 
 StatsBomb's `minute` floors the match clock, so `50:27` is the 51st minute as a
 broadcast would caption it. The three goals reconcile with the `2-1` scoreline
@@ -56,7 +91,55 @@ This matters downstream: any narration line that leans on shot dominance has to
 use 15-of-27, and a line built on "13 of 15" could not carry
 "Verified from play data".
 
+## Screen scan results
+
+`scripts/scan_copy.py` checks all four screens for basketball terms, verdict
+nicknames, "official", the 60-second framing, invented hardware, and em dashes.
+
+**Baseline, 4 hits:**
+
+| File | Line | Category | String |
+| ---- | ---: | -------- | ------ |
+| `prelude_03_moment_card.html` | 26 | 60-second framing | `60 seconds` |
+| `prelude_03_moment_card.html` | 165 | 60-second framing | `60-Second` |
+| `prelude_04_moments.html` | 76 | verdict nickname | `Goal of the Century` |
+| `prelude_04_moments.html` | 151 | verdict nickname | `Hand of God` |
+
+**Current, 0 hits**, exit code 0. Screens 01 and 02 were clean at baseline: no
+basketball terms, no "official", no UWB, haptic or dB, no "Controversy"
+anywhere in the set. A separate census of every non-ASCII character found no em
+or en dashes, only middle dots, one bullet, one curly apostrophe, and the quote
+guillemets.
+
+### Card bodies checked against the data
+
+Two card bodies were tested against `shot.body_part.name`:
+
+- **50:27 Maradona** records `Other`, with `technique: Normal`, `type: Open
+  Play`, `xg: 0.379`, location `[110.8, 40.1]`. Nothing in the feed records an
+  aerial duel, so "Maradona rises with Shilton and the ball is in" was not
+  supported and was rewritten. The surrounding events do support a replacement:
+  Peter Reid has both a `Clearance` and an `Error` at 50:26, then Maradona has
+  `Ball Recovery`, `Carry` and `Shot` at 50:27. The body now reads "Maradona
+  recovers Reid's error and scores from nine yards; the body part is recorded
+  as Other." Nine yards is `120 - 110.8` on StatsBomb's 120-yard pitch.
+- **80:37 Lineker** records `Head` at minute 80, so "England's late header sets
+  up a tense finish" is supported on both counts and was left alone.
+
+### Design tokens worth carrying forward
+
+From `docs/DESIGN.md`, all verified against the markup:
+
+- 29 of 47 colour tokens are declared but never referenced. The whole tertiary
+  ramp and the whole error ramp are unused, so the screens define no error state.
+- No responsive design exists: zero `sm:`, `md:`, `lg:`, `xl:` or `2xl:`
+  utilities, and `screen-edge-tablet` is defined but never applied.
+- Focus is defined only on the picker's text inputs. Every button has no focus
+  style, and the toggle sets `focus:outline-none` with no replacement.
+
 ## Deviations
+
+### Phase 1
 
 - **`.gitkeep` files.** Git cannot track empty directories, so `app/`,
   `scripts/`, `tests/`, and `docs/` each got a `.gitkeep`. `data/raw/`
@@ -67,30 +150,64 @@ use 15-of-27, and a line built on "13 of 15" could not carry
 - **`.gitignore` carried a pre-existing uncommitted line.** `voice_test/` was
   already modified in the working tree before Phase 1 and rode along in
   `d11f686`, with its missing trailing newline fixed.
-- **`docs/data_check.md` triggers a CRLF normalization warning** on commit:
-  Python writes CRLF on Windows and `.gitattributes` normalizes to LF. Harmless;
-  passing `newline="\n"` to the write would silence it.
-- **Untracked files left alone.** `george_expressive.wav`,
-  `george_natural.wav`, and `line.json` predate Phase 1 and were out of scope.
-  They are still untracked.
+- **The CRLF normalization warning on `docs/data_check.md`** is resolved in
+  `c52358c` and no longer occurs.
 
-## Next first action (Phase 2)
+### Phase 2
 
-Phase 2's scope was not specified to me, so treat this as a recommendation
-rather than a decision already made.
+- **The em dash removal covered already-committed docs.** The constraint arrived
+  in Phase 2 and says "any doc", so the 20 existing em dashes in `CLAUDE.md`,
+  `README.md` and `HANDOFF.md` were treated as violations and fixed, along with
+  the prose `--` in the scripts and the generated report. This went beyond the
+  four listed housekeeping items.
+- **`scripts/scan_copy.py` was not requested.** The exit condition was a scan
+  result, and a one-off grep is not evidence anyone else can reproduce, so the
+  scan is a committed script that exits non-zero on a hit.
+- **The screens were never rendered.** No browser or screenshot tooling is
+  available in this session, so "logo visible in both places" is verified
+  structurally: the `<img>` is present in both footers, the `src` resolves to a
+  real file from each screen's directory, the copy is hash-identical to the
+  source, and the rendered sizes compute to 105 by 16 px on the picker and 79
+  by 12 px on Moments. Nobody has looked at the pages.
+- **Two placeholders on the moment card were left in place**, because the
+  instructions scoped those fixes to the Moments screen:
+  `prelude_03_moment_card.html:44` still reads `0:47 / 1:00` with the script
+  capping at 60 seconds, which still encodes the 60-second framing; and the play
+  button at `prelude_03_moment_card.html:34` keeps the generic aria-label
+  `Play Narration` while the three Moments buttons are descriptive.
+- **Three claims in `DESIGN.md` were wrong on the first pass** and were
+  corrected before commit by verification rather than shipped: the Material
+  Symbol count, an omission in the unused spacing list, and a claim that
+  `focus:outline-none` was the only focus utility. That last error also
+  surfaced two components that had been missed entirely, the text input and the
+  toggle switch, both now documented.
+- **The four screens arrived mid-session as untracked files** that this session
+  did not author. They were left untracked until the task that called for them.
 
-**Recommended first action:** build the grounding layer that sits *downstream*
-of the EventFeed: a function that takes a match id and an event index and
-returns the set of facts that are verifiable from the play data for that moment
-(player, team, clock, event type, and the related events around it). That is the
-thing "Verified from play data" is a claim about, and it is the largest piece
-that can be built without touching reserved work.
+## Next first action (Phase 3)
 
-**Constraint to respect first:** the EventFeed and moment-detection module is
-reserved for IBM Bob and must not be implemented here, not even as a stub that
-grows. The grounding layer should be written against that interface and left
-waiting for it, which means Phase 2 needs its input shape agreed before the
-first line of it is written.
+**Bob builds the EventFeed module against `docs/bob_brief.md`.**
 
-**Before starting:** run `scripts/fetch_statsbomb.py`, since `data/raw/` is not
-in the repo.
+The EventFeed and moment-detection module is reserved for IBM Bob. Per
+`CLAUDE.md` it must not be implemented in this repo by anyone else, not even as
+a stub that grows or a helper that does the same job under another name.
+
+**Blocker: `docs/bob_brief.md` does not exist.** It is not in the working tree
+and not in any commit, so there is currently nothing for Bob to build against.
+Writing it is the real first action, and it has to come from whoever owns the
+interface, not be invented here. Until it exists, Phase 3 cannot start as
+stated.
+
+**What the brief needs to pin down**, based on what the rest of the system
+already assumes:
+
+- The shape of a moment as the module emits it, since every downstream caller
+  reads that shape.
+- How a moment refers back to the event data, because "Verified from play data"
+  is a claim that each narration line traces to a specific event in
+  `data/raw/`.
+- Which of the three real inputs the module consumes. The system has exactly
+  three: play data, GPS presence, and audio narration.
+
+**Before starting:** run `scripts/fetch_statsbomb.py`, since `data/raw/` is
+gitignored and absent from a fresh clone.
