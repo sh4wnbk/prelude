@@ -10,7 +10,9 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SCREENS = sorted((ROOT / "app" / "web").glob("*.html"))
+# The screens, plus matches.json, which holds display copy and so is subject to
+# the same rules as copy written into the markup.
+SCREENS = sorted((ROOT / "app" / "web").glob("*.html")) + sorted((ROOT / "app" / "web").glob("*.json"))
 
 # (label, regex). Word boundaries where a bare substring would false-positive:
 # "BOS" inside "boston"-like tokens, "dB" inside words, "official" inside
