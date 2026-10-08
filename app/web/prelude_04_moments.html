@@ -1,0 +1,272 @@
+<!DOCTYPE html><html class="dark" lang="en" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=Syne:wght@600;700&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#101319;}body{overscroll-behavior:none;-webkit-font-smoothing:antialiased;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}@keyframes pulse-amber{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.35;transform:scale(0.85);}}.pulse-live{animation:pulse-amber 2s cubic-bezier(0.4,0,0.6,1) infinite;}</style><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "surface-variant": "#32353b", "surface-container-lowest": "#0b0e13", "surface-container-highest": "#32353b", "primary-fixed": "#ffdea9", "on-primary-fixed": "#271900", "secondary-fixed-dim": "#bec7d2", "inverse-surface": "#e1e2ea", "on-error": "#690005", "primary-fixed-dim": "#ffba27", "secondary-container": "#414a53", "background": "#101319", "tertiary": "#abeaff", "error-container": "#93000a", "surface": "#101319", "surface-container": "#1d2025", "on-tertiary-fixed-variant": "#004e5e", "outline-variant": "#514532", "secondary": "#bec7d2", "surface-bright": "#36393f", "tertiary-fixed-dim": "#2dd8ff", "primary": "#ffdba0", "surface-container-low": "#191c21", "on-tertiary-container": "#00596b", "on-error-container": "#ffdad6", "on-secondary-fixed": "#141c24", "on-surface": "#e1e2ea", "on-secondary-container": "#b0b9c4", "on-primary": "#422c00", "on-surface-variant": "#d5c4ac", "inverse-primary": "#7d5800", "outline": "#9e8f78", "surface-tint": "#ffba27", "on-secondary-fixed-variant": "#3f4850", "error": "#ffb4ab", "surface-dim": "#101319", "on-primary-fixed-variant": "#5e4100", "on-secondary": "#29313a", "on-background": "#e1e2ea", "on-tertiary": "#003642", "on-primary-container": "#6b4b00", "primary-container": "#ffb703", "secondary-fixed": "#dae3ee", "tertiary-container": "#00d6ff", "inverse-on-surface": "#2d3036", "surface-container-high": "#272a30", "tertiary-fixed": "#b2ebff", "on-tertiary-fixed": "#001f27" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-xl": "2rem", "card-padding-lg": "1.75rem", "space-sm": "0.75rem", "space-3xl": "4rem", "space-2xs": "0.25rem", "space-2xl": "3rem", "screen-edge-tablet": "2rem", "touch-target-min": "2.75rem", "card-padding-sm": "1rem", "card-padding-md": "1.25rem", "screen-edge-mobile": "1.25rem", "space-xs": "0.5rem", "space-md": "1rem", "space-lg": "1.5rem" }, fontFamily: { "label-sm": ["JetBrains Mono"], "headline-lg-mobile": ["Syne"], "label-lg": ["JetBrains Mono"], "body-lg": ["Hanken Grotesk"], "headline-sm": ["Hanken Grotesk"], "display-sm": ["Syne"], "body-md": ["Hanken Grotesk"], "display-lg": ["Syne"], "label-md": ["JetBrains Mono"], "headline-lg": ["Syne"] }, fontSize: { "label-sm": ["9px", { lineHeight: "12px", letterSpacing: "0.08em", fontWeight: "600" }], "headline-lg-mobile": ["24px", { lineHeight: "30px", letterSpacing: "-0.01em", fontWeight: "600" }], "label-lg": ["13px", { lineHeight: "18px", letterSpacing: "0.04em", fontWeight: "500" }], "body-lg": ["16px", { lineHeight: "24px", letterSpacing: "0", fontWeight: "400" }], "headline-sm": ["20px", { lineHeight: "26px", letterSpacing: "-0.01em", fontWeight: "600" }], "display-sm": ["36px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700" }], "body-md": ["14px", { lineHeight: "20px", letterSpacing: "0", fontWeight: "400" }], "display-lg": ["48px", { lineHeight: "52px", letterSpacing: "-0.03em", fontWeight: "700" }], "label-md": ["11px", { lineHeight: "14px", letterSpacing: "0.06em", fontWeight: "500" }], "headline-lg": ["28px", { lineHeight: "34px", letterSpacing: "-0.015em", fontWeight: "600" }] } } } }</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head><body class="bg-surface text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.35)]"><div class="h-16 px-screen-edge-mobile flex items-center justify-between"><div class="flex items-center gap-space-sm"><span class="font-label-lg text-label-lg tracking-[0.2em] font-semibold text-on-surface uppercase select-none">PRELUDE</span></div><div class="flex items-center gap-space-sm"><div class="inline-flex items-center gap-space-xs px-space-sm py-1.5 rounded-full bg-surface-container-high/80 backdrop-blur-md shadow-[0_1px_4px_rgba(0,0,0,0.2)]"><span class="w-1.5 h-1.5 rounded-full bg-primary-container pulse-live"></span><span class="font-label-sm text-label-sm text-on-surface font-semibold tracking-wider uppercase">ARG vs ENG · LIVE</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 pb-24 bg-surface min-h-screen"><div class="flex flex-col w-full px-screen-edge-mobile space-y-space-lg">
+<!-- Interactive script to align active tab in shell -->
+<script>
+    (function syncTab() {
+      const momentsTab = document.querySelector('nav a[data-path="moments"]');
+      if (momentsTab) {
+        document.querySelectorAll('nav a').forEach(el => el.classList.remove('text-primary-container', 'text-on-surface'));
+        momentsTab.classList.add('text-primary-container');
+      }
+    })();
+  </script>
+<!-- Section Header -->
+<div class="flex flex-col pt-space-xs space-y-1">
+<div class="flex items-center justify-between">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-semibold tracking-tight">MOMENTS</h1>
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<span class="font-label-sm text-label-sm text-primary uppercase tracking-wider">3 Synced</span>
+</div>
+</div>
+<p class="font-label-md text-label-md text-secondary tracking-widest uppercase">ARGENTINA vs ENGLAND · TONIGHT'S RETROSPECTIVE</p>
+</div>
+<!-- Filter & Telemetry Bar -->
+<div class="flex items-center gap-space-xs overflow-x-auto pb-1 select-none no-scrollbar"><div class="px-3 py-1.5 rounded-full bg-surface-container-high text-primary font-label-md text-label-md tracking-wider uppercase whitespace-nowrap shadow-sm border border-outline-variant/40">ALL</div><div class="px-3 py-1.5 rounded-full bg-surface-container-low text-secondary font-label-md text-label-md tracking-wider uppercase whitespace-nowrap border border-transparent hover:border-outline-variant/30 transition-colors">GOALS</div><div class="px-3 py-1.5 rounded-full bg-surface-container-low text-secondary font-label-md text-label-md tracking-wider uppercase whitespace-nowrap border border-transparent hover:border-outline-variant/30 transition-colors">PENALTIES</div><div class="px-3 py-1.5 rounded-full bg-surface-container-low text-secondary font-label-md text-label-md tracking-wider uppercase whitespace-nowrap border border-transparent hover:border-outline-variant/30 transition-colors">CARDS</div><div class="px-3 py-1.5 rounded-full bg-surface-container-low text-secondary font-label-md text-label-md tracking-wider uppercase whitespace-nowrap border border-transparent hover:border-outline-variant/30 transition-colors">CHANCES</div></div>
+<!-- Moments Stream -->
+<div class="flex flex-col space-y-space-md">
+<!-- Moment Card 1 -->
+<div class="flex flex-col bg-surface-container-low rounded-xl border border-surface-container-high/60 overflow-hidden shadow-md">
+<!-- Sleek Abstract Audio Graphic Header -->
+<div class="relative w-full h-32 bg-surface-container-lowest overflow-hidden flex flex-col justify-between p-3.5 border-b border-surface-container-high/50">
+<!-- Background Ambient Audio Wave Grid -->
+<div class="absolute inset-0 flex items-center justify-between px-4 opacity-25 pointer-events-none">
+<div class="w-1 bg-primary/40 rounded-full h-6"></div>
+<div class="w-1 bg-primary/50 rounded-full h-12"></div>
+<div class="w-1 bg-primary/40 rounded-full h-8"></div>
+<div class="w-1 bg-primary/70 rounded-full h-20"></div>
+<div class="w-1 bg-primary/60 rounded-full h-14"></div>
+<div class="w-1 bg-primary/80 rounded-full h-24"></div>
+<div class="w-1 bg-primary rounded-full h-16"></div>
+<div class="w-1 bg-primary/90 rounded-full h-20"></div>
+<div class="w-1 bg-primary/50 rounded-full h-10"></div>
+<div class="w-1 bg-primary/30 rounded-full h-6"></div>
+<div class="w-1 bg-primary/70 rounded-full h-18"></div>
+<div class="w-1 bg-primary/90 rounded-full h-24"></div>
+<div class="w-1 bg-primary/60 rounded-full h-12"></div>
+<div class="w-1 bg-primary/40 rounded-full h-8"></div>
+</div>
+<!-- Top Metadata Badge -->
+<div class="relative z-10 flex items-center justify-between w-full">
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high/90 border border-outline-variant/30">
+<span class="material-symbols-outlined text-primary-container text-[14px]">graphic_eq</span>
+<span class="font-label-sm text-label-sm text-primary font-semibold tracking-wider uppercase">GOAL</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary tracking-widest uppercase bg-surface-container/80 px-2 py-0.5 rounded"></span>
+</div>
+<!-- Lower Tag Line -->
+<div class="relative z-10 flex items-center justify-between">
+<span class="font-label-md text-label-md text-primary font-semibold tracking-widest uppercase">2H · 55'</span>
+<span class="material-symbols-outlined text-secondary text-[18px]">podcasts</span>
+</div>
+</div>
+<!-- Play Content & Details -->
+<div class="p-card-padding-md flex flex-col space-y-space-sm">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold leading-tight">Maradona's solo goal</h2>
+<p class="font-body-md text-body-md text-secondary pt-1">Maradona's 60-yard solo run past five England players.</p>
+</div>
+<!-- Telemetry Scrubber Strip & Controls -->
+<div class="flex items-center gap-3 pt-2">
+<button aria-label="Play Maradona's solo goal narration" class="w-11 h-11 shrink-0 rounded-full bg-primary-container text-on-primary flex items-center justify-center shadow-lg active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+<div class="flex flex-col flex-1 space-y-1.5 min-w-0">
+<div class="flex items-center justify-between font-label-sm text-label-sm text-secondary">
+<span class="text-primary font-medium tracking-wider truncate">AI AUDIO NARRATION · PLAY DATA SYNC</span>
+<span class="tracking-widest shrink-0 ml-2"></span>
+</div>
+<!-- Waveform Visualizer Scrubber -->
+<div class="h-6 w-full flex items-end gap-1 px-1.5 py-1 rounded bg-surface-container-highest">
+<div class="w-1 bg-primary-container rounded-full h-2"></div>
+<div class="w-1 bg-primary-container rounded-full h-3"></div>
+<div class="w-1 bg-primary-container rounded-full h-4"></div>
+<div class="w-1 bg-primary-container rounded-full h-2"></div>
+<div class="w-1 bg-primary-container rounded-full h-5"></div>
+<div class="w-1 bg-primary-container rounded-full h-6"></div>
+<div class="w-1 bg-primary-container rounded-full h-3"></div>
+<div class="w-1 bg-primary-container rounded-full h-5"></div>
+<div class="w-1 bg-primary-container rounded-full h-6"></div>
+<div class="w-1 bg-primary-container rounded-full h-4"></div>
+<div class="w-1 bg-primary-container rounded-full h-6"></div>
+<div class="w-1 bg-primary-container rounded-full h-5"></div>
+<div class="w-1 bg-primary-container rounded-full h-3"></div>
+<div class="w-1 bg-primary-container rounded-full h-6"></div>
+<div class="w-1 bg-primary-container rounded-full h-5"></div>
+<div class="w-1 bg-primary-container rounded-full h-4"></div>
+<div class="w-1 bg-primary-container rounded-full h-6"></div>
+<div class="w-1 bg-primary-container rounded-full h-6"></div>
+<div class="w-1 bg-secondary-container rounded-full h-2"></div>
+<div class="w-1 bg-secondary-container rounded-full h-1"></div>
+<div class="w-1 bg-secondary-container rounded-full h-1"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Moment Card 2 -->
+<div class="flex flex-col bg-surface-container-low rounded-xl border border-surface-container-high/60 overflow-hidden shadow-md">
+<!-- Sleek Abstract Audio Graphic Header -->
+<div class="relative w-full h-32 bg-surface-container-lowest overflow-hidden flex flex-col justify-between p-3.5 border-b border-surface-container-high/50">
+<!-- Background Acoustic Soundwave Vectors -->
+<div class="absolute inset-0 flex items-center justify-between px-4 opacity-25 pointer-events-none">
+<div class="w-1 bg-secondary rounded-full h-4"></div>
+<div class="w-1 bg-secondary rounded-full h-8"></div>
+<div class="w-1 bg-primary/60 rounded-full h-14"></div>
+<div class="w-1 bg-primary/80 rounded-full h-22"></div>
+<div class="w-1 bg-primary rounded-full h-20"></div>
+<div class="w-1 bg-primary/70 rounded-full h-16"></div>
+<div class="w-1 bg-secondary rounded-full h-10"></div>
+<div class="w-1 bg-primary/80 rounded-full h-18"></div>
+<div class="w-1 bg-primary rounded-full h-24"></div>
+<div class="w-1 bg-primary/60 rounded-full h-12"></div>
+<div class="w-1 bg-secondary rounded-full h-6"></div>
+<div class="w-1 bg-secondary rounded-full h-4"></div>
+</div>
+<div class="relative z-10 flex items-center justify-between w-full">
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high/90 border border-outline-variant/30">
+<span class="material-symbols-outlined text-primary-container text-[14px]">trending_up</span>
+<span class="font-label-sm text-label-sm text-primary font-semibold tracking-wider uppercase">GOAL</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary tracking-widest uppercase bg-surface-container/80 px-2 py-0.5 rounded"></span>
+</div>
+<div class="relative z-10 flex items-center justify-between">
+<span class="font-label-md text-label-md text-primary font-semibold tracking-widest uppercase">2H · 51'</span>
+<span class="material-symbols-outlined text-secondary text-[18px]">podcasts</span>
+</div>
+</div>
+<!-- Card Body -->
+<div class="p-card-padding-md flex flex-col space-y-space-sm">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold leading-tight">Maradona's opener</h2>
+<p class="font-body-md text-body-md text-secondary pt-1">Maradona recovers Reid's error and scores from nine yards; the body part is recorded as Other.</p>
+</div>
+<!-- Telemetry Scrubber Strip & Controls -->
+<div class="flex items-center gap-3 pt-2">
+<button aria-label="Play Maradona's opener narration" class="w-11 h-11 shrink-0 rounded-full bg-surface-container-highest text-primary hover:bg-primary-container hover:text-on-primary flex items-center justify-center shadow transition-colors active:scale-95" type="button">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+<div class="flex flex-col flex-1 space-y-1.5 min-w-0">
+<div class="flex items-center justify-between font-label-sm text-label-sm text-secondary">
+<span class="text-primary font-medium tracking-wider truncate">AI AUDIO NARRATION · PLAY DATA SYNC</span>
+<span class="tracking-widest shrink-0 ml-2"></span>
+</div>
+<div class="h-6 w-full flex items-end gap-1 px-1.5 py-1 rounded bg-surface-container-highest">
+<div class="w-1 bg-primary-container rounded-full h-1"></div>
+<div class="w-1 bg-primary-container rounded-full h-2"></div>
+<div class="w-1 bg-primary-container rounded-full h-3"></div>
+<div class="w-1 bg-primary-container rounded-full h-2"></div>
+<div class="w-1 bg-primary-container rounded-full h-4"></div>
+<div class="w-1 bg-primary-container rounded-full h-5"></div>
+<div class="w-1 bg-primary-container rounded-full h-6"></div>
+<div class="w-1 bg-primary-container rounded-full h-5"></div>
+<div class="w-1 bg-primary-container rounded-full h-4"></div>
+<div class="w-1 bg-primary-container rounded-full h-5"></div>
+<div class="w-1 bg-primary-container rounded-full h-6"></div>
+<div class="w-1 bg-primary-container rounded-full h-6"></div>
+<div class="w-1 bg-primary-container rounded-full h-5"></div>
+<div class="w-1 bg-primary-container rounded-full h-6"></div>
+<div class="w-1 bg-primary-container rounded-full h-6"></div>
+<div class="w-1 bg-primary-container rounded-full h-5"></div>
+<div class="w-1 bg-primary-container rounded-full h-4"></div>
+<div class="w-1 bg-secondary-container rounded-full h-1"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Moment Card 3 -->
+<div class="flex flex-col bg-surface-container-low rounded-xl border border-surface-container-high/60 overflow-hidden shadow-md">
+<!-- Sleek Abstract Audio Graphic Header -->
+<div class="relative w-full h-32 bg-surface-container-lowest overflow-hidden flex flex-col justify-between p-3.5 border-b border-surface-container-high/50">
+<!-- Background Acoustic Soundwave Vectors -->
+<div class="absolute inset-0 flex items-center justify-between px-4 opacity-25 pointer-events-none">
+<div class="w-1 bg-primary/40 rounded-full h-10"></div>
+<div class="w-1 bg-primary/70 rounded-full h-16"></div>
+<div class="w-1 bg-primary/50 rounded-full h-12"></div>
+<div class="w-1 bg-primary rounded-full h-22"></div>
+<div class="w-1 bg-primary/80 rounded-full h-18"></div>
+<div class="w-1 bg-primary/40 rounded-full h-8"></div>
+<div class="w-1 bg-primary/90 rounded-full h-24"></div>
+<div class="w-1 bg-primary/60 rounded-full h-14"></div>
+<div class="w-1 bg-secondary rounded-full h-8"></div>
+<div class="w-1 bg-secondary rounded-full h-5"></div>
+<div class="w-1 bg-secondary rounded-full h-3"></div>
+</div>
+<div class="relative z-10 flex items-center justify-between w-full">
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high/90 border border-outline-variant/30">
+<span class="material-symbols-outlined text-primary-container text-[14px]">bolt</span>
+<span class="font-label-sm text-label-sm text-primary font-semibold tracking-wider uppercase">GOAL</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary tracking-widest uppercase bg-surface-container/80 px-2 py-0.5 rounded"></span>
+</div>
+<div class="relative z-10 flex items-center justify-between">
+<span class="font-label-md text-label-md text-primary font-semibold tracking-widest uppercase">2H · 81'</span>
+<span class="material-symbols-outlined text-secondary text-[18px]">podcasts</span>
+</div>
+</div>
+<!-- Card Body -->
+<div class="p-card-padding-md flex flex-col space-y-space-sm">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold leading-tight">Lineker pulls one back</h2>
+<p class="font-body-md text-body-md text-secondary pt-1">England's late header sets up a tense finish.</p>
+</div>
+<!-- Telemetry Scrubber Strip & Controls -->
+<div class="flex items-center gap-3 pt-2">
+<button aria-label="Play Lineker goal narration" class="w-11 h-11 shrink-0 rounded-full bg-surface-container-highest text-primary hover:bg-primary-container hover:text-on-primary flex items-center justify-center shadow transition-colors active:scale-95" type="button">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+<div class="flex flex-col flex-1 space-y-1.5 min-w-0">
+<div class="flex items-center justify-between font-label-sm text-label-sm text-secondary">
+<span class="text-primary font-medium tracking-wider truncate">AI AUDIO NARRATION · PLAY DATA SYNC</span>
+<span class="tracking-widest shrink-0 ml-2"></span>
+</div>
+<div class="h-6 w-full flex items-end gap-1 px-1.5 py-1 rounded bg-surface-container-highest">
+<div class="w-1 bg-primary-container rounded-full h-2"></div>
+<div class="w-1 bg-primary-container rounded-full h-4"></div>
+<div class="w-1 bg-primary-container rounded-full h-3"></div>
+<div class="w-1 bg-primary-container rounded-full h-5"></div>
+<div class="w-1 bg-primary-container rounded-full h-6"></div>
+<div class="w-1 bg-primary-container rounded-full h-5"></div>
+<div class="w-1 bg-primary-container rounded-full h-3"></div>
+<div class="w-1 bg-primary-container rounded-full h-6"></div>
+<div class="w-1 bg-primary-container rounded-full h-5"></div>
+<div class="w-1 bg-primary-container rounded-full h-2"></div>
+<div class="w-1 bg-secondary-container rounded-full h-2"></div>
+<div class="w-1 bg-secondary-container rounded-full h-1"></div>
+<div class="w-1 bg-secondary-container rounded-full h-1"></div>
+<div class="w-1 bg-secondary-container rounded-full h-2"></div>
+<div class="w-1 bg-secondary-container rounded-full h-1"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Strip: The Encore Callout -->
+<div class="mt-space-md p-card-padding-md rounded-xl bg-surface-container-high border border-surface-container-highest/60 shadow-lg flex items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-9 h-9 shrink-0 rounded-full bg-surface-container-highest flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-[20px]">history</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm text-primary uppercase tracking-wider font-semibold">ENCORE FEED READY</span>
+<p class="font-body-md text-body-md text-on-surface font-medium truncate">The moment you missed deserves an encore!</p>
+<div class="flex items-center gap-1.5"><span class="font-label-sm text-label-sm text-secondary tracking-wider uppercase pt-0.5">Data: StatsBomb</span><img alt="Hudl StatsBomb" class="h-3 w-auto shrink-0" src="assets/hudl-statsbomb-logo-reversed.png"/></div></div>
+</div>
+<div class="shrink-0 flex items-center gap-2">
+<button aria-checked="true" aria-label="Toggle auto-save" class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-primary-container transition-colors duration-200 ease-in-out focus:outline-none" role="switch">
+<span class="sr-only">Auto-save on</span>
+<span aria-hidden="true" class="pointer-events-none translate-x-5 inline-block h-5 w-5 transform rounded-full bg-on-primary shadow ring-0 transition duration-200 ease-in-out"></span>
+</button>
+<span class="font-label-sm text-label-sm text-primary font-semibold tracking-wider uppercase">AUTO-SAVE</span>
+</div>
+</div>
+</div></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-1px_12px_rgba(0,0,0,0.4)]" data-active-classes="text-primary-container"><div class="flex justify-around items-center h-16 px-screen-edge-mobile"><a class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] gap-1 text-on-surface-variant hover:text-on-surface transition-colors" data-path="live" href="#"><span class="material-symbols-outlined text-[20px]">sensors</span><span class="font-label-sm text-label-sm tracking-widest uppercase">LIVE</span></a><a aria-current="page" class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] gap-1 transition-colors text-primary-container" data-path="moments" href="#"><span class="material-symbols-outlined text-[20px]">auto_awesome_motion</span><span class="font-label-sm text-label-sm tracking-widest uppercase">MOMENTS</span></a><a class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] gap-1 text-on-surface-variant hover:text-on-surface transition-colors" data-path="profile" href="#"><span class="material-symbols-outlined text-[20px]">tune</span><span class="font-label-sm text-label-sm tracking-widest uppercase">PROFILE</span></a></div></nav>
+
+</body></html>
