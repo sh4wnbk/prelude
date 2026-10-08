@@ -168,14 +168,22 @@ From `docs/DESIGN.md`, all verified against the markup:
   headless with `--screenshot`. Both credit rows were confirmed by eye: the
   reversed logo reads correctly as orange and white on the dark surface, beside
   "Powered by StatsBomb play-by-play data" on the picker and "Data: StatsBomb"
-  on Moments. That render is also what surfaced the credit truncation and the
-  horizontal overflow noted above.
+  on Moments. That render is what surfaced the credit truncation.
 - **The moment-card timer was cleared in review** (`c7934d6`). The display and
   the 60-second cap in the script are both gone, and `#timerReadout` stays in
-  place and empty for Phase 5. The play button at
-  `prelude_03_moment_card.html:34` still keeps the generic aria-label
-  `Play Narration` while the three Moments buttons are descriptive; that was
-  not part of the three labels specified and remains open.
+  place and empty for Phase 5. The moment card's play button was renamed from
+  the generic `Play Narration` to `Play buildup narration` in `df6ca25`, so all
+  four play buttons now say what they play.
+- **A reported 390 px overflow was a measurement artifact, not a defect**
+  (no code change). The first review screenshots used Edge headless with
+  `--window-size=390`, which does not drive the layout viewport in this build:
+  the page laid out at 492 CSS px and the screenshot captured a 390 px crop of
+  it, so unclipped elements appeared clipped. Re-measured inside a 390 px
+  iframe, every screen reports
+  `clientWidth=390 scrollWidth=390 overflow=0px count=0`, and screenshots at a
+  true 390 px viewport show the header pill, both primary buttons and the
+  `PROFILE` nav label all intact on all four screens. The screens were never
+  broken; the earlier handoff entry claiming they were has been removed.
 - **`truncate` was dropped from the picker credit** (`c7934d6`). Rendering
   showed the logo squeezing the attribution to "play-by-play da...", which is
   not an intact credit. The text now wraps to two lines and reads in full. This
@@ -234,13 +242,6 @@ Items found during Phase 2 that belong with the wiring, not before it:
   and the toggle at `prelude_04_moments.html:263` sets `focus:outline-none` with
   no replacement, so it has no visible keyboard focus. This is a real
   accessibility gap and a cheap win on the design and usability axis.
-- **Horizontal overflow.** All four screens render wider than a phone viewport.
-  At a 390 px window the header pill, the primary buttons, and the bottom nav
-  label are all clipped at the right edge. Confirmed by rendering the picker
-  with and without the StatsBomb logo: the clipping is identical, so it predates
-  that change and is a property of the screens themselves. No breakpoint
-  utilities are used anywhere, so there is no responsive behaviour to fall back
-  on.
 - **The empty placeholders.** The Moments meta badges, the three Moments player
   timers, and the moment card's `#timerReadout` are all present and empty,
   waiting for real values from the fixture.
