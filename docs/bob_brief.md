@@ -111,11 +111,19 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 Right now all 14 fail with the same message:
 
 ```
-Failed: No EventFeed implementation yet: app/statsbomb_event_feed.py does not
-provide StatsBombEventFeed (No module named 'app.statsbomb_event_feed').
+Failed: No EventFeed implementation yet: app.statsbomb_event_feed does not
+exist. This is the expected failure until Bob builds the module; see
+docs/bob_brief.md.
 ```
 
 That is the only reason they fail. Nothing else in the suite is broken.
+
+Two other messages exist and mean different things. `app.statsbomb_event_feed
+exists but does not provide StatsBombEventFeed` means the module is there but
+the class is missing or misnamed. A raw `ModuleNotFoundError` naming some other
+module means your module imports something that is not installed; that one is
+re-raised with a full traceback rather than reported as the module being
+absent.
 
 | Group | Covers |
 | ----- | ------ |

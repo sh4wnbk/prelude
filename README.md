@@ -51,11 +51,25 @@ Everything above it is structure.
 - `scripts/data_check.py`: reads the 1986 Argentina vs England event feed,
   lists every goal and the shot counts per team, and writes
   [`docs/data_check.md`](docs/data_check.md) from that output.
+- `scripts/scan_copy.py`: checks the four screens for banned copy and exits
+  non-zero on any hit.
+- `scripts/check_docs.py`: checks that these docs still match the code they
+  describe, and exits non-zero when one has gone stale.
+- `tests/test_event_feed.py`: 14 acceptance tests for the EventFeed contract.
+  They run, and they all fail on purpose, because nothing implements the
+  contract yet.
 
-**Not built yet:** everything else, including narration, audio output, GPS
-presence handling, and any user-facing interface. The EventFeed and
-moment-detection module is owned by another contributor and is not implemented
-here.
+**Exists but does nothing yet:**
+
+- `app/web/`: four screens that open in a browser as static mockups. Buttons
+  toggle their own icons; nothing is wired to data, audio, or each other.
+- `app/event_feed.py`: the data shapes and the `EventFeed` interface. A
+  contract only, with no implementation behind it.
+
+**Not built yet:** narration, audio output, GPS presence handling, and any
+wiring behind the screens. The EventFeed and moment-detection module is
+reserved for another contributor and is not implemented here; see
+[`docs/bob_brief.md`](docs/bob_brief.md).
 
 No claim in this README is intended to run ahead of the code. If you find one
 that does, it is a bug in the README.

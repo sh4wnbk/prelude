@@ -161,7 +161,7 @@ Every screen is a fixed header, a scrolling `main`, and a fixed bottom nav.
   `01:7`, `02:2`, `03:6`, `04:7`.
 - **Bottom nav**: `fixed bottom-0 w-full z-50 pb-safe bg-surface/90
   backdrop-blur-xl shadow-[0_-1px_12px_rgba(0,0,0,0.4)]`, inner row `h-16`.
-  `01:100`, `02:131`, `03:178`, `04:270`.
+  `01:100`, `02:131`, `03:159`, `04:270`.
 - **Main**: `pt-16 pb-24` clears both bars. `03:6`, `04:7`.
 - **Nav items**: three per screen (`LIVE`, `MOMENTS`, `PROFILE`), each
   `min-w-[44px] min-h-[44px]`, active item `text-primary-container` with
