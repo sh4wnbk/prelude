@@ -46,6 +46,22 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
+      - name: Stamp the deploy version into local asset URLs
+        run: |
+          V="${GITHUB_SHA::7}"
+          files=$(grep -rl '__V__' app/web || true)
+          if [ -z "$files" ]; then
+            echo "No __V__ placeholders found. Refusing to deploy an unstamped build." >&2
+            exit 1
+          fi
+          echo "$files" | xargs sed -i "s/__V__/$V/g"
+          if grep -rq '__V__' app/web; then
+            echo "Placeholders survived stamping." >&2
+            exit 1
+          fi
+          echo "Stamped version $V:"
+          grep -rho '?v=[0-9a-f]\{7\}' app/web | sort | uniq -c
+
       - name: Upload app/web only
         uses: actions/upload-pages-artifact@v3
         with:
