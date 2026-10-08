@@ -56,81 +56,96 @@ def run_pytest(*args):
     return result.stdout + result.stderr
 
 
-CODE_SPAN = re.compile(r"`([^`\n]+)`")
-CITE = re.compile(r"`(0[1-4]):(\d+)`")
-SHIFT_RANGE = range(-6, 7)
+# A code span may wrap across lines in the prose, so newlines are allowed inside
+# one and squeezed out before matching.
+CODE_SPAN = re.compile(r"`([^`]+)`")
+SCREEN_CITE = re.compile(r"`(0[1-4])`")
+
+# Anchors shorter than this match too much to prove anything.
+MIN_ANCHOR = 10
+
+
+def squeeze(s):
+    """Drop all whitespace, so a class string wrapped across lines in the prose
+    still matches the markup, and `foo: bar` here matches minified `foo:bar`."""
+    return "".join(s.split())
+
+
+def block_anchors(block):
+    """The backticked strings in a block that could identify an element."""
+    return [s for s in CODE_SPAN.findall(block)
+            if len(squeeze(s)) >= MIN_ANCHOR and not re.fullmatch(r"0[1-4]", s.strip())]
+
+
+def design_blocks(doc):
+    """A paragraph, bullet or table row: citation and anchor sit together."""
+    return re.split(r"\n\s*\n|\n(?=[-*|] )", doc)
 
 
 def check_design_citations(fail):
-    """DESIGN.md cites `NN:MMM`. Check the line exists, and that the set of
-    citations has not drifted as a block.
+    """DESIGN.md cites a screen, and the class string beside it must be in it.
 
-    Range alone is too weak: inserting one line near the top of a screen shifts
-    every citation below it, and each one still points at a real, non-blank
-    line, so a range check stays green while the whole file is wrong. That
-    happened once, when the phone-frame stylesheet link was added.
-
-    Matching each citation individually against nearby markup is too noisy the
-    other way: anchors go through HTML entity escaping, describe a container on
-    a neighbouring line, or name a utility by how it is used rather than where
-    it is declared. All three produce false alarms.
-
-    So this scores the citations per screen. Each citation that sits beside a
-    backticked code span found in that screen votes for the offset at which its
-    anchor lands. If some non-zero offset explains more citations than zero
-    does, the citations for that screen have drifted together, which is the
-    failure worth reporting.
+    This used to cite file and line. A line number is correct when written and
+    wrong after the next markup change, which happened three times, and once a
+    repair pointed a citation at the wrong element without anything noticing. A
+    class string travels with the element it names, so the only way to break
+    this is to change the markup the doc describes, which is exactly when the
+    doc should be updated.
     """
     doc = (ROOT / "docs" / "DESIGN.md").read_text(encoding="utf-8")
-    lines_by = {k: v.read_text(encoding="utf-8").splitlines() for k, v in SCREENS.items()}
+    text = {k: squeeze(v.read_text(encoding="utf-8")) for k, v in SCREENS.items()}
 
-    votes = {k: [] for k in SCREENS}
-    total = 0
-    for block in re.split(r"\n\s*\n|\n(?=[-*|] )", doc):
-        cites = CITE.findall(block)
+    anchored = unanchored = 0
+    for block in design_blocks(doc):
+        cites = sorted(set(SCREEN_CITE.findall(block)))
         if not cites:
             continue
-        anchors = [s for s in CODE_SPAN.findall(block)
-                   if len(s) >= 10 and not re.fullmatch(r"0[1-4]:\d+", s)]
-        for key, number in cites:
-            total += 1
-            n = int(number)
-            lines = lines_by[key]
-            if n > len(lines):
-                fail("DESIGN.md", f"cites {key}:{n} but {SCREENS[key].name} has {len(lines)} lines")
-                continue
-            if not lines[n - 1].strip():
-                fail("DESIGN.md", f"cites {key}:{n} but that line is blank")
-                continue
-            usable = [a for a in anchors if any(a in l for l in lines)]
-            if usable:
-                votes[key].append((n, usable))
-
-    anchored = 0
-    for key, cites in votes.items():
-        if not cites:
+        anchors = block_anchors(block)
+        if not anchors:
+            unanchored += len(cites)
             continue
-        lines = lines_by[key]
+        for key in cites:
+            if any(squeeze(a) in text[key] for a in anchors):
+                anchored += 1
+            else:
+                fail("DESIGN.md",
+                     f"cites {key} ({SCREENS[key].name}), but none of its anchors is "
+                     f"there: {anchors[:3]}")
+    if not anchored and not unanchored:
+        fail("DESIGN.md", "no screen citations found; has the format changed?")
+    print(f"  DESIGN.md: {anchored} citations anchored in their screen, {unanchored} without an anchor")
 
-        def score(offset):
-            hit = 0
-            for n, anchors in cites:
-                i = n - 1 + offset
-                if 0 <= i < len(lines) and any(a in lines[i] for a in anchors):
-                    hit += 1
-            return hit
 
-        at_zero = score(0)
-        anchored += at_zero
-        best = max(SHIFT_RANGE, key=lambda o: (score(o), -abs(o)))
-        if best != 0 and score(best) > at_zero:
-            fail(
-                "DESIGN.md",
-                f"citations for screen {key} look shifted by {best:+d}: "
-                f"{score(best)} of {len(cites)} anchors land at that offset, "
-                f"only {at_zero} land where cited",
-            )
-    print(f"  DESIGN.md: {total} citations, {anchored} anchored to their line")
+# Two structural landmarks every screen has exactly once, cited for all four.
+# Checking them by name keeps a deterministic tripwire on the app shell.
+LANDMARKS = [
+    ("- **Header**:", "fixed top-0 w-full z-50 pt-safe"),
+    ("- **Bottom nav**:", "fixed bottom-0 w-full z-50 pb-safe"),
+]
+
+
+def check_design_landmarks(fail):
+    """The header and nav bullets must cite all four screens, and be right."""
+    doc = (ROOT / "docs" / "DESIGN.md").read_text(encoding="utf-8")
+    text = {k: v.read_text(encoding="utf-8") for k, v in SCREENS.items()}
+
+    checked = 0
+    for bullet, needle in LANDMARKS:
+        start = doc.find(bullet)
+        if start < 0:
+            fail("DESIGN.md", f"could not find the {bullet!r} bullet; has the format changed?")
+            continue
+        block = doc[start:doc.find("\n- ", start + 1)]
+        cites = sorted(set(SCREEN_CITE.findall(block)))
+        if len(cites) != len(SCREENS):
+            fail("DESIGN.md", f"{bullet!r} cites {cites}, expected all four screens")
+        for key in cites:
+            checked += 1
+            if needle not in text[key]:
+                fail("DESIGN.md", f"{bullet} cites {key}, but {needle!r} is not in "
+                                  f"{SCREENS[key].name}")
+    print(f"  DESIGN.md: {checked} structural landmarks verified")
+
 
 def check_quoted_failure(fail):
     """bob_brief.md quotes the message the suite actually prints."""
@@ -191,73 +206,35 @@ def check_referenced_paths(fail):
 
 
 QUOTED_SCREEN_COPY = re.compile(
-    r"\"([^\"]{10,})\"\s*\(((?:`(?:0[1-4]:\d+|removed)`(?:,\s*)?)+)\)"
+    r"\"([^\"]{10,})\"\s*\(((?:`(?:0[1-4]|removed)`(?:,\s*)?)+)\)"
 )
-CITATION = re.compile(r"`(0[1-4]):(\d+)`|`(removed)`")
+QUOTE_CITATION = re.compile(r"`(0[1-4])`|`(removed)`")
 
-
-
-# Two structural landmarks that every screen has exactly once, and that DESIGN.md
-# cites for all four. They are the citations that move when anything is inserted
-# above them, so checking them by content is a deterministic tripwire for drift,
-# with none of the noise of matching arbitrary prose anchors to arbitrary lines.
-LANDMARKS = [
-    ("- **Header**:", "fixed top-0 w-full z-50 pt-safe"),
-    ("- **Bottom nav**:", "fixed bottom-0 w-full z-50 pb-safe"),
-]
-
-
-def check_design_landmarks(fail):
-    """The header and nav citations in DESIGN.md must land on those elements."""
-    doc = (ROOT / "docs" / "DESIGN.md").read_text(encoding="utf-8")
-    lines_by = {k: v.read_text(encoding="utf-8").splitlines() for k, v in SCREENS.items()}
-
-    checked = 0
-    for bullet, needle in LANDMARKS:
-        start = doc.find(bullet)
-        if start < 0:
-            fail("DESIGN.md", f"could not find the {bullet!r} bullet; has the format changed?")
-            continue
-        block = doc[start:doc.find("\n- ", start + 1)]
-        cites = CITE.findall(block)
-        if len(cites) != len(SCREENS):
-            fail("DESIGN.md", f"{bullet!r} cites {len(cites)} screens, expected {len(SCREENS)}")
-        for key, number in cites:
-            checked += 1
-            n, lines = int(number), lines_by[key]
-            if not (1 <= n <= len(lines)) or needle not in lines[n - 1]:
-                got = lines[n - 1][:60] if 1 <= n <= len(lines) else "<out of range>"
-                fail("DESIGN.md", f"{bullet} cites {key}:{n}, but {needle!r} is not there: {got!r}")
-    print(f"  DESIGN.md: {checked} structural landmarks verified")
 
 def check_quoted_screen_copy(fail):
-    """HANDOFF quotes screen copy and cites where it lives.
+    """HANDOFF quotes screen copy and says which screen it is on.
 
-    A quote followed by `NN:MMM` must appear on that line of that screen. A
-    quote followed by `removed` must appear on no screen at all, which keeps
-    "we took this out" claims honest. Quotes with no citation are prose and are
+    A quote followed by `NN` must appear in that screen. A quote followed by
+    `removed` must appear in no screen at all, which keeps "we took this out"
+    claims honest in both directions. Quotes with no citation are prose and are
     not checked, so commit messages and rule text can be quoted freely.
     """
     doc = (ROOT / "HANDOFF.md").read_text(encoding="utf-8")
     flat = " ".join(doc.split())
-    screens = {k: " ".join(v.read_text(encoding="utf-8").split()) for k, v in SCREENS.items()}
-    lines = {k: v.read_text(encoding="utf-8").splitlines() for k, v in SCREENS.items()}
+    text = {k: " ".join(v.read_text(encoding="utf-8").split()) for k, v in SCREENS.items()}
 
     found = 0
     for quote, cites in QUOTED_SCREEN_COPY.findall(flat):
         wanted = " ".join(quote.split())
-        for key, number, removed in CITATION.findall(cites):
+        for key, removed in QUOTE_CITATION.findall(cites):
             found += 1
             if removed:
-                hit = [k for k, text in screens.items() if wanted in text]
-                if hit:
-                    fail("HANDOFF.md", f"{wanted[:50]!r} is marked removed but is still on {', '.join(hit)}")
-            else:
-                n = int(number)
-                if n > len(lines[key]):
-                    fail("HANDOFF.md", f"cites {key}:{n} but that screen has {len(lines[key])} lines")
-                elif wanted not in " ".join(lines[key][n - 1].split()):
-                    fail("HANDOFF.md", f"{wanted[:50]!r} is not on {key}:{n}")
+                still = [k for k, body in text.items() if wanted in body]
+                if still:
+                    fail("HANDOFF.md",
+                         f"{wanted[:50]!r} is marked removed but is still in {', '.join(still)}")
+            elif wanted not in text[key]:
+                fail("HANDOFF.md", f"{wanted[:50]!r} is not in {SCREENS[key].name}")
     if not found:
         fail("HANDOFF.md", "no cited screen copy found; has the convention changed?")
     print(f"  HANDOFF.md: {found} cited screen quotes checked")

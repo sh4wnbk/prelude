@@ -122,11 +122,11 @@ Two card bodies were tested against `shot.body_part.name`:
   was not supported and was rewritten. The surrounding events do support a replacement:
   Peter Reid has both a `Clearance` and an `Error` at 50:26, then Maradona has
   `Ball Recovery`, `Carry` and `Shot` at 50:27. The body now reads "Maradona
-  recovers Reid's error and scores from nine yards." (`04:70`) Nine yards is
+  recovers Reid's error and scores from nine yards." (`04`) Nine yards is
   `120 - 110.8` on StatsBomb's 120-yard pitch. A trailing "the body part is
   recorded as Other" was cut in review as a data note rather than card copy.
 - **80:37 Lineker** records `Head` at minute 80, so "England's late header sets
-  up a tense finish" (`04:219`) is supported on both counts and was left alone.
+  up a tense finish" (`04`) is supported on both counts and was left alone.
 
 ### Hero copy checked against possession 117
 
@@ -160,9 +160,9 @@ Three claims did not survive that:
   the feed and was cut.
 
 The hero line on both screens now reads "Maradona's solo run from his own half,
-past four England players" (`03:30`, `04:145`), and the quote names all four in
+past four England players" (`03`, `04`), and the quote names all four in
 feed order: "«...Maradona, inside his own half, past Beardsley, past Butcher,
-past Fenwick, rounds Shilton, and finishes.»" (`03:87`)
+past Fenwick, rounds Shilton, and finishes.»" (`03`)
 
 ### Design tokens worth carrying forward
 

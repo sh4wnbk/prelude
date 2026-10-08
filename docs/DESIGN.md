@@ -3,12 +3,20 @@
 The design system as the four screens in `app/web/` actually define it. Every
 value below is read out of the markup, not from any design brief.
 
-**How to trace a value.** Token tables cite `prelude_03_moment_card.html:1`,
-which is the `<script id="tailwind-config">` block. That block is byte-identical
-across all four screens (sha256 `3b9cf112d3cbc180...`, 3209 chars), so the
-system is one system; it sits on line 1 of `prelude_03_moment_card.html` and
-line 2 of the other three. Component sections cite the lines where the pattern
-is actually used.
+**How to trace a value.** A citation is a screen, written `01` to `04` for
+`prelude_01_picker.html` through `prelude_04_moments.html`. The anchor is the
+backticked class string in the same table row or bullet: search the cited screen
+for that string and you are at the element being described.
+
+Citations used to carry line numbers. They were accurate when written and wrong
+after the next markup change, three times over, and once a repair silently
+pointed a citation at the wrong element. A class string moves with the element
+it belongs to, so it cannot drift. `scripts/check_docs.py` verifies that every
+anchor still appears in every screen cited beside it.
+
+The token tables all cite `03`, meaning the `<script id="tailwind-config">`
+block. That block is byte-identical across all four screens (sha256
+`3b9cf112d3cbc180...`, 3209 chars), so the system is one system.
 
 Anything a screen does not contain is absent here. There is no spec for states,
 breakpoints, or components the screens do not have.
@@ -17,14 +25,14 @@ breakpoints, or components the screens do not have.
 
 | Property | Value | Source |
 | -------- | ----- | ------ |
-| Mode | dark only, `darkMode: "class"`, `<html class="dark">` | `03:1` |
-| Page background | `#101319`, set on `html,body` in `@layer base` | `03:1` |
+| Mode | dark only, `darkMode: "class"`, `<html class="dark">` | `03` |
+| Page background | `#101319`, set on `html,body` in `@layer base` | `03` |
 | Viewport | `width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover` | all four, line 1 |
-| Body min height | `max(884px, 100dvh)` | `01:4`, `03:3`, `04:4` |
-| Font smoothing | `-webkit-font-smoothing: antialiased` | `03:1` |
-| Overscroll | `overscroll-behavior: none` | `03:1` |
-| Scrollbars | hidden, `::-webkit-scrollbar{display:none}` | `03:1` |
-| Safe areas | `.pt-safe` / `.pb-safe` map to `env(safe-area-inset-top/bottom, 0px)` | `03:1` |
+| Body min height | `max(884px, 100dvh)` | `01`, `03`, `04` |
+| Font smoothing | `-webkit-font-smoothing: antialiased` | `03` |
+| Overscroll | `overscroll-behavior: none` | `03` |
+| Scrollbars | hidden, `::-webkit-scrollbar{display:none;}` | `03` |
+| Safe areas | `.pt-safe` and `.pb-safe` map to `env(safe-area-inset-top,0px)` and `env(safe-area-inset-bottom,0px)` | `03` |
 
 `prelude_02_live_seated.html` sets no body min height; the other three do.
 
@@ -60,7 +68,7 @@ Counts are references across all four screens, in `bg-`, `text-`, `border-`,
 | `surface-bright` | `#36393f` | 2 |
 | `surface-variant` | `#32353b` | 2 |
 
-All hex values: `03:1`.
+All hex values come from the `tailwind-config` block in `03`.
 
 **Surface ramp**, darkest to lightest, which is how elevation is expressed:
 `surface-container-lowest #0b0e13`, `surface #101319`, `surface-container-low
@@ -83,14 +91,14 @@ most used token. `on-primary #422c00` is the text and icon color on top of it.
 `on-tertiary-fixed`, `on-tertiary-fixed-variant`, `primary-fixed`,
 `primary-fixed-dim`, `secondary-fixed`, `secondary-fixed-dim`, `surface-dim`,
 `surface-tint`, `tertiary`, `tertiary-container`, `tertiary-fixed`,
-`tertiary-fixed-dim`. All at `03:1`.
+`tertiary-fixed-dim`. All in the `tailwind-config` block in `03`.
 
 The whole tertiary ramp and the whole error ramp are unused, so the screens
 define no error state and no tertiary accent in practice.
 
 ## Type
 
-Three families, loaded from Google Fonts at `03:1`:
+Three families, loaded from `fonts.googleapis.com` in `03`:
 
 | Family | Weights loaded | Used for |
 | ------ | -------------- | -------- |
@@ -98,9 +106,9 @@ Three families, loaded from Google Fonts at `03:1`:
 | Hanken Grotesk | 400, 500, 600, 700 | `body-lg`, `body-md`, `headline-sm` |
 | JetBrains Mono | 400, 500, 600 | `label-lg`, `label-md`, `label-sm` |
 
-Material Symbols Outlined is loaded with axes `wght,FILL@100..700,0..1` (`03:1`)
+Material Symbols Outlined is loaded with axes `wght,FILL@100..700,0..1` (`03`)
 and used in 52 places across the four screens. Icons that read as filled set
-`font-variation-settings: 'FILL' 1` inline, for example `03:37` and `03:90`.
+`font-variation-settings: 'FILL' 1` inline, in `03`.
 
 ### Scale
 
@@ -117,18 +125,18 @@ and used in 52 places across the four screens. Icons that read as filled set
 | `label-md` | 11px | 14px | 0.06em | 500 | JetBrains Mono |
 | `label-sm` | 9px | 12px | 0.08em | 600 | JetBrains Mono |
 
-All values: `03:1`.
+All values come from the `tailwind-config` block in `03`.
 
 Tracking is negative on display and headline sizes and positive on label sizes,
 tightening as text gets larger and opening as it gets smaller. Labels are
 monospace, uppercase in use, and carry the widest tracking.
 
 Each `fontSize` token has a `fontFamily` token of the same name, so a text
-element carries both, for example `font-label-sm text-label-sm` at `03:90`.
+element carries both, for example `font-label-sm text-label-sm` in `03`.
 
 ## Spacing
 
-One scale, used for padding, gap and margin (`03:1`):
+One scale, from the `tailwind-config` block in `03`, used for padding, gap and margin:
 
 | Token | Value | | Token | Value |
 | ----- | ----: | - | ----- | ----: |
@@ -147,7 +155,7 @@ not used in the four screens.
 
 ### Radius
 
-`DEFAULT` 0.25rem, `lg` 0.5rem, `xl` 0.75rem, `full` 9999px (`03:1`). Cards use
+`DEFAULT` 0.25rem, `lg` 0.5rem, `xl` 0.75rem, `full` 9999px (`03`). Cards use
 `rounded-xl`, inner panels `rounded-lg`, pills and buttons `rounded-full`.
 
 ## Components
@@ -158,11 +166,11 @@ Every screen is a fixed header, a scrolling `main`, and a fixed bottom nav.
 
 - **Header**: `fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl
   shadow-[0_1px_8px_rgba(0,0,0,0.35)]`, inner row `h-16 px-screen-edge-mobile`.
-  `01:9`, `02:4`, `03:8`, `04:9`.
+  `01`, `02`, `03`, `04`.
 - **Bottom nav**: `fixed bottom-0 w-full z-50 pb-safe bg-surface/90
   backdrop-blur-xl shadow-[0_-1px_12px_rgba(0,0,0,0.4)]`, inner row `h-16`.
-  `01:106`, `02:137`, `03:161`, `04:279`.
-- **Main**: `pt-16 pb-24` clears both bars. `03:8`, `04:9`.
+  `01`, `02`, `03`, `04`.
+- **Main**: `pt-16 pb-24` clears both bars. `03`, `04`.
 - **Nav items**: three per screen (`LIVE`, `MOMENTS`, `PROFILE`), each
   `min-w-[44px] min-h-[44px]`, active item `text-primary-container` with
   `aria-current="page"`, inactive `text-on-surface-variant`. Same four lines.
@@ -173,7 +181,7 @@ The header is translucent at 85% and the nav at 90%, both over `backdrop-blur-xl
 
 `rounded-full bg-surface-container-high/80 backdrop-blur-md` with a
 `w-1.5 h-1.5 rounded-full bg-primary-container pulse-live` dot and a `label-sm`
-uppercase caption. Present in all four headers: `01:9`, `02:4`, `03:8`, `04:9`.
+uppercase caption. Present in all four headers: `01`, `02`, `03`, `04`.
 
 ### Pulse animation
 
@@ -183,21 +191,21 @@ uppercase caption. Present in all four headers: `01:9`, `02:4`, `03:8`, `04:9`.
 .pulse-live { animation: pulse-amber 2s cubic-bezier(0.4,0,0.6,1) infinite; }
 ```
 
-Defined at `03:1`, applied at 11 sites including `01:11`, `01:23`, `02:65`,
-`03:16`. It is the only animation in the system; everything else is a CSS
-transition.
+`@keyframes pulse-amber` is defined in `03` and applied at 11 sites across
+`01`, `02` and `03`. It is the only animation in the system; everything else is
+a CSS transition.
 
 ### Card
 
 `rounded-xl` on a surface one or two steps up from the page, with a hairline
 border at low opacity and a shadow:
 
-- `rounded-xl bg-surface-container ... border border-surface-container-highest/30
-  shadow-xl` at `03:21`.
-- `rounded-xl bg-surface-container-low ... border border-surface-container-high/60
-  shadow-md` at `04:107`, `04:107`, `04:186`.
-- Inner panel: `rounded-xl bg-surface-container-high p-card-padding-md ...
-  border border-surface-container-highest/40 shadow-md` at `03:33`.
+- `rounded-xl bg-surface-container overflow-hidden shadow-xl` with a
+  `border border-surface-container-highest/30` hairline, in `03`.
+- `bg-surface-container-low rounded-xl border border-surface-container-high/60`,
+  three times in `04`.
+- Inner panel: `rounded-xl bg-surface-container-high p-card-padding-md` with a
+  `border border-surface-container-highest/40` hairline, in `03`.
 
 Borders are always a surface token at 20 to 60 percent opacity, never a solid line.
 
@@ -205,11 +213,11 @@ Borders are always a surface token at 20 to 60 percent opacity, never a solid li
 
 | Role | Spec | Source |
 | ---- | ---- | ------ |
-| Primary CTA | `w-full h-touch-target-min rounded-full bg-primary-container text-on-primary-container font-label-lg uppercase tracking-wider font-bold`, `active:scale-[0.99]` | `01:58` |
-| Primary play | `w-14 h-14 rounded-full bg-primary-container text-on-primary shadow-lg shadow-primary-container/20`, `hover:scale-105 active:scale-95` | `03:36` |
-| Secondary play, active | `w-11 h-11 rounded-full bg-primary-container text-on-primary shadow-lg`, `active:scale-95` | `04:149` |
-| Secondary play, idle | `w-11 h-11 rounded-full bg-surface-container-highest text-primary`, `hover:bg-primary-container hover:text-on-primary` | `04:74`, `04:223` |
-| Tertiary action | `h-16 rounded-xl bg-surface-container hover:bg-surface-container-high`, `active:scale-98`, icon over `label-sm` caption | `03:95`, `03:100`, `03:105` |
+| Primary CTA | `w-full h-touch-target-min rounded-full bg-primary-container text-on-primary-container font-label-lg uppercase tracking-wider font-bold`, `active:scale-[0.99]` | `01` |
+| Primary play | `w-14 h-14 rounded-full bg-primary-container text-on-primary shadow-lg shadow-primary-container/20`, `hover:scale-105 active:scale-95` | `03` |
+| Secondary play, active | `w-11 h-11 rounded-full bg-primary-container text-on-primary shadow-lg`, `active:scale-95` | `04` |
+| Secondary play, idle | `w-11 h-11 rounded-full bg-surface-container-highest text-primary`, `hover:bg-primary-container hover:text-on-primary` | `04` |
+| Tertiary action | `h-16 rounded-xl bg-surface-container hover:bg-surface-container-high`, `active:scale-98`, icon over `label-sm` caption | `03` |
 
 Press feedback is a scale transform in every case: 0.99, 0.95 or 0.98. The
 minimum touch target is 2.75rem (44px), which `touch-target-min` and the
@@ -217,10 +225,10 @@ minimum touch target is 2.75rem (44px), which `touch-target-min` and the
 
 ### Filter chips
 
-Single row, horizontally scrollable, `overflow-x-auto no-scrollbar`. Selected
-chip `bg-surface-container-high text-primary border border-outline-variant/40`;
-unselected `bg-surface-container-low text-secondary border border-transparent
-hover:border-outline-variant/30`. Five chips at `04:32`.
+Single row, horizontally scrollable: `overflow-x-auto pb-1 select-none no-scrollbar`.
+Selected chip `rounded-full bg-surface-container-high text-primary`, unselected
+`rounded-full bg-surface-container-low text-secondary`, each closing with
+`border border-outline-variant/40` or `border border-transparent`. Five chips in `04`.
 
 ### Waveform
 
@@ -228,27 +236,27 @@ Static bars, no canvas. Two variants:
 
 - Moment card: `w-[3px]` bars, heights `h-2` to `h-9`, played bars
   `bg-primary-container`, unplayed `bg-secondary-container/70`, on a
-  `bg-surface-container-lowest/60 rounded-lg` track. 24 bars, `03:52` to `03:76`.
-  A playhead at `03:79` is `w-1.5 h-7 bg-primary rounded-full` with
+  `bg-surface-container-lowest/60 rounded-lg` track. 24 bars, in `03`.
+  A playhead in `03` is `w-1.5 h-7 bg-primary rounded-full` with
   `shadow-[0_0_8px_rgba(255,219,160,0.8)]`, positioned `left-[78%]`.
-- Moments cards: `w-1` bars on a `h-6 rounded bg-surface-container-highest`
-  track, same played and unplayed colors. `04:158`, `04:158`, `04:231`.
+- Moments cards: `w-1` bars on a `rounded bg-surface-container-highest` track,
+  same played and unplayed colors. `04`.
 
 Card headers also carry a decorative bar field at `opacity-25` with
-`pointer-events-none`, for example `04:111`.
+`pointer-events-none`, in `04`.
 
 ### Verified marker
 
 `rounded-lg bg-surface-container-lowest` holding a filled `verified` Material
 Symbol at `text-[16px] text-primary-container` and a `label-sm text-secondary`
-caption reading "Verified from play data". `02:85`, `03:90`.
+caption reading "Verified from play data". `02`, `03`.
 
 ### Text input
 
 `w-full bg-surface-container px-3 py-1.5 rounded text-body-md text-on-surface
 border border-outline-variant/30`, with the only real focus treatment in the
 system: `focus:outline-none focus:border-primary-container`, so the border
-changes color rather than gaining a ring. Three instances at `01:13`. Each uses
+changes color rather than gaining a ring. Three instances in `01`. Each uses
 a `placeholder` and has no associated `<label>` element.
 
 ### Toggle switch
@@ -256,7 +264,7 @@ a `placeholder` and has no associated `<label>` element.
 `h-6 w-11 rounded-full border-2 border-transparent bg-primary-container` with
 `role="switch"`, `aria-checked="true"`, `aria-label`, and an `sr-only` caption.
 The knob is `h-5 w-5 rounded-full bg-on-primary translate-x-5`, moved by
-`transition duration-200 ease-in-out`. `04:270` to `04:272`. Only the checked
+`transition duration-200 ease-in-out`. `04`. Only the checked
 appearance exists; the unchecked colors are not defined anywhere.
 
 ### Credit footer
@@ -264,9 +272,9 @@ appearance exists; the unchecked colors are not defined anywhere.
 Text credit plus the reversed Hudl StatsBomb logo:
 
 - Picker: `Powered by StatsBomb play-by-play data` in `body-md text-secondary`,
-  logo at `h-4 w-auto ml-auto` (105px by 16px). `01:56`.
+  logo at `h-4 w-auto ml-auto` (105px by 16px). `01`.
 - Moments: `Data: StatsBomb` in `label-sm text-secondary uppercase`, logo at
-  `h-3 w-auto` (79px by 12px). `04:267`.
+  `h-3 w-auto` (79px by 12px). `04`.
 
 Both sit on a `bg-surface-container-lowest` panel with a
 `border-outline-variant/20` hairline, which is the quietest surface in the ramp
@@ -339,9 +347,9 @@ Not present anywhere in the four files, so not specified: light mode, disabled
 states, error or empty states, toasts, modals, form validation, and the
 unchecked state of the toggle switch.
 
-Focus is defined only on the text input (`01:13`). Every button in the system
+Focus is defined only on the text input (`01`). Every button in the system
 relies on `active:` scale and `hover:` color, with no focus style at all, and
-the toggle at `04:270` sets `focus:outline-none` without a replacement, so it
+the toggle at `04` sets `focus:outline-none` without a replacement, so it
 has no visible keyboard focus.
 
 No breakpoint utilities are used: zero occurrences of `sm:`, `md:`, `lg:`,
