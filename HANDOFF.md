@@ -42,6 +42,7 @@ moved into the already-ignored `voice_test/`. 20 em dashes removed from the
 docs and the no-em-dash rule recorded in `CLAUDE.md`.
 
 **Screens** (`ee7ba82`): four screens into `app/web/`, 750 lines in total.
+Sizes as committed at `ee7ba82`; later copy fixes changed three of them.
 
 | Screen | Size |
 | ------ | ---: |
@@ -121,10 +122,46 @@ Two card bodies were tested against `shot.body_part.name`:
   supported and was rewritten. The surrounding events do support a replacement:
   Peter Reid has both a `Clearance` and an `Error` at 50:26, then Maradona has
   `Ball Recovery`, `Carry` and `Shot` at 50:27. The body now reads "Maradona
-  recovers Reid's error and scores from nine yards; the body part is recorded
-  as Other." Nine yards is `120 - 110.8` on StatsBomb's 120-yard pitch.
+  recovers Reid's error and scores from nine yards." Nine yards is
+  `120 - 110.8` on StatsBomb's 120-yard pitch. A trailing "the body part is
+  recorded as Other" was cut in review as a data note rather than card copy.
 - **80:37 Lineker** records `Head` at minute 80, so "England's late header sets
   up a tense finish" is supported on both counts and was left alone.
+
+### Hero copy checked against possession 117
+
+The solo goal line appeared on two screens and the narration quote on one. All
+three were re-derived from `events/3750191.json` before editing (`10eb5a5`).
+
+Possession 117 is the 54:18 goal. It holds four `Dribble` events, every one
+with outcome `Complete`, each paired with a `Dribbled Past` event naming the
+defender:
+
+| Clock | Dribble location | Dribbled Past |
+| ----- | ---------------- | ------------- |
+| 54:08 | `[54.4, 56.4]` | Peter Beardsley |
+| 54:13 | `[87.1, 68.6]` | Terry Butcher |
+| 54:15 | `[97.1, 55.1]` | Terry Fenwick |
+| 54:18 | `[112.8, 49.4]` | Peter Shilton |
+
+Maradona's first touch of the move is a `Ball Receipt*` at `x = 55.2`. Halfway
+is 60 on a 120-yard pitch, so the run starts inside his own half. The shot is at
+`x = 113.4`, giving a span of 58.2 yards.
+
+Three claims did not survive that:
+
+- **"past five England players" was one too many.** Four players are recorded as
+  dribbled past. The likely fifth is Peter Reid, who has a `Pressure` event at
+  54:08 but no `Dribbled Past`, so the feed does not record him as beaten.
+- **"60-yard" was a rounded figure.** The run spans 58.2 yards. The copy now
+  says "from his own half", which is what `x = 55.2` supports.
+- **"turns away from two, still going" has nothing behind it** in the feed and
+  was cut.
+
+The hero line on both screens now reads "Maradona's solo run from his own half,
+past four England players", and the quote names all four in feed order:
+"«...Maradona, inside his own half, past Beardsley, past Butcher, past Fenwick,
+rounds Shilton, and finishes.»"
 
 ### Design tokens worth carrying forward
 
