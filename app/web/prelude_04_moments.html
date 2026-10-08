@@ -251,22 +251,29 @@
 </div>
 </div>
 <!-- Footer Strip: The Encore Callout -->
-<div class="mt-space-md p-card-padding-md rounded-xl bg-surface-container-high border border-surface-container-highest/60 shadow-lg flex items-center justify-between gap-space-sm">
-<div class="flex items-center gap-space-sm min-w-0">
-<div class="w-9 h-9 shrink-0 rounded-full bg-surface-container-highest flex items-center justify-center text-primary-container">
+<div class="mt-space-md p-card-padding-md rounded-xl bg-surface-container-lowest border border-outline-variant/20 shadow-lg flex flex-col gap-space-sm">
+<!-- Row 1: the callout gets the full width, so the line does not wrap mid-word -->
+<div class="flex items-center gap-space-sm">
+<div class="w-9 h-9 shrink-0 rounded-full bg-surface-container flex items-center justify-center text-primary-container">
 <span class="material-symbols-outlined text-[20px]">history</span>
 </div>
 <div class="flex flex-col min-w-0">
 <span class="font-label-sm text-label-sm text-primary uppercase tracking-wider font-semibold">ENCORE FEED READY</span>
 <p class="font-body-md text-body-md text-on-surface font-medium">The moment you missed deserves an encore!</p>
-<div class="flex items-center gap-1.5"><span class="font-label-sm text-label-sm text-secondary tracking-wider uppercase pt-0.5">Data: StatsBomb</span><img alt="Hudl StatsBomb" class="h-3 w-auto shrink-0" src="assets/hudl-statsbomb-logo-reversed.png?v=__V__"/></div></div>
 </div>
-<div class="shrink-0 flex items-center gap-2">
+</div>
+<!-- Row 2: the credit and the control share a line of their own -->
+<div class="flex items-center gap-space-xs">
+<span class="font-label-sm text-label-sm text-secondary tracking-wider uppercase">Data: StatsBomb</span>
+<img alt="Hudl StatsBomb" class="h-3 w-auto shrink-0" src="assets/hudl-statsbomb-logo-reversed.png?v=__V__"/>
+<div class="ml-auto shrink-0 flex items-center gap-2">
 <button aria-checked="true" aria-label="Toggle auto-save" class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-primary-container transition-colors duration-200 ease-in-out focus:outline-none" role="switch">
 <span class="sr-only">Auto-save on</span>
 <span aria-hidden="true" class="pointer-events-none translate-x-5 inline-block h-5 w-5 transform rounded-full bg-on-primary shadow ring-0 transition duration-200 ease-in-out"></span>
 </button>
 <span class="font-label-sm text-label-sm text-primary font-semibold tracking-wider uppercase">AUTO-SAVE</span>
+</div>
+</div>
 </div>
 </div>
 </div></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-1px_12px_rgba(0,0,0,0.4)]" data-active-classes="text-primary-container"><div class="flex justify-around items-center h-16 px-screen-edge-mobile"><a class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] gap-1 text-on-surface-variant hover:text-on-surface transition-colors" data-path="live" href="prelude_02_live_seated.html?v=__V__"><span class="material-symbols-outlined text-[20px]">sensors</span><span class="font-label-sm text-label-sm tracking-widest uppercase">LIVE</span></a><a aria-current="page" class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] gap-1 transition-colors text-primary-container" data-path="moments" href="prelude_04_moments.html?v=__V__"><span class="material-symbols-outlined text-[20px]">auto_awesome_motion</span><span class="font-label-sm text-label-sm tracking-widest uppercase">MOMENTS</span></a><a aria-disabled="true" class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] gap-1 text-on-surface-variant hover:text-on-surface transition-colors opacity-40 pointer-events-none" data-path="profile" tabindex="-1"><span class="material-symbols-outlined text-[20px]">tune</span><span class="font-label-sm text-label-sm tracking-widest uppercase">PROFILE</span></a></div></nav>

@@ -161,7 +161,7 @@ Every screen is a fixed header, a scrolling `main`, and a fixed bottom nav.
   `01:9`, `02:4`, `03:8`, `04:9`.
 - **Bottom nav**: `fixed bottom-0 w-full z-50 pb-safe bg-surface/90
   backdrop-blur-xl shadow-[0_-1px_12px_rgba(0,0,0,0.4)]`, inner row `h-16`.
-  `01:106`, `02:137`, `03:161`, `04:272`.
+  `01:106`, `02:137`, `03:161`, `04:279`.
 - **Main**: `pt-16 pb-24` clears both bars. `03:8`, `04:9`.
 - **Nav items**: three per screen (`LIVE`, `MOMENTS`, `PROFILE`), each
   `min-w-[44px] min-h-[44px]`, active item `text-primary-container` with
@@ -256,7 +256,7 @@ a `placeholder` and has no associated `<label>` element.
 `h-6 w-11 rounded-full border-2 border-transparent bg-primary-container` with
 `role="switch"`, `aria-checked="true"`, `aria-label`, and an `sr-only` caption.
 The knob is `h-5 w-5 rounded-full bg-on-primary translate-x-5`, moved by
-`transition duration-200 ease-in-out`. `04:265` to `04:267`. Only the checked
+`transition duration-200 ease-in-out`. `04:270` to `04:272`. Only the checked
 appearance exists; the unchecked colors are not defined anywhere.
 
 ### Credit footer
@@ -266,7 +266,16 @@ Text credit plus the reversed Hudl StatsBomb logo:
 - Picker: `Powered by StatsBomb play-by-play data` in `body-md text-secondary`,
   logo at `h-4 w-auto ml-auto` (105px by 16px). `01:56`.
 - Moments: `Data: StatsBomb` in `label-sm text-secondary uppercase`, logo at
-  `h-3 w-auto` (79px by 12px). `04:262`.
+  `h-3 w-auto` (79px by 12px). `04:267`.
+
+Both sit on a `bg-surface-container-lowest` panel with a
+`border-outline-variant/20` hairline, which is the quietest surface in the ramp
+and the reason the two credits read as the same component. The Moments footer
+reached that shape late: it was on `surface-container-high` with the credit
+nested in a column that also held the callout and competed with the auto-save
+control, so at 390px the callout broke to three lines and the credit wrapped
+mid-word. It is now two rows, the callout across the full width and the credit
+beside the control on a line of their own.
 
 Logo file `app/web/assets/hudl-statsbomb-logo-reversed.png`, 2258 by 344, so
 6.56:1.
@@ -332,7 +341,7 @@ unchecked state of the toggle switch.
 
 Focus is defined only on the text input (`01:13`). Every button in the system
 relies on `active:` scale and `hover:` color, with no focus style at all, and
-the toggle at `04:265` sets `focus:outline-none` without a replacement, so it
+the toggle at `04:270` sets `focus:outline-none` without a replacement, so it
 has no visible keyboard focus.
 
 No breakpoint utilities are used: zero occurrences of `sm:`, `md:`, `lg:`,
