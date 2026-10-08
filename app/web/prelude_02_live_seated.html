@@ -118,6 +118,10 @@
           <span class="material-symbols-outlined text-[20px]">timer</span>
           <span>STEPPED AWAY &middot; TAP TO RETURN</span>
         `;
+        // Stepping away is what produces a buildup, so open the moment card.
+        setTimeout(() => {
+          window.location.href = 'prelude_03_moment_card.html';
+        }, 900);
       } else {
         btn.classList.remove('bg-surface-bright', 'text-primary-container');
         btn.classList.add('bg-primary-container', 'text-on-primary');
@@ -129,6 +133,6 @@
       }
     });
   })();
-</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-1px_12px_rgba(0,0,0,0.4)]" data-active-classes="text-primary-container"><div class="flex justify-around items-center h-16 px-screen-edge-mobile"><a aria-current="page" class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] gap-1 transition-colors text-primary-container" data-path="live" href="#"><span class="material-symbols-outlined text-[20px]">sensors</span><span class="font-label-sm text-label-sm tracking-widest uppercase">LIVE</span></a><a class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] gap-1 text-on-surface-variant hover:text-on-surface transition-colors" data-path="moments" href="#"><span class="material-symbols-outlined text-[20px]">auto_awesome_motion</span><span class="font-label-sm text-label-sm tracking-widest uppercase">MOMENTS</span></a><a class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] gap-1 text-on-surface-variant hover:text-on-surface transition-colors" data-path="profile" href="#"><span class="material-symbols-outlined text-[20px]">tune</span><span class="font-label-sm text-label-sm tracking-widest uppercase">PROFILE</span></a></div></nav>
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-1px_12px_rgba(0,0,0,0.4)]" data-active-classes="text-primary-container"><div class="flex justify-around items-center h-16 px-screen-edge-mobile"><a aria-current="page" class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] gap-1 transition-colors text-primary-container" data-path="live" href="prelude_02_live_seated.html"><span class="material-symbols-outlined text-[20px]">sensors</span><span class="font-label-sm text-label-sm tracking-widest uppercase">LIVE</span></a><a class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] gap-1 text-on-surface-variant hover:text-on-surface transition-colors" data-path="moments" href="prelude_04_moments.html"><span class="material-symbols-outlined text-[20px]">auto_awesome_motion</span><span class="font-label-sm text-label-sm tracking-widest uppercase">MOMENTS</span></a><a aria-disabled="true" class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] gap-1 text-on-surface-variant hover:text-on-surface transition-colors opacity-40 pointer-events-none" data-path="profile" tabindex="-1"><span class="material-symbols-outlined text-[20px]">tune</span><span class="font-label-sm text-label-sm tracking-widest uppercase">PROFILE</span></a></div></nav>
 
 </body></html>

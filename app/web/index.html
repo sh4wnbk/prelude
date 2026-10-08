@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>Prelude</title>
+<!--
+  Entry point. Opens on the picker and holds every screen in one phone frame.
+
+  The frame lives here rather than on each screen, so navigating does not
+  rebuild it: the screens load into #screen and the bezel never reloads. Each
+  screen is also a standalone page, and app/web/phone-frame.css draws its own
+  frame when one is opened directly. Inside this shell the iframe is 390px
+  wide, below that stylesheet's 501px breakpoint, so the two never both apply.
+-->
+<style>
+  :root { color-scheme: dark; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background-color: #101319;        /* surface */
+    overflow: hidden;
+  }
+  #frame { width: 100%; height: 100%; }
+  #screen { display: block; width: 100%; height: 100%; border: 0; }
+
+  /* Above the breakpoint, the same bezel phone-frame.css draws. */
+  @media (min-width: 501px) {
+    html { background-color: #0b0e13; }   /* surface-container-lowest */
+    body {
+      display: flex;
+      align-items: safe center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 32px 0;
+      box-sizing: border-box;
+      overflow: auto;
+    }
+    #frame {
+      box-sizing: content-box;
+      flex: none;
+      width: 390px;
+      height: 844px;
+      border: 16px solid #32353b;        /* surface-container-highest */
+      border-radius: 48px;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+      overflow: hidden;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="frame">
+<iframe id="screen" src="prelude_01_picker.html" title="Prelude"></iframe>
+</div>
+</body>
+</html>

@@ -161,7 +161,7 @@ Every screen is a fixed header, a scrolling `main`, and a fixed bottom nav.
   `01:8`, `02:3`, `03:7`, `04:8`.
 - **Bottom nav**: `fixed bottom-0 w-full z-50 pb-safe bg-surface/90
   backdrop-blur-xl shadow-[0_-1px_12px_rgba(0,0,0,0.4)]`, inner row `h-16`.
-  `01:101`, `02:132`, `03:160`, `04:271`.
+  `01:101`, `02:136`, `03:160`, `04:271`.
 - **Main**: `pt-16 pb-24` clears both bars. `03:7`, `04:8`.
 - **Nav items**: three per screen (`LIVE`, `MOMENTS`, `PROFILE`), each
   `min-w-[44px] min-h-[44px]`, active item `text-primary-container` with
@@ -271,6 +271,59 @@ Text credit plus the reversed Hudl StatsBomb logo:
 Logo file `app/web/assets/hudl-statsbomb-logo-reversed.png`, 2258 by 344, so
 6.56:1.
 
+## Phone frame, wide viewports
+
+The four screens are laid out for a 390 by 844 phone and use no breakpoint
+utilities, so on a desktop window they stretch and misread. `app/web/phone-frame.css`
+puts a screen inside a generic bezel at its real size above a breakpoint. It is
+presentation only: no app layout, copy or component is involved, and it is
+built entirely from `body` and `body > main`, which every screen already has.
+
+| Property | Value | Token? |
+| -------- | ----- | ------ |
+| Breakpoint | `min-width: 501px` | no, chrome only |
+| Screen area | 390 by 844 | the viewport the screens are built for |
+| Bezel thickness | 16px | no |
+| Bezel radius | 48px | no |
+| Bezel colour | `#32353b` | yes, `surface-container-highest` |
+| Page behind the frame | `#0b0e13` | yes, `surface-container-lowest` |
+| Drop shadow | `0 24px 64px rgba(0,0,0,0.55)` | no |
+
+The bezel thickness and radius are not in the token scale and could not be: the
+largest non-pill radius token is `xl` at 0.75rem, which is a card corner, not a
+device corner. They are frame chrome and are deliberately outside the system.
+The two colours are tokens.
+
+**Why `body` carries a transform.** The header and the bottom nav are
+`position: fixed`, so by default they pin to the window and would sit outside
+the bezel. A transformed ancestor becomes the containing block for fixed
+descendants, so `transform: translateZ(0)` on `body` lands both bars inside the
+frame. That has a consequence: `body` must stop scrolling (`overflow: hidden`)
+and `main` must start (`overflow-y: auto`), otherwise the bars scroll away with
+the content. `body` also switches to `box-sizing: content-box` so its width and
+height describe the screen area rather than the screen plus bezel.
+
+**At 500px and narrower nothing applies.** The rules live entirely inside the
+media query, so the app fills the window exactly as it did before.
+
+**`app/web/index.html` draws the same bezel itself.** It is the entry point and
+holds every screen in one iframe, so the frame is built once and navigating
+does not rebuild it. Inside that shell the iframe is 390px wide, below the
+501px breakpoint, so `phone-frame.css` stays inert and the two never both
+apply. The stylesheet still matters when a screen is opened directly.
+
+Measured in both states, on all four screens:
+
+| | 390px viewport | 1440px viewport |
+| --- | --- | --- |
+| Bezel | none, `border: 0px` | `16px`, radius `48px` |
+| Screen area | fills the window, 390 wide | 390 by 844 |
+| Frame position | n/a | `left: 509`, centered |
+| Header | 390 wide at x=0 | 390 wide at x=525, inside the bezel |
+| Bottom nav | at the window bottom | inside the frame, bottom 892 of a 900 window |
+| Scrolling | the window scrolls | `main` scrolls, `overflow-y: auto` |
+| Horizontal overflow | none | none |
+
 ## What the screens do not define
 
 Not present anywhere in the four files, so not specified: light mode, disabled
@@ -284,7 +337,9 @@ has no visible keyboard focus.
 
 No breakpoint utilities are used: zero occurrences of `sm:`, `md:`, `lg:`,
 `xl:` or `2xl:` across the four screens, and `screen-edge-tablet` is defined but
-never applied. The layouts are mobile width only.
+never applied. The layouts are mobile width only. The only media queries in
+the repo are the phone frame above and the matching one in `index.html`, which
+wrap the app rather than reflow it.
 
 `pulse-amber` is the only `@keyframes` block, declared once per screen.
 Everything else that moves is a CSS transition or a transform on `:hover` and

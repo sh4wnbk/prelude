@@ -196,6 +196,40 @@ QUOTED_SCREEN_COPY = re.compile(
 CITATION = re.compile(r"`(0[1-4]):(\d+)`|`(removed)`")
 
 
+
+# Two structural landmarks that every screen has exactly once, and that DESIGN.md
+# cites for all four. They are the citations that move when anything is inserted
+# above them, so checking them by content is a deterministic tripwire for drift,
+# with none of the noise of matching arbitrary prose anchors to arbitrary lines.
+LANDMARKS = [
+    ("- **Header**:", "fixed top-0 w-full z-50 pt-safe"),
+    ("- **Bottom nav**:", "fixed bottom-0 w-full z-50 pb-safe"),
+]
+
+
+def check_design_landmarks(fail):
+    """The header and nav citations in DESIGN.md must land on those elements."""
+    doc = (ROOT / "docs" / "DESIGN.md").read_text(encoding="utf-8")
+    lines_by = {k: v.read_text(encoding="utf-8").splitlines() for k, v in SCREENS.items()}
+
+    checked = 0
+    for bullet, needle in LANDMARKS:
+        start = doc.find(bullet)
+        if start < 0:
+            fail("DESIGN.md", f"could not find the {bullet!r} bullet; has the format changed?")
+            continue
+        block = doc[start:doc.find("\n- ", start + 1)]
+        cites = CITE.findall(block)
+        if len(cites) != len(SCREENS):
+            fail("DESIGN.md", f"{bullet!r} cites {len(cites)} screens, expected {len(SCREENS)}")
+        for key, number in cites:
+            checked += 1
+            n, lines = int(number), lines_by[key]
+            if not (1 <= n <= len(lines)) or needle not in lines[n - 1]:
+                got = lines[n - 1][:60] if 1 <= n <= len(lines) else "<out of range>"
+                fail("DESIGN.md", f"{bullet} cites {key}:{n}, but {needle!r} is not there: {got!r}")
+    print(f"  DESIGN.md: {checked} structural landmarks verified")
+
 def check_quoted_screen_copy(fail):
     """HANDOFF quotes screen copy and cites where it lives.
 
@@ -249,6 +283,7 @@ def main():
     print("checking docs against the code they describe")
     for check in (
         check_design_citations,
+        check_design_landmarks,
         check_quoted_failure,
         check_test_count,
         check_referenced_paths,
