@@ -238,6 +238,86 @@ From `docs/DESIGN.md`, all verified against the markup:
 - **The four screens arrived mid-session as untracked files** that this session
   did not author. They were left untracked until the task that called for them.
 
+## Settled decisions: the session model
+
+These are decided, not open. Changing any of them changes what the app claims.
+
+### The app is always live
+
+No screen says "demo", "historical", "archive" or "replay". The app presents a
+match in progress, and `scripts/scan_copy.py` keeps those words out of the
+screens and `matches.json`.
+
+### Two stages, then a single event
+
+**Stage 1 is a list of today's events.** Both matches appear as pre-match
+cards: teams, stadium, kickoff time and 0-0. Nothing from after kickoff is on
+it, so no clock, no GPS badge and no date. Kickoff times are read from the
+match index, 19:00 for 1986 and 17:00 for 2022, and `check_match_copy.py`
+verifies them and the 0-0 against it.
+
+**Stage 2 is one event for the session.** Confirming a card, or scanning a
+ticket, fixes the match for the rest of the session; Live, the moment card and
+Moments then show only that match. The match travels in the query string, for
+example `?match=3869685`, and with none in the URL the default is 1986. Scan
+ticket skips the list, because a scanned ticket already names the event. A
+small "Change event" link on Live goes back to the list.
+
+**"At venue, GPS" belongs to Live.** It appears only after selection, never on
+the list. Both matches are at the venue with a seat; the seat is the fan's own
+ticket, not a claim about the match, which is why it carries no data
+obligation.
+
+### One session clock
+
+Each match has a `session_clock` sitting at its hero moment: the 55th minute
+goal for 1986, Di Maria's for 2022. It is the single "now" for the session, and
+no screen shows anything after it.
+
+### Live has two states
+
+| | Before heading out | After the moment |
+| --- | --- | --- |
+| 1986 | 2H 48', ARG 0-0 ENG | 2H 55', ARG 2-0 ENG |
+| 2022 | 1H 35', ARG 1-0 FRA | 1H 36', ARG 2-0 FRA |
+| Prompt | READY FOR BUILDUP, HEADING OUT | BUILDUP READY, OPEN THE BUILDUP |
+
+Heading out is what moves the clock: it marks the moment reached and opens the
+moment card. Returning to Live keeps the advanced clock and score, and the
+step-away prompt has become a way back into the buildup. The state lives in
+`sessionStorage` keyed by match, so it survives navigation without riding in
+the URL; blocked storage degrades to the pre-moment state rather than throwing.
+
+Both scores are recomputed from the events rather than trusted: the after score
+counts goals at or before the clock, the before score counts goals strictly
+earlier.
+
+### Moments stops at the clock
+
+Moments lists only what has happened by the session clock, chronologically,
+with the count following the list and the subtitle "Tonight so far".
+
+| Match | Shown | Left off |
+| ----- | ----- | -------- |
+| 1986 | 2H 51', 2H 55' | Lineker's 81' |
+| 2022 | 1H 23', 1H 36' | 2H 80', 2H 81', ET 108', ET 118' |
+
+Chronological order is deliberate. Leading with the hero would rank one goal
+above the others, and that is a verdict the app does not get to make.
+`check_match_copy.py` fails if any entry falls after the clock.
+
+### The repo is private, the site is not
+
+`github.com/sh4wnbk/prelude` is private. GitHub Pages is still enabled and the
+site is still public: `https://sh4wnbk.github.io/prelude/` serves 200 to an
+unauthenticated request, and the Pages config reports `public: true`.
+
+Two consequences worth knowing. Pages from a private repo is a paid-plan
+feature, so losing that plan would take the site down without any commit
+causing it. And the source is no longer browsable alongside the demo, so the
+live URL is the only thing a reader can reach: anything the README promises as
+evidence has to be runnable from a clone, not a GitHub link.
+
 ## Next first action (Phase 3)
 
 **Bob builds the EventFeed module against `docs/bob_brief.md`.**
