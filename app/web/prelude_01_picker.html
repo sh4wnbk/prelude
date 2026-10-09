@@ -58,6 +58,7 @@
   // A scanned ticket already names the event, so it skips the list entirely
   // and goes straight to the Live screen for that match.
   document.getElementById('scan-ticket-btn')?.addEventListener('click', () => {
+    Prelude.resetMoment(selectedMatch);
     window.location.href = Prelude.url('prelude_02_live_seated.html', selectedMatch);
   });
 
@@ -100,6 +101,7 @@
       label.innerText = 'Connected to Venue Feed';
       // Confirmed, so move on to the live screen rather than resetting.
       setTimeout(() => {
+        Prelude.resetMoment(selectedMatch);
         window.location.href = Prelude.url('prelude_02_live_seated.html', selectedMatch);
       }, 700);
     }, 800);

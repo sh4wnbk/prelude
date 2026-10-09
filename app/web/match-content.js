@@ -47,11 +47,13 @@
   // Whether the session clock has reached the hero moment, for this match. It
   // is per session rather than per URL, so returning to Live keeps the updated
   // score without the state having to travel in the query string.
-  var SEEN_KEY = "prelude.moment." + MATCH_ID;
+  function seenKey(matchId) {
+    return "prelude.moment." + (matchId || MATCH_ID);
+  }
 
   function momentSeen() {
     try {
-      return window.sessionStorage.getItem(SEEN_KEY) === "1";
+      return window.sessionStorage.getItem(seenKey()) === "1";
     } catch (e) {
       return false;   // private mode, blocked storage: treat as not yet seen
     }
@@ -59,9 +61,21 @@
 
   function markMomentSeen() {
     try {
-      window.sessionStorage.setItem(SEEN_KEY, "1");
+      window.sessionStorage.setItem(seenKey(), "1");
     } catch (e) {
       /* nothing to do; the screens still work, they just do not advance */
+    }
+  }
+
+  // Picking a match from the list starts it over, so Heading out is there to
+  // press again. Without this the second visit to a match in the same session
+  // would open already past its moment. It takes the match explicitly, because
+  // the list is not itself on the match being picked.
+  function resetMoment(matchId) {
+    try {
+      window.sessionStorage.removeItem(seenKey(matchId));
+    } catch (e) {
+      /* nothing stored, nothing to clear */
     }
   }
 
@@ -69,7 +83,8 @@
   // the match id comes from the URL and not from the file.
   window.Prelude = {
     matchId: MATCH_ID, url: url, defaultMatch: DEFAULT_MATCH,
-    momentSeen: momentSeen, markMomentSeen: markMomentSeen
+    momentSeen: momentSeen, markMomentSeen: markMomentSeen,
+    resetMoment: resetMoment
   };
 
   function field(name, root) {
