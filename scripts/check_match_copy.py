@@ -149,6 +149,26 @@ def check_match(entry, fail, note):
     note(f"{where}: {entry['home_team']} vs {entry['away_team']} at {venue}, "
          f"{len(goals)} goals in periods 1 to {LAST_MATCH_PERIOD}")
 
+    # The list of today's events is pre-match: the kickoff time off the index,
+    # and nothing that has happened since, which is 0-0.
+    pick = entry["picker"]
+    kick = (index.get("kick_off") or "")[:5]
+    if pick["kickoff"] != kick:
+        fail(where, f"picker kickoff {pick['kickoff']!r}, the index says {kick!r}")
+    if [pick["home_goals"], pick["away_goals"]] != [0, 0]:
+        fail(where, f"picker shows {pick['home_goals']}-{pick['away_goals']}; a pre-match "
+                    "card is 0-0")
+    want = f"{entry['home_abbr']} 0 - 0 {entry['away_abbr']}"
+    if pick["score"] != want:
+        fail(where, f"picker score {pick['score']!r}, expected {want!r}")
+    if venue and pick.get("stadium") != venue:
+        fail(where, f"picker stadium {pick.get('stadium')!r}, the index says {venue!r}")
+    for banned in ("state", "badge"):
+        if banned in pick:
+            fail(where, f"picker still carries {banned!r}; the list shows no clock and no "
+                        "GPS badge")
+    note(f"  list card: kickoff {pick['kickoff']}, {pick['score']}, {pick['stadium']}")
+
     tally = {entry["home_team"]: 0, entry["away_team"]: 0}
     for g in goals:
         tally[g["team"]["name"]] += 1
@@ -176,11 +196,22 @@ def check_match(entry, fail, note):
                      f"quote names {name!r}, who is not recorded in possession {g['possession']}")
             if name not in hero["quote"]:
                 fail(where + " hero", f"quote_names lists {name!r} but the quote does not say it")
+        # The share sheet must describe this match, so it has to name the scorer.
+        share = hero.get("share_text", "")
+        named = [w.strip(".,'’s") for w in share.split()
+                 if len(w.strip(".,'’s")) >= 4 and w.strip(".,'’s") in g["player"]["name"]]
+        if not share:
+            fail(where + " hero", "no share_text; the share sheet would describe no match")
+        elif not named:
+            fail(where + " hero",
+                 f"share_text {share!r} names nobody from {g['player']['name']!r}")
         note(f"  hero: {g['player']['name']} at {g['minute']}:{g['second']:02d} p{g['period']} "
              f"shown as {hero['period_label']} {hero['display_minute']}'")
+        note(f"  share text names {named}")
         note(f"  quote names {hero['quote_names']} all recorded in possession {g['possession']}")
 
-    for screen in ("picker", "live_seated"):
+    # Only the Live screen carries a clock. The list is pre-match, checked above.
+    for screen in ("live_seated",):
         st = entry[screen]["state"]
         cut = (st["period"], st["display_minute"] - 1, 0)
         before = [x for x in goals if clock(x) < cut]
@@ -245,16 +276,30 @@ def check_screens(doc, fail, note):
     picker = (WEB / "prelude_01_picker.html").read_text(encoding="utf-8")
     for entry in doc["matches"]:
         p = entry["picker"]
-        for label, value in (("badge", p["badge"]), ("title", p["title"]),
-                             ("venue", p["venue"]), ("score", p["state"]["score"]),
-                             ("status", p["status"])):
+        for label, value in (("title", p["title"]), ("venue", p["venue"]),
+                             ("score", p["score"]), ("status", p["status"])):
             if value not in picker:
-                fail(f"picker card {entry['match_id']}",
+                fail(f"list card {entry['match_id']}",
                      f"{label} {value!r} is in matches.json but not in the markup")
-        minute = f"{p['state']['period_label']} \u00b7 {p['state']['display_minute']}'"
-        if minute not in picker:
-            fail(f"picker card {entry['match_id']}", f"state {minute!r} is not in the markup")
-    note(f"  picker markup carries both cards from matches.json")
+        if f"KICKOFF {p['kickoff']}" not in picker:
+            fail(f"list card {entry['match_id']}",
+                 f"kickoff {p['kickoff']!r} is not in the markup")
+
+    # The list is pre-match, so none of the in-match furniture belongs on it.
+    live = (WEB / "prelude_02_live_seated.html").read_text(encoding="utf-8")
+    if "AT VENUE" in picker:
+        fail("list", "a GPS badge is on the list; it belongs to the Live screen")
+    if "AT VENUE" not in live:
+        fail("Live screen", "the GPS badge is missing after selection")
+    if "Change event" not in live:
+        fail("Live screen", "no 'Change event' link back to the list")
+    for entry in doc["matches"]:
+        st = entry["live_seated"]["state"]
+        clock_text = f"{st['period_label']} \u00b7 {st['display_minute']}'"
+        if clock_text in picker:
+            fail("list", f"shows an in-match clock {clock_text!r}; the list is pre-match")
+    note("  list markup carries both cards from matches.json, with no clock and no GPS badge")
+    note("  Live screen carries the GPS badge and a 'Change event' link")
 
     default = next(e for e in doc["matches"] if e["match_id"] == DEFAULT_MATCH)
     inline = {

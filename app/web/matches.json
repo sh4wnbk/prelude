@@ -1,5 +1,5 @@
 {
-  "_note": "Display copy for the two matches. These values are fixed content, not generated: scripts/check_match_copy.py verifies every name, minute, score and count against data/raw and exits 1 on a mismatch. Finding goals and buildups in the data is the EventFeed module's job, not this file's. Nothing in app/web reads this yet; the screens still carry their copy inline, and wiring them to it is Phase 5.",
+  "_note": "Display copy for the two matches. These values are fixed content, not generated: scripts/check_match_copy.py verifies every name, minute, score and count against data/raw and exits 1 on a mismatch. Finding goals and buildups in the data is the EventFeed module's job, not this file's. Nothing in app/web reads this yet; the screens still carry their copy inline, and wiring them to it is Phase 5. The list is pre-match: kickoff time and 0-0, no clock and no GPS badge. Anything later in the match belongs to the screens that come after selection.",
   "matches": [
     {
       "match_id": 3750191,
@@ -9,17 +9,13 @@
       "home_abbr": "ARG",
       "away_abbr": "ENG",
       "picker": {
-        "badge": "AT VENUE · GPS",
         "title": "ARGENTINA vs ENGLAND",
         "venue": "Estadio Azteca · Mexico City",
-        "state": {
-          "period": 2,
-          "period_label": "2H",
-          "display_minute": 48,
-          "home_goals": 0,
-          "away_goals": 0,
-          "score": "ARG 0 - 0 ENG"
-        },
+        "stadium": "Estadio Azteca",
+        "kickoff": "19:00",
+        "home_goals": 0,
+        "away_goals": 0,
+        "score": "ARG 0 - 0 ENG",
         "status": "Play data connected · AI narration ready"
       },
       "live_seated": {
@@ -54,7 +50,8 @@
           "Butcher",
           "Fenwick",
           "Shilton"
-        ]
+        ],
+        "share_text": "Maradona's solo goal, the buildup you missed."
       },
       "moments_subtitle": "ARGENTINA vs ENGLAND · TONIGHT'S RETROSPECTIVE",
       "synced_count": 3,
@@ -117,18 +114,14 @@
       "home_abbr": "ARG",
       "away_abbr": "FRA",
       "picker": {
-        "badge": "AT VENUE · GPS",
         "title": "ARGENTINA vs FRANCE",
         "venue": "Lusail Stadium · Lusail, Qatar",
-        "state": {
-          "period": 1,
-          "period_label": "1H",
-          "display_minute": 35,
-          "home_goals": 1,
-          "away_goals": 0,
-          "score": "ARG 1 - 0 FRA"
-        },
-        "status": "Play-by-play stream active"
+        "stadium": "Lusail Stadium",
+        "kickoff": "17:00",
+        "home_goals": 0,
+        "away_goals": 0,
+        "score": "ARG 0 - 0 FRA",
+        "status": "Play data connected · AI narration ready"
       },
       "live_seated": {
         "venue": "Lusail Stadium",
@@ -162,7 +155,8 @@
           "Messi",
           "Álvarez",
           "Di María"
-        ]
+        ],
+        "share_text": "Di María's goal on the counter, the buildup you missed."
       },
       "moments_subtitle": "ARGENTINA vs FRANCE · TONIGHT'S RETROSPECTIVE",
       "synced_count": 6,

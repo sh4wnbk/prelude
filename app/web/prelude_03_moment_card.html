@@ -146,7 +146,7 @@
       if (navigator.share) {
         navigator.share({
           title: 'PRELUDE: The buildup you missed.',
-          text: 'Maradona\'s solo goal, the buildup you missed.',
+          text: shareAction.dataset.shareText || '',
           url: window.location.href
         }).catch(() => {});
       } else {

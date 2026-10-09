@@ -109,6 +109,11 @@
     if (!field("hero_caption")) return;
     setText("hero_caption", match.hero.caption);
     setText("hero_quote", match.hero.quote);
+    // The share sheet must describe this match, not the one in the markup.
+    var share = document.getElementById("shareAction");
+    if (share && match.hero.share_text) {
+      share.setAttribute("data-share-text", match.hero.share_text);
+    }
   }
 
   function renderMoments(match) {
