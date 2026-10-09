@@ -64,20 +64,20 @@
 </div>
 <!-- Primary Seated Action Container -->
 <div class="flex flex-col items-center justify-center py-space-md space-y-space-sm bg-surface-container-low rounded-xl px-space-md shadow-md text-center">
-<!-- Live Ready Beacon -->
+<!-- Live Ready Beacon: the label follows the session clock -->
 <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container">
 <span class="w-2 h-2 rounded-full bg-primary-container pulse-live"></span>
-<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface">READY FOR BUILDUP</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface" data-field="live_prompt">READY FOR BUILDUP</span>
 </div>
 <!-- Hero Step-away Trigger Button -->
 <button class="w-full py-4 px-6 rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg font-bold tracking-wider uppercase flex items-center justify-center gap-space-xs transition-transform active:scale-95 shadow-lg shadow-primary-container/20 cursor-pointer select-none" id="headingOutBtn">
 <span class="material-symbols-outlined text-[20px] font-bold" style="font-variation-settings: 'FILL' 1;">directions_walk</span>
-<span class="">HEADING OUT</span>
+<span class="" data-field="live_action">HEADING OUT</span>
 <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
 </button>
 <!-- Helper micro-copy -->
 <p class="font-body-md text-body-md text-on-surface-variant max-w-xs leading-normal">
-      Tap when you leave your seat so Prelude starts watching.
+      <span data-field="live_help">Tap when you leave your seat so Prelude starts watching.</span>
     </p>
 </div>
 <!-- Telemetry & Trigger Monitoring Info Section -->
@@ -112,30 +112,26 @@
   (function() {
     const btn = document.getElementById('headingOutBtn');
     if (!btn) return;
-    
-    let active = false;
+
     btn.addEventListener('click', () => {
-      active = !active;
-      if (active) {
-        btn.classList.remove('bg-primary-container', 'text-on-primary');
-        btn.classList.add('bg-surface-bright', 'text-primary-container');
-        btn.innerHTML = `
-          <span class="material-symbols-outlined text-[20px]">timer</span>
-          <span>STEPPED AWAY &middot; TAP TO RETURN</span>
-        `;
-        // Stepping away is what produces a buildup, so open the moment card.
-        setTimeout(() => {
-          window.location.href = Prelude.url('prelude_03_moment_card.html');
-        }, 900);
-      } else {
-        btn.classList.remove('bg-surface-bright', 'text-primary-container');
-        btn.classList.add('bg-primary-container', 'text-on-primary');
-        btn.innerHTML = `
-          <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">directions_walk</span>
-          <span>HEADING OUT</span>
-          <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
-        `;
+      // Once the session clock has passed the moment, this button is simply the
+      // way back into it; there is nothing left to step away from.
+      if (window.Prelude && Prelude.momentSeen()) {
+        window.location.href = Prelude.url('prelude_03_moment_card.html');
+        return;
       }
+
+      // Stepping away is what produces a buildup, so it moves the clock on.
+      if (window.Prelude) Prelude.markMomentSeen();
+      btn.classList.remove('bg-primary-container', 'text-on-primary');
+      btn.classList.add('bg-surface-bright', 'text-primary-container');
+      btn.innerHTML = `
+        <span class="material-symbols-outlined text-[20px]">timer</span>
+        <span>STEPPED AWAY &middot; TAP TO RETURN</span>
+      `;
+      setTimeout(() => {
+        window.location.href = Prelude.url('prelude_03_moment_card.html');
+      }, 900);
     });
   })();
 </script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-1px_12px_rgba(0,0,0,0.4)]" data-active-classes="text-primary-container"><div class="flex justify-around items-center h-16 px-screen-edge-mobile"><a aria-current="page" class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] gap-1 transition-colors text-primary-container" data-path="live" href="prelude_02_live_seated.html?v=__V__"><span class="material-symbols-outlined text-[20px]">sensors</span><span class="font-label-sm text-label-sm tracking-widest uppercase">LIVE</span></a><a class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] gap-1 text-on-surface-variant hover:text-on-surface transition-colors" data-path="moments" href="prelude_04_moments.html?v=__V__"><span class="material-symbols-outlined text-[20px]">auto_awesome_motion</span><span class="font-label-sm text-label-sm tracking-widest uppercase">MOMENTS</span></a><a aria-disabled="true" class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] gap-1 text-on-surface-variant hover:text-on-surface transition-colors opacity-40 pointer-events-none" data-path="profile" tabindex="-1"><span class="material-symbols-outlined text-[20px]">tune</span><span class="font-label-sm text-label-sm tracking-widest uppercase">PROFILE</span></a></div></nav>

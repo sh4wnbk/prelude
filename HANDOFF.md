@@ -126,7 +126,10 @@ Two card bodies were tested against `shot.body_part.name`:
   `120 - 110.8` on StatsBomb's 120-yard pitch. A trailing "the body part is
   recorded as Other" was cut in review as a data note rather than card copy.
 - **80:37 Lineker** records `Head` at minute 80, so "England's late header sets
-  up a tense finish" (`04`) is supported on both counts and was left alone.
+  up a tense finish" (`removed`) was supported on both counts and was left
+  alone at the time. It came off the screen later, not because it was wrong
+  but because 80:37 falls after the session clock, which sits at the 55th
+  minute.
 
 ### Hero copy checked against possession 117
 

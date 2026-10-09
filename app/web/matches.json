@@ -1,5 +1,5 @@
 {
-  "_note": "Display copy for the two matches. These values are fixed content, not generated: scripts/check_match_copy.py verifies every name, minute, score and count against data/raw and exits 1 on a mismatch. Finding goals and buildups in the data is the EventFeed module's job, not this file's. Nothing in app/web reads this yet; the screens still carry their copy inline, and wiring them to it is Phase 5. The list is pre-match: kickoff time and 0-0, no clock and no GPS badge. Anything later in the match belongs to the screens that come after selection.",
+  "_note": "Display copy for the two matches. These values are fixed content, not generated: scripts/check_match_copy.py verifies every name, minute, score and count against data/raw and exits 1 on a mismatch. Finding goals and buildups in the data is the EventFeed module's job, not this file's. Nothing in app/web reads this yet; the screens still carry their copy inline, and wiring them to it is Phase 5. The list is pre-match: kickoff time and 0-0, no clock and no GPS badge. Anything later in the match belongs to the screens that come after selection. One session clock runs through every screen: it sits at the hero moment, and nothing after it is shown anywhere.",
   "matches": [
     {
       "match_id": 3750191,
@@ -21,13 +21,27 @@
       "live_seated": {
         "venue": "Estadio Azteca",
         "ticket": "Ticket: Sec 108 · Row 14",
-        "state": {
+        "before": {
           "period": 2,
           "period_label": "2H",
           "half_label": "SECOND HALF",
           "display_minute": 48,
           "home_goals": 0,
-          "away_goals": 0
+          "away_goals": 0,
+          "prompt": "READY FOR BUILDUP",
+          "action": "HEADING OUT",
+          "help": "Tap when you leave your seat so Prelude starts watching."
+        },
+        "after": {
+          "period": 2,
+          "period_label": "2H",
+          "half_label": "SECOND HALF",
+          "display_minute": 55,
+          "home_goals": 2,
+          "away_goals": 0,
+          "prompt": "BUILDUP READY",
+          "action": "OPEN THE BUILDUP",
+          "help": "Prelude caught the buildup while you were away."
         },
         "caption": "You're in your seat. We'll catch anything you miss."
       },
@@ -53,8 +67,8 @@
         ],
         "share_text": "Maradona's solo goal, the buildup you missed."
       },
-      "moments_subtitle": "ARGENTINA vs ENGLAND · TONIGHT'S RETROSPECTIVE",
-      "synced_count": 3,
+      "moments_subtitle": "ARGENTINA vs ENGLAND · TONIGHT SO FAR",
+      "synced_count": 2,
       "moments": [
         {
           "tag": "GOAL",
@@ -85,26 +99,15 @@
           },
           "title": "Maradona's solo goal",
           "body": "Maradona's solo run from his own half, past four England players."
-        },
-        {
-          "tag": "GOAL",
-          "period_label": "2H",
-          "display_minute": 81,
-          "event": {
-            "period": 2,
-            "minute": 80,
-            "second": 37,
-            "player": "Gary Lineker",
-            "team": "England",
-            "shot_type": "Open Play"
-          },
-          "title": "Lineker pulls one back",
-          "body": "England's late header sets up a tense finish.",
-          "grounding": {
-            "body_part": "Head"
-          }
         }
-      ]
+      ],
+      "session_clock": {
+        "period": 2,
+        "minute": 54,
+        "second": 18,
+        "period_label": "2H",
+        "display_minute": 55
+      }
     },
     {
       "match_id": 3869685,
@@ -126,13 +129,27 @@
       "live_seated": {
         "venue": "Lusail Stadium",
         "ticket": "Ticket: Sec 215 · Row 9",
-        "state": {
+        "before": {
           "period": 1,
           "period_label": "1H",
           "half_label": "FIRST HALF",
           "display_minute": 35,
           "home_goals": 1,
-          "away_goals": 0
+          "away_goals": 0,
+          "prompt": "READY FOR BUILDUP",
+          "action": "HEADING OUT",
+          "help": "Tap when you leave your seat so Prelude starts watching."
+        },
+        "after": {
+          "period": 1,
+          "period_label": "1H",
+          "half_label": "FIRST HALF",
+          "display_minute": 36,
+          "home_goals": 2,
+          "away_goals": 0,
+          "prompt": "BUILDUP READY",
+          "action": "OPEN THE BUILDUP",
+          "help": "Prelude caught the buildup while you were away."
         },
         "caption": "You're in your seat. We'll catch anything you miss."
       },
@@ -158,8 +175,8 @@
         ],
         "share_text": "Di María's goal on the counter, the buildup you missed."
       },
-      "moments_subtitle": "ARGENTINA vs FRANCE · TONIGHT'S RETROSPECTIVE",
-      "synced_count": 6,
+      "moments_subtitle": "ARGENTINA vs FRANCE · TONIGHT SO FAR",
+      "synced_count": 2,
       "moments": [
         {
           "tag": "PENALTY",
@@ -198,87 +215,15 @@
             "play_pattern": "From Counter",
             "assist": "Alexis Mac Allister"
           }
-        },
-        {
-          "tag": "PENALTY",
-          "period_label": "2H",
-          "display_minute": 80,
-          "event": {
-            "period": 2,
-            "minute": 79,
-            "second": 24,
-            "player": "Kylian Mbappé Lottin",
-            "team": "France",
-            "shot_type": "Penalty"
-          },
-          "title": "Mbappé from the spot",
-          "body": "Mbappé scores France's penalty with his right foot.",
-          "grounding": {
-            "body_part": "Right Foot"
-          }
-        },
-        {
-          "tag": "GOAL",
-          "period_label": "2H",
-          "display_minute": 81,
-          "event": {
-            "period": 2,
-            "minute": 80,
-            "second": 59,
-            "player": "Kylian Mbappé Lottin",
-            "team": "France",
-            "shot_type": "Open Play"
-          },
-          "title": "Mbappé levels it",
-          "body": "Mbappé scores again from a throw-in, 95 seconds after his penalty.",
-          "grounding": {
-            "body_part": "Right Foot",
-            "play_pattern": "From Throw In",
-            "seconds_after_previous_goal": 95
-          }
-        },
-        {
-          "tag": "GOAL",
-          "period_label": "ET",
-          "display_minute": 108,
-          "event": {
-            "period": 4,
-            "minute": 107,
-            "second": 58,
-            "player": "Lionel Andrés Messi Cuccittini",
-            "team": "Argentina",
-            "shot_type": "Open Play"
-          },
-          "title": "Messi puts Argentina back in front",
-          "body": "Messi scores with his right foot in the second half of extra time.",
-          "grounding": {
-            "body_part": "Right Foot"
-          }
-        },
-        {
-          "tag": "PENALTY",
-          "period_label": "ET",
-          "display_minute": 118,
-          "event": {
-            "period": 4,
-            "minute": 117,
-            "second": 5,
-            "player": "Kylian Mbappé Lottin",
-            "team": "France",
-            "shot_type": "Penalty"
-          },
-          "title": "Mbappé's third makes it level",
-          "body": "Mbappé scores his third of the match from the spot, for 3-3.",
-          "grounding": {
-            "body_part": "Right Foot",
-            "player_goal_number": 3,
-            "score_after": [
-              3,
-              3
-            ]
-          }
         }
-      ]
+      ],
+      "session_clock": {
+        "period": 1,
+        "minute": 35,
+        "second": 22,
+        "period_label": "1H",
+        "display_minute": 36
+      }
     }
   ]
 }

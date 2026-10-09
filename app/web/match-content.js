@@ -44,9 +44,33 @@
     return path + "?" + parts.join("&");
   }
 
+  // Whether the session clock has reached the hero moment, for this match. It
+  // is per session rather than per URL, so returning to Live keeps the updated
+  // score without the state having to travel in the query string.
+  var SEEN_KEY = "prelude.moment." + MATCH_ID;
+
+  function momentSeen() {
+    try {
+      return window.sessionStorage.getItem(SEEN_KEY) === "1";
+    } catch (e) {
+      return false;   // private mode, blocked storage: treat as not yet seen
+    }
+  }
+
+  function markMomentSeen() {
+    try {
+      window.sessionStorage.setItem(SEEN_KEY, "1");
+    } catch (e) {
+      /* nothing to do; the screens still work, they just do not advance */
+    }
+  }
+
   // Available to the screens' own scripts before the fetch resolves, because
   // the match id comes from the URL and not from the file.
-  window.Prelude = { matchId: MATCH_ID, url: url, defaultMatch: DEFAULT_MATCH };
+  window.Prelude = {
+    matchId: MATCH_ID, url: url, defaultMatch: DEFAULT_MATCH,
+    momentSeen: momentSeen, markMomentSeen: markMomentSeen
+  };
 
   function field(name, root) {
     return (root || document).querySelector('[data-field="' + name + '"]');
@@ -75,7 +99,9 @@
   function renderLiveSeated(match) {
     var seated = match.live_seated;
     if (!seated || !field("state_badge")) return;
-    var state = seated.state;
+    // Before the moment the clock sits short of it; after, it has moved on and
+    // the score is the one the data records at that point.
+    var state = momentSeen() ? seated.after : seated.before;
 
     var teams = field("teams_upper");
     if (teams) {
@@ -103,6 +129,10 @@
     setText("away_goals", state.away_goals);
     setText("half_line", state.half_label + " · " + state.display_minute + "'");
     setText("caption", seated.caption);
+
+    setText("live_prompt", state.prompt);
+    setText("live_action", state.action);
+    setText("live_help", state.help);
   }
 
   function renderHero(match) {

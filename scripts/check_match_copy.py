@@ -178,7 +178,7 @@ def check_match(entry, fail, note):
     note(f"  index score {index['home_score']}-{index['away_score']} reconciles with the feed")
 
     hero = entry["hero"]
-    g = find_goal(goals, hero["event"])
+    g = hero_goal = find_goal(goals, hero["event"])
     if g is None:
         fail(where, f"hero event {hero['event']} is not a goal in the feed")
     else:
@@ -210,30 +210,51 @@ def check_match(entry, fail, note):
         note(f"  share text names {named}")
         note(f"  quote names {hero['quote_names']} all recorded in possession {g['possession']}")
 
-    # Only the Live screen carries a clock. The list is pre-match, checked above.
-    for screen in ("live_seated",):
-        st = entry[screen]["state"]
-        cut = (st["period"], st["display_minute"] - 1, 0)
-        before = [x for x in goals if clock(x) < cut]
-        home = sum(1 for x in before if x["team"]["name"] == home_team)
-        away = len(before) - home
+    # One session clock, sitting at the hero moment.
+    sc = entry["session_clock"]
+    session = (sc["period"], sc["minute"], sc["second"])
+    if hero_goal is not None and session != clock(hero_goal):
+        fail(where, f"session clock {session} is not the hero moment {clock(hero_goal)}")
+    if PERIOD_LABELS[sc["period"]] != sc["period_label"]:
+        fail(where, f"session clock period {sc['period']} labelled {sc['period_label']!r}")
+    if sc["display_minute"] != sc["minute"] + 1:
+        fail(where, f"session clock display minute {sc['display_minute']} for raw {sc['minute']}")
+    note(f"  session clock: {sc['period_label']} {sc['display_minute']}' "
+         f"(raw {sc['minute']}:{sc['second']:02d} p{sc['period']})")
+
+    # Live has two states. Before the moment the clock is short of it; after, it
+    # has moved to the moment and the score is what the data records there.
+    for name, inclusive in (("before", False), ("after", True)):
+        st = entry["live_seated"][name]
+        if inclusive:
+            counted = [x for x in goals if clock(x) <= session]
+        else:
+            cut = (st["period"], st["display_minute"] - 1, 0)
+            counted = [x for x in goals if clock(x) < cut]
+        home = sum(1 for x in counted if x["team"]["name"] == home_team)
+        away = len(counted) - home
         if [st["home_goals"], st["away_goals"]] != [home, away]:
-            fail(where, f"{screen} shows {st['home_goals']}-{st['away_goals']} at "
+            fail(where, f"Live {name} shows {st['home_goals']}-{st['away_goals']} at "
                         f"{st['period_label']} {st['display_minute']}', the feed says {home}-{away}")
         if PERIOD_LABELS[st["period"]] != st["period_label"]:
-            fail(where, f"{screen} period {st['period']} labelled {st['period_label']!r}")
-        if "score" in st:
-            want = f"{entry['home_abbr']} {home} - {away} {entry['away_abbr']}"
-            if st["score"] != want:
-                fail(where, f"{screen} score string {st['score']!r}, expected {want!r}")
-        note(f"  {screen}: {st['period_label']} {st['display_minute']}' "
-             f"{entry['home_abbr']} {home} - {away} {entry['away_abbr']}")
+            fail(where, f"Live {name} period {st['period']} labelled {st['period_label']!r}")
+        for key in ("prompt", "action", "help"):
+            if not st.get(key):
+                fail(where, f"Live {name} has no {key}")
+        note(f"  Live {name}: {st['period_label']} {st['display_minute']}' "
+             f"{entry['home_abbr']} {home} - {away} {entry['away_abbr']}  [{st['prompt']}]")
+
+    if entry["live_seated"]["after"]["display_minute"] != sc["display_minute"]:
+        fail(where, "Live after does not sit on the session clock")
+    if entry["live_seated"]["before"]["display_minute"] >= sc["display_minute"]:
+        fail(where, "Live before is not earlier than the session clock")
 
     if entry["synced_count"] != len(entry["moments"]):
         fail(where, f"synced_count {entry['synced_count']} but {len(entry['moments'])} moments")
-    if len(entry["moments"]) != len(goals):
-        fail(where, f"{len(entry['moments'])} moments for {len(goals)} goals in periods 1 to "
-                    f"{LAST_MATCH_PERIOD}")
+    upto = [x for x in goals if clock(x) <= session]
+    if len(entry["moments"]) != len(upto):
+        fail(where, f"{len(entry['moments'])} moments for {len(upto)} goals at or before the "
+                    "session clock")
 
     seen = set()
     for m in entry["moments"]:
@@ -256,9 +277,14 @@ def check_match(entry, fail, note):
              f"{g['player']['name']} ({g['shot']['type']['name']}, "
              f"{g['shot']['body_part']['name']})")
 
-    missing = {clock(g) for g in goals} - seen
+    expected = {clock(g) for g in goals if clock(g) <= session}
+    missing = expected - seen
     if missing:
-        fail(where, f"goals with no moment: {sorted(missing)}")
+        fail(where, f"goals at or before the session clock with no moment: {sorted(missing)}")
+    late = sorted(c for c in seen if c > session)
+    if late:
+        fail(where, f"Moments shows {late}, which is after the session clock {session}")
+    note(f"  Moments stops at the session clock: {len(seen)} of {len(goals)} goals")
 
 
 WEB = ROOT / "app" / "web"
@@ -294,10 +320,11 @@ def check_screens(doc, fail, note):
     if "Change event" not in live:
         fail("Live screen", "no 'Change event' link back to the list")
     for entry in doc["matches"]:
-        st = entry["live_seated"]["state"]
-        clock_text = f"{st['period_label']} \u00b7 {st['display_minute']}'"
-        if clock_text in picker:
-            fail("list", f"shows an in-match clock {clock_text!r}; the list is pre-match")
+        for name in ("before", "after"):
+            st = entry["live_seated"][name]
+            clock_text = f"{st['period_label']} \u00b7 {st['display_minute']}'"
+            if clock_text in picker:
+                fail("list", f"shows an in-match clock {clock_text!r}; the list is pre-match")
     note("  list markup carries both cards from matches.json, with no clock and no GPS badge")
     note("  Live screen carries the GPS badge and a 'Change event' link")
 
