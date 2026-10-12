@@ -1,0 +1,330 @@
+<!DOCTYPE html><html class="dark" lang="en" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=Syne:wght@600;700&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#101319;}body{overscroll-behavior:none;-webkit-font-smoothing:antialiased;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}@keyframes pulse-amber{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.35;transform:scale(0.85);}}.pulse-live{animation:pulse-amber 2s cubic-bezier(0.4,0,0.6,1) infinite;}</style><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "surface-variant": "#32353b", "surface-container-lowest": "#0b0e13", "surface-container-highest": "#32353b", "primary-fixed": "#ffdea9", "on-primary-fixed": "#271900", "secondary-fixed-dim": "#bec7d2", "inverse-surface": "#e1e2ea", "on-error": "#690005", "primary-fixed-dim": "#ffba27", "secondary-container": "#414a53", "background": "#101319", "tertiary": "#abeaff", "error-container": "#93000a", "surface": "#101319", "surface-container": "#1d2025", "on-tertiary-fixed-variant": "#004e5e", "outline-variant": "#514532", "secondary": "#bec7d2", "surface-bright": "#36393f", "tertiary-fixed-dim": "#2dd8ff", "primary": "#ffdba0", "surface-container-low": "#191c21", "on-tertiary-container": "#00596b", "on-error-container": "#ffdad6", "on-secondary-fixed": "#141c24", "on-surface": "#e1e2ea", "on-secondary-container": "#b0b9c4", "on-primary": "#422c00", "on-surface-variant": "#d5c4ac", "inverse-primary": "#7d5800", "outline": "#9e8f78", "surface-tint": "#ffba27", "on-secondary-fixed-variant": "#3f4850", "error": "#ffb4ab", "surface-dim": "#101319", "on-primary-fixed-variant": "#5e4100", "on-secondary": "#29313a", "on-background": "#e1e2ea", "on-tertiary": "#003642", "on-primary-container": "#6b4b00", "primary-container": "#ffb703", "secondary-fixed": "#dae3ee", "tertiary-container": "#00d6ff", "inverse-on-surface": "#2d3036", "surface-container-high": "#272a30", "tertiary-fixed": "#b2ebff", "on-tertiary-fixed": "#001f27" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-xl": "2rem", "card-padding-lg": "1.75rem", "space-sm": "0.75rem", "space-3xl": "4rem", "space-2xs": "0.25rem", "space-2xl": "3rem", "screen-edge-tablet": "2rem", "touch-target-min": "2.75rem", "card-padding-sm": "1rem", "card-padding-md": "1.25rem", "screen-edge-mobile": "1.25rem", "space-xs": "0.5rem", "space-md": "1rem", "space-lg": "1.5rem" }, fontFamily: { "label-sm": ["JetBrains Mono"], "headline-lg-mobile": ["Syne"], "label-lg": ["JetBrains Mono"], "body-lg": ["Hanken Grotesk"], "headline-sm": ["Hanken Grotesk"], "display-sm": ["Syne"], "body-md": ["Hanken Grotesk"], "display-lg": ["Syne"], "label-md": ["JetBrains Mono"], "headline-lg": ["Syne"] }, fontSize: { "label-sm": ["9px", { lineHeight: "12px", letterSpacing: "0.08em", fontWeight: "600" }], "headline-lg-mobile": ["24px", { lineHeight: "30px", letterSpacing: "-0.01em", fontWeight: "600" }], "label-lg": ["13px", { lineHeight: "18px", letterSpacing: "0.04em", fontWeight: "500" }], "body-lg": ["16px", { lineHeight: "24px", letterSpacing: "0", fontWeight: "400" }], "headline-sm": ["20px", { lineHeight: "26px", letterSpacing: "-0.01em", fontWeight: "600" }], "display-sm": ["36px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700" }], "body-md": ["14px", { lineHeight: "20px", letterSpacing: "0", fontWeight: "400" }], "display-lg": ["48px", { lineHeight: "52px", letterSpacing: "-0.03em", fontWeight: "700" }], "label-md": ["11px", { lineHeight: "14px", letterSpacing: "0.06em", fontWeight: "500" }], "headline-lg": ["28px", { lineHeight: "34px", letterSpacing: "-0.015em", fontWeight: "600" }] } } } }</script><link href="phone-frame.css?v=__V__" rel="stylesheet"/>
+<script src="match-content.js?v=__V__"></script>
+<style>@keyframes scan-sweep{0%{top:4%;opacity:0.15;}15%{opacity:0.95;}85%{opacity:0.95;}100%{top:96%;opacity:0.15;}}.scan-line{animation:scan-sweep 2.8s ease-in-out infinite;}@media (prefers-reduced-motion:reduce){.scan-line{animation:none;top:50%;}.pulse-live{animation:none;}}</style>
+</head><body class="bg-surface text-on-surface font-body-md text-body-md flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.35)]"><div class="h-16 px-screen-edge-mobile flex items-center justify-between"><div class="flex items-center gap-space-xs"><a aria-label="Back to today's events" class="w-touch-target-min h-touch-target-min -ml-2 flex items-center justify-center text-on-surface hover:text-primary-container transition-colors" href="prelude_01_picker.html?v=__V__"><span class="material-symbols-outlined text-[20px]">close</span></a><div class="flex flex-col"><span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">PRELUDE</span><h1 class="font-headline-sm text-headline-sm text-on-surface">Scan ticket</h1></div></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="flex flex-col relative w-full pt-16 pb-safe bg-surface min-h-screen"><div class="flex flex-col w-full px-screen-edge-mobile pb-space-xl">
+<!-- Scanner status, which reports what the camera is actually doing -->
+<div class="flex flex-col items-center text-center mt-space-sm mb-space-md">
+<div class="inline-flex items-center gap-space-xs px-space-sm py-1 rounded-full bg-primary-container/10 mb-space-xs" id="status-pill">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container pulse-live" id="status-dot"></span>
+<span class="font-label-sm text-label-sm text-primary-container uppercase tracking-wider" id="status-text">STARTING CAMERA</span>
+</div>
+<p class="font-body-md text-body-md text-secondary mt-1 max-w-[280px]" id="scan-help">
+      Hold the QR code on your ticket inside the frame.
+    </p>
+</div>
+<!-- Viewfinder -->
+<div class="relative w-full aspect-square max-w-[340px] mx-auto rounded-xl bg-surface-container-lowest overflow-hidden shadow-2xl flex items-center justify-center" id="viewfinder">
+<video autoplay class="absolute inset-0 w-full h-full object-cover" id="preview" muted playsinline></video>
+<!-- Reticle -->
+<div class="relative w-64 h-64 flex items-center justify-center">
+<div class="absolute -top-1 -left-1 w-7 h-7 flex flex-col justify-between">
+<span class="w-full h-1 bg-primary-container rounded-full"></span>
+<span class="w-1 h-full -mt-1 bg-primary-container rounded-full"></span>
+</div>
+<div class="absolute -top-1 -right-1 w-7 h-7 flex flex-col items-end justify-between">
+<span class="w-full h-1 bg-primary-container rounded-full"></span>
+<span class="w-1 h-full -mt-1 bg-primary-container rounded-full"></span>
+</div>
+<div class="absolute -bottom-1 -left-1 w-7 h-7 flex flex-col justify-end">
+<span class="w-1 h-full bg-primary-container rounded-full"></span>
+<span class="w-full h-1 bg-primary-container rounded-full"></span>
+</div>
+<div class="absolute -bottom-1 -right-1 w-7 h-7 flex flex-col items-end justify-end">
+<span class="w-1 h-full bg-primary-container rounded-full"></span>
+<span class="w-full h-1 bg-primary-container rounded-full"></span>
+</div>
+<div class="absolute left-2 right-2 h-0.5 bg-primary-container shadow-[0_0_12px_#ffb703] scan-line" id="scan-line"></div>
+</div>
+</div>
+<!-- Shown instead of the viewfinder when there is no camera to use -->
+<div class="hidden w-full max-w-[340px] mx-auto p-card-padding-md rounded-xl bg-surface-container text-center" id="camera-off">
+<span class="material-symbols-outlined text-on-surface-variant text-[28px]">no_photography</span>
+<p class="font-body-md text-body-md text-on-surface mt-space-xs" id="camera-off-text"></p>
+</div>
+<!-- Scan feedback, announced to screen readers without moving focus -->
+<p aria-live="polite" class="font-label-md text-label-md text-on-surface-variant text-center mt-space-sm min-h-[1.25rem]" id="scan-message" role="status"></p>
+<!-- Manual entry -->
+<div class="mt-space-md flex flex-col items-center gap-space-sm">
+<button class="w-full max-w-[340px] h-touch-target-min rounded-full bg-primary-container text-on-primary-container font-label-lg text-label-lg font-semibold flex items-center justify-center gap-space-xs transition-transform active:scale-[0.98] shadow-md" id="manual-entry-btn" type="button">
+<span class="material-symbols-outlined text-[18px]">keyboard</span>
+<span>ENTER TICKET MANUALLY</span>
+</button>
+<div class="hidden w-full max-w-[340px] p-card-padding-md rounded-xl bg-surface-container shadow-xl mt-space-xs" id="manual-entry-panel">
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<label class="font-label-md text-label-md text-on-surface uppercase tracking-wide" for="manual-code">Ticket code</label>
+<button aria-label="Close manual entry" class="text-secondary hover:text-on-surface" id="close-manual-btn" type="button">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<input autocapitalize="off" autocomplete="off" class="w-full h-11 px-space-sm rounded-lg bg-surface-container-lowest text-on-surface placeholder:text-secondary font-label-md text-label-md border border-outline-variant/30 focus:outline-none focus:border-primary-container" id="manual-code" placeholder="prelude:3750191:108:14:8" spellcheck="false" type="text"/>
+<button class="w-full h-10 rounded-lg bg-surface-container-high text-primary font-label-md text-label-md uppercase tracking-wider flex items-center justify-center" id="manual-open-btn" type="button">
+          Open ticket
+        </button>
+</div>
+</div>
+</div>
+</div>
+<script>
+  /* Reads the QR code on a demo ticket and opens that match.
+   *
+   * The payload is prelude:<match_id>:<section>:<row>:<seat>, the same string
+   * scripts/make_tickets.py encodes. A code is accepted only when every part of
+   * it matches a ticket in matches.json: these two tickets are the only ones
+   * this app knows about, so anything else is not a ticket it can open.
+   *
+   * BarcodeDetector does the reading where the browser has it. iPhone Safari
+   * does not, so jsQR is loaded at a pinned version and given frames drawn off
+   * the video. Both paths end in the same handler.
+   */
+  (function () {
+    "use strict";
+
+    var JSQR_URL = "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js";
+    var JSQR_SRI = "sha384-b5Ya4Bq3qCyz39m2ISh+4DxjAIljdeFwK/BsXLuj9gugaNwAcj/ia15fxNZL9Nlx";
+    var FRAME_MS = 180;
+    var MESSAGE_MS = 2600;
+
+    var video = document.getElementById("preview");
+    var viewfinder = document.getElementById("viewfinder");
+    var cameraOff = document.getElementById("camera-off");
+    var cameraOffText = document.getElementById("camera-off-text");
+    var statusText = document.getElementById("status-text");
+    var statusDot = document.getElementById("status-dot");
+    var message = document.getElementById("scan-message");
+    var help = document.getElementById("scan-help");
+    var manualBtn = document.getElementById("manual-entry-btn");
+    var manualPanel = document.getElementById("manual-entry-panel");
+    var manualInput = document.getElementById("manual-code");
+
+    var canvas = document.createElement("canvas");
+    var ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+    var tickets = null;
+    var stream = null;
+    var detector = null;
+    var readQR = null;      // jsQR, once loaded
+    var running = false;
+    var messageTimer = null;
+
+    // The deploy version is on the match-content.js tag, so matches.json is
+    // fetched with the same cache key as every other local asset.
+    function deployVersion() {
+      var tag = document.querySelector('script[src*="match-content.js"]');
+      var m = tag && /[?&]v=([^&]*)/.exec(tag.getAttribute("src") || "");
+      return m ? m[1] : null;
+    }
+
+    function setStatus(text) {
+      statusText.textContent = text;
+    }
+
+    function say(text) {
+      message.textContent = text;
+      if (messageTimer) clearTimeout(messageTimer);
+      if (text) messageTimer = setTimeout(function () { message.textContent = ""; }, MESSAGE_MS);
+    }
+
+    /* A code is a ticket only when the whole payload matches one we hold. */
+    function ticketFor(text) {
+      var parts = /^prelude:(\d+):([^:]+):([^:]+):([^:]+)$/.exec(String(text).trim());
+      if (!parts || !tickets) return null;
+      for (var i = 0; i < tickets.length; i++) {
+        var t = tickets[i];
+        if (String(t.match_id) === parts[1] && t.section === parts[2] &&
+            t.row === parts[3] && t.seat === parts[4]) return t;
+      }
+      return null;
+    }
+
+    function stopCamera() {
+      running = false;
+      if (stream) {
+        stream.getTracks().forEach(function (track) { track.stop(); });
+        stream = null;
+      }
+    }
+
+    function openTicket(ticket) {
+      stopCamera();
+      setStatus("TICKET READ");
+      say("Opening " + ticket.label + ".");
+      // A scanned ticket names the event, so it goes straight to Live, and the
+      // match starts at its pre-moment state exactly as picking it would.
+      if (window.Prelude) {
+        Prelude.resetMoment(ticket.match_id);
+        window.location.href = Prelude.url("prelude_02_live_seated.html", ticket.match_id);
+      } else {
+        window.location.href = "prelude_02_live_seated.html?match=" + ticket.match_id;
+      }
+    }
+
+    function handleCode(text) {
+      var ticket = ticketFor(text);
+      if (ticket) {
+        openTicket(ticket);
+        return true;
+      }
+      // Stay on the scanner: the next frame may hold a ticket we do know.
+      say("Ticket not recognized");
+      return false;
+    }
+
+    function cameraUnavailable(text) {
+      stopCamera();
+      viewfinder.classList.add("hidden");
+      cameraOff.classList.remove("hidden");
+      cameraOffText.textContent = text;
+      statusDot.classList.remove("pulse-live");
+      setStatus("CAMERA OFF");
+      help.textContent = "Enter the code printed on your ticket instead.";
+      manualBtn.focus();
+    }
+
+    function loadJsQR() {
+      return new Promise(function (resolve, reject) {
+        var tag = document.createElement("script");
+        tag.src = JSQR_URL;
+        tag.integrity = JSQR_SRI;
+        tag.crossOrigin = "anonymous";
+        tag.onload = function () { resolve(window.jsQR || null); };
+        tag.onerror = function () { reject(new Error("jsQR did not load")); };
+        document.head.appendChild(tag);
+      });
+    }
+
+    function makeDetector() {
+      if (!("BarcodeDetector" in window)) return Promise.resolve(null);
+      return window.BarcodeDetector.getSupportedFormats()
+        .then(function (formats) {
+          if (formats.indexOf("qr_code") < 0) return null;
+          return new window.BarcodeDetector({ formats: ["qr_code"] });
+        })
+        .catch(function () { return null; });
+    }
+
+    function readFrame() {
+      if (!running || video.readyState < 2 || !video.videoWidth) return Promise.resolve();
+
+      if (detector) {
+        return detector.detect(video).then(function (codes) {
+          if (codes && codes.length) handleCode(codes[0].rawValue);
+        }).catch(function () {
+          // A detector that throws mid-run is no better than none, so fall
+          // back for the rest of the session rather than failing every frame.
+          detector = null;
+          return ensureJsQR();
+        });
+      }
+
+      if (!readQR) return Promise.resolve();
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      var frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      var code = readQR(frame.data, frame.width, frame.height, { inversionAttempts: "dontInvert" });
+      if (code && code.data) handleCode(code.data);
+      return Promise.resolve();
+    }
+
+    function ensureJsQR() {
+      if (readQR) return Promise.resolve(readQR);
+      return loadJsQR().then(function (fn) {
+        readQR = fn;
+        if (!fn) say("The code reader could not be loaded.");
+        return fn;
+      }).catch(function () {
+        say("The code reader could not be loaded.");
+        return null;
+      });
+    }
+
+    function loop() {
+      if (!running) return;
+      readFrame().then(function () {
+        if (running) setTimeout(loop, FRAME_MS);
+      });
+    }
+
+    function startCamera() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        cameraUnavailable("This browser will not open a camera here.");
+        return;
+      }
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+        .then(function (media) {
+          stream = media;
+          video.srcObject = media;
+          return video.play();
+        })
+        .then(function () {
+          running = true;
+          setStatus("SCANNING");
+          loop();
+        })
+        .catch(function (err) {
+          var name = err && err.name;
+          if (name === "NotAllowedError" || name === "SecurityError" || name === "PermissionDeniedError") {
+            cameraUnavailable("Camera access was denied, so the ticket cannot be scanned.");
+          } else if (name === "NotFoundError" || name === "DevicesNotFoundError" || name === "OverconstrainedError") {
+            cameraUnavailable("No camera was found on this device.");
+          } else {
+            cameraUnavailable("The camera could not be started.");
+          }
+        });
+    }
+
+    function openManually() {
+      var typed = manualInput.value.trim();
+      if (!typed) return;
+      if (!handleCode(typed)) manualInput.select();
+    }
+
+    manualBtn.addEventListener("click", function () {
+      var hidden = manualPanel.classList.toggle("hidden");
+      if (!hidden) manualInput.focus();
+    });
+    document.getElementById("close-manual-btn").addEventListener("click", function () {
+      manualPanel.classList.add("hidden");
+      manualBtn.focus();
+    });
+    document.getElementById("manual-open-btn").addEventListener("click", openManually);
+    manualInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") openManually();
+    });
+
+    window.addEventListener("pagehide", stopCamera);
+
+    var version = deployVersion();
+    fetch(version ? "matches.json?v=" + version : "matches.json")
+      .then(function (r) {
+        if (!r.ok) throw new Error("matches.json " + r.status);
+        return r.json();
+      })
+      .then(function (doc) {
+        tickets = doc.matches.map(function (m) {
+          return {
+            match_id: m.match_id, label: m.label,
+            section: m.live_seated.section, row: m.live_seated.row,
+            seat: m.live_seated.seat
+          };
+        });
+        document.documentElement.setAttribute("data-tickets-loaded", String(tickets.length));
+        return makeDetector();
+      })
+      .then(function (found) {
+        detector = found;
+        document.documentElement.setAttribute("data-reader", detector ? "barcodedetector" : "jsqr");
+        return detector ? null : ensureJsQR();
+      })
+      .then(startCamera)
+      .catch(function () {
+        // Without the ticket list nothing can be recognized, so say so rather
+        // than running a scanner that would reject every code.
+        setStatus("UNAVAILABLE");
+        say("Ticket details could not be loaded, so scanning is off.");
+        viewfinder.classList.add("hidden");
+      });
+  })();
+</script></main></body></html>

@@ -21,6 +21,11 @@ block. That block is byte-identical across all four screens (sha256
 Anything a screen does not contain is absent here. There is no spec for states,
 breakpoints, or components the screens do not have.
 
+`prelude_05_scan.html`, the ticket scanner, is not covered. It arrived after
+this document and carries the same `<script id="tailwind-config">` block byte
+for byte, so it is built from the system described here, but its own components
+(the viewfinder, the reticle and the scan line) are not documented below.
+
 ## Foundations
 
 | Property | Value | Source |

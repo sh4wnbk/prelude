@@ -55,11 +55,11 @@
 <script>
   let selectedMatch = Prelude.matchId;
 
-  // A scanned ticket already names the event, so it skips the list entirely
-  // and goes straight to the Live screen for that match.
+  // A scanned ticket already names the event, so the scanner skips the list and
+  // goes straight to Live for whichever match the code turns out to name. The
+  // card selected here does not travel with it: the ticket decides the match.
   document.getElementById('scan-ticket-btn')?.addEventListener('click', () => {
-    Prelude.resetMoment(selectedMatch);
-    window.location.href = Prelude.url('prelude_02_live_seated.html', selectedMatch);
+    window.location.href = Prelude.url('prelude_05_scan.html', selectedMatch);
   });
 
   function selectEvent(cardId) {

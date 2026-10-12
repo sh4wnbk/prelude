@@ -291,7 +291,8 @@ verifies them and the 0-0 against it.
 ticket, fixes the match for the rest of the session; Live, the moment card and
 Moments then show only that match. The match travels in the query string, for
 example `?match=3869685`, and with none in the URL the default is 1986. Scan
-ticket skips the list, because a scanned ticket already names the event. A
+ticket opens the scanner rather than the list, because a scanned ticket names
+its own event. A
 small "Change event" link on Live goes back to the list.
 
 **"At venue, GPS" belongs to Live.** It appears only after selection, never on
@@ -384,38 +385,63 @@ with a real decoder (`zxing-cpp`) and compared byte for byte; a code that does
 not round trip exits non-zero. Both decode exactly. Generation uses `segno`, now
 a project dependency; the decoder and `pillow` are dev dependencies.
 
-**Nothing in the app reads these codes.** There is no scanner, as the next
-section records, so the payload format is currently a contract with code that
-does not exist yet rather than something the app parses.
+**The scanner reads these codes**, and the next section records how. The
+payload format is a contract between `scripts/make_tickets.py` and
+`app/web/prelude_05_scan.html`, and both read the seat fields from
+`app/web/matches.json`, so neither can drift from the other.
 
-## Not started: ticket scanning and manual entry
+## Ticket scanning
 
-Neither QR ticket scanning nor manual ticket entry exists, and neither was ever
-assigned. Recorded here so the gap is not read later as a regression or as work
-that was started and dropped.
+`app/web/prelude_05_scan.html` reads the QR code on a demo ticket and opens that
+match. Scan ticket on the list opens the scanner, and the code decides the
+match, so the card selected on the list no longer rides along with the button.
+Built from the Stitch scan mockup's layout and viewfinder.
 
-**Scan ticket is a navigation shortcut, not a scanner.** The button
-(`scan-ticket-btn`, in `app/web/prelude_01_picker.html`) is wired: its handler
-calls `Prelude.resetMoment` for the match already selected on the list, then
-opens Live for that match. Nothing reads a ticket. Searching `app/`, `scripts/`,
-`tests/` and `docs/` for `getUserMedia`, `mediaDevices`, `BarcodeDetector`,
-`jsQR`, `qrcode`, a video or canvas element, a file input and `capture=` returns
-no hits, so no camera is opened anywhere in the repo. Every task that named the
-button asked only for the shortcut that skips the list, which is what the
-settled session model above describes.
+**Two readers, one handler.** `BarcodeDetector` where the browser has it, and
+jsQR pinned at `1.4.0` from jsDelivr with an integrity hash where it does not,
+because iPhone Safari has no `BarcodeDetector`. A detector that fails part way
+through falls back to jsQR for the rest of the session rather than failing every
+frame. `documentElement` carries `data-reader`, which is how a test can tell
+which one ran.
 
-**Enter manually is inert.** The three inputs in the collapsed block under the
-button (`Matchup or Venue`, `Section`, `Row / Seat`) carry no `id`, no `name`
-and no handler, and nothing reads their values. The venue and seat shown on Live
-come from `app/web/matches.json`.
+**A code is a ticket only when the whole payload matches** one in
+`app/web/matches.json`: match id, section, row and seat. Those two tickets are
+the only ones this app knows about, so anything else is not a ticket it can
+open. An unrecognized code shows "Ticket not recognized" and the scanner keeps
+running, because the next frame may hold a code it does know.
 
-**The copy over the button claims more than the button does.** "Scan your ticket
-to set your match, venue, and section." (`01`) sets none of those from a ticket:
-the match comes from the card already selected on the list, and the venue and
-seat come from `app/web/matches.json`. Neither `scripts/scan_copy.py` nor
-`scripts/check_match_copy.py` catches this, since it is not a banned string and
-not a value read from the match index. Wiring the feature and bringing the copy
-down to what it does are both open; neither is assigned.
+**Scanning starts that match fresh**, exactly as picking it from the list does:
+it clears that match's `sessionStorage` key and leaves the other match's alone.
+
+**With no camera to use**, the viewfinder is replaced by a plain message and the
+manual entry button stays. That covers permission denied, no camera found, and a
+camera that will not start, each with its own message. Manual entry takes the
+same ticket code and refuses anything else the same way.
+
+**The shell states the camera grant, and does not depend on it.**
+`index.html` holds every screen in an iframe, and that iframe now carries
+`allow="camera"`. It is not what makes the scanner work there: Permissions
+Policy defaults the camera to `self`, so a same-origin frame inherits it. That
+was measured rather than assumed, by serving the shell with the attribute
+stripped out and scanning a ticket anyway, which worked. The attribute stays
+because it says the grant out loud, and because it is what a cross-origin shell
+would need.
+
+**Stripped from the mockup**, as the task required: the FPS, FOV, zoom and ISO
+readouts, the parity and locking-on lines, auto-detect active, the torch button,
+the format chips including Apple Wallet, and the StatsBomb verifies footer. Three
+more came out for the same reason the list exists. The stylised QR target inside
+the viewfinder was a drawing of what a camera would show, and the viewfinder now
+shows a camera. The "view scan instructions" link went nowhere. The optical HUD
+and active verification wording described machinery that is not there: the screen
+reads a code, and the status pill now reports what the camera is actually doing.
+
+**Still not started: the manual entry on the picker.** The three inputs under
+Enter manually on `prelude_01_picker.html` remain unwired, and are separate from
+the manual entry on the scanner, which works. The copy above Scan ticket,
+"Scan your ticket to set your match, venue, and section." (`01`), was flagged
+here as overpromising while nothing scanned. It now describes what the button
+does.
 
 ## Verifying the app in a browser
 
@@ -479,6 +505,22 @@ Two further non-defects: the browser requests `/favicon.ico` on its own and
 gets a 404, which nothing in the app references; and the Moments filter row
 clips its last chip at 390 px because that row is `overflow-x: auto` and
 scrolls.
+
+### Driving the scanner
+
+A camera cannot be clicked, so the scan screen is verified by giving Chromium a
+fake capture device whose frames are a clip of a ticket code. A QR image becomes
+a `.y4m` clip, and Edge is launched with `--use-fake-device-for-media-stream`
+and `--use-file-for-fake-video-capture`, which is a ticket held up to the lens
+as far as the page can tell.
+
+Two things this machine cannot show you. Edge on Windows ships no usable
+`BarcodeDetector`, so the real browser always takes the jsQR path here: that
+branch is covered by substituting a stub detector, one that works and one that
+fails, which exercises the integration rather than a native decoder. And a
+denied camera is simulated by making `getUserMedia` reject with the error name
+the browser would use, since a headless run cannot refuse a permission prompt by
+hand.
 
 ### What the click through confirmed
 
