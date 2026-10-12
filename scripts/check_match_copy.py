@@ -338,6 +338,10 @@ def check_screens(doc, fail, note):
         "prelude_04_moments.html": [default["moments_subtitle"]]
             + [m["title"] for m in default["moments"]]
             + [m["body"] for m in default["moments"]],
+        "prelude_06_ticket.html": [
+            default["picker"]["venue"], default["picker"]["kickoff"],
+            default["picker"]["status"], default["live_seated"]["venue"],
+        ],
     }
     for name, values in inline.items():
         markup = (WEB / name).read_text(encoding="utf-8")

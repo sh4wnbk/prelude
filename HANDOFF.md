@@ -392,10 +392,11 @@ payload format is a contract between `scripts/make_tickets.py` and
 
 ## Ticket scanning
 
-`app/web/prelude_05_scan.html` reads the QR code on a demo ticket and opens that
-match. Scan ticket on the list opens the scanner, and the code decides the
-match, so the card selected on the list no longer rides along with the button.
-Built from the Stitch scan mockup's layout and viewfinder.
+`app/web/prelude_05_scan.html` reads the QR code on a demo ticket and opens the
+ticket details for that match. Scan ticket on the list opens the scanner, and
+the code decides the match, so the card selected on the list no longer rides
+along with the button. Built from the Stitch scan mockup's layout and
+viewfinder.
 
 **Two readers, one handler.** `BarcodeDetector` where the browser has it, and
 jsQR pinned at `1.4.0` from jsDelivr with an integrity hash where it does not,
@@ -410,8 +411,10 @@ the only ones this app knows about, so anything else is not a ticket it can
 open. An unrecognized code shows "Ticket not recognized" and the scanner keeps
 running, because the next frame may hold a code it does know.
 
-**Scanning starts that match fresh**, exactly as picking it from the list does:
-it clears that match's `sessionStorage` key and leaves the other match's alone.
+**Reading a code does not start the match.** The seat travels to the ticket
+screen, and Enter match there is what clears that match's `sessionStorage` key
+and leaves the other match's alone. Backing out of the ticket screen therefore
+changes nothing.
 
 **With no camera to use**, the viewfinder is replaced by a plain message and the
 manual entry button stays. That covers permission denied, no camera found, and a
@@ -441,7 +444,7 @@ is gone. The match comes from a select built from `app/web/matches.json`, the
 stadium fills in from the chosen match rather than being typed, and the section,
 row and seat are the only things a fan enters. Continue stays disabled until a
 match is picked and all three fields hold something that is not whitespace, and
-it opens the same screen a scan opens, at the same pre-moment state.
+it opens the ticket details screen, the same one a scan opens.
 
 **A seat entered by hand is that fan's own ticket**, so it overrides the one in
 `matches.json` for that match for the rest of the session. It lives in
@@ -458,6 +461,40 @@ someone is sitting is theirs to state and carries no data obligation. The copy
 above Scan ticket, "Scan your ticket to set your match, venue, and section."
 (`01`), was flagged here as overpromising while nothing scanned. It now
 describes what the button does.
+
+## Ticket details
+
+`app/web/prelude_06_ticket.html` is where both ways in arrive, and the only
+place the match is actually entered. Built from the Stitch ticket mockup. The
+match comes from `app/web/matches.json`; the seat comes from whatever put it in
+`sessionStorage`, the scanner or manual entry. Opened with no stored seat, a
+reload after the session ended or a bookmark, it falls back to the seat
+`matches.json` holds for that match, which is the inline copy already in the
+markup.
+
+**Enter match** clears that match's step-away key and opens Live at its
+pre-moment state, with the ticket's seat on it. **Scan different ticket** goes
+back to the scanner. **Edit details** appears only for a ticket entered by hand,
+and returns to the list with the manual panel open and the seat still in it, so
+correcting one field is not a retype. The pill says how the ticket arrived,
+"Ticket scanned" or "Entered by hand", which is the only thing it claims.
+
+**Three rows, each describing something real**: at venue with GPS, naming the
+stadium; play data connected, which is the picker's own status string; and
+"Tap Heading out when you leave your seat.", which is an instruction rather than
+a claim about machinery.
+
+**Removed from the mockup**, as the task required: the year and the date
+everywhere, the telemetry lock line, "Step-away tracking armed", and the
+Stitch-hosted stadium image. The pass ID went with them, because `#AZT-86-108`
+carries the year and nothing issues pass IDs, so a year-free version would be an
+invented identifier. Four more came out for the same reason the rule exists.
+"Lower bowl", "aisle adj" and "reserved" are claims about a seat that no data
+makes. The gate and concourse strip invents a way into a stadium. The torch
+button has nothing to toggle on a screen with no camera, and was already struck
+from the scanner. The vibrate call on the primary button was invented hardware
+feedback. "Ticket verified, match locked" became the arrival pill, since nothing
+is verified about a seat someone typed.
 
 ## Verifying the app in a browser
 

@@ -126,7 +126,24 @@
         pick.appendChild(option);
       });
       update();
+      reopenForEditing();
     });
+
+    // Edit details on the ticket screen comes back here with the panel open and
+    // the seat already in it, so correcting one field is not a retype.
+    function reopenForEditing() {
+      if (!/[?&]manual=1(&|$)/.test(window.location.search)) return;
+      const details = pick.closest('details');
+      if (details) details.open = true;
+      pick.value = String(Prelude.matchId);
+      const held = Prelude.ticketFor(Prelude.matchId);
+      if (held) {
+        section.value = held.section || '';
+        row.value = held.row || '';
+        seat.value = held.seat || '';
+      }
+      update();
+    }
 
     [pick, section, row, seat].forEach((el) => {
       el.addEventListener('input', update);
@@ -136,13 +153,13 @@
     go.addEventListener('click', () => {
       const match = chosen();
       if (go.disabled || !match) return;
-      // Entering a ticket by hand picks the event, so it starts that match at
-      // its pre-moment state exactly as confirming or scanning it would.
-      Prelude.resetMoment(match.match_id);
+      // The seat travels to the ticket screen, which is where entering the
+      // match actually happens, so nothing is reset here.
       Prelude.setTicket(match.match_id, {
-        section: section.value.trim(), row: row.value.trim(), seat: seat.value.trim()
+        section: section.value.trim(), row: row.value.trim(), seat: seat.value.trim(),
+        source: 'manual'
       });
-      window.location.href = Prelude.url('prelude_02_live_seated.html', match.match_id);
+      window.location.href = Prelude.url('prelude_06_ticket.html', match.match_id);
     });
 
     update();

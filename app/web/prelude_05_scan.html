@@ -150,13 +150,16 @@
       stopCamera();
       setStatus("TICKET READ");
       say("Opening " + ticket.label + ".");
-      // A scanned ticket names the event, so it goes straight to Live, and the
-      // match starts at its pre-moment state exactly as picking it would.
+      // The code carries the seat, so it travels to the ticket screen with it.
+      // Entering the match from there is what starts the match, so nothing is
+      // reset here: reading a code is not yet a decision to go in.
       if (window.Prelude) {
-        Prelude.resetMoment(ticket.match_id);
-        window.location.href = Prelude.url("prelude_02_live_seated.html", ticket.match_id);
+        Prelude.setTicket(ticket.match_id, {
+          section: ticket.section, row: ticket.row, seat: ticket.seat, source: "scan"
+        });
+        window.location.href = Prelude.url("prelude_06_ticket.html", ticket.match_id);
       } else {
-        window.location.href = "prelude_02_live_seated.html?match=" + ticket.match_id;
+        window.location.href = "prelude_06_ticket.html?match=" + ticket.match_id;
       }
     }
 
