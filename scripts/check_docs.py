@@ -27,6 +27,13 @@ SCREENS = {
     "04": ROOT / "app" / "web" / "prelude_04_moments.html",
 }
 
+# Markup is not only in the screens any more. manual-entry.js builds the manual
+# ticket form, so a component documented from it cites `js` the way a component
+# in a screen cites `01`.
+SHARED_MARKUP = {"js": ROOT / "app" / "web" / "manual-entry.js"}
+
+SOURCES = dict(SCREENS, **SHARED_MARKUP)
+
 DOCS = [
     ROOT / "README.md",
     ROOT / "HANDOFF.md",
@@ -59,7 +66,7 @@ def run_pytest(*args):
 # A code span may wrap across lines in the prose, so newlines are allowed inside
 # one and squeezed out before matching.
 CODE_SPAN = re.compile(r"`([^`]+)`")
-SCREEN_CITE = re.compile(r"`(0[1-4])`")
+SCREEN_CITE = re.compile(r"`(0[1-4]|js)`")
 
 # Anchors shorter than this match too much to prove anything.
 MIN_ANCHOR = 10
@@ -80,7 +87,7 @@ def block_anchors(block):
     return [s for s in CODE_SPAN.findall(block)
             if len(squeeze(s)) >= MIN_ANCHOR
             and "..." not in s
-            and not re.fullmatch(r"0[1-4]", s.strip())]
+            and not re.fullmatch(r"0[1-4]|js", s.strip())]
 
 
 def design_blocks(doc):
@@ -99,7 +106,7 @@ def check_design_citations(fail):
     doc should be updated.
     """
     doc = (ROOT / "docs" / "DESIGN.md").read_text(encoding="utf-8")
-    text = {k: squeeze(v.read_text(encoding="utf-8")) for k, v in SCREENS.items()}
+    text = {k: squeeze(v.read_text(encoding="utf-8")) for k, v in SOURCES.items()}
 
     anchored = unanchored = 0
     for block in design_blocks(doc):
@@ -124,7 +131,7 @@ def check_design_citations(fail):
                 anchored += 1
             else:
                 fail("DESIGN.md",
-                     f"cites {key} ({SCREENS[key].name}), but none of its anchors is "
+                     f"cites {key} ({SOURCES[key].name}), but none of its anchors is "
                      f"there: {anchors[:3]}")
     if not anchored and not unanchored:
         fail("DESIGN.md", "no screen citations found; has the format changed?")

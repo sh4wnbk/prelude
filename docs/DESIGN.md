@@ -8,6 +8,10 @@ value below is read out of the markup, not from any design brief.
 backticked class string in the same table row or bullet: search the cited screen
 for that string and you are at the element being described.
 
+A citation can also be `js`, the manual ticket form. It is built in script
+rather than markup so the event list and the scanner share one copy of it, and
+`Prelude.mountManualEntry` is what puts it on a screen.
+
 Citations used to carry line numbers. They were accurate when written and wrong
 after the next markup change, three times over, and once a repair silently
 pointed a citation at the wrong element. A class string moves with the element
@@ -263,15 +267,16 @@ caption reading "Verified from play data". `03`.
 `w-full bg-surface-container px-3 py-1.5 rounded text-body-md text-on-surface
 border border-outline-variant/30`, with the only real focus treatment in the
 system: `focus:outline-none focus:border-primary-container`, so the border
-changes color rather than gaining a ring. Three instances in `01`: the section,
-row and seat of a ticket entered by hand. Each carries a `placeholder` and a
-`<label>` bound to it by `for`.
+changes color rather than gaining a ring. Three instances, built by `js`: the
+section, row and seat of a ticket entered by hand. Each carries a `placeholder`
+and a `<label>` bound to it by `for`. They are mounted on the event list and on
+the scanner, from that one definition.
 
 ### Select
 
 The same field classes as the text input, `bg-surface-container px-3 py-1.5
-rounded`, on the match select in `01`. It is the only select in the system and
-takes the forms plugin's own chevron rather than a drawn one.
+rounded`, on the match select built by `js`. It is the only select in the system
+and takes the forms plugin's own chevron rather than a drawn one.
 
 ### Toggle switch
 
@@ -361,8 +366,8 @@ Not present anywhere in the four files, so not specified: light mode, disabled
 states, error or empty states, toasts, modals, form validation, and the
 unchecked state of the toggle switch.
 
-Focus is defined only on the text input (`01`). Every button in the system
-relies on `active:` scale and `hover:` color, with no focus style at all, and
+Focus is defined only on the text input and the select (`js`). Every button in
+the system relies on `active:` scale and `hover:` color, with no focus style at all, and
 the toggle at `04` sets `focus:outline-none` without a replacement, so it
 has no visible keyboard focus.
 

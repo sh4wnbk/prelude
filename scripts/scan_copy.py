@@ -11,9 +11,12 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-# The screens, plus matches.json, which holds display copy and so is subject to
-# the same rules as copy written into the markup.
-SCREENS = sorted((ROOT / "app" / "web").glob("*.html")) + sorted((ROOT / "app" / "web").glob("*.json"))
+# The screens, plus matches.json, which holds display copy, plus the scripts,
+# since manual-entry.js builds its own markup and copy is screen copy wherever
+# it happens to be written.
+SCREENS = (sorted((ROOT / "app" / "web").glob("*.html"))
+           + sorted((ROOT / "app" / "web").glob("*.json"))
+           + sorted((ROOT / "app" / "web").glob("*.js")))
 
 # (label, regex). Word boundaries where a bare substring would false-positive:
 # "BOS" inside "boston"-like tokens, "dB" inside words, "official" inside

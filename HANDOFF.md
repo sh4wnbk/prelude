@@ -453,11 +453,25 @@ it opens the ticket details screen, the same one a scan opens.
 the Live ticket line. A seat typed for one match does not appear on the other,
 and a new session falls back to the seat in `matches.json`.
 
-**The two manual entries are different things, deliberately.** The scanner's
-takes a ticket code and refuses anything that is not one of the two tickets this
-app knows, because a code either decodes to a known ticket or it does not. The
-picker's takes a match off the list and a seat from the fan, because where
-someone is sitting is theirs to state and carries no data obligation. The copy
+**There is one manual entry, and both screens mount it.** This was an open
+question and it is now settled: the scanner used to ask for a ticket code, which
+meant typing `prelude:3750191:108:14:8`, a string printed nowhere a fan can
+read. Asking for it was a worse failure than no fallback at all, because it
+looked like a way in. Both screens now show the same form, built once in
+`app/web/manual-entry.js` and put on a screen with `Prelude.mountManualEntry`.
+The ticket code field is gone.
+
+The form is script rather than markup precisely so there is one copy of it.
+`docs/DESIGN.md` cites it as `js`, and `scripts/check_docs.py` treats that as a
+source it can verify anchors in, the way it does a screen. `scripts/scan_copy.py`
+reads the scripts as well now, because copy is screen copy wherever it is
+written.
+
+What the camera path and the form path check is still different, and that is the
+point rather than an inconsistency. A scanned code must match a ticket this app
+knows, because a code either decodes to one or it does not. A typed seat is
+accepted as given, because where someone is sitting is theirs to state and
+carries no data obligation. The copy
 above Scan ticket now reads "Reads the QR code on your ticket and opens that
 match." (`01`). The old line promised to set a venue and a section from a
 ticket, which was never true of the button and is still not what it does: it
