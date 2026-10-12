@@ -349,6 +349,45 @@ causing it. And the source is no longer browsable alongside the demo, so the
 live URL is the only thing a reader can reach: anything the README promises as
 evidence has to be runnable from a clone, not a GitHub link.
 
+## Demo tickets
+
+**The seats are settled.** 1986 is Sec 108, Row 14, Seat 8. 2022 is Sec 215,
+Row 9, Seat 6. The 1986 seat was settled earlier; the 2022 seat had never been
+set and was chosen when the ticket codes were generated, so it is the one value
+here that no earlier decision produced.
+
+These are demo fixture data, not play data. The seat is the fan's own ticket
+rather than a claim about the match, which is why it carries no grounding
+obligation; the same already applied to the section and row, neither of which
+comes from `data/raw/`. This does not add a fourth input.
+
+`app/web/matches.json` now carries `section`, `row` and `seat` per match as
+separate fields, alongside the `ticket` line that Live renders. Live shows the
+seat: "Ticket: Sec 108 · Row 14 · Seat 8" (`02`).
+
+**`scripts/make_tickets.py`** writes one QR code per match to
+`app/web/assets/tickets/`, named for the match id, with the payload
+`prelude:<match_id>:<section>:<row>:<seat>`:
+
+| File | Payload | Size |
+| ---- | ------- | ---: |
+| `app/web/assets/tickets/3750191.png` | `prelude:3750191:108:14:8` | 289 bytes |
+| `app/web/assets/tickets/3869685.png` | `prelude:3869685:215:9:6` | 291 bytes |
+
+The payload is built from the structured fields rather than parsed back out of
+the display line, so the code and the copy cannot drift. The script refuses to
+write anything if they disagree, or if any part of the payload is missing from
+the data, and both refusals were tested.
+
+Writing an image proves nothing about what it holds, so each PNG is read back
+with a real decoder (`zxing-cpp`) and compared byte for byte; a code that does
+not round trip exits non-zero. Both decode exactly. Generation uses `segno`, now
+a project dependency; the decoder and `pillow` are dev dependencies.
+
+**Nothing in the app reads these codes.** There is no scanner, as the next
+section records, so the payload format is currently a contract with code that
+does not exist yet rather than something the app parses.
+
 ## Not started: ticket scanning and manual entry
 
 Neither QR ticket scanning nor manual ticket entry exists, and neither was ever

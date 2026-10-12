@@ -20,7 +20,10 @@
       },
       "live_seated": {
         "venue": "Estadio Azteca",
-        "ticket": "Ticket: Sec 108 · Row 14",
+        "ticket": "Ticket: Sec 108 · Row 14 · Seat 8",
+        "section": "108",
+        "row": "14",
+        "seat": "8",
         "before": {
           "period": 2,
           "period_label": "2H",
@@ -128,7 +131,10 @@
       },
       "live_seated": {
         "venue": "Lusail Stadium",
-        "ticket": "Ticket: Sec 215 · Row 9",
+        "ticket": "Ticket: Sec 215 · Row 9 · Seat 6",
+        "section": "215",
+        "row": "9",
+        "seat": "6",
         "before": {
           "period": 1,
           "period_label": "1H",
