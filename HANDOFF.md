@@ -719,3 +719,21 @@ Items found during Phase 2 that belong with the wiring, not before it:
 - **The empty placeholders.** The Moments meta badges, the three Moments player
   timers, and the moment card's `#timerReadout` are all present and empty,
   waiting for real values from the fixture.
+- **The smallest type, and the ban on zooming.** Read on an iPhone XR, the
+  smallest text is fine print. `label-sm` is `9px` and carries 66 of the uses
+  across the screens and `manual-entry.js`: kickoff times, the section, row and
+  seat captions, every status chip and every eyebrow. `label-md` is `11px`, 21
+  uses. Raise both to something readable at a 414px-wide phone, which is a token
+  change in the shared `<script id="tailwind-config">` block rather than a sweep
+  through the markup, since the block is byte-identical across the screens.
+
+  The same meta tag on all six screens and on `index.html` sets both
+  `user-scalable=no` and `maximum-scale=1.0`, so a reader cannot pinch to zoom
+  past it. Both have to go, not just the first. That is an accessibility problem
+  on its own and it is what makes the small type unfixable from the reader's
+  side. `index.html` matters most here: it is the shell a phone loads first.
+
+  Verify on a real iPhone. This was found on one, and the emulated runs in this
+  file could not have found it: a phone viewport in a desktop browser reports the
+  right pixel count and tells you nothing about whether 9px is legible in the
+  hand, or whether pinch to zoom is available to rescue it.
