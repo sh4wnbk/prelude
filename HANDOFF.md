@@ -318,6 +318,107 @@ causing it. And the source is no longer browsable alongside the demo, so the
 live URL is the only thing a reader can reach: anything the README promises as
 evidence has to be runnable from a clone, not a GitHub link.
 
+## Not started: ticket scanning and manual entry
+
+Neither QR ticket scanning nor manual ticket entry exists, and neither was ever
+assigned. Recorded here so the gap is not read later as a regression or as work
+that was started and dropped.
+
+**Scan ticket is a navigation shortcut, not a scanner.** The button
+(`scan-ticket-btn`, in `app/web/prelude_01_picker.html`) is wired: its handler
+calls `Prelude.resetMoment` for the match already selected on the list, then
+opens Live for that match. Nothing reads a ticket. Searching `app/`, `scripts/`,
+`tests/` and `docs/` for `getUserMedia`, `mediaDevices`, `BarcodeDetector`,
+`jsQR`, `qrcode`, a video or canvas element, a file input and `capture=` returns
+no hits, so no camera is opened anywhere in the repo. Every task that named the
+button asked only for the shortcut that skips the list, which is what the
+settled session model above describes.
+
+**Enter manually is inert.** The three inputs in the collapsed block under the
+button (`Matchup or Venue`, `Section`, `Row / Seat`) carry no `id`, no `name`
+and no handler, and nothing reads their values. The venue and seat shown on Live
+come from `app/web/matches.json`.
+
+**The copy over the button claims more than the button does.** "Scan your ticket
+to set your match, venue, and section." (`01`) sets none of those from a ticket:
+the match comes from the card already selected on the list, and the venue and
+seat come from `app/web/matches.json`. Neither `scripts/scan_copy.py` nor
+`scripts/check_match_copy.py` catches this, since it is not a banned string and
+not a value read from the match index. Wiring the feature and bringing the copy
+down to what it does are both open; neither is assigned.
+
+## Verifying the app in a browser
+
+Phase 2 verified the screens by rendering them. A click through needs more than
+that, and none of what follows is derivable from the screens or from the rest of
+this file, so it is recorded rather than worked out again.
+
+### Serve it, do not open the files
+
+`match-content.js` fetches `app/web/matches.json`, so a screen opened straight
+off the filesystem fails that fetch and falls back to the inline 1986 copy. The
+fallback is deliberate and quiet, which means a filesystem run looks like a
+working app while confirming almost nothing. Serve the directory instead, from
+`app/web/`:
+
+    ..\..\.venv-prelude\Scripts\python.exe -I -m http.server 8099 --bind 127.0.0.1
+
+The `?v=__V__` placeholder stays literal when the app is served this way, since
+CI substitutes it only on deploy. The server ignores query strings, so every
+asset still resolves.
+
+**`data-match-rendered` on `documentElement` is the signal** that a screen
+rendered from `matches.json` rather than falling back to the inline copy. Wait
+for it before reading any value, or an assertion can quietly pass against the
+1986 markup while claiming to check 2022.
+
+**The step-away state is `sessionStorage` under `prelude.moment.<match_id>`,
+set to `"1"`.** Seeding or clearing that key is how a session carrying old state
+is reproduced. It is per tab, so it has to be set on the origin and then
+navigated within the same tab.
+
+### Driving it
+
+No browser automation is installed. `.venv-prelude` holds the test runner and
+its dependencies only, and putting a driver there would add browser packages to
+the venv that runs the gates. Chrome is still absent on this machine. Edge is at
+`C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`.
+
+Playwright drives that Edge with `channel="msedge"` and needs no browser
+download, so a scratch venv outside the repo is enough. It sets the layout
+viewport through the DevTools protocol, which is the thing `--window-size`
+failed to do in the Phase 2 review.
+
+### Two measurements that look like defects and are not
+
+Both produced a false failure before being run down, and both will recur:
+
+- **Decorative glows read as horizontal overflow.** Each card carries an
+  absolutely positioned blur placed outside its own box, and the card clips it
+  with `overflow-x: hidden`. `getBoundingClientRect()` reports the unclipped
+  geometry, so a naive sweep flags it every time. The claim that matters is
+  whether the document scrolls at all: at 390 px and at 900 px the screens
+  report `scrollWidth` equal to `clientWidth`, and `window.scrollTo(9999, 0)`
+  leaves `scrollX` at 0.
+- **The framed body measures 422 px, not 390.** Above the 501 px breakpoint
+  `phone-frame.css` sets `box-sizing: content-box` with a 16 px bezel, so the
+  border box is 390 plus 32 while the screen area is exactly 390. Read
+  `body.clientWidth`, not the bounding rect.
+
+Two further non-defects: the browser requests `/favicon.ico` on its own and
+gets a 404, which nothing in the app references; and the Moments filter row
+clips its last chip at 390 px because that row is `overflow-x: auto` and
+scrolls.
+
+### What the click through confirmed
+
+Both matches were driven end to end in Edge, in a session with no saved state
+and again in one carrying saved state for both matches. The event list, the Live
+states before and after Heading out, Moments stopping at the session clock,
+Change event, and Heading out returning after a switch all behave as the settled
+decisions above describe, at 390 px and at 900 px. The per-match reset holds in
+both directions, and picking one match leaves the other match's key untouched.
+
 ## Next first action (Phase 3)
 
 **Bob builds the EventFeed module against `docs/bob_brief.md`.**
@@ -366,3 +467,10 @@ Items found during Phase 2 that belong with the wiring, not before it:
 - **The empty placeholders.** The Moments meta badges, the three Moments player
   timers, and the moment card's `#timerReadout` are all present and empty,
   waiting for real values from the fixture.
+- **The grounding label on the Live standby card.** The standby pipeline card
+  shows "Verified from play data" (`02`) above its status rows, which report
+  whether the step-away trigger and the narration are active, not a narration
+  claim. `CLAUDE.md` allows that phrase only over narration that traces back to
+  the event data, so this needs either a decision that the card qualifies or the
+  label taken off it. Found during the browser click through and flagged rather
+  than changed.
