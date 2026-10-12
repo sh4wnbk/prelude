@@ -551,6 +551,48 @@ separate failure from having no camera, so the scanner keeps them apart: a
 refused `play()` shows a Tap to start the camera button rather than the no
 camera message, and scanning begins on that tap.
 
+## Readable type, and the reader can zoom
+
+Reported from an iPhone XR: the smallest text read as fine print, and nothing
+the reader could do got round it. Both halves are fixed.
+
+**The label scale moved from 9/11/13 to 12/13/15.** `label-sm` carried 66 of the
+uses across the screens and `manual-entry.js`, so it is the one that mattered,
+but all three moved together: the order of the scale and the gaps in it are
+unchanged, and leaving `label-lg` at 13px would have put `label-md` level with
+it. It is one edit repeated identically in six screens, because the
+`<script id="tailwind-config">` block is one block and the design system rests
+on it staying byte-identical. It still is, now sha256 `01000a4db358e0c0`,
+3210 chars.
+
+**`user-scalable=no` and `maximum-scale=1.0` are gone** from all six screens and
+from `index.html`, which is the page a phone loads first. Both had to go: either
+one alone still blocks pinch to zoom on iOS.
+
+**The manual entry fields are 16px**, the one literal type size in the system.
+iOS zooms the page when a field under 16px takes focus, and it could not do that
+while zooming was blocked. Unblocking zoom brings that behaviour back, so the
+fields sit at the threshold where it never fires. Without this the fix would
+have traded fine print for a page that lurches every time a seat is typed.
+
+**One thing the bigger type broke, and it is fixed.** The narration label on
+Moments, "AI AUDIO NARRATION · PLAY DATA SYNC", is in a span that truncates, and
+at 12px it no longer fitted on one line, so it rendered as
+"AI AUDIO NARRATION · PLAY DATA…". The truncation is gone from those two spans
+and the line wraps instead, which shows all of it. Nothing else lost content:
+the verified marker, the Live ticket line and the seat tiles all still read in
+full.
+
+Measured on every screen at 390px and at 414px, the XR's width: document
+scrollWidth equal to clientWidth, `window.scrollTo(9999, 0)` leaving scrollX at
+0, no unclipped element past the body box, and no leaf element whose own text is
+wider than its box. The behaviour suites were re-run unchanged.
+
+**Still worth a look on the XR.** The measurements say nothing overflows and the
+computed sizes are 12, 13, 15 and 16px, but whether 12px reads comfortably in
+the hand is the question that sent this back the first time, and that is not
+something a desktop browser at 414px can answer.
+
 ## Verifying the app in a browser
 
 Phase 2 verified the screens by rendering them. A click through needs more than
@@ -719,21 +761,3 @@ Items found during Phase 2 that belong with the wiring, not before it:
 - **The empty placeholders.** The Moments meta badges, the three Moments player
   timers, and the moment card's `#timerReadout` are all present and empty,
   waiting for real values from the fixture.
-- **The smallest type, and the ban on zooming.** Read on an iPhone XR, the
-  smallest text is fine print. `label-sm` is `9px` and carries 66 of the uses
-  across the screens and `manual-entry.js`: kickoff times, the section, row and
-  seat captions, every status chip and every eyebrow. `label-md` is `11px`, 21
-  uses. Raise both to something readable at a 414px-wide phone, which is a token
-  change in the shared `<script id="tailwind-config">` block rather than a sweep
-  through the markup, since the block is byte-identical across the screens.
-
-  The same meta tag on all six screens and on `index.html` sets both
-  `user-scalable=no` and `maximum-scale=1.0`, so a reader cannot pinch to zoom
-  past it. Both have to go, not just the first. That is an accessibility problem
-  on its own and it is what makes the small type unfixable from the reader's
-  side. `index.html` matters most here: it is the shell a phone loads first.
-
-  Verify on a real iPhone. This was found on one, and the emulated runs in this
-  file could not have found it: a phone viewport in a desktop browser reports the
-  right pixel count and tells you nothing about whether 9px is legible in the
-  hand, or whether pinch to zoom is available to rescue it.

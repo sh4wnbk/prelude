@@ -19,7 +19,7 @@
   // One unbroken literal on purpose. docs/DESIGN.md quotes this class string
   // and scripts/check_docs.py looks for it here, and a string split across a
   // concatenation would no longer match what the doc shows.
-  var FIELD = "w-full bg-surface-container px-3 py-1.5 rounded text-body-md text-on-surface border border-outline-variant/30 focus:outline-none focus:border-primary-container";
+  var FIELD = "w-full bg-surface-container px-3 py-1.5 rounded text-[16px] text-on-surface border border-outline-variant/30 focus:outline-none focus:border-primary-container";
   var LABEL = "font-label-sm text-label-sm text-outline uppercase";
 
   function seatField(name, caption, example) {

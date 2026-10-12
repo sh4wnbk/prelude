@@ -20,7 +20,7 @@ anchor still appears in every screen cited beside it.
 
 The token tables all cite `03`, meaning the `<script id="tailwind-config">`
 block. That block is byte-identical across all four screens (sha256
-`3b9cf112d3cbc180...`, 3209 chars), so the system is one system.
+`01000a4db358e0c0...`, 3210 chars), so the system is one system.
 
 Anything a screen does not contain is absent here. There is no spec for states,
 breakpoints, or components the screens do not have.
@@ -38,7 +38,7 @@ below.
 | -------- | ----- | ------ |
 | Mode | dark only, `darkMode: "class"`, `<html class="dark"` | `03` |
 | Page background | `#101319`, set on `html,body` in `@layer base` | `03` |
-| Viewport | `width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover` | all four, line 1 |
+| Viewport | `width=device-width, initial-scale=1.0, viewport-fit=cover` | all four, line 1 |
 | Body min height | `max(884px, 100dvh)` | `01`, `03`, `04` |
 | Font smoothing | `-webkit-font-smoothing: antialiased` | `03` |
 | Overscroll | `overscroll-behavior: none` | `03` |
@@ -132,11 +132,16 @@ and used in 52 places across the four screens. Icons that read as filled set
 | `headline-sm` | 20px | 26px | -0.01em | 600 | Hanken Grotesk |
 | `body-lg` | 16px | 24px | 0 | 400 | Hanken Grotesk |
 | `body-md` | 14px | 20px | 0 | 400 | Hanken Grotesk |
-| `label-lg` | 13px | 18px | 0.04em | 500 | JetBrains Mono |
-| `label-md` | 11px | 14px | 0.06em | 500 | JetBrains Mono |
-| `label-sm` | 9px | 12px | 0.08em | 600 | JetBrains Mono |
+| `label-lg` | 15px | 20px | 0.04em | 500 | JetBrains Mono |
+| `label-md` | 13px | 18px | 0.06em | 500 | JetBrains Mono |
+| `label-sm` | 12px | 16px | 0.08em | 600 | JetBrains Mono |
 
 All values come from the `tailwind-config` block in `03`.
+
+The label sizes were 9px, 11px and 13px until an iPhone XR showed the smallest
+of them reading as fine print. They moved together, so the order of the scale
+and the gaps in it are unchanged; `label-sm` carries most of the uses, and
+leaving `label-lg` behind would have put `label-md` level with it.
 
 Tracking is negative on display and headline sizes and positive on label sizes,
 tightening as text gets larger and opening as it gets smaller. Labels are
@@ -264,10 +269,12 @@ caption reading "Verified from play data". `03`.
 
 ### Text input
 
-`w-full bg-surface-container px-3 py-1.5 rounded text-body-md text-on-surface
+`w-full bg-surface-container px-3 py-1.5 rounded text-[16px] text-on-surface
 border border-outline-variant/30`, with the only real focus treatment in the
 system: `focus:outline-none focus:border-primary-container`, so the border
-changes color rather than gaining a ring. Three instances, built by `js`: the
+changes color rather than gaining a ring. The size is the one literal value in
+the system rather than a token: iOS zooms the page when a field under 16px takes
+focus, and the screens no longer block zooming, so 16px is what stops that. Three instances, built by `js`: the
 section, row and seat of a ticket entered by hand. Each carries a `placeholder`
 and a `<label>` bound to it by `for`. They are mounted on the event list and on
 the scanner, from that one definition.
