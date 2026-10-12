@@ -261,8 +261,15 @@ caption reading "Verified from play data". `03`.
 `w-full bg-surface-container px-3 py-1.5 rounded text-body-md text-on-surface
 border border-outline-variant/30`, with the only real focus treatment in the
 system: `focus:outline-none focus:border-primary-container`, so the border
-changes color rather than gaining a ring. Three instances in `01`. Each uses
-a `placeholder` and has no associated `<label>` element.
+changes color rather than gaining a ring. Three instances in `01`: the section,
+row and seat of a ticket entered by hand. Each carries a `placeholder` and a
+`<label>` bound to it by `for`.
+
+### Select
+
+The same field classes as the text input, `bg-surface-container px-3 py-1.5
+rounded`, on the match select in `01`. It is the only select in the system and
+takes the forms plugin's own chevron rather than a drawn one.
 
 ### Toggle switch
 

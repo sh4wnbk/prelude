@@ -79,12 +79,62 @@
     }
   }
 
+  // The seat a fan entered by hand, for this match, in this session. It is the
+  // fan's own ticket rather than anything read from the feed, so it overrides
+  // the seat in matches.json when it is there and changes nothing else.
+  function ticketKey(matchId) {
+    return "prelude.ticket." + (matchId || MATCH_ID);
+  }
+
+  function ticketFor(matchId) {
+    try {
+      var raw = window.sessionStorage.getItem(ticketKey(matchId));
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;   // blocked storage or something that is not JSON
+    }
+  }
+
+  function setTicket(matchId, seat) {
+    try {
+      window.sessionStorage.setItem(ticketKey(matchId), JSON.stringify(seat));
+    } catch (e) {
+      /* the screens still work, they just show the seat from matches.json */
+    }
+  }
+
+  function ticketLine(seat) {
+    if (!seat || !seat.section || !seat.row || !seat.seat) return null;
+    return "Ticket: Sec " + seat.section + " \u00b7 Row " + seat.row +
+           " \u00b7 Seat " + seat.seat;
+  }
+
+  // matches.json, once, for screens that need the list rather than one match.
+  // Callers that arrive before the fetch resolves are held and then called; a
+  // failed fetch calls them with null so they can degrade rather than hang.
+  var loaded = null;
+  var settled = false;
+  var waiting = [];
+
+  function whenMatches(callback) {
+    if (settled) { callback(loaded); return; }
+    waiting.push(callback);
+  }
+
+  function publishMatches(doc) {
+    loaded = doc;
+    settled = true;
+    window.Prelude.matches = doc;
+    while (waiting.length) waiting.shift()(doc);
+  }
+
   // Available to the screens' own scripts before the fetch resolves, because
   // the match id comes from the URL and not from the file.
   window.Prelude = {
     matchId: MATCH_ID, url: url, defaultMatch: DEFAULT_MATCH,
     momentSeen: momentSeen, markMomentSeen: markMomentSeen,
-    resetMoment: resetMoment
+    resetMoment: resetMoment, ticketFor: ticketFor, setTicket: setTicket,
+    ticketLine: ticketLine, whenMatches: whenMatches, matches: null
   };
 
   function field(name, root) {
@@ -129,8 +179,11 @@
 
     var ticket = field("ticket");
     if (ticket) {
-      if (seated.ticket) {
-        ticket.textContent = seated.ticket;
+      // A seat entered by hand is this fan's own ticket, so it wins over the
+      // one in matches.json for as long as the session lasts.
+      var line = ticketLine(ticketFor(match.match_id)) || seated.ticket;
+      if (line) {
+        ticket.textContent = line;
         ticket.parentElement.style.removeProperty("display");
       } else {
         ticket.parentElement.style.display = "none";
@@ -216,10 +269,12 @@
             if (doc.matches[j].match_id === DEFAULT_MATCH) match = doc.matches[j];
           }
         }
+        publishMatches(doc);
         if (match) render(match);
       })
       .catch(function () {
         /* Left on the inline copy, which is the default match. */
+        publishMatches(null);
       });
   }
 

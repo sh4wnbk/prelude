@@ -436,12 +436,28 @@ shows a camera. The "view scan instructions" link went nowhere. The optical HUD
 and active verification wording described machinery that is not there: the screen
 reads a code, and the status pill now reports what the camera is actually doing.
 
-**Still not started: the manual entry on the picker.** The three inputs under
-Enter manually on `prelude_01_picker.html` remain unwired, and are separate from
-the manual entry on the scanner, which works. The copy above Scan ticket,
-"Scan your ticket to set your match, venue, and section." (`01`), was flagged
-here as overpromising while nothing scanned. It now describes what the button
-does.
+**Manual entry on the picker is built.** The free-text matchup and venue input
+is gone. The match comes from a select built from `app/web/matches.json`, the
+stadium fills in from the chosen match rather than being typed, and the section,
+row and seat are the only things a fan enters. Continue stays disabled until a
+match is picked and all three fields hold something that is not whitespace, and
+it opens the same screen a scan opens, at the same pre-moment state.
+
+**A seat entered by hand is that fan's own ticket**, so it overrides the one in
+`matches.json` for that match for the rest of the session. It lives in
+`sessionStorage` as JSON under `prelude.ticket.<match_id>`, next to
+`prelude.moment.<match_id>`, and `match-content.js` prefers it when it renders
+the Live ticket line. A seat typed for one match does not appear on the other,
+and a new session falls back to the seat in `matches.json`.
+
+**The two manual entries are different things, deliberately.** The scanner's
+takes a ticket code and refuses anything that is not one of the two tickets this
+app knows, because a code either decodes to a known ticket or it does not. The
+picker's takes a match off the list and a seat from the fan, because where
+someone is sitting is theirs to state and carries no data obligation. The copy
+above Scan ticket, "Scan your ticket to set your match, venue, and section."
+(`01`), was flagged here as overpromising while nothing scanned. It now
+describes what the button does.
 
 ## Verifying the app in a browser
 

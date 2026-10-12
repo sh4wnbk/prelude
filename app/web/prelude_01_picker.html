@@ -10,7 +10,7 @@
 <!-- Eyebrow & Title Section -->
 <div class="flex flex-col mt-space-md mb-space-lg"><div class="flex items-center gap-space-xs mb-space-xs"><span class="w-1.5 h-1.5 rounded-full bg-primary-container pulse-live"></span><span class="font-label-sm text-label-sm uppercase tracking-widest text-primary-container">TODAY'S EVENTS</span></div><h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface tracking-tight font-bold">PICK YOUR EVENT</h1><p class="font-body-md text-body-md text-secondary mt-space-xs leading-relaxed">Sets your venue, play-data stream, and AI narration.</p></div>
 <!-- Venue GPS Geofence Status Indicator Bar -->
-<div class="flex flex-col gap-space-sm mb-space-lg"><button id="scan-ticket-btn" class="w-full py-3.5 px-space-md rounded-xl bg-primary-container text-on-primary-container font-label-lg text-label-lg font-bold tracking-wider uppercase flex items-center justify-center gap-space-sm shadow-lg active:scale-[0.99] transition-transform" type="button"><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><rect height="7" width="7" x="3" y="3"></rect><rect height="7" width="7" x="14" y="3"></rect><rect height="7" width="7" x="14" y="14"></rect><rect height="7" width="7" x="3" y="14"></rect><path d="M7 7h.01"></path><path d="M17 7h.01"></path><path d="M7 17h.01"></path><path d="M17 17h.01"></path></svg><span class="">SCAN TICKET</span></button><p class="font-body-md text-[13px] text-secondary text-center">Scan your ticket to set your match, venue, and section.</p><details class="group mt-space-2xs"><summary class="cursor-pointer list-none flex items-center justify-center gap-1 text-center font-label-sm text-label-sm text-outline hover:text-on-surface uppercase tracking-wider transition-colors"><span class="">Enter manually</span><span class="material-symbols-outlined text-[14px] transition-transform group-open:rotate-180">expand_more</span></summary><div class="flex flex-col gap-2 mt-2 p-card-padding-sm bg-surface-container-low rounded-lg border border-outline-variant/20"><div class="flex flex-col gap-1"><label class="font-label-sm text-label-sm text-outline uppercase">Matchup or Venue</label><input class="w-full bg-surface-container px-3 py-1.5 rounded text-body-md text-on-surface border border-outline-variant/30 focus:outline-none focus:border-primary-container" placeholder="e.g. Argentina vs England, Estadio Azteca" type="text"></div><div class="flex gap-2"><div class="flex-1 flex flex-col gap-1"><label class="font-label-sm text-label-sm text-outline uppercase">Section</label><input class="w-full bg-surface-container px-3 py-1.5 rounded text-body-md text-on-surface border border-outline-variant/30 focus:outline-none focus:border-primary-container" placeholder="104" type="text"></div><div class="flex-1 flex flex-col gap-1"><label class="font-label-sm text-label-sm text-outline uppercase">Row / Seat</label><input class="w-full bg-surface-container px-3 py-1.5 rounded text-body-md text-on-surface border border-outline-variant/30 focus:outline-none focus:border-primary-container" placeholder="8 / 12" type="text"></div></div></div></details></div>
+<div class="flex flex-col gap-space-sm mb-space-lg"><button id="scan-ticket-btn" class="w-full py-3.5 px-space-md rounded-xl bg-primary-container text-on-primary-container font-label-lg text-label-lg font-bold tracking-wider uppercase flex items-center justify-center gap-space-sm shadow-lg active:scale-[0.99] transition-transform" type="button"><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><rect height="7" width="7" x="3" y="3"></rect><rect height="7" width="7" x="14" y="3"></rect><rect height="7" width="7" x="14" y="14"></rect><rect height="7" width="7" x="3" y="14"></rect><path d="M7 7h.01"></path><path d="M17 7h.01"></path><path d="M7 17h.01"></path><path d="M17 17h.01"></path></svg><span class="">SCAN TICKET</span></button><p class="font-body-md text-[13px] text-secondary text-center">Scan your ticket to set your match, venue, and section.</p><details class="group mt-space-2xs"><summary class="cursor-pointer list-none flex items-center justify-center gap-1 text-center font-label-sm text-label-sm text-outline hover:text-on-surface uppercase tracking-wider transition-colors"><span class="">Enter manually</span><span class="material-symbols-outlined text-[14px] transition-transform group-open:rotate-180">expand_more</span></summary><div class="flex flex-col gap-2 mt-2 p-card-padding-sm bg-surface-container-low rounded-lg border border-outline-variant/20"><div class="flex flex-col gap-1"><label class="font-label-sm text-label-sm text-outline uppercase" for="manual-match">Match</label><select class="w-full bg-surface-container px-3 py-1.5 rounded text-body-md text-on-surface border border-outline-variant/30 focus:outline-none focus:border-primary-container" id="manual-match"><option value="">Choose a match</option></select></div><div class="flex flex-col gap-1"><span class="font-label-sm text-label-sm text-outline uppercase">Stadium</span><span class="font-body-md text-body-md text-on-surface-variant" id="manual-venue" data-field="manual_venue">Pick a match first</span></div><div class="flex gap-2"><div class="flex-1 flex flex-col gap-1"><label class="font-label-sm text-label-sm text-outline uppercase" for="manual-section">Section</label><input autocomplete="off" class="w-full bg-surface-container px-3 py-1.5 rounded text-body-md text-on-surface border border-outline-variant/30 focus:outline-none focus:border-primary-container" id="manual-section" inputmode="numeric" placeholder="108" required type="text"></div><div class="flex-1 flex flex-col gap-1"><label class="font-label-sm text-label-sm text-outline uppercase" for="manual-row">Row</label><input autocomplete="off" class="w-full bg-surface-container px-3 py-1.5 rounded text-body-md text-on-surface border border-outline-variant/30 focus:outline-none focus:border-primary-container" id="manual-row" inputmode="numeric" placeholder="14" required type="text"></div><div class="flex-1 flex flex-col gap-1"><label class="font-label-sm text-label-sm text-outline uppercase" for="manual-seat">Seat</label><input autocomplete="off" class="w-full bg-surface-container px-3 py-1.5 rounded text-body-md text-on-surface border border-outline-variant/30 focus:outline-none focus:border-primary-container" id="manual-seat" inputmode="numeric" placeholder="8" required type="text"></div></div><button class="mt-1 w-full h-touch-target-min rounded-full bg-primary-container text-on-primary-container font-label-lg text-label-lg font-bold tracking-wider uppercase flex items-center justify-center transition-opacity disabled:opacity-40 disabled:cursor-not-allowed" disabled id="manual-continue" type="button">Continue</button></div></details></div>
 <!-- Event List Section -->
 <div aria-label="Today's events" class="flex flex-col gap-space-md" role="radiogroup">
 <!-- CARD 1: Selected / In-Arena Active -->
@@ -89,6 +89,64 @@
       }
     });
   }
+
+  // Manual entry: the match comes off the list in matches.json, so the stadium
+  // is filled in rather than typed, and only the seat is the fan's to enter.
+  (function manualEntry() {
+    const pick = document.getElementById('manual-match');
+    const venue = document.getElementById('manual-venue');
+    const section = document.getElementById('manual-section');
+    const row = document.getElementById('manual-row');
+    const seat = document.getElementById('manual-seat');
+    const go = document.getElementById('manual-continue');
+    if (!pick || !go) return;
+
+    const byId = {};
+
+    function chosen() {
+      return byId[pick.value] || null;
+    }
+
+    function update() {
+      const match = chosen();
+      venue.textContent = match ? match.live_seated.venue : 'Pick a match first';
+      go.disabled = !(match && section.value.trim() && row.value.trim() && seat.value.trim());
+    }
+
+    Prelude.whenMatches((doc) => {
+      if (!doc) {
+        venue.textContent = 'The match list could not be loaded.';
+        return;
+      }
+      doc.matches.forEach((match) => {
+        byId[String(match.match_id)] = match;
+        const option = document.createElement('option');
+        option.value = String(match.match_id);
+        option.textContent = match.home_team + ' vs ' + match.away_team;
+        pick.appendChild(option);
+      });
+      update();
+    });
+
+    [pick, section, row, seat].forEach((el) => {
+      el.addEventListener('input', update);
+      el.addEventListener('change', update);
+    });
+
+    go.addEventListener('click', () => {
+      const match = chosen();
+      if (go.disabled || !match) return;
+      // Entering a ticket by hand picks the event, so it starts that match at
+      // its pre-moment state exactly as confirming or scanning it would.
+      Prelude.resetMoment(match.match_id);
+      Prelude.setTicket(match.match_id, {
+        section: section.value.trim(), row: row.value.trim(), seat: seat.value.trim()
+      });
+      window.location.href = Prelude.url('prelude_02_live_seated.html', match.match_id);
+    });
+
+    update();
+  })();
 
   function triggerFeedConfirmation() {
     const btn = document.getElementById('confirm-btn');
