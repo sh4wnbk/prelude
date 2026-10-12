@@ -508,6 +508,13 @@ outside a secure context, so the scanner works on
 opened off the filesystem. The README carries both ticket QR codes so a phone
 can scan one off the page.
 
+**Verified on the live site at `a836eb7`**, entering through `index.html` the
+way a visitor does, in a browser emulating a phone: both matches scan to their
+own ticket and open Live with the scanned seat, and both reach the same place
+through manual entry with a typed seat. The reader reported itself as jsQR,
+which is the path an iPhone takes. What that run cannot prove is a real iOS
+Safari camera prompt on a physical handset.
+
 **A phone may refuse to autoplay the camera** even once it is granted. That is a
 separate failure from having no camera, so the scanner keeps them apart: a
 refused `play()` shows a Tap to start the camera button rather than the no
