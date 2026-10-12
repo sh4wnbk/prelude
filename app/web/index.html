@@ -54,5 +54,23 @@
 <div id="frame">
 <iframe allow="camera" id="screen" src="prelude_01_picker.html?v=__V__" title="Prelude"></iframe>
 </div>
+<script>
+  /* A ticket code is a link to here: /?ticket=<match>:<section>:<row>:<seat>.
+   *
+   * A phone's own camera app offers to open a URL and nothing else, so the
+   * codes point at the site and the seat rides in the query string. The shell
+   * hands it to the ticket screen, which is the one that knows matches.json and
+   * so is the one that can say whether the seat is a ticket we hold.
+   */
+  (function () {
+    var code = /[?&]ticket=([^&#]+)/.exec(window.location.search);
+    if (!code) return;
+    var parts = /^(\d+):([^:]+):([^:]+):([^:]+)$/.exec(decodeURIComponent(code[1]));
+    if (!parts) return;   // not a ticket shape; the list opens as usual
+    var screen = document.getElementById('screen');
+    screen.src = 'prelude_06_ticket.html?v=__V__&match=' + parts[1] +
+                 '&ticket=' + encodeURIComponent(parts[2] + ':' + parts[3] + ':' + parts[4]);
+  })();
+</script>
 </body>
 </html>

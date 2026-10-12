@@ -71,10 +71,14 @@
 <script>
   /* Reads the QR code on a demo ticket and opens that match.
    *
-   * The payload is prelude:<match_id>:<section>:<row>:<seat>, the same string
-   * scripts/make_tickets.py encodes. A code is accepted only when every part of
-   * it matches a ticket in matches.json: these two tickets are the only ones
-   * this app knows about, so anything else is not a ticket it can open.
+   * Two payloads read the same. The codes now carry a URL, so a phone's own
+   * camera app can open them, and the seat rides in its query string:
+   * <site>/?ticket=<match_id>:<section>:<row>:<seat>. The bare
+   * prelude:<match_id>:<section>:<row>:<seat> form that codes used to carry is
+   * still read, so a code printed earlier keeps working. A code is accepted
+   * only when every part of it matches a ticket in matches.json: these two
+   * tickets are the only ones this app knows, so anything else is not a ticket
+   * it can open.
    *
    * BarcodeDetector does the reading where the browser has it. iPhone Safari
    * does not, so jsQR is loaded at a pinned version and given frames drawn off
@@ -128,9 +132,17 @@
       if (text) messageTimer = setTimeout(function () { message.textContent = ""; }, MESSAGE_MS);
     }
 
+    /* Either payload, reduced to the same four fields. */
+    function fieldsFrom(text) {
+      var raw = String(text).trim();
+      var link = /[?&]ticket=([^&#\s]+)/.exec(raw);
+      if (link) raw = "prelude:" + decodeURIComponent(link[1]);
+      return /^prelude:(\d+):([^:]+):([^:]+):([^:]+)$/.exec(raw);
+    }
+
     /* A code is a ticket only when the whole payload matches one we hold. */
     function ticketFor(text) {
-      var parts = /^prelude:(\d+):([^:]+):([^:]+):([^:]+)$/.exec(String(text).trim());
+      var parts = fieldsFrom(text);
       if (!parts || !tickets) return null;
       for (var i = 0; i < tickets.length; i++) {
         var t = tickets[i];

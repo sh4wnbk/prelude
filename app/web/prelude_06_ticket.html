@@ -155,6 +155,25 @@
       setText("ticket_gps", match.live_seated.venue);
       setText("ticket_status", match.picker.status);
 
+      // A ticket code is a link, so the seat can arrive in the query string
+      // rather than in sessionStorage. It still has to be a ticket we hold:
+      // the same rule the scanner applies to a code it reads.
+      var linked = /[?&]ticket=([^&#]+)/.exec(window.location.search);
+      if (linked) {
+        var bits = decodeURIComponent(linked[1]).split(":");
+        var known = match.live_seated;
+        if (bits.length === 3 && bits[0] === known.section &&
+            bits[1] === known.row && bits[2] === known.seat) {
+          Prelude.setTicket(matchId, {
+            section: bits[0], row: bits[1], seat: bits[2], source: "scan"
+          });
+          document.documentElement.setAttribute("data-ticket-link", "accepted");
+        } else {
+          // Not a ticket this app holds, so it is ignored rather than shown.
+          document.documentElement.setAttribute("data-ticket-link", "rejected");
+        }
+      }
+
       // The seat this session is carrying, or the one on file for the match.
       var seat = Prelude.ticketFor(matchId) || match.live_seated;
       setText("ticket_section", seat.section);

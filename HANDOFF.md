@@ -367,13 +367,30 @@ separate fields, alongside the `ticket` line that Live renders. Live shows the
 seat: "Ticket: Sec 108 · Row 14 · Seat 8" (`02`).
 
 **`scripts/make_tickets.py`** writes one QR code per match to
-`app/web/assets/tickets/`, named for the match id, with the payload
-`prelude:<match_id>:<section>:<row>:<seat>`:
+`app/web/assets/tickets/`, named for the match id. The payload is a URL,
+`<site>/?ticket=<match_id>:<section>:<row>:<seat>`:
 
 | File | Payload | Size |
 | ---- | ------- | ---: |
-| `app/web/assets/tickets/3750191.png` | `prelude:3750191:108:14:8` | 289 bytes |
-| `app/web/assets/tickets/3869685.png` | `prelude:3869685:215:9:6` | 291 bytes |
+| `app/web/assets/tickets/3750191.png` | `https://sh4wnbk.github.io/prelude/?ticket=3750191:108:14:8` | 444 bytes |
+| `app/web/assets/tickets/3869685.png` | `https://sh4wnbk.github.io/prelude/?ticket=3869685:215:9:6` | 452 bytes |
+
+**A URL, because a phone's own camera app only offers to open what it
+recognises.** The codes used to carry a bare `prelude:...` string, which an
+iPhone read back as text with nothing to do: "No usable data found". That made
+the codes work only from inside Prelude's own scanner, pointed at another
+screen, which is not what the README was promising. A https link opens the app
+at that ticket from any camera app, with nothing to install and nothing to type.
+
+`index.html` parses `?ticket=` and hands the seat to the ticket screen, which is
+the screen that knows `app/web/matches.json` and so is the one that can say
+whether the seat is a ticket this app holds. A link naming a seat we do not hold
+is ignored rather than displayed, and `documentElement` carries
+`data-ticket-link`, `accepted` or `rejected`, which is how a test can tell.
+
+**The scanner reads both forms.** A code carrying the URL and a code carrying
+the old `prelude:` string reduce to the same four fields before the same check
+runs, so a code printed earlier keeps working.
 
 The payload is built from the structured fields rather than parsed back out of
 the display line, so the code and the copy cannot drift. The script refuses to

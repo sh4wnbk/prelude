@@ -1,9 +1,15 @@
 r"""Generate one demo ticket QR code per match, and prove each one decodes.
 
-The payload is `prelude:<match_id>:<section>:<row>:<seat>`, built from the seat
-fields in `app/web/matches.json`. Those fields are the same ones the Live screen
-renders, so a ticket code and the ticket line a fan reads on screen cannot drift
-apart: this refuses to write anything if they disagree.
+The payload is a URL: `<site>/?ticket=<match_id>:<section>:<row>:<seat>`, built
+from the seat fields in `app/web/matches.json`. Those fields are the same ones
+the Live screen renders, so a ticket code and the ticket line a fan reads on
+screen cannot drift apart: this refuses to write anything if they disagree.
+
+It is a URL because a phone's own camera app only offers to open what it can
+recognise. The bare `prelude:...` string these codes used to carry read back as
+text with nothing to do, so the code worked only from inside Prelude's own
+scanner. A https URL opens the app at that ticket from any camera app. The
+scanner still reads the old form, so a code printed earlier keeps working.
 
 Writing an image is not evidence that it holds the payload, so every code is
 read back off the PNG with a real decoder and compared byte for byte. A
@@ -31,6 +37,10 @@ OUT_DIR = ROOT / "app" / "web" / "assets" / "tickets"
 SEAT_FIELDS = ("section", "row", "seat")
 DOT = "·"
 
+# Where the codes point. Changing this means regenerating both images, because
+# the URL is inside them; the README and HANDOFF.md name the same site.
+SITE = "https://sh4wnbk.github.io/prelude/"
+
 # Medium recovers from roughly 15% damage, which is what a ticket shown on a
 # phone screen or printed and creased actually needs. Black on white, because a
 # themed code is a code that sometimes does not scan.
@@ -51,10 +61,10 @@ def require_seat_fields(match):
 
 
 def payload_for(match):
-    """`prelude:<match_id>:<section>:<row>:<seat>` for one match."""
+    """`<site>/?ticket=<match_id>:<section>:<row>:<seat>` for one match."""
     seat = match["live_seated"]
-    return "prelude:{}:{}:{}:{}".format(
-        match["match_id"], seat["section"], seat["row"], seat["seat"]
+    return "{}?ticket={}:{}:{}:{}".format(
+        SITE, match["match_id"], seat["section"], seat["row"], seat["seat"]
     )
 
 
