@@ -30,7 +30,7 @@
           "away_goals": 0,
           "prompt": "READY FOR BUILDUP",
           "action": "HEADING OUT",
-          "help": "Tap when you leave your seat so Prelude starts watching."
+          "help": "Tap as you leave your seat. Prelude keeps track while you’re away."
         },
         "after": {
           "period": 2,
@@ -138,7 +138,7 @@
           "away_goals": 0,
           "prompt": "READY FOR BUILDUP",
           "action": "HEADING OUT",
-          "help": "Tap when you leave your seat so Prelude starts watching."
+          "help": "Tap as you leave your seat. Prelude keeps track while you’re away."
         },
         "after": {
           "period": 1,

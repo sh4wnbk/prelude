@@ -249,7 +249,7 @@ Card headers also carry a decorative bar field at `opacity-25` with
 
 `rounded-lg bg-surface-container-lowest` holding a filled `verified` Material
 Symbol at `text-[16px] text-primary-container` and a `label-sm text-secondary`
-caption reading "Verified from play data". `02`, `03`.
+caption reading "Verified from play data". `03`.
 
 ### Text input
 

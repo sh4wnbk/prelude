@@ -94,8 +94,11 @@ use 15-of-27, and a line built on "13 of 15" could not carry
 
 ## Screen scan results
 
-`scripts/scan_copy.py` checks all four screens for basketball terms, verdict
-nicknames, "official", the 60-second framing, invented hardware, and em dashes.
+`scripts/scan_copy.py` checks the four screens, `index.html` and
+`app/web/matches.json` for basketball terms, verdict nicknames, "official", the
+60-second framing, invented hardware, and em dashes. It also checks where the
+grounding label sits, which is a placement rule rather than a banned string;
+see below.
 
 **Baseline, 4 hits:**
 
@@ -111,6 +114,34 @@ basketball terms, no "official", no UWB, haptic or dB, no "Controversy"
 anywhere in the set. A separate census of every non-ASCII character found no em
 or en dashes, only middle dots, one bullet, one curly apostrophe, and the quote
 guillemets.
+
+### The grounding label
+
+`CLAUDE.md` allows "Verified from play data" only over narration whose claims
+trace back to the event data. The label was on two screens. On the moment card
+it sits beside the narration quote, which is the placement the rule describes.
+On Live it sat on the standby pipeline card, above rows reporting whether the
+step-away trigger and the narration were switched on. Those rows are app state,
+not a claim read from the feed, so the label promised grounding for something
+the data never said. **It has been removed from Live** and now sits only beside
+the narration quote: "Verified from play data" (`03`).
+
+A regex sweep cannot catch that, because the words were right and only the
+position was wrong. `scripts/scan_copy.py` now parses each screen into a tree
+and fails if the label does not share a card with a narration element, meaning
+one carrying a `data-field` listed in `NARRATION_FIELDS`, currently
+`hero_quote`. The walk stops at `html`, `body` and `main`, so a label anywhere
+else on a screen that happens to hold narration does not pass. The label in
+`app/web/matches.json` is a hit on sight, since copy data carries no markup that
+could place it over anything.
+
+Both directions were tested. Putting the label back on the standby card gives
+exit 1 and `prelude_02_live_seated.html:89 [ungrounded label]`, reported as
+sitting over "STANDBY PIPELINE"; adding it to a `matches.json` caption also
+gives exit 1. With both reverted the scan is back to exit 0.
+
+If Phase 5 adds another narration element, add its `data-field` to
+`NARRATION_FIELDS` or a correct placement will be reported as a violation.
 
 ### Card bodies checked against the data
 
@@ -467,10 +498,3 @@ Items found during Phase 2 that belong with the wiring, not before it:
 - **The empty placeholders.** The Moments meta badges, the three Moments player
   timers, and the moment card's `#timerReadout` are all present and empty,
   waiting for real values from the fixture.
-- **The grounding label on the Live standby card.** The standby pipeline card
-  shows "Verified from play data" (`02`) above its status rows, which report
-  whether the step-away trigger and the narration are active, not a narration
-  claim. `CLAUDE.md` allows that phrase only over narration that traces back to
-  the event data, so this needs either a decision that the card qualifies or the
-  label taken off it. Found during the browser click through and flagged rather
-  than changed.
