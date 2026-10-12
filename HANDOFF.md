@@ -458,9 +458,10 @@ takes a ticket code and refuses anything that is not one of the two tickets this
 app knows, because a code either decodes to a known ticket or it does not. The
 picker's takes a match off the list and a seat from the fan, because where
 someone is sitting is theirs to state and carries no data obligation. The copy
-above Scan ticket, "Scan your ticket to set your match, venue, and section."
-(`01`), was flagged here as overpromising while nothing scanned. It now
-describes what the button does.
+above Scan ticket now reads "Reads the QR code on your ticket and opens that
+match." (`01`). The old line promised to set a venue and a section from a
+ticket, which was never true of the button and is still not what it does: it
+opens the scanner, and the code names the match.
 
 ## Ticket details
 
@@ -495,6 +496,22 @@ button has nothing to toggle on a screen with no camera, and was already struck
 from the scanner. The vibrate call on the primary button was invented hardware
 feedback. "Ticket verified, match locked" became the arrival pill, since nothing
 is verified about a seat someone typed.
+
+## Published
+
+The site is deployed from `main` by `.github/workflows/pages.yml`, which stamps
+the commit into every `__V__` placeholder and uploads `app/web/` only.
+
+**The camera needs the live site, not a file.** `getUserMedia` is refused
+outside a secure context, so the scanner works on
+`https://sh4wnbk.github.io/prelude/` and on `localhost`, and not from a screen
+opened off the filesystem. The README carries both ticket QR codes so a phone
+can scan one off the page.
+
+**A phone may refuse to autoplay the camera** even once it is granted. That is a
+separate failure from having no camera, so the scanner keeps them apart: a
+refused `play()` shows a Tap to start the camera button rather than the no
+camera message, and scanning begins on that tap.
 
 ## Verifying the app in a browser
 
