@@ -630,6 +630,38 @@ denied camera is simulated by making `getUserMedia` reject with the error name
 the browser would use, since a headless run cannot refuse a permission prompt by
 hand.
 
+### Test values are literals, not derived from each other
+
+A run once reported that manual entry was given Section 332 and the ticket
+showed 3320, and the same row for the other match read 118 going in and 1180
+coming out. Nothing in the app was wrong. The harness built that row's section
+by appending a character to the section used in the row above it, so it really
+did type 3320, and the check really did pass.
+
+The defect was in what the report let a reader conclude. Two numbers that
+disagree on their face, printed side by side and marked as passing, are
+indistinguishable from the form corrupting what it is given, and nothing in the
+line said which it was. Derived test data costs more than it saves.
+
+Every seat a check types is now a literal written next to the check, the paths
+that should agree use the same literal, and the assertion covers the whole way
+through: what the inputs hold when Continue is pressed, what ticket details
+renders, and what Live renders. The seat is carried as a string from the input
+to `sessionStorage` to the screen, with no parsing or arithmetic anywhere on
+that path, which is why it cannot gain a digit.
+
+Measured for both matches, with the same input through all three ways in:
+
+| Input | Picker form | Scanner form | Ticket link |
+| ----- | ----------- | ------------ | ----------- |
+| 1986, Sec 108 Row 14 Seat 8 | 108/14/8 | 108/14/8 | 108/14/8 |
+| 2022, Sec 215 Row 9 Seat 6 | 215/9/6 | 215/9/6 | 215/9/6 |
+
+A typed seat of 332/7/21 for 1986 and 118/2/9 for 2022 comes through both forms
+unchanged and produces the same Live ticket line either way. A link carries only
+a seat this app holds, so the shared input the three paths can all take is the
+seat on the ticket itself.
+
 ### What the click through confirmed
 
 Both matches were driven end to end in Edge, in a session with no saved state
