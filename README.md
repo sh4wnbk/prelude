@@ -30,9 +30,10 @@ What the demo is, precisely:
   phases. The play buttons change their own icon and nothing else; the waveforms
   are static markup, and the timers are empty on purpose, waiting for real
   values.
-- **Nothing is live.** The demo replays StatsBomb historical data, the 1986
-  Argentina vs England quarter-final, presented as if it were unfolding now.
-  There is no live feed, no venue, and no GPS.
+- **Nothing is live.** The demo replays StatsBomb historical data: the 1986
+  Argentina vs England quarter-final and the 2022 Argentina vs France final,
+  each presented as if it were unfolding now. There is no live feed, no venue,
+  and no GPS.
 
 > **Status: skeleton.** This README is structure first. The sections below are
 > headings awaiting the code that fills them, and the evidence column is
