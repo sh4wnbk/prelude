@@ -71,7 +71,7 @@ def payload_for(match):
 def check_ticket_line(match):
     """The code and the line on Live have to describe the same seat."""
     seat = match["live_seated"]
-    expected = (f"Ticket: Sec {seat['section']} {DOT} Row {seat['row']} "
+    expected = (f"Sec {seat['section']} {DOT} Row {seat['row']} "
                 f"{DOT} Seat {seat['seat']}")
     if seat["ticket"] != expected:
         raise SystemExit(

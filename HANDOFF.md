@@ -364,7 +364,9 @@ comes from `data/raw/`. This does not add a fourth input.
 
 `app/web/matches.json` now carries `section`, `row` and `seat` per match as
 separate fields, alongside the `ticket` line that Live renders. Live shows the
-seat: "Ticket: Sec 108 · Row 14 · Seat 8" (`02`).
+seat: "Sec 108 · Row 14 · Seat 8" (`02`). The "Ticket: " prefix came
+off when a 414pt phone showed it wrapping to two lines: the icon beside it
+already says what the line is.
 
 **`scripts/make_tickets.py`** writes one QR code per match to
 `app/web/assets/tickets/`, named for the match id. The payload is a URL,

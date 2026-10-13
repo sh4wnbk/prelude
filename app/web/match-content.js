@@ -105,7 +105,7 @@
 
   function ticketLine(seat) {
     if (!seat || !seat.section || !seat.row || !seat.seat) return null;
-    return "Ticket: Sec " + seat.section + " \u00b7 Row " + seat.row +
+    return "Sec " + seat.section + " \u00b7 Row " + seat.row +
            " \u00b7 Seat " + seat.seat;
   }
 
