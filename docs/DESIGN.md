@@ -20,7 +20,7 @@ anchor still appears in every screen cited beside it.
 
 The token tables all cite `03`, meaning the `<script id="tailwind-config">`
 block. That block is byte-identical across all four screens (sha256
-`01000a4db358e0c0...`, 3210 chars), so the system is one system.
+`44927b9a0feedea2...`, 3210 chars), so the system is one system.
 
 Anything a screen does not contain is absent here. There is no spec for states,
 breakpoints, or components the screens do not have.
@@ -132,16 +132,19 @@ and used in 52 places across the four screens. Icons that read as filled set
 | `headline-sm` | 20px | 26px | -0.01em | 600 | Hanken Grotesk |
 | `body-lg` | 16px | 24px | 0 | 400 | Hanken Grotesk |
 | `body-md` | 14px | 20px | 0 | 400 | Hanken Grotesk |
-| `label-lg` | 15px | 20px | 0.04em | 500 | JetBrains Mono |
-| `label-md` | 13px | 18px | 0.06em | 500 | JetBrains Mono |
-| `label-sm` | 12px | 16px | 0.08em | 600 | JetBrains Mono |
+| `label-lg` | 16px | 22px | 0.04em | 500 | JetBrains Mono |
+| `label-md` | 14px | 20px | 0.06em | 500 | JetBrains Mono |
+| `label-sm` | 13px | 18px | 0.08em | 600 | JetBrains Mono |
 
 All values come from the `tailwind-config` block in `03`.
 
 The label sizes were 9px, 11px and 13px until an iPhone XR showed the smallest
-of them reading as fine print. They moved together, so the order of the scale
-and the gaps in it are unchanged; `label-sm` carries most of the uses, and
-leaving `label-lg` behind would have put `label-md` level with it.
+of them reading as fine print. 12/13/15 was tried first and was still tight in
+the hand, so the scale sits at 13/14/16. They move together, so the order of the
+scale and the gaps in it are unchanged; `label-sm` carries most of the uses, and
+leaving `label-lg` behind would have put `label-md` level with it. `label-md` is
+now the same size as `body-md`, which the two tell apart by family, tracking and
+weight rather than by size.
 
 Tracking is negative on display and headline sizes and positive on label sizes,
 tightening as text gets larger and opening as it gets smaller. Labels are

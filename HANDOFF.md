@@ -556,13 +556,15 @@ camera message, and scanning begins on that tap.
 Reported from an iPhone XR: the smallest text read as fine print, and nothing
 the reader could do got round it. Both halves are fixed.
 
-**The label scale moved from 9/11/13 to 12/13/15.** `label-sm` carried 66 of the
+**The label scale moved from 9/11/13 to 13/14/16.** 12/13/15 was the first
+attempt and came back as still tight on the XR, so these sizes are the second
+reading rather than the first. `label-sm` carried 66 of the
 uses across the screens and `manual-entry.js`, so it is the one that mattered,
 but all three moved together: the order of the scale and the gaps in it are
 unchanged, and leaving `label-lg` at 13px would have put `label-md` level with
 it. It is one edit repeated identically in six screens, because the
 `<script id="tailwind-config">` block is one block and the design system rests
-on it staying byte-identical. It still is, now sha256 `01000a4db358e0c0`,
+on it staying byte-identical. It still is, now sha256 `44927b9a0feedea2`,
 3210 chars.
 
 **`user-scalable=no` and `maximum-scale=1.0` are gone** from all six screens and
@@ -588,10 +590,17 @@ scrollWidth equal to clientWidth, `window.scrollTo(9999, 0)` leaving scrollX at
 0, no unclipped element past the body box, and no leaf element whose own text is
 wider than its box. The behaviour suites were re-run unchanged.
 
-**Still worth a look on the XR.** The measurements say nothing overflows and the
-computed sizes are 12, 13, 15 and 16px, but whether 12px reads comfortably in
-the hand is the question that sent this back the first time, and that is not
-something a desktop browser at 414px can answer.
+**What the measurements cannot settle.** Nothing overflows and the computed
+sizes are 13, 14, 16 and 16px, but whether that reads comfortably in the hand is
+not something a desktop browser at 414px can answer. It took two readings on a
+real XR to get here, which is the useful part of the record: the first fix
+measured completely clean and was still wrong.
+
+At these sizes several lines that used to sit on one now wrap: the two status
+pills on Live, its ticket line, and the status line on the event cards. Nothing
+is hidden or clipped, and that was checked rather than assumed, by looking for
+any leaf element whose own text is wider than its box. Wrapping is the cost of
+the larger type and it was taken deliberately.
 
 ## Verifying the app in a browser
 
