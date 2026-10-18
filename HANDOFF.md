@@ -628,18 +628,24 @@ line, `background-color: transparent` on `body` above the breakpoint. The trap
 worth remembering is that an opacity sweep looked like the obvious remedy and
 would have made the page lighter without ever revealing the photograph.
 
-The image is a night shot already: mean luminance 35.6 of 255, with 60% of its
-pixels below 32 and 1% above 192, which is the floodlights. That is why it
-survives a 70% dim at all. Measured at 1920 by 1080, the backdrop reads 25.8
-mean against the phone's 45.6, so the phone stays the brightest thing on screen.
+The image is a match night seen from behind one goal: four floodlight towers, a
+full crowd, players on the pitch. Mean luminance 49.5 of 255, with 44% of its
+pixels below 32 and 1% above 192, which is the lights. It replaced a darker and
+emptier stadium that needed a 70% dim to sit behind the phone; this one carries
+the crowd and the lights that make it read as a match, and takes 50%.
 
-It is 100KB: 1920px wide, JPEG quality 75. It arrived as a 2.9MB PNG, which
-costs phones nothing because the media query means they never request it, but
-was a second of desktop load for a picture that is blurred 8px and dimmed to
-30%. Re-encoding took 96.7% off and moved the mean luminance by nothing
-measurable, 35.6 before and 35.6 after, with the floodlight peak going 250 to
-252. Nothing about how it reads changed, which is the point: at this treatment
-the image can take far more compression than it looks like it should.
+The phone stays the brightest thing on screen, though by mean it is close at the
+widest window: 45.2 for the backdrop against 45.6 for the phone at 2560 by 1080,
+and 42.8 against 51.1 at 1366 by 768. Mean is the wrong measure here. The phone
+is a dark panel with bright accents, and by peak it wins at every width, 227 for
+its amber button against 131 for the brightest floodlight. It also reads because
+it is the only sharp thing on the page.
+
+It is 122KB: 1920px wide, JPEG quality 75, the same treatment the previous
+backdrop got. A photograph that is blurred 8px and dimmed to half can take far
+more compression than it looks like it should, and phones never pay for it at
+all: the media query means they do not request it, measured as zero requests at
+390px against one at 1920px.
 
 ## Verifying the app in a browser
 
