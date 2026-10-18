@@ -47,7 +47,7 @@
   }
 
   html::before {
-    background-image: url("assets/stadium-bg.png?v=__V__");
+    background-image: url("assets/stadium-bg.jpg?v=__V__");
     background-size: cover;
     background-position: center;
     filter: blur(8px);

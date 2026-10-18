@@ -606,7 +606,7 @@ the larger type and it was taken deliberately.
 
 ## Stadium backdrop on desktop
 
-Above the 501px breakpoint the page sits on `app/web/assets/stadium-bg.png`,
+Above the 501px breakpoint the page sits on `app/web/assets/stadium-bg.jpg`,
 blurred and dimmed, so a desktop window reads as a phone held at a match rather
 than a phone on a flat field. At 500px and narrower nothing applies: the screens
 are pixel for pixel what they were, which was checked by comparing screenshots
@@ -633,10 +633,13 @@ pixels below 32 and 1% above 192, which is the floodlights. That is why it
 survives a 70% dim at all. Measured at 1920 by 1080, the backdrop reads 25.8
 mean against the phone's 45.6, so the phone stays the brightest thing on screen.
 
-It is 2.9MB, which costs phones nothing because the media query means they never
-request it: zero requests at 390px, one at 1920px. On a desktop it is a second
-or so on a normal connection. Worth re-encoding if that ever matters, since the
-image is blurred and dimmed and would survive heavy compression.
+It is 100KB: 1920px wide, JPEG quality 75. It arrived as a 2.9MB PNG, which
+costs phones nothing because the media query means they never request it, but
+was a second of desktop load for a picture that is blurred 8px and dimmed to
+30%. Re-encoding took 96.7% off and moved the mean luminance by nothing
+measurable, 35.6 before and 35.6 after, with the floodlight peak going 250 to
+252. Nothing about how it reads changed, which is the point: at this treatment
+the image can take far more compression than it looks like it should.
 
 ## Verifying the app in a browser
 

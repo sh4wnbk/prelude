@@ -359,13 +359,16 @@ does not rebuild it. Inside that shell the iframe is 390px wide, below the
 apply. The stylesheet still matters when a screen is opened directly.
 
 **Above the breakpoint the page carries a stadium photograph**,
-`assets/stadium-bg.png`, at `cover` and centred, blurred 8px on `html::before`
+`assets/stadium-bg.jpg`, at `cover` and centred, blurred 8px on `html::before`
 and dimmed by `html::after` at `#101319` 70%. The blur sits on a pseudo-element
 so the phone itself stays sharp, and the dim keeps the phone the brightest thing
 on screen: measured at 1920 by 1080, the backdrop reads a mean luminance of 25.8
 against the phone's 45.6. Both rules live inside the media query, so a phone
 never applies them and never downloads the image, which was measured as zero
-requests at 390px against one at 1920px.
+requests at 390px against one at 1920px. The file is 1920px wide at JPEG quality
+75, 100KB, which is what a backdrop that is blurred and dimmed needs: the
+source photograph was a 2.9MB PNG and converting it changed the mean luminance
+by nothing measurable.
 
 Because the shell draws its own bezel it also carries its own copy of these
 rules. `body` there is a full-viewport flex container, and the base layer paints
