@@ -634,12 +634,14 @@ pixels below 32 and 1% above 192, which is the lights. It replaced a darker and
 emptier stadium that needed a 70% dim to sit behind the phone; this one carries
 the crowd and the lights that make it read as a match, and takes 50%.
 
-The phone stays the brightest thing on screen, though by mean it is close at the
-widest window: 45.2 for the backdrop against 45.6 for the phone at 2560 by 1080,
-and 42.8 against 51.1 at 1366 by 768. Mean is the wrong measure here. The phone
-is a dark panel with bright accents, and by peak it wins at every width, 227 for
-its amber button against 131 for the brightest floodlight. It also reads because
-it is the only sharp thing on the page.
+The phone stays the brightest thing on screen, but only peak brightness shows
+it: 227 for its amber button against 131 for the brightest floodlight, at every
+width. Do not use the mean. The two are close enough at 1920 and 2560 that the
+answer flips with the crop: measured over the phone's screen area the phone led
+45.6 to 45.2, and measured over the whole handset including its bezel it trailed
+41.6 to 42.3. Both numbers are real and neither means anything, which is the
+point. The phone is a dark panel with bright accents on a blurred page, so what
+makes it read is peak contrast and sharpness, not average light.
 
 It is 122KB: 1920px wide, JPEG quality 75, the same treatment the previous
 backdrop got. A photograph that is blurred 8px and dimmed to half can take far

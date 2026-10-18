@@ -363,10 +363,12 @@ apply. The stylesheet still matters when a screen is opened directly.
 floodlight towers, a full crowd and players on the pitch. It is at `cover` and
 centred, blurred 8px on `html::before` and dimmed by `html::after` at `#101319`
 50%. The blur sits on a pseudo-element so the phone itself stays sharp, and the
-dim keeps the phone the brightest thing on screen. By mean luminance that is
-close at the widest window, 45.2 for the backdrop against the phone's 45.6, but
-by peak it is not close at any width: the backdrop tops out at 131 and the
-phone's amber button reaches 227. Both rules live inside the media query, so a phone
+dim keeps the phone the brightest thing on screen. Measure that by peak and not
+by mean: the backdrop tops out at 131 at every width while the phone's amber
+button reaches 227. Their mean luminances are a wash, close enough that which
+one comes out ahead depends on where the crop is drawn, so the mean says
+nothing. The phone is a dark panel with bright accents, and it is the only sharp
+thing on a blurred page. Both rules live inside the media query, so a phone
 never applies them and never downloads the image, which was measured as zero
 requests at 390px against one at 1920px. The file is 1920px wide at JPEG quality
 75, 122KB, which is what a backdrop that is blurred and dimmed needs.
