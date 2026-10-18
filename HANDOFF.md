@@ -604,6 +604,40 @@ is hidden or clipped, and that was checked rather than assumed, by looking for
 any leaf element whose own text is wider than its box. Wrapping is the cost of
 the larger type and it was taken deliberately.
 
+## Stadium backdrop on desktop
+
+Above the 501px breakpoint the page sits on `app/web/assets/stadium-bg.png`,
+blurred and dimmed, so a desktop window reads as a phone held at a match rather
+than a phone on a flat field. At 500px and narrower nothing applies: the screens
+are pixel for pixel what they were, which was checked by comparing screenshots
+with and without the rules rather than by eye.
+
+**The frame is drawn in two places and both needed it.** `phone-frame.css`
+serves a screen opened on its own; `app/web/index.html` carries its own copy and
+does not link the stylesheet, and the site root serves `index.html`. A backdrop
+written only in the stylesheet would have been invisible to everyone visiting
+the demo.
+
+**What nearly went wrong.** With the rules in place, the computed styles were
+all correct, the image was `cover` and centred, the blur was 8px, the overlay
+was 70%, and the page still rendered flat black. Measuring the rendered pixels
+rather than the stylesheet showed the backdrop sitting at a luminance of exactly
+19, which is `#101319`: the shell's `body` fills the viewport and the base layer
+paints it that colour, so it covered the backdrop on `html`. The fix is one
+line, `background-color: transparent` on `body` above the breakpoint. The trap
+worth remembering is that an opacity sweep looked like the obvious remedy and
+would have made the page lighter without ever revealing the photograph.
+
+The image is a night shot already: mean luminance 35.6 of 255, with 60% of its
+pixels below 32 and 1% above 192, which is the floodlights. That is why it
+survives a 70% dim at all. Measured at 1920 by 1080, the backdrop reads 25.8
+mean against the phone's 45.6, so the phone stays the brightest thing on screen.
+
+It is 2.9MB, which costs phones nothing because the media query means they never
+request it: zero requests at 390px, one at 1920px. On a desktop it is a second
+or so on a normal connection. Worth re-encoding if that ever matters, since the
+image is blurred and dimmed and would survive heavy compression.
+
 ## Verifying the app in a browser
 
 Phase 2 verified the screens by rendering them. A click through needs more than

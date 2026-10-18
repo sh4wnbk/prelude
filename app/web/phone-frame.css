@@ -18,6 +18,10 @@
  *
  * Colours are existing tokens. The bezel thickness and radius are not in the
  * token scale, whose largest non-pill radius is 0.75rem; see docs/DESIGN.md.
+ *
+ * Above the breakpoint the page also carries a stadium photograph, blurred and
+ * dimmed. index.html repeats this rule, because it draws its own frame and does
+ * not link this file; the two have to be changed together.
  */
 
 @media (min-width: 501px) {
@@ -29,6 +33,28 @@
     min-height: 100vh;
     padding: 32px 0;
     box-sizing: border-box;
+  }
+
+  /* The stadium behind the phone. The blur sits on a pseudo-element so the
+     phone itself stays sharp, and the dim keeps it the brightest thing here. */
+  html::before,
+  html::after {
+    content: "";
+    position: fixed;
+    inset: -24px;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  html::before {
+    background-image: url("assets/stadium-bg.png?v=__V__");
+    background-size: cover;
+    background-position: center;
+    filter: blur(8px);
+  }
+
+  html::after {
+    background-color: rgba(16, 19, 25, 0.7);   /* #101319 at 70% */
   }
 
   body {

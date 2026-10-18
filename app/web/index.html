@@ -29,6 +29,10 @@
   @media (min-width: 501px) {
     html { background-color: #0b0e13; }   /* surface-container-lowest */
     body {
+      /* The base layer paints body #101319, and here body fills the viewport,
+         which would cover the backdrop on html. The phone keeps its own
+         colour; the page behind it does not need one. */
+      background-color: transparent;
       display: flex;
       align-items: safe center;
       justify-content: center;
@@ -37,6 +41,28 @@
       box-sizing: border-box;
       overflow: auto;
     }
+    /* The stadium behind the phone. The blur sits on a pseudo-element so the
+       phone itself stays sharp, and the dim keeps it the brightest thing here. */
+    html::before,
+    html::after {
+      content: "";
+      position: fixed;
+      inset: -24px;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    html::before {
+      background-image: url("assets/stadium-bg.png?v=__V__");
+      background-size: cover;
+      background-position: center;
+      filter: blur(8px);
+    }
+
+    html::after {
+      background-color: rgba(16, 19, 25, 0.7);   /* #101319 at 70% */
+    }
+
     #frame {
       box-sizing: content-box;
       flex: none;
