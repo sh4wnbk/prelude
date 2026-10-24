@@ -68,9 +68,9 @@ class StatsBombEventFeed:
         end_seconds = moment.minute * 60 + moment.second
         start_seconds = end_seconds - seconds_before
 
-        # Identify the period the moment belongs to by finding its source event.
-        moment_period = next(
-            event["period"]
+        # Identify the period and index of the source shot event.
+        source_event = next(
+            event
             for event in events
             if event["type"]["name"] == "Shot"
             and event["shot"]["outcome"]["name"] == "Goal"
@@ -79,12 +79,15 @@ class StatsBombEventFeed:
             and event["team"]["name"] == moment.team
             and event["player"]["name"] == moment.player
         )
+        moment_period = source_event["period"]
+        shot_index = source_event["index"]
 
         window_events = [
             event
             for event in events
             if event["period"] == moment_period
             and start_seconds <= event["minute"] * 60 + event["second"] <= end_seconds
+            and event["index"] <= shot_index
         ]
         # Feed order is preserved (events are already in index order from JSON).
         return EventWindow(
@@ -92,7 +95,3 @@ class StatsBombEventFeed:
             events=window_events,
             seconds_before=seconds_before,
         )
-
-
-# Verify the protocol is satisfied at import time (cheap isinstance check).
-assert isinstance(StatsBombEventFeed(), EventFeed)

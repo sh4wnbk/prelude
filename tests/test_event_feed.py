@@ -203,6 +203,8 @@ class TestEventWindow:
         assert isinstance(window, EventWindow)
         assert window.moment == moment
         last = window.events[-1]
+        assert last["type"]["name"] == "Shot"
+        assert last["shot"]["outcome"]["name"] == "Goal"
         assert (last["minute"], last["second"]) == (moment.minute, moment.second)
 
     def test_window_is_in_feed_order_and_within_the_span(self):
