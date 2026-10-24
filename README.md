@@ -95,23 +95,25 @@ Everything above it is structure.
   counts as written.
 - `scripts/check_docs.py`: checks that these docs still match the code they
   describe, and exits non-zero when one has gone stale.
+- `app/statsbomb_event_feed.py`: `StatsBombEventFeed`, the EventFeed
+  implementation. Reads a match from `data/raw/`, returns its goals as
+  moments (periods 1 to 4, so the shootout is excluded), and returns the run-up
+  to a goal as untouched source records.
 - `tests/test_event_feed.py`: 14 acceptance tests for the EventFeed contract.
-  They run, and they all fail on purpose, because nothing implements the
-  contract yet.
+  All 14 pass against `app/statsbomb_event_feed.py`.
 
 **Exists but does nothing yet:**
 
 - `app/event_feed.py`: the data shapes and the `EventFeed` interface. A
-  contract only, with no implementation behind it.
+  contract only; `app/statsbomb_event_feed.py` is what implements it.
 - The play buttons and waveforms on the moment card and the moments list. They
   change their own icons and nothing else, because there is no audio yet.
 
 **Not built yet:** narration, audio output, and GPS presence handling. The
 screens read their content from `app/web/matches.json` and carry the selected
-match between them; what they do not have is sound. The EventFeed and
-moment-detection module is
-reserved for another contributor and is not implemented here; see
-[`docs/bob_brief.md`](docs/bob_brief.md).
+match between them; what they do not have is sound. Nothing wires the EventFeed
+to the screens yet: the module returns moments and event windows, and no screen
+reads them.
 
 No claim in this README is intended to run ahead of the code. If you find one
 that does, it is a bug in the README.

@@ -45,8 +45,10 @@ DOCS = [
 ]
 
 # Paths the docs name on purpose while they do not exist. Each one is described
-# in the docs as not yet built, so an absent file is the correct state.
-DELIBERATELY_ABSENT = {"app/statsbomb_event_feed.py"}
+# in the docs as not yet built, so an absent file is the correct state. The list
+# is empty now that `app/statsbomb_event_feed.py` is built; the check stays,
+# because it is what catches a doc still calling a built file absent.
+DELIBERATELY_ABSENT = set()
 
 PATH_IN_BACKTICKS = re.compile(
     r"`((?:app|docs|scripts|tests|bob_sessions)/[A-Za-z0-9_./-]+)`"
@@ -169,29 +171,33 @@ def check_design_landmarks(fail):
     print(f"  DESIGN.md: {checked} structural landmarks verified")
 
 
-def check_quoted_failure(fail):
-    """bob_brief.md quotes the message the suite actually prints."""
+def check_quoted_pytest_result(fail):
+    """bob_brief.md quotes the result the suite actually prints.
+
+    While the module was reserved this quoted the failure message all 14 tests
+    shared. The module is built, so it quotes the passing summary instead. The
+    claim being checked did not change: what the brief prints as live output
+    has to still be live output.
+    """
     brief = (ROOT / "docs" / "bob_brief.md").read_text(encoding="utf-8")
-    block = re.search(
-        r"fail with the same message:\s*```\s*(.*?)\s*```", brief, re.S
-    )
+    block = re.search(r"`pytest -q` reports:\s*```\s*(.*?)\s*```", brief, re.S)
     if block is None:
-        fail("bob_brief.md", "could not find the quoted failure message block")
+        fail("bob_brief.md", "could not find the quoted pytest result block")
         return
     quoted = " ".join(block.group(1).split())
     live = " ".join(run_pytest("-q").split())
     if quoted not in live:
         fail(
             "bob_brief.md",
-            "the quoted failure message no longer matches pytest output.\n"
+            "the quoted pytest result no longer matches pytest output.\n"
             f"      quoted: {quoted}",
         )
     else:
-        print("  bob_brief.md: quoted failure message matches live output")
+        print("  bob_brief.md: quoted pytest result matches live output")
 
 
 def check_test_count(fail):
-    """Counts like "14 tests" and "all 14 fail" must match what pytest collects."""
+    """Counts like "14 tests" and "all 14 pass" must match what pytest collects."""
     collected = len(
         [l for l in run_pytest("--collect-only", "-q").splitlines() if "::" in l]
     )
@@ -203,7 +209,7 @@ def check_test_count(fail):
         claimed = {
             int(n)
             for n in re.findall(r"(\d+)\s+(?:acceptance\s+)?tests?\b", text)
-            + re.findall(r"all\s+(\d+)\s+fail", text)
+            + re.findall(r"all\s+(\d+)\s+(?:fail|pass)", text)
         }
         for n in claimed:
             if n != collected:
@@ -283,7 +289,7 @@ def main():
     for check in (
         check_design_citations,
         check_design_landmarks,
-        check_quoted_failure,
+        check_quoted_pytest_result,
         check_test_count,
         check_referenced_paths,
         check_quoted_screen_copy,

@@ -65,6 +65,42 @@ screens and exits non-zero on any hit.
 derived from the inline `tailwind.config` and the markup that uses it, with a
 file and line citation on every value. 291 lines.
 
+### Phase 3
+
+**Bob built the EventFeed module**, in two sessions, against `docs/bob_brief.md`.
+The exports and the task-summary screenshots are in `bob_sessions/`, and
+`bob_sessions/README.md` lists them.
+
+| Task | Commit | Bobcoins |
+| ---- | ------ | -------: |
+| Build `StatsBombEventFeed` | `3ce6bca` | 0.463 |
+| End event windows at the goal shot | `343c712` | 0.508 |
+
+**`app/statsbomb_event_feed.py`** (`3ce6bca`): `StatsBombEventFeed`, satisfying
+the `EventFeed` protocol in `app/event_feed.py`. Standard library only. It reads
+`data/raw/events/<match_id>.json`, returns Goal-outcome shots from periods 1 to
+4 as moments, and returns the run-up to a moment as untouched source records.
+The contract was not changed, so `Moment` still carries no period field and the
+shootout exclusion stays a rule the module applies.
+
+**The window fix** (`343c712`): `event_window` filtered by clock time alone, so
+where StatsBomb records the goalkeeper's event in the same second as the shot,
+the window ran one event past the goal. It affected 6 of the 9 goals across the
+two matches. The fix also excludes any event whose `index` is above the goal
+shot's, and the second session tightened
+`test_window_ends_at_the_moment` so the last event in a window has to be the
+goal shot itself. That is the one test change Bob made; the other 13 are as
+written in Phase 2.
+
+**Penalties come back as a window holding only the kick.** Three of the nine
+goals are penalties, and each one is alone in its own possession, with the foul
+that won it 71 to 93 seconds earlier in the possession before. A 30 second
+window around an open-play goal holds 22 to 36 events; around each of the three
+penalties it holds 1. This is correct under the contract, which does not cross a
+period boundary or pad a window, but it means **Phase 4 cannot narrate a set
+piece from the window alone: it needs the prior possession.** Run
+`defining_moments` and `event_window` over both matches to see it.
+
 ## Data-check findings
 
 Match `3750191`, Argentina 2-1 England, quarter-final, 1986-06-22. 2,748 events.
@@ -769,27 +805,36 @@ Change event, and Heading out returning after a switch all behave as the settled
 decisions above describe, at 390 px and at 900 px. The per-match reset holds in
 both directions, and picking one match leaves the other match's key untouched.
 
-## Next first action (Phase 3)
+## Next first action (Phase 4)
 
-**Bob builds the EventFeed module against `docs/bob_brief.md`.**
+**Narration.** The EventFeed is built and the moments it returns are the input
+narration was waiting for; nothing reads them yet.
 
-The EventFeed and moment-detection module is reserved for IBM Bob. Per
-`CLAUDE.md` it must not be implemented in this repo by anyone else, not even as
-a stub that grows or a helper that does the same job under another name.
-
-Everything Bob needs is in the repo:
+What is in place:
 
 | What | Where |
 | ---- | ----- |
-| The brief | `docs/bob_brief.md` |
-| The contract | `app/event_feed.py`, shapes and protocol, no implementation |
-| The tests | `tests/test_event_feed.py`, 14 tests, all failing |
-| What to build | `app/statsbomb_event_feed.py`, class `StatsBombEventFeed` |
+| The contract | `app/event_feed.py`, shapes and protocol |
+| The implementation | `app/statsbomb_event_feed.py`, class `StatsBombEventFeed` |
+| The tests | `tests/test_event_feed.py`, 14 tests, all passing |
+| The brief it was built to | `docs/bob_brief.md` |
 
-All 14 tests fail with one message, that
-`app/statsbomb_event_feed.py` does not exist. Nothing else in the suite is
-broken. Run them with
-`.\.venv-prelude\Scripts\python.exe -m pytest`.
+Run the suite with `.\.venv-prelude\Scripts\python.exe -m pytest`.
+
+Two things to settle before writing narration copy:
+
+- **Set-piece buildup needs the prior possession.** A penalty's window holds
+  only the kick, as recorded above. Whatever reaches back for the buildup is a
+  caller-side decision or a contract change; it is not something to patch into
+  `event_window` quietly, because the contract's truncation rule is deliberate.
+- **"Verified from play data" is the whole point of the raw-record rule.** Every
+  line that carries the label has to trace to an event in the window it was
+  written from. A line that cannot be pointed at does not get the label, and
+  there is no softened variant of the phrase.
+
+The EventFeed and moment-detection module stays reserved for IBM Bob. It is
+built, but `CLAUDE.md` still governs it: further work on moment detection is
+Bob's, and Phase 4 should call the module rather than reach around it.
 
 **Session exports go in `bob_sessions/`,** one per task, committed rather than
 ignored, and scrubbed of credentials before each commit. See

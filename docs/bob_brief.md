@@ -1,11 +1,12 @@
 # Bob's brief: the EventFeed module
 
 This is the contract for the EventFeed and moment-detection module. The module
-is reserved for you; nobody else in this repo implements it, and the rest of the
-codebase is written to wait for it.
+is reserved for you; nobody else in this repo implements it.
 
-Everything you need is already in the repo: the interface, the acceptance tests,
-and a script that fetches the data. Nothing is implemented.
+**Status: built.** `app/statsbomb_event_feed.py` is in the repo and all 14
+acceptance tests pass. It took two sessions: the build, then a fix to where the
+event window ends. The contract below is unchanged, and it is what any further
+change to the module is measured against.
 
 ## What you build
 
@@ -108,22 +109,20 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 .\.venv-prelude\Scripts\python.exe -m pytest
 ```
 
-Right now all 14 fail with the same message:
+The module is built, so `pytest -q` reports:
 
 ```
-Failed: No EventFeed implementation yet: app.statsbomb_event_feed does not
-exist. This is the expected failure until Bob builds the module; see
-docs/bob_brief.md.
+14 passed
 ```
 
-That is the only reason they fail. Nothing else in the suite is broken.
-
-Two other messages exist and mean different things. `app.statsbomb_event_feed
-exists but does not provide StatsBombEventFeed` means the module is there but
-the class is missing or misnamed. A raw `ModuleNotFoundError` naming some other
-module means your module imports something that is not installed; that one is
-re-raised with a full traceback rather than reported as the module being
-absent.
+The suite still guards the import, and three messages mean three different
+things if that changes. All 14 failing with `No EventFeed implementation yet:
+app.statsbomb_event_feed does not exist` means the module file has gone.
+`app.statsbomb_event_feed exists but does not provide StatsBombEventFeed` means
+the module is there but the class is missing or misnamed. A raw
+`ModuleNotFoundError` naming some other module means the module imports
+something that is not installed; that one is re-raised with a full traceback
+rather than reported as the module being absent.
 
 | Group | Covers |
 | ----- | ------ |
