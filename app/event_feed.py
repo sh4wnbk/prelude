@@ -8,14 +8,9 @@ The module itself is reserved for IBM Bob (see CLAUDE.md), and nothing here
 should grow into an implementation. `app/statsbomb_event_feed.py` is Bob's
 class, and it satisfies `EventFeed`.
 
-There are two protocols, because the contract is implemented in stages:
-
-  * `EventFeed` is built. `StatsBombEventFeed` satisfies it.
-  * `BuildupFeed` is `EventFeed` plus `buildup`, which is **not implemented**.
-    It is separate so that the tests which prove `EventFeed` is satisfied keep
-    proving it while `buildup` is still pending. Once `buildup` is built the
-    two can be merged into one protocol, with the tests changed in the same
-    commit.
+`BuildupFeed` has been merged into `EventFeed`: `buildup` is now part of the
+main protocol. `BuildupFeed` is kept as an alias so that existing code that
+references it continues to work.
 
 See docs/bob_brief.md for what to build, which files to read, and which tests
 must pass.
@@ -118,7 +113,8 @@ class Buildup:
 
 @runtime_checkable
 class EventFeed(Protocol):
-    """Reads a match's events and finds the moments worth narrating."""
+    """Reads a match's events, finds the moments worth narrating, and returns
+    the possession context (buildup) that led to each moment."""
 
     def load_match(self, match_id: int) -> Sequence[RawEvent]:
         """Return every event for `match_id`, in feed order."""
@@ -139,15 +135,6 @@ class EventFeed(Protocol):
     ) -> EventWindow:
         """Return the events in the `seconds_before` run-up to `moment`."""
         ...
-
-
-@runtime_checkable
-class BuildupFeed(EventFeed, Protocol):
-    """`EventFeed`, plus the buildup to a moment.
-
-    **Not implemented.** `StatsBombEventFeed` satisfies `EventFeed` and does not
-    satisfy this. See docs/bob_brief.md, Task 3.
-    """
 
     def buildup(self, match_id: int, moment: Moment) -> Buildup:
         """Return the possession `moment` came from, and the one before it if
@@ -184,3 +171,7 @@ class BuildupFeed(EventFeed, Protocol):
         buildup is correct, in the same way a short window is correct.
         """
         ...
+
+
+#: Backward-compatible alias. `buildup` is now part of `EventFeed` directly.
+BuildupFeed = EventFeed

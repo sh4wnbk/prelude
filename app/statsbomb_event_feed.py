@@ -10,7 +10,14 @@ import json
 from pathlib import Path
 from typing import Sequence
 
-from app.event_feed import EventFeed, EventWindow, Moment, RawEvent
+from app.event_feed import (
+    SET_PIECE_SHOT_TYPES,
+    Buildup,
+    EventFeed,
+    EventWindow,
+    Moment,
+    RawEvent,
+)
 
 _RAW = Path(__file__).resolve().parent.parent / "data" / "raw"
 
@@ -94,4 +101,62 @@ class StatsBombEventFeed:
             moment=moment,
             events=window_events,
             seconds_before=seconds_before,
+        )
+
+    def buildup(self, match_id: int, moment: Moment) -> Buildup:
+        """Return the possession(s) leading up to *moment*.
+
+        For an open play goal: the goal's possession, truncated at the shot.
+        For a set piece goal: the previous possession (period-filtered) followed
+        by the goal's possession truncated at the shot.
+
+        Does not cross period boundaries. Returns raw source records unchanged.
+        """
+        events = self.load_match(match_id)
+
+        # Find the source shot event for this moment.
+        shot = next(
+            event
+            for event in events
+            if event["type"]["name"] == "Shot"
+            and event["shot"]["outcome"]["name"] == "Goal"
+            and event["minute"] == moment.minute
+            and event["second"] == moment.second
+            and event["team"]["name"] == moment.team
+            and event["player"]["name"] == moment.player
+        )
+
+        goal_period = shot["period"]
+        goal_possession = shot["possession"]
+        shot_index = shot["index"]
+        shot_type = shot["shot"]["type"]["name"]
+        is_set_piece = shot_type in SET_PIECE_SHOT_TYPES
+
+        # Collect the goal's possession up to and including the shot.
+        goal_possession_events = [
+            e
+            for e in events
+            if e["possession"] == goal_possession
+            and e["index"] <= shot_index
+        ]
+
+        if is_set_piece:
+            prev_possession = goal_possession - 1
+            prev_possession_events = [
+                e
+                for e in events
+                if e["possession"] == prev_possession
+                and e["period"] == goal_period
+            ]
+            buildup_events = prev_possession_events + goal_possession_events
+            possessions = [prev_possession, goal_possession] if prev_possession_events else [goal_possession]
+        else:
+            buildup_events = goal_possession_events
+            possessions = [goal_possession]
+
+        return Buildup(
+            moment=moment,
+            events=buildup_events,
+            possessions=possessions,
+            set_piece=shot_type if is_set_piece else None,
         )
