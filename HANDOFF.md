@@ -153,8 +153,9 @@ before the count so the claim is both scoped and visible to the gate.
 
 ### Phase 4, task 2
 
-**The buildup contract, declared and not implemented.** This closes the Phase 3
-finding that a penalty's event window holds only the kick.
+**The buildup contract, declared for Bob to implement.** This closes the Phase
+3 finding that a penalty's event window holds only the kick. Bob built it in
+task 3 below; what this section records is what the contract fixed and why.
 
 **`app/event_feed.py`** gains `SET_PIECE_SHOT_TYPES`, a `Buildup` shape, and
 `BuildupFeed`, which is `EventFeed` plus one `buildup(match_id, moment)`
@@ -167,9 +168,9 @@ included, and the goal's recorded shot type when it is a set piece.
 protocol's `isinstance` check wants every member present, and
 `StatsBombEventFeed` has no `buildup`. That failure would have been truthful
 but it would have broken a test that proves something separate and still true.
-Keeping them apart means the pending work fails on its own tests and nothing
-else. **Merging the two is the right change once `buildup` is built**, and the
-brief says so.
+Keeping them apart meant the pending work failed on its own tests and nothing
+else. **Merging the two was the right change once `buildup` was built**, the
+brief said so, and task 3 did it.
 
 **The rules the contract fixes**, each with a test: the goal's possession
 truncated at the shot; the previous possession in full, only for a set piece
@@ -202,16 +203,78 @@ rule is a rule and not a formality: possession 99 of the 1986 match spans half
 time, and four possessions of the 2022 final span a boundary. None of the four
 covered goals hits the case, so the rule is specified and untested by data.
 
-**The suite.** `tests/test_event_feed.py::TestBuildup` is 13 tests. 12 fail
-with `No buildup implementation yet: StatsBombEventFeed has no buildup method`
-and nothing else. The thirteenth checks the written-down expected values
-against `data/raw/` without touching the implementation, so a wrong expectation
-fails on its own line rather than looking like a bug in Bob's code; it passes
-now and has to keep passing.
+**The suite.** `tests/test_event_feed.py::TestBuildup` is 13 tests. While the
+method was unbuilt, 12 failed with
+`No buildup implementation yet: StatsBombEventFeed has no buildup method` and
+nothing else. The thirteenth checks the written-down expected values against
+`data/raw/` without touching the implementation, so a wrong expectation fails
+on its own line rather than looking like a bug in Bob's code; it passed
+throughout and has to keep passing.
 
 **`scripts/check_docs.py` now resolves a count claim to a test class as well as
 a test file,** because one file holds two contracts in two states and the only
 honest numbers are the file total and the per-class breakdown.
+
+### Phase 4, task 3
+
+**Bob built `buildup`** (`24e1a8d`, 1.22 Bobcoins), against the Task 3 section
+of `docs/bob_brief.md`. The export and the task-summary screenshot are in
+`bob_sessions/`, and `bob_sessions/README.md` lists them.
+
+**All 55 tests pass.**
+
+The 13 that cover `buildup` are in `tests/test_event_feed.py::TestBuildup`.
+
+**Bob merged the two protocols, which the brief asked for.** `buildup` is now
+declared on `EventFeed` itself, and `BuildupFeed` survives in
+`app/event_feed.py` as an alias of `EventFeed`. The alias is why the tests
+needed no change: their `BuildupFeed` imports and `isinstance` checks still
+resolve. One consequence worth knowing is that
+`test_satisfies_the_event_feed_protocol` and
+`test_the_implementation_satisfies_the_buildup_protocol` now assert the same
+thing. That is harmless duplication, not a defect, and collapsing it is a test
+change nobody needs yet.
+
+**A latent gap, found while reviewing and left alone.** The previous possession
+is filtered to the goal's period, which rule 4 requires. The goal's **own**
+possession is not. A goal whose possession began in the period before would
+therefore carry events from across the boundary. This is unreachable with the
+data in the repo, and that was checked rather than assumed:
+
+| Match | Possessions spanning a period | Goal possessions |
+| ----- | ----------------------------- | ---------------- |
+| 1986 `3750191` | 99 | 109, 117, 168 |
+| 2022 `3869685` | 79, 196, 222, 247 | 32, 52, 163, 165, 228, 238 |
+
+The two sets do not intersect, and every buildup returned for all nine goals is
+single-period. So no test fails and nothing is wrong in the output today. It is
+recorded here because a third match could reach it, and because the fix belongs
+to Bob under the reserved-module rule rather than being patched in from outside.
+
+**No credentials were scrubbed from the export**, because a scan found none: no
+variable name from `.env.example`, no bearer token, key, project id or URL
+carrying a query string. The export's two mentions of `.env` are the rule text
+telling Bob not to open it.
+
+**`.claude/settings.json` now denies reading `.env`:**
+
+```json
+{
+  "permissions": {
+    "deny": ["Read(./.env)"]
+  }
+}
+```
+
+It is committed, so it applies to every Claude Code session in this repo rather
+than one machine's local settings. **It closes the file-tool path, not the shell
+path.** A `Read(...)` deny covers Read, Grep and Glob; it does not stop a Bash
+command such as `grep -r` from sweeping the file. One did, earlier in Phase 4,
+which is what prompted the rule: two lines of `.env` reached a transcript. The
+values were the two model ids being removed anyway, so nothing secret was
+exposed, but the rule was broken and the gap is real. Closing the shell path
+needs a `PreToolUse` hook on `Bash` that inspects the command string, which is
+not built.
 
 ## Data-check findings
 
@@ -928,20 +991,20 @@ What is in place:
 | ---- | ----- |
 | The contract | `app/event_feed.py`, shapes and protocol |
 | The implementation | `app/statsbomb_event_feed.py`, class `StatsBombEventFeed` |
-| The tests | `tests/test_event_feed.py`, 27 tests |
-| Of those, pending | the 13 in `tests/test_event_feed.py::TestBuildup` |
+| The tests | `tests/test_event_feed.py`, 27 tests, all passing |
+| The buildup tests | the 13 in `tests/test_event_feed.py::TestBuildup` |
 | The brief it was built to | `docs/bob_brief.md` |
 
 Run the suite with `.\.venv-prelude\Scripts\python.exe -m pytest`.
 
 Two things to settle before writing narration copy:
 
-- **Set-piece buildup needs the prior possession. Settled: it is a contract
-  change, and it is declared.** `buildup` is on `BuildupFeed` in
-  `app/event_feed.py` with its tests written and failing, and
-  `docs/bob_brief.md` carries it as Task 3. `event_window` was left alone, as
-  its truncation rule is deliberate. Bob implements the method; Phase 4 calls
-  it rather than reaching around it.
+- **Set-piece buildup needs the prior possession. Settled and built.**
+  `buildup` is on `EventFeed` in `app/event_feed.py` and implemented in
+  `app/statsbomb_event_feed.py`; `docs/bob_brief.md` carries the brief it was
+  built to as Task 3. `event_window` was left alone, as its truncation rule is
+  deliberate. Narration calls `buildup` for a set piece rather than widening
+  the window.
 - **"Verified from play data" is the whole point of the raw-record rule.** Every
   line that carries the label has to trace to an event in the window it was
   written from. A line that cannot be pointed at does not get the label, and

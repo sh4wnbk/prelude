@@ -3,18 +3,18 @@
 This is the contract for the EventFeed and moment-detection module. The module
 is reserved for you; nobody else in this repo implements it.
 
-**Status: `EventFeed` built, `buildup` not started.**
+**Status: built, including `buildup`.**
 
 - `app/statsbomb_event_feed.py` is in the repo and satisfies the `EventFeed`
-  protocol. It took two sessions: the build, then a fix to where the event
-  window ends.
-- `tests/test_event_feed.py` holds 27 tests. The ones covering `EventFeed`
-  pass.
-- The 13 in `tests/test_event_feed.py::TestBuildup` are **Task 3**, below, and
-  fail until `buildup` is implemented.
+  protocol in full. It took three sessions: the build, a fix to where the event
+  window ends, then `buildup`.
+- `tests/test_event_feed.py` holds 27 tests and they all pass.
+- `buildup` landed in `24e1a8d`, and that session merged `BuildupFeed` into
+  `EventFeed`, which is what the Task 3 brief below asked for. `BuildupFeed`
+  survives in `app/event_feed.py` as an alias of `EventFeed`, so the tests'
+  existing imports and `isinstance` checks keep working unchanged.
 
-The `EventFeed` contract is unchanged, and it is what any further change to the
-module is measured against.
+The contract is what any further change to the module is measured against.
 
 ## What you build
 
@@ -120,13 +120,12 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-12 failed, 43 passed
+55 passed
 ```
 
-The 12 failures are all the same thing: `buildup` is not implemented, which is
-Task 3. Everything else passes. The total also covers more than this module,
-because Phase 4 added `tests/test_narration_provider.py`; run
-`pytest tests/test_event_feed.py` to see this module's tests alone.
+The total covers more than this module, because Phase 4 added
+`tests/test_narration_provider.py`; run `pytest tests/test_event_feed.py` to
+see this module's tests alone.
 
 The suite still guards the import, and three messages mean three different
 things if that changes. In `tests/test_event_feed.py`, every test that builds
@@ -145,7 +144,7 @@ rather than reported as the module being absent.
 | `Test1986` | three goals, their exact values, order, floored clock, index reconciliation |
 | `Test2022` | goals match the raw feed, index reconciliation, shootout excluded |
 | `TestEventWindow` | window ends at the moment, is in feed order, is within the span, reports the requested span, returns untouched source records |
-| `TestBuildup` | the buildup contract, Task 3. Not implemented, so these fail |
+| `TestBuildup` | the buildup contract: one possession for open play, the previous possession too for a set piece, the foul that won each penalty, feed order, period containment, untouched source records |
 
 ### Where the expected values come from
 
@@ -237,8 +236,11 @@ module.
 
 ## Task 3: the buildup
 
-**Not implemented. This is yours.** The contract is declared, the tests are
-written and failing, and nothing in the repo implements the method.
+**Built, in `24e1a8d`.** The brief below is kept as written, because it is what
+the method was built to and what any further change to it is measured against.
+What changed since: `buildup` is implemented in `app/statsbomb_event_feed.py`,
+all 13 of its tests pass, and the protocol merge the brief asked for was done
+in the same commit.
 
 ### Why it exists
 
@@ -267,18 +269,17 @@ class Buildup:
     set_piece: str | None        # the shot's recorded type, or None
 ```
 
-`app/event_feed.py` declares `buildup` on `BuildupFeed`, which is `EventFeed`
-plus this one method. It is a second protocol rather than a line added to
-`EventFeed` so that the tests proving `EventFeed` is satisfied keep passing
-while `buildup` is pending. **Once you have built it, merging the two protocols
-into one is a good change**: make it in `app/event_feed.py` and update
-`tests/test_event_feed.py` in the same commit, the same way the contract says
-to make any other contract change.
+`buildup` is declared on `EventFeed` in `app/event_feed.py`. It was declared
+on a separate `BuildupFeed` protocol while it was pending, so that the tests
+proving `EventFeed` was satisfied kept passing; the build merged the two, which
+is what the brief asked for. `BuildupFeed` remains in the file as an alias of
+`EventFeed`, which is why the tests' imports and `isinstance` checks needed no
+change.
 
 ### The rules
 
 Each one has a test. The full statement is the docstring on
-`BuildupFeed.buildup`; this is the summary.
+`EventFeed.buildup`; this is the summary.
 
 1. **The goal's possession, truncated at the shot.** Every event of the
    possession the goal shot belongs to, up to and including the shot. What
@@ -345,17 +346,18 @@ narrow the set to `"Penalty"` because that is what the tests reach.
 
 ### The tests to pass
 
-`tests/test_event_feed.py::TestBuildup`, 13 tests. 12 of them fail with:
+`tests/test_event_feed.py::TestBuildup`, 13 tests. All 13 pass.
 
-```
-No buildup implementation yet: StatsBombEventFeed has no buildup method.
-```
+While the method was unbuilt, 12 of them failed with
+`No buildup implementation yet: StatsBombEventFeed has no buildup method.`
+That guard is still in the test file, so the same message returns if the method
+is ever removed.
 
-The thirteenth, `test_the_expected_values_are_what_the_raw_data_says`, passes
-now and must keep passing. It checks the expected values in the test file
-against `data/raw/` without going near your implementation, so a wrong
-expectation fails on its own line instead of looking like a bug in your code.
-If it ever fails, the test file is wrong, not you.
+The thirteenth, `test_the_expected_values_are_what_the_raw_data_says`, passed
+throughout and must keep passing. It checks the expected values in the test
+file against `data/raw/` without going near the implementation, so a wrong
+expectation fails on its own line instead of looking like a bug in the code.
+If it ever fails, the test file is wrong.
 
 The expected values are written out literally in the test file, read out of
 `data/raw/`. They are written down rather than derived, on purpose: a helper

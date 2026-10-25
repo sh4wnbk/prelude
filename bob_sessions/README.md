@@ -34,23 +34,37 @@ exported from a session.
 One file per task, named so the order is obvious:
 
 ```
-phase3_task1_<short-description>.md
+phase<phase>_task<task>_<short-description>.md
 ```
+
+The task number is the one in the brief Bob worked to, not a count of sessions
+in the phase: the buildup task is Task 3 of `docs/bob_brief.md` and the first
+Bob session of Phase 4, so it is `phase4_task3_buildup.md`.
 
 ## Sessions
 
-Phase 3, the EventFeed module, took two tasks. Each row is one session: the
-export, the screenshot of its task summary, and the commit it produced.
+Each row is one session: the export, the screenshot of its task summary, and
+the commit it produced.
 
-| Task | Export | Screenshot | Commit | Bobcoins |
-| ---- | ------ | ---------- | ------ | -------: |
-| 1. Build `StatsBombEventFeed` | [`bob_sessions/phase3_task1_eventfeed.md`](phase3_task1_eventfeed.md) | [`bob_sessions/phase3_task1_eventfeed.png`](phase3_task1_eventfeed.png) | `3ce6bca` | 0.463 |
-| 2. End event windows at the goal shot | [`bob_sessions/phase3_task2_window_fix.md`](phase3_task2_window_fix.md) | [`bob_sessions/phase3_task2_window_fix.png`](phase3_task2_window_fix.png) | `343c712` | 0.508 |
+| Phase | Task | Export | Screenshot | Commit | Bobcoins |
+| ----: | ---- | ------ | ---------- | ------ | -------: |
+| 3 | 1. Build `StatsBombEventFeed` | [`bob_sessions/phase3_task1_eventfeed.md`](phase3_task1_eventfeed.md) | [`bob_sessions/phase3_task1_eventfeed.png`](phase3_task1_eventfeed.png) | `3ce6bca` | 0.463 |
+| 3 | 2. End event windows at the goal shot | [`bob_sessions/phase3_task2_window_fix.md`](phase3_task2_window_fix.md) | [`bob_sessions/phase3_task2_window_fix.png`](phase3_task2_window_fix.png) | `343c712` | 0.508 |
+| 4 | 3. Add `buildup` | [`bob_sessions/phase4_task3_buildup.md`](phase4_task3_buildup.md) | [`bob_sessions/phase4_task3_buildup.png`](phase4_task3_buildup.png) | `24e1a8d` | 1.22 |
 
 Task 1 built the module against `docs/bob_brief.md` and took all 14 acceptance
 tests from failing to passing. Task 2 fixed `event_window`, which filtered by
 clock time alone and so ran past the goal to the goalkeeper's event recorded in
-the same second, and tightened the test that had missed it.
+the same second, and tightened the test that had missed it. Task 3 added
+`buildup`, which reaches back a possession for a set piece so the foul that won
+a penalty is in the run-up, and merged `BuildupFeed` into `EventFeed` as the
+brief asked, leaving `BuildupFeed` behind as an alias so the tests needed no
+change.
+
+Nothing was scrubbed from the Task 3 export: a scan for the variable names in
+`.env.example`, for bearer tokens, keys, project ids and URLs carrying a query
+string found none. Its two mentions of `.env` are the rule text telling Bob not
+to open it, not a value read out of it.
 
 The Bobcoin figures are read from each session's task summary, which is what
 the screenshots record.
