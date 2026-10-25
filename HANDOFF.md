@@ -221,7 +221,7 @@ honest numbers are the file total and the per-class breakdown.
 of `docs/bob_brief.md`. The export and the task-summary screenshot are in
 `bob_sessions/`, and `bob_sessions/README.md` lists them.
 
-**All 55 tests pass.**
+**The whole suite passed at that commit.**
 
 The 13 that cover `buildup` are in `tests/test_event_feed.py::TestBuildup`.
 
@@ -275,6 +275,83 @@ values were the two model ids being removed anyway, so nothing secret was
 exposed, but the rule was broken and the gap is real. Closing the shell path
 needs a `PreToolUse` hook on `Bash` that inspects the command string, which is
 not built.
+
+### Phase 4, task 3
+
+**The written voice, the prompt and the grounding check.** "Voice" here means
+how the narration reads, not audio: `docs/VOICE.md` is the voice, and turning
+narration into speech is Phase 5.
+
+| Module | What it does |
+| ------ | ------------ |
+| `app/narration_prompt.py` | the facts a narration may use, the prompt, the fallback |
+| `app/grounding.py` | whether a narration's claims trace back to the data |
+| `app/narration.py` | generate, check, retry, fall back, record every attempt |
+
+**The failure rule is whole-narration.** A failing line is not dropped, because
+a narration with a hole in it tells a different story: the 54:18 run recorded
+as past one defender, then another, then the goalkeeper reads as a different
+move with the middle cut out. Nor is it kept unlabelled, because the app says
+only what the play data proves. So the narration fails together, is regenerated
+up to twice, and then falls back to a short plain narration assembled straight
+from the events. That fallback is grounded by construction and is checked
+anyway. If even it failed, `narrate` raises rather than returning something
+unverified.
+
+**The pass rate counts first attempts only.** `Narrated.first_attempt_grounded`
+is the number; counting retries would hide how often a model drifts. Nothing in
+the repo measures it yet over the nine goals, which is Task 4.
+
+**Three of the check's rules exist because of a live run, not a guess.** The
+first end-to-end run against `granite4:micro` failed three attempts and fell
+back, and every failure was this repo's bug rather than the model's:
+
+| What failed | Why it was wrong | Fix |
+| ----------- | ---------------- | --- |
+| `Finally` reported as an invented player | sentence-initial adverbs are not names | the stopword list, now much larger |
+| `Argentina's` matched no recorded name | the word pattern keeps apostrophes so O'Brien survives | possessive endings are stripped before lookup |
+| `54:04` rejected | the prompt printed per-second clocks and the rules then forbade them | the run of play shows the minute only |
+
+A false positive is the expensive kind here. The narration is thrown away
+whole, so a wrongly failed attempt costs good copy and makes a model look worse
+than it is. Each of the three is now a named test in
+`tests/test_grounding.py`.
+
+**Two rules were added after reading narration that passed.** Both live runs
+that got past the name checks still ended on a judgement or a result:
+"This decisive moment marked a significant moment in the match's narrative",
+and "securing Argentina's victory". Editorial epithets and claims about the
+score or the result are now refused. "Win" and "won" are deliberately not in
+that list, because `wins a foul` is a recorded `Foul Won` event and banning the
+word would fail every penalty buildup.
+
+**What the check cannot do.** It verifies that everything a line names is in
+the data; it does not verify that the line's reading of those facts is right.
+Worked through in `docs/VOICE.md` with a line that passes: the records show
+Beardsley, Butcher, Fenwick and Shilton dribbled past and Beardsley, Reid and
+Butcher applying pressure, so "dribbles past Peter Beardsley, Peter Reid and
+Terry Butcher" is grounded in every token and still describes something that
+did not happen. The check catches invention, which is the failure a model
+actually has. It does not catch misdescription, and no claim that the narration
+is correct should rest on it alone.
+
+### Phase 5: the Watson Text to Speech facts
+
+Recorded here because Task 3 built no audio code and these are not in the repo.
+They came from Shawn, not from `.env`, which nothing here opens.
+
+| What | Value |
+| ---- | ----- |
+| Service | IBM Watson Text to Speech |
+| Instance | the Dallas instance in the team's IBM Cloud account |
+| `TTS_URL` | that instance's service URL |
+| `TTS_VOICE` | an IBM voice name |
+| Working default | `en-GB_GeorgeExpressive` |
+| Alternative | `en-GB_GeorgeNatural` |
+
+**The final voice pick is Shawn's, by ear, later.** Do not settle it from a
+spec sheet. The two files in the gitignored `voice_test/` are an earlier
+audition of the same pair.
 
 ## Data-check findings
 
@@ -980,10 +1057,14 @@ Change event, and Heading out returning after a switch all behave as the settled
 decisions above describe, at 390 px and at 900 px. The per-match reset holds in
 both directions, and picking one match leaves the other match's key untouched.
 
-## Next first action (Phase 4)
+## Next first action (Phase 4, task 4)
 
-**Narration.** The EventFeed is built and the moments it returns are the input
-narration was waiting for; nothing reads them yet.
+**Measure the pass rate, then wire narration to a screen.** The prompt, the
+grounding check and the pipeline are built. What nothing does yet is run
+`app/narration.py` over the nine goals and write down how often the first
+attempt is grounded. `pass_rate` is there for it, and
+`Narrated.first_attempt_grounded` is the number it reports: retries must not be
+counted, or the figure hides how often the model drifts.
 
 What is in place:
 
@@ -997,7 +1078,7 @@ What is in place:
 
 Run the suite with `.\.venv-prelude\Scripts\python.exe -m pytest`.
 
-Two things to settle before writing narration copy:
+Settled while writing the narration copy:
 
 - **Set-piece buildup needs the prior possession. Settled and built.**
   `buildup` is on `EventFeed` in `app/event_feed.py` and implemented in

@@ -42,6 +42,7 @@ DOCS = [
     ROOT / "docs" / "bob_brief.md",
     ROOT / "docs" / "data_check.md",
     ROOT / "docs" / "narration.md",
+    ROOT / "docs" / "VOICE.md",
     ROOT / "bob_sessions" / "README.md",
 ]
 

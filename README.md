@@ -115,6 +115,23 @@ Everything above it is structure.
   `tests/conftest.py` replaces `urllib.request.urlopen` and
   `socket.socket.connect` with functions that raise, for every test in the
   suite.
+- `app/narration_prompt.py`: the facts a narration may use, read off one
+  buildup, the prompt built from them, and the fallback narration assembled
+  straight from the events.
+- `app/grounding.py`: decides whether a narration's claims trace back to the
+  data. Refuses invented names, numbers and actions, a wrong shot type or body
+  part, verdict nicknames, editorial epithets, claims about the result, em
+  dashes, and narration that asserts nothing checkable.
+- `app/narration.py`: narrates one moment. Generates, checks, regenerates up to
+  twice, then falls back to the template, and records every attempt with the
+  claims that failed. Nothing ungrounded is returned.
+- `tests/test_narration_prompt.py`: 17 tests over the facts, the prompt and
+  the fallback narration. All pass.
+- `tests/test_grounding.py`: 32 tests over the grounding check, one per way a
+  narration can be wrong or can look wrong and be fine. All pass.
+- `tests/test_narration.py`: 20 tests over the pipeline, covering the retries,
+  the fallback, the failure log and the first-attempt pass rate. All pass, and
+  no test calls a model.
 
 **Exists but does nothing yet:**
 
@@ -133,8 +150,9 @@ whether a generated line could carry "Verified from play data". The screens read
 their content from `app/web/matches.json` and carry the selected match between
 them; what they do not have is sound. Nothing wires the EventFeed to the screens
 yet: the module returns moments, event windows and buildups, and no screen
-reads them. `docs/narration.md` records what the provider layer is and what it
-is not.
+reads them. `docs/narration.md` records what the narration modules are and what
+they are not, and `docs/VOICE.md` is the written voice the prompt and the
+grounding check enforce between them.
 
 No claim in this README is intended to run ahead of the code. If you find one
 that does, it is a bug in the README.

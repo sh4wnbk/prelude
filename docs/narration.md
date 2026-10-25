@@ -1,9 +1,11 @@
-# Narration: config and providers
+# Narration: config, providers, prompt and grounding
 
-What exists at this commit is the config and the provider layer. **Nothing
-builds a narration prompt yet, and no narration reaches a screen.** This
-document describes the two modules that are in the repo, where their API shapes
-came from, and why the test suite can prove what it proves.
+What exists at this commit is the config, the provider layer, the prompt, the
+grounding check and the pipeline that ties them together. **No narration
+reaches a screen, and none of it is spoken.** This document describes the
+modules that are in the repo, where their API shapes came from, and why the
+test suite can prove what it proves. `docs/VOICE.md` is the written voice the
+prompt and the check between them enforce.
 
 ## The three models, and the two jobs
 
@@ -137,15 +139,51 @@ provenance block. The replaying test rebuilds the request from
 `OllamaProvider.payload` and asserts it matches the recorded one, so changing
 the request body fails the test rather than quietly invalidating the recording.
 
+## The prompt, the check and the pipeline
+
+| Module | What it does |
+| ------ | ------------ |
+| `app/narration_prompt.py` | `Facts` read off one `Buildup`, the prompt built from them, and the fallback narration |
+| `app/grounding.py` | decides whether a narration's claims trace back to the data |
+| `app/narration.py` | generates, checks, retries, falls back, and records every attempt |
+
+**`Facts` is the whole of what a narration may mention**: the players, the
+teams, the minutes, the actions, and the goal's own shot type and body part.
+Every field is copied from a raw record. Nothing is counted, ranked or
+inferred, because a fact the extractor invented is a fact the check would then
+happily approve.
+
+**The prompt states the rules the check enforces**, in the same words, because
+a prompt asking for less than the check requires would set the model up to fail
+and the retry would not help it.
+
+**The check is whole-narration.** `CLAUDE.md` gives no partial credit, so a
+narration passes or fails together. It reports every failing claim rather than
+the first, which is what a retry and the failure log both need.
+
+**The pipeline never returns anything ungrounded.** A failing narration is
+generated again, up to twice. If it still fails, the fallback assembles a short
+plain narration straight from the events, which is grounded by construction and
+is checked anyway. If even that failed there would be nothing safe to say, and
+`narrate` raises instead of returning something unlabelled.
+
+**The pass rate counts first attempts only.** `Narrated.first_attempt_grounded`
+is the number to measure; counting retries would hide how often a model drifts.
+
+### What the check cannot do
+
+It verifies that everything a line names is in the data. It does not verify
+that the line's reading of those facts is right. `docs/VOICE.md` works through
+a line that passes the check and still describes something that did not happen.
+The check catches invention, which is the failure a language model actually
+has; it does not catch misdescription.
+
 ## What is not built
 
-- No narration prompt. Nothing turns an `EventWindow` into a prompt, so neither
-  backend is called by anything except the recorder and the tests.
-- No grounding check on generated text. `CLAUDE.md` allows
-  "Verified from play data" only over narration whose claims trace back to the
-  event data, and nothing here decides whether a generated line earns that
-  label.
 - No audio. Narration text is not spoken, and the TTS variables in
-  `.env.example` are unused by any code in the repo.
-- No screen reads narration. The provider layer is callable from Python and
-  from nowhere else.
+  `.env.example` are unused by any code in the repo. Watson Text to Speech is
+  Phase 5; `HANDOFF.md` records the service and voice details it will need.
+- No screen reads narration. The prompt, the check and the pipeline are
+  callable from Python and from nowhere else.
+- No measured pass rate. `app/narration.py` exposes `pass_rate`, and nothing
+  in the repo runs it over the nine goals and writes the result down.

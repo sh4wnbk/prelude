@@ -120,12 +120,12 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-55 passed
+124 passed
 ```
 
-The total covers more than this module, because Phase 4 added
-`tests/test_narration_provider.py`; run `pytest tests/test_event_feed.py` to
-see this module's tests alone.
+The total covers far more than this module now. Phase 4 added the narration
+provider, the prompt and the grounding check, each with its own tests; run
+`pytest tests/test_event_feed.py` to see this module's tests alone.
 
 The suite still guards the import, and three messages mean three different
 things if that changes. In `tests/test_event_feed.py`, every test that builds
