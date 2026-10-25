@@ -11,8 +11,9 @@ prompt and the check between them enforce.
 
 `app/narration_config.py` is committed, and holds every model id the project
 uses. A model id is not a credential: it records which model produced a line, so
-it belongs where a reader can see it. `.env` holds credentials only, and
-`.env.example` no longer lists a model id.
+it belongs where a reader can see it. The credentials file holds credentials
+only and lives outside the repo (`app/credentials.py`), and `.env.example` no
+longer lists a model id.
 
 | Constant | Model | Where it runs | Job |
 | -------- | ----- | ------------- | --- |
@@ -58,9 +59,10 @@ error rather than a silent fall back to the default.
 
 Building `WatsonxProvider` reads `WATSONX_API_KEY`, `WATSONX_PROJECT_ID` and
 `WATSONX_URL` from the environment and raises `MissingCredentials` naming
-whichever is unset, before any request is sent. It never opens `.env`:
-`CLAUDE.md` forbids that, so the symptom is reported by variable name and the
-file is left to the user.
+whichever is unset, before any request is sent. It never opens the
+credentials file itself: `app/credentials.py` does that, from outside the repo,
+and the symptom is reported by variable name and file path with no value, so
+the file is left to the user.
 
 ### Where the API shapes came from
 
@@ -113,7 +115,7 @@ and with that option set the output is coherent English.
 **`tests/golden/watsonx_text_generation.json` is a schema fixture**, written by
 hand from the sources cited above. No watsonx call has been made from this
 repo, so there is nothing to record: that would mean a paid call against live
-credentials, and `.env` is out of reach. Its response half is not evidence of
+credentials, which are out of reach. Its response half is not evidence of
 what watsonx returns, only of what IBM documents it returns. What the tests do
 get from it is real, though: the request half was written from the schema by
 hand, the provider builds its request independently, and the two agreeing is a

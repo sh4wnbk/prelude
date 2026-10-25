@@ -1,4 +1,6 @@
 .venv*
+# The live credentials live outside the repo (see app/credentials.py). This
+# entry is a second layer, in case one is ever created here by habit.
 .env
 __pycache__/
 *.pyc

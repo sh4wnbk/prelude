@@ -222,7 +222,7 @@ class TestWatsonxBackend:
         assert provenance["citations"]
 
     def test_missing_credentials_are_named_and_nothing_is_sent(self):
-        """Reported by name, with .env left for the user to open themselves."""
+        """Reported by name, with the file left for the user to open."""
         replay = Replay({})
         with pytest.raises(MissingCredentials) as raised:
             WatsonxProvider(env={}, transport=replay)

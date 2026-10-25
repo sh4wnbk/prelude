@@ -120,7 +120,7 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-124 passed
+153 passed
 ```
 
 The total covers far more than this module now. Phase 4 added the narration
@@ -177,8 +177,9 @@ remembered figure, including remembered figures about famous matches.
 These come from `CLAUDE.md`, which applies to the whole repo.
 
 - **Do not guess IDs or values.** Read them from the data.
-- **Never open, print, or edit `.env`.** `.env.example` lists the variable
-  names.
+- **Never open, print, or edit the credentials file.** It lives outside the
+  repo, at `~/.prelude/.env` by default. `.env.example` in the repo lists the
+  variable names and holds no values.
 - **Never commit raw StatsBomb data.** `data/raw/` is gitignored; keep it that
   way.
 - **The three real inputs are play data, GPS presence, and audio narration.**
@@ -201,7 +202,7 @@ the session.
 committed, not ignored**, and each one is scrubbed of credentials before it is
 committed. `bob_sessions/README.md` carries the scrub list and the file naming.
 `.bobignore` lists what must never be read into a session or appear in an
-export, starting with `.env`.
+export. The live credentials are not in the repo at all.
 
 ## Defaults and stop conditions
 

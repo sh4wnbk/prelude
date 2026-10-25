@@ -39,12 +39,24 @@ well known they are. Nicknames are broadcast and marketing language; they are
 not findings, and attaching one to a data-grounded line misrepresents the line
 as a judgement the data did not make.
 
-## Never touch `.env`
+## Never touch the credentials file
 
-Do not open, read, print, echo, copy, edit, or commit `.env`. Not to check a
-key's format, not to debug, not to confirm a variable exists. `.env.example`
-lists the variable names; use that. If a credential appears to be missing or
-wrong, report the symptom and let the user inspect `.env` themselves.
+The live credentials live **outside this repo**, at `~/.prelude/.env` by
+default, or wherever `PRELUDE_ENV_FILE` points. They were moved out after a
+recursive search over the working directory swept the old repo-root `.env` into
+a transcript without ever naming it: a rule about one filename cannot stop a
+command that searches everything, so the file is out of reach instead.
+
+Do not open, read, print, echo, copy, edit, or commit that file. Not to check a
+key's format, not to debug, not to confirm a variable exists. `.env.example` in
+the repo lists the variable names and holds no values; use that. If a credential
+appears to be missing or wrong, report the symptom and let the user inspect the
+file themselves. `app/credentials.py` can report which variable names a file
+defines without reading a single value.
+
+The repo keeps a `.env` entry in `.gitignore` and a `Read(./.env)` deny rule in
+`.claude/settings.json` as a second layer, in case a file is ever created there
+by habit. Neither is the live location.
 
 ## Reserved: EventFeed and moment detection
 

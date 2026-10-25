@@ -120,11 +120,12 @@ Standard library only. The watsonx request and response shapes were read from
 IBM's published OpenAPI schema, which `docs/narration.md` cites, not written
 from memory.
 
-**Model ids moved out of `.env`.** A model id is not a credential, so
-`GRANITE_MODEL_ID` and `OPENAI_MODEL_ID` are gone from `.env.example` and from
-the scrub list in `bob_sessions/README.md`. **Shawn still has the two lines in
-his own `.env` and should delete them;** nothing in the repo may open that file
-to check.
+**Model ids moved out of the credentials file.** A model id is not a
+credential, so `GRANITE_MODEL_ID` and `OPENAI_MODEL_ID` are gone from
+`.env.example` and from the scrub list in `bob_sessions/README.md`. **Shawn
+still has the two lines in his own credentials file and should delete them;**
+nothing in the repo may open that file to check. The file itself moved out of
+the repo in task 2c, below; at this commit it was still at the repo root.
 
 **The tests make no network calls, and that is enforced.**
 `tests/test_narration_provider.py` is 28 tests, and `tests/conftest.py`
@@ -270,11 +271,15 @@ It is committed, so it applies to every Claude Code session in this repo rather
 than one machine's local settings. **It closes the file-tool path, not the shell
 path.** A `Read(...)` deny covers Read, Grep and Glob; it does not stop a Bash
 command such as `grep -r` from sweeping the file. One did, earlier in Phase 4,
-which is what prompted the rule: two lines of `.env` reached a transcript. The
-values were the two model ids being removed anyway, so nothing secret was
-exposed, but the rule was broken and the gap is real. Closing the shell path
-needs a `PreToolUse` hook on `Bash` that inspects the command string, which is
-not built.
+which is what prompted the rule: two lines of the file reached a transcript at a
+time when it was still at the repo root. The values were the two model ids being
+removed anyway, so nothing secret was exposed, but the rule was broken and the
+gap is real.
+
+**The shell path was closed in task 2c, by moving the file out of the repo, not
+by a hook.** A `PreToolUse` hook on `Bash` reading the command string was the
+first idea and it is the wrong one: the command that leaked never named the
+file. The deny rule above stays as a second layer.
 
 ### Phase 4, task 3
 
@@ -335,10 +340,61 @@ did not happen. The check catches invention, which is the failure a model
 actually has. It does not catch misdescription, and no claim that the narration
 is correct should rest on it alone.
 
+### Phase 4, task 2c
+
+**The credentials moved out of the repo.** They now live at `~/.prelude/.env`
+by default, which is `C:\Users\shawn\.prelude\.env` on this machine, or
+wherever `PRELUDE_ENV_FILE` points. `app/credentials.py` is what finds and
+reads them. `.env.example` stays in the repo: it lists the variable names,
+holds no values, and that is what makes it safe to read and safe to commit.
+
+**Why a hook was the wrong fix, and this is the right one.** The obvious answer
+to the Phase 4 leak was a `PreToolUse` hook on `Bash` that blocks commands
+mentioning `.env`. It has a blind spot exactly where the leak happened. The
+command that leaked was a recursive `grep -r` over the whole folder: it never
+named `.env`, it swept the file up by searching everything, and a hook reading
+the command text would have waved it through. It would also have needed a
+carve-out for `.env.example`, which sessions are meant to read. Moving the file
+out of the working directory closes the path itself, for every tool and every
+command, with no pattern to maintain.
+
+**A path inside the repo is refused, not read.** Pointing `PRELUDE_ENV_FILE`
+back into the working directory would give up the only property the move buys,
+so `load` and `describe` both raise `CredentialsInsideRepo` instead.
+
+**Nothing prints a value.** `describe` reports the path and the variable names a
+file defines, and no values, which is what the missing-credential report uses.
+It answers the question a missing credential actually raises, which is "which
+file did it read?", without putting a key in a terminal or a transcript.
+
+**The process environment wins over the file.** A variable exported in a shell
+is a deliberate override for one run, and a file on disk quietly beating it
+would be surprising.
+
+**No test reads the real file.** The 29 tests in `tests/test_credentials.py`
+each write a fake into pytest's temporary directory and pass that path in, and
+an autouse fixture in `tests/conftest.py` points `PRELUDE_ENV_FILE` at an
+absent path for the whole suite. That guard is not decoration: the
+missing-credential report asks `describe` which file it looked in, and the
+default is the real one, so without it the suite would have opened it. Names
+only, so nothing would have leaked, but opening it at all is what the rule
+forbids.
+
+**The second layer stays.** The `.env` entry in `.gitignore`, the `.env` line
+in `.bobignore`, and the `Read(./.env)` deny rule in `.claude/settings.json`
+are kept in case a file is ever created at the repo root by habit. None of them
+is the live location, and each says so where it sits.
+
+**Shawn has to move the file himself.** Nothing here will do it: that would mean
+opening it. At the time of this commit the default path did not exist, which
+`app/credentials.py` reported as "no credentials file at
+C:\Users\shawn\.prelude\.env".
+
 ### Phase 5: the Watson Text to Speech facts
 
-Recorded here because Task 3 built no audio code and these are not in the repo.
-They came from Shawn, not from `.env`, which nothing here opens.
+Recorded here because Task 3 built no audio code and these are not in the
+repo. They came from Shawn, not from the credentials file, which nothing here
+opens.
 
 | What | Value |
 | ---- | ----- |

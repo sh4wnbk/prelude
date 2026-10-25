@@ -11,8 +11,10 @@ Exports are transcripts. They can pick up anything that passed through a
 session, including credentials.
 
 **Before each commit, scrub the export of anything secret:** API keys, tokens,
-project ids, URLs carrying a key in the query string, and any value from `.env`.
-`.env.example` lists the variable names to look for:
+project ids, URLs carrying a key in the query string, and any credential value.
+The live credentials live outside the repo (see `app/credentials.py`), so an
+export should not contain one at all; scrub anyway, because a session can be
+told a value by hand. `.env.example` lists the variable names to look for:
 
 ```
 WATSONX_API_KEY  WATSONX_PROJECT_ID  WATSONX_URL

@@ -2,8 +2,9 @@
 
 A model id is not a credential. It records which model produced a line of
 narration, so it belongs in the repo where a reader can see it rather than in
-`.env`. `.env` holds the watsonx credentials and the TTS credentials; it no
-longer carries a model id, and `.env.example` no longer lists one.
+the credentials file. That file holds the watsonx and TTS credentials, lives
+outside the repo (see `app/credentials.py`), and carries no model id; neither
+does `.env.example`.
 
 Three models appear here, for two different jobs:
 

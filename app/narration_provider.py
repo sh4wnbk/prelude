@@ -18,19 +18,21 @@ built on `urllib`. Tests pass a transport that replays a response from
 `tests/golden/`, so the suite never opens a socket; `tests/conftest.py` fails
 the suite if anything tries.
 
-This file never opens `.env`. The values arrive through the environment, and a
-missing one is reported by name for the user to go and look at themselves.
+This file never opens the credentials file itself. `app/credentials.py` does
+that, reading from outside the repo, and a missing variable is reported here by
+name for the user to go and look at themselves.
 
 Standard library only, like the rest of `app/`.
 """
 
 import json
-import os
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from typing import Any, Mapping, Protocol, runtime_checkable
 
+from app.credentials import describe
+from app.credentials import load as load_credentials
 from app.narration_config import (
     ACTIVE_CANDIDATE,
     DEFAULT_PROVIDER,
@@ -50,7 +52,9 @@ WATSONX_API_VERSION = "2025-02-11"
 IAM_TOKEN_URL = "https://iam.cloud.ibm.com/identity/token"
 IAM_GRANT_TYPE = "urn:ibm:params:oauth:grant-type:apikey"
 
-#: The variables watsonx needs. The names come from `.env.example`.
+#: The variables watsonx needs. The names come from `.env.example`, which is
+#: the template in the repo; the values come from the credentials file outside
+#: it. See `app/credentials.py`.
 WATSONX_ENV_VARS = ("WATSONX_API_KEY", "WATSONX_PROJECT_ID", "WATSONX_URL")
 
 #: A CPU-only generation is slow, so the timeout is generous.
@@ -65,11 +69,11 @@ class NarrationProviderError(RuntimeError):
 
 
 class MissingCredentials(NarrationProviderError):
-    """A backend needs environment variables that are not set.
+    """A backend needs credentials that are not set.
 
-    The message names the variables and stops there. `CLAUDE.md` forbids
-    opening `.env`, so this reports the symptom and leaves the file to the
-    user.
+    The message names the variables and says which file was looked in, and
+    stops there. `CLAUDE.md` forbids putting a credential anywhere it could be
+    read, so this reports the symptom and leaves the file to the user.
     """
 
 
@@ -190,7 +194,8 @@ class OllamaProvider:
 class WatsonxProvider:
     """The watsonx.ai backend, reached only by naming it.
 
-    Construction reads the variables in `WATSONX_ENV_VARS` and raises
+    Construction reads the variables in `WATSONX_ENV_VARS` through
+    `app/credentials.py`, which loads them from outside the repo, and raises
     `MissingCredentials` naming whichever is unset, so a missing credential
     fails before any request is sent rather than as a 401 later.
 
@@ -209,12 +214,16 @@ class WatsonxProvider:
         transport: Transport = post,
         api_version: str = WATSONX_API_VERSION,
     ) -> None:
-        env = os.environ if env is None else env
+        env = load_credentials() if env is None else env
         missing = [name for name in WATSONX_ENV_VARS if not env.get(name)]
         if missing:
+            # describe() reports variable names and no values, so this is safe
+            # to print. It says which file was read, which is the question a
+            # missing credential actually raises.
             raise MissingCredentials(
-                "watsonx needs " + ", ".join(missing) + " in the environment. "
-                ".env.example lists the variable names."
+                "watsonx needs " + ", ".join(missing) + ", which is not set. "
+                + describe().summary
+                + ". .env.example lists the variable names."
             )
         self.model = model or ACTIVE_CANDIDATE.model_id
         self.host = env["WATSONX_URL"].rstrip("/")

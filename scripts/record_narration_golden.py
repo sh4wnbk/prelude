@@ -17,7 +17,7 @@ it matches the recorded one, so a change to the request body fails the test
 rather than quietly invalidating the recording.
 
 There is no equivalent recorder for watsonx. That would mean a paid call
-against live credentials, and `CLAUDE.md` puts `.env` out of reach, so
+against live credentials, which `CLAUDE.md` puts out of reach, so
 `tests/golden/watsonx_text_generation.json` is built from IBM's published
 schema and says so in its own provenance block. The citations are in
 `docs/narration.md`.

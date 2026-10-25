@@ -1,4 +1,5 @@
-"""Suite-wide guard: no test opens a network connection.
+"""Suite-wide guards: no test opens a connection, and none reads the real
+credentials file.
 
 The narration tests replay recorded and schema-built responses from
 `tests/golden/` rather than calling a model, and the EventFeed tests read
@@ -12,11 +13,34 @@ every test, so the guarantee holds for tests nobody has written yet.
 
 `scripts/record_narration_golden.py` is the one thing in the repo that does
 call a model. It is a script, not a test, so it never passes through here.
+
+The second guard is about credentials rather than the network. It is documented
+on the fixture below.
 """
 
 import socket
 
 import pytest
+
+from app.credentials import ENV_FILE_VARIABLE
+
+
+@pytest.fixture(autouse=True)
+def no_real_credentials(monkeypatch, tmp_path):
+    """Point every test at a credentials file that does not exist.
+
+    The live file is outside the repo and holds real keys, so no test may read
+    it. One code path would have: a missing-credential report asks
+    `app.credentials.describe` which file it looked in, and the default is the
+    real one. The report carries variable names and never values, so nothing
+    would have leaked, but opening it at all is what the rule forbids.
+
+    Pointing `PRELUDE_ENV_FILE` at an absent path under pytest's own temporary
+    directory means a test that loads credentials gets the process environment
+    and nothing else, whichever path reached the loader. The path is outside
+    the repo, which the loader requires.
+    """
+    monkeypatch.setenv(ENV_FILE_VARIABLE, str(tmp_path / "absent.env"))
 
 
 class NetworkCallInTest(RuntimeError):

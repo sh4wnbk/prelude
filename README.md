@@ -125,6 +125,16 @@ Everything above it is structure.
 - `app/narration.py`: narrates one moment. Generates, checks, regenerates up to
   twice, then falls back to the template, and records every attempt with the
   claims that failed. Nothing ungrounded is returned.
+- `app/credentials.py`: finds and reads the credentials file, which lives
+  **outside this repo**: `~/.prelude/.env` by default, or wherever
+  `PRELUDE_ENV_FILE` points. A path inside the repo is refused rather than
+  read. `describe` reports which variable names a file defines and never a
+  value, so a missing credential can be diagnosed without one reaching a
+  terminal.
+- `tests/test_credentials.py`: 29 tests over the loader. Every one writes a
+  fake credentials file into a temporary directory; none reads the real one,
+  and `tests/conftest.py` points `PRELUDE_ENV_FILE` at an absent path for the
+  whole suite so none can.
 - `tests/test_narration_prompt.py`: 17 tests over the facts, the prompt and
   the fallback narration. All pass.
 - `tests/test_grounding.py`: 32 tests over the grounding check, one per way a
@@ -156,6 +166,21 @@ grounding check enforce between them.
 
 No claim in this README is intended to run ahead of the code. If you find one
 that does, it is a bug in the README.
+
+## Credentials
+
+No credential is in this repo. `.env.example` lists the variable names and
+holds no values. The live file lives outside the working directory, at
+`~/.prelude/.env` by default or wherever `PRELUDE_ENV_FILE` points, so that no
+search over the repo can reach it whatever the tool or the command. That is not
+a precaution in the abstract: a recursive search over the working directory
+once swept the old repo-root file into a transcript without ever naming it, and
+a rule about one filename cannot stop a command that searches everything.
+
+`app/credentials.py` is what reads it. A path inside the repo is refused rather
+than read. The `.env` entry in `.gitignore` and the `Read(./.env)` deny rule in
+`.claude/settings.json` stay as a second layer, in case a file is ever created
+at the repo root by habit; neither is the live location.
 
 ## Data and attribution
 
