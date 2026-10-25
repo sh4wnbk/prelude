@@ -101,19 +101,37 @@ Everything above it is structure.
   to a goal as untouched source records.
 - `tests/test_event_feed.py`: 14 acceptance tests for the EventFeed contract.
   All 14 pass against `app/statsbomb_event_feed.py`.
+- `app/narration_provider.py`: one narration interface with two backends,
+  Ollama (the default, local) and watsonx.ai (only when named). Callable from
+  Python; no screen calls it. `provider()` returns the Ollama backend, and
+  nothing reaches watsonx without passing its name.
+- `scripts/record_narration_golden.py`: calls the local Ollama server once and
+  records the request and response into `tests/golden/`, so the tests can
+  replay a real response instead of making a call.
+- `tests/test_narration_provider.py`: 28 tests over the config and both
+  backends. All 28 pass, and none of them opens a connection:
+  `tests/conftest.py` replaces `urllib.request.urlopen` and
+  `socket.socket.connect` with functions that raise, for every test in the
+  suite.
 
 **Exists but does nothing yet:**
 
 - `app/event_feed.py`: the data shapes and the `EventFeed` interface. A
   contract only; `app/statsbomb_event_feed.py` is what implements it.
+- `app/narration_config.py`: the model ids and which one is active. Values
+  only, with no behaviour: it reads no environment variable and opens no
+  connection.
 - The play buttons and waveforms on the moment card and the moments list. They
   change their own icons and nothing else, because there is no audio yet.
 
-**Not built yet:** narration, audio output, and GPS presence handling. The
-screens read their content from `app/web/matches.json` and carry the selected
-match between them; what they do not have is sound. Nothing wires the EventFeed
-to the screens yet: the module returns moments and event windows, and no screen
-reads them.
+**Not built yet:** narration text, audio output, and GPS presence handling.
+The provider layer that would generate narration exists and works, but nothing
+builds a prompt for it, so no narration has been generated and nothing decides
+whether a generated line could carry "Verified from play data". The screens read
+their content from `app/web/matches.json` and carry the selected match between
+them; what they do not have is sound. Nothing wires the EventFeed to the screens
+yet: the module returns moments and event windows, and no screen reads them.
+`docs/narration.md` records what the provider layer is and what it is not.
 
 No claim in this README is intended to run ahead of the code. If you find one
 that does, it is a bug in the README.

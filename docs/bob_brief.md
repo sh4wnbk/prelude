@@ -4,8 +4,8 @@ This is the contract for the EventFeed and moment-detection module. The module
 is reserved for you; nobody else in this repo implements it.
 
 **Status: built.** `app/statsbomb_event_feed.py` is in the repo and all 14
-acceptance tests pass. It took two sessions: the build, then a fix to where the
-event window ends. The contract below is unchanged, and it is what any further
+acceptance tests in `tests/test_event_feed.py` pass. It took two sessions: the
+build, then a fix to where the event window ends. The contract below is unchanged, and it is what any further
 change to the module is measured against.
 
 ## What you build
@@ -109,15 +109,20 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 .\.venv-prelude\Scripts\python.exe -m pytest
 ```
 
-The module is built, so `pytest -q` reports:
+The module is built, and `pytest -q` reports:
 
 ```
-14 passed
+42 passed
 ```
+
+That total covers more than this module. Phase 4 added
+`tests/test_narration_provider.py`, so the 14 EventFeed tests are a subset of
+it; run `pytest tests/test_event_feed.py` to see them alone.
 
 The suite still guards the import, and three messages mean three different
-things if that changes. All 14 failing with `No EventFeed implementation yet:
-app.statsbomb_event_feed does not exist` means the module file has gone.
+things if that changes. In `tests/test_event_feed.py`, all 14 failing with
+`No EventFeed implementation yet: app.statsbomb_event_feed does not exist`
+means the module file has gone.
 `app.statsbomb_event_feed exists but does not provide StatsBombEventFeed` means
 the module is there but the class is missing or misnamed. A raw
 `ModuleNotFoundError` naming some other module means the module imports

@@ -1,0 +1,70 @@
+{
+  "provenance": {
+    "kind": "schema_fixture",
+    "is_recording": false,
+    "source": "Written by hand from IBM's published schema for the watsonx.ai text generation method and from IBM Cloud IAM's apikey grant. No watsonx call has ever been made from this repo, so there is nothing to record: that would mean a paid call against live credentials, and CLAUDE.md puts .env out of reach.",
+    "citations": [
+      "https://github.com/watson-developer-cloud/assistant-toolkit/blob/master/integrations/extensions/starter-kits/language-model-watsonx/watsonx-openapi.json",
+      "https://www.ibm.com/docs/SSLSRPV_latest/wsj/analyze-data/fm-api-generation.html",
+      "https://cloud.ibm.com/apidocs/watsonx-ai"
+    ],
+    "what_is_fixed_and_what_is_invented": "The field names, the paths, the query parameter and the grant type are from the schema. The values are invented placeholders: the token is not a token, and generated_text is not model output. A test that asserted narration quality from this file would be asserting nothing, so none does.",
+    "written_at": "2026-10-25"
+  },
+  "env": {
+    "WATSONX_API_KEY": "<redacted>",
+    "WATSONX_PROJECT_ID": "00000000-0000-0000-0000-000000000000",
+    "WATSONX_URL": "https://us-south.ml.cloud.ibm.com"
+  },
+  "prompt": "Reply with one short sentence about a football match.",
+  "iam": {
+    "request": {
+      "url": "https://iam.cloud.ibm.com/identity/token",
+      "headers": {
+        "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      "form": {
+        "apikey": "<redacted>",
+        "grant_type": "urn:ibm:params:oauth:grant-type:apikey"
+      }
+    },
+    "response": {
+      "access_token": "not-a-real-token",
+      "expires_in": 3600,
+      "expiration": 1900000000,
+      "scope": "ibm openid",
+      "token_type": "Bearer"
+    }
+  },
+  "generation": {
+    "request": {
+      "url": "https://us-south.ml.cloud.ibm.com/ml/v1/text/generation?version=2025-02-11",
+      "headers": {
+        "Accept": "application/json",
+        "Authorization": "Bearer not-a-real-token",
+        "Content-Type": "application/json"
+      },
+      "payload": {
+        "input": "Reply with one short sentence about a football match.",
+        "model_id": "ibm/granite-4-h-small",
+        "parameters": {
+          "max_new_tokens": 200
+        },
+        "project_id": "00000000-0000-0000-0000-000000000000"
+      }
+    },
+    "response": {
+      "created_at": "2026-10-25T00:00:00.000Z",
+      "model_id": "ibm/granite-4-h-small",
+      "results": [
+        {
+          "generated_text": "PLACEHOLDER FIXTURE TEXT, NOT MODEL OUTPUT.",
+          "generated_token_count": 9,
+          "input_token_count": 11,
+          "stop_reason": "eos_token"
+        }
+      ]
+    }
+  }
+}

@@ -101,6 +101,56 @@ period boundary or pad a window, but it means **Phase 4 cannot narrate a set
 piece from the window alone: it needs the prior possession.** Run
 `defining_moments` and `event_window` over both matches to see it.
 
+### Phase 4, task 1
+
+**Config and the provider layer.** `docs/narration.md` is the full account; this
+is what changed in the repo.
+
+**`app/narration_config.py`**: the model ids, committed. Two watsonx comparison
+candidates (`ibm/granite-4-h-small` and `openai/gpt-oss-120b`), with
+`ACTIVE_CANDIDATE` naming the one in use, and one development model
+(`granite4:micro` on Ollama, `num_gpu` 0). Values only, no behaviour.
+
+**`app/narration_provider.py`**: `NarrationProvider` and two backends,
+`OllamaProvider` and `WatsonxProvider`. `provider()` with no argument returns
+Ollama; watsonx comes back only from `provider("watsonx")`, and building it
+raises `MissingCredentials` naming whichever of `WATSONX_API_KEY`,
+`WATSONX_PROJECT_ID` and `WATSONX_URL` is unset, before any request is sent.
+Standard library only. The watsonx request and response shapes were read from
+IBM's published OpenAPI schema, which `docs/narration.md` cites, not written
+from memory.
+
+**Model ids moved out of `.env`.** A model id is not a credential, so
+`GRANITE_MODEL_ID` and `OPENAI_MODEL_ID` are gone from `.env.example` and from
+the scrub list in `bob_sessions/README.md`. **Shawn still has the two lines in
+his own `.env` and should delete them;** nothing in the repo may open that file
+to check.
+
+**The tests make no network calls, and that is enforced.**
+`tests/test_narration_provider.py` is 28 tests, and `tests/conftest.py`
+replaces `urllib.request.urlopen` and `socket.socket.connect` with functions
+that raise, for every test in the suite. Two tests check the guard itself.
+
+**The two golden files are different kinds of thing, and the tests say so.**
+`tests/golden/ollama_development_model.json` is a real recording: a live call to
+a local Ollama server running `granite4:micro` with `num_gpu` 0, written by
+`scripts/record_narration_golden.py`, which can run again. It returned
+`The football match ended in a thrilling 2-1 victory for the home team.`, which
+is coherent English and is the evidence that `num_gpu` 0 works.
+`tests/golden/watsonx_text_generation.json` is a schema fixture written by hand
+from IBM's documentation, because no watsonx call has been made from this repo:
+that would be a paid call against live credentials. Its response half is not
+evidence of what watsonx returns, only of what IBM documents, and a test
+asserts the file declares that about itself.
+
+**`scripts/check_docs.py` now reads test counts per file.** There are two test
+files, so a bare count in a doc had to be read as a count of something rather
+than of the whole suite. A count claim that names one test file is checked
+against that file; one that names none is checked against the suite total. Its `all N pass` pattern was also case-sensitive, so a
+sentence that opened with the word `All` had never been checked. It is now, and
+the brief's sentence about the import guard was reworded to put the file name
+before the count so the claim is both scoped and visible to the gate.
+
 ## Data-check findings
 
 Match `3750191`, Argentina 2-1 England, quarter-final, 1986-06-22. 2,748 events.

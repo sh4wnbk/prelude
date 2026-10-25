@@ -41,6 +41,7 @@ DOCS = [
     ROOT / "docs" / "DESIGN.md",
     ROOT / "docs" / "bob_brief.md",
     ROOT / "docs" / "data_check.md",
+    ROOT / "docs" / "narration.md",
     ROOT / "bob_sessions" / "README.md",
 ]
 
@@ -196,25 +197,69 @@ def check_quoted_pytest_result(fail):
         print("  bob_brief.md: quoted pytest result matches live output")
 
 
+# A test file named in a claim, which scopes that claim to it. There is more
+# than one test file now, so "14 tests" has to be read as 14 tests of
+# something: the EventFeed claims are about `tests/test_event_feed.py` and stay
+# correct while the suite total grows past them.
+TEST_FILE_CITE = re.compile(r"`(tests/test_[A-Za-z0-9_]+\.py)`")
+
+
+def collected_per_file():
+    """(counts by test file, suite total), read from pytest's own collection."""
+    lines = [l for l in run_pytest("--collect-only", "-q").splitlines() if "::" in l]
+    counts = {}
+    for line in lines:
+        path = line.split("::", 1)[0].strip().replace("\\", "/")
+        counts[path] = counts.get(path, 0) + 1
+    return counts, len(lines)
+
+
+def claimed_counts(block):
+    """The test counts a block claims.
+
+    The "all N pass" pattern is case-insensitive. It was not, and a sentence
+    opening "All 14 failing with ..." went unchecked for that reason, which is
+    the one position in a sentence the phrase is most likely to appear in.
+    """
+    return {
+        int(n)
+        for n in re.findall(r"(\d+)\s+(?:acceptance\s+)?tests?\b", block)
+        + re.findall(r"all\s+(\d+)\s+(?:fail|pass)", block, re.IGNORECASE)
+    }
+
+
 def check_test_count(fail):
-    """Counts like "14 tests" and "all 14 pass" must match what pytest collects."""
-    collected = len(
-        [l for l in run_pytest("--collect-only", "-q").splitlines() if "::" in l]
-    )
-    if not collected:
+    """Counts like "14 tests" and "all 14 pass" must match what pytest collects.
+
+    A claim that names one test file is checked against that file. A claim that
+    names none is about the suite and is checked against the total. Before there
+    was a second test file the two were the same number, and reading every claim
+    as a claim about the whole suite would now report the correct sentence
+    "`tests/test_event_feed.py`, 14 tests" as stale.
+    """
+    per_file, total = collected_per_file()
+    if not total:
         fail("tests", "pytest collected no tests")
         return
+
+    checked = 0
     for doc in (ROOT / "docs" / "bob_brief.md", ROOT / "HANDOFF.md", ROOT / "README.md"):
-        text = doc.read_text(encoding="utf-8")
-        claimed = {
-            int(n)
-            for n in re.findall(r"(\d+)\s+(?:acceptance\s+)?tests?\b", text)
-            + re.findall(r"all\s+(\d+)\s+(?:fail|pass)", text)
-        }
-        for n in claimed:
-            if n != collected:
-                fail(doc.name, f"claims {n} tests, pytest collects {collected}")
-    print(f"  test count: {collected} collected, matches the docs")
+        for block in design_blocks(doc.read_text(encoding="utf-8")):
+            claims = claimed_counts(block)
+            if not claims:
+                continue
+            cited = sorted(set(TEST_FILE_CITE.findall(block)))
+            if len(cited) == 1:
+                scope, expected = cited[0], per_file.get(cited[0], 0)
+            else:
+                scope, expected = "the suite", total
+            for n in claims:
+                checked += 1
+                if n != expected:
+                    fail(doc.name, f"claims {n} tests for {scope}, pytest collects "
+                                   f"{expected}")
+    print(f"  test count: {checked} claim(s) checked, "
+          f"{total} collected across {len(per_file)} file(s)")
 
 
 def check_referenced_paths(fail):

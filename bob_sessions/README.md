@@ -16,7 +16,7 @@ project ids, URLs carrying a key in the query string, and any value from `.env`.
 
 ```
 WATSONX_API_KEY  WATSONX_PROJECT_ID  WATSONX_URL
-GRANITE_MODEL_ID  TTS_API_KEY  TTS_URL  TTS_VOICE
+TTS_API_KEY  TTS_URL  TTS_VOICE
 ```
 
 Replace a scrubbed value with a placeholder such as `<redacted>` rather than
