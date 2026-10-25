@@ -197,20 +197,28 @@ def check_quoted_pytest_result(fail):
         print("  bob_brief.md: quoted pytest result matches live output")
 
 
-# A test file named in a claim, which scopes that claim to it. There is more
-# than one test file now, so "14 tests" has to be read as 14 tests of
-# something: the EventFeed claims are about `tests/test_event_feed.py` and stay
-# correct while the suite total grows past them.
-TEST_FILE_CITE = re.compile(r"`(tests/test_[A-Za-z0-9_]+\.py)`")
+# A test target named in a claim, which scopes that claim to it: either a test
+# file or one class inside one, written the way pytest addresses it. There is
+# more than one test file now, so a bare count has to be read as a count of
+# something, and one file can hold tests in two states at once:
+# `tests/test_event_feed.py` holds the built EventFeed contract and the pending
+# buildup contract together, so the only honest counts are the file's total and
+# the per-class breakdown.
+TEST_TARGET_CITE = re.compile(
+    r"`(tests/test_[A-Za-z0-9_]+\.py(?:::[A-Za-z0-9_]+)?)`"
+)
 
 
-def collected_per_file():
-    """(counts by test file, suite total), read from pytest's own collection."""
+def collected_targets():
+    """(counts by file and by file::class, suite total), from pytest itself."""
     lines = [l for l in run_pytest("--collect-only", "-q").splitlines() if "::" in l]
     counts = {}
     for line in lines:
-        path = line.split("::", 1)[0].strip().replace("\\", "/")
+        path, _, rest = line.strip().replace("\\", "/").partition("::")
         counts[path] = counts.get(path, 0) + 1
+        if "::" in rest:
+            target = f"{path}::{rest.split('::', 1)[0]}"
+            counts[target] = counts.get(target, 0) + 1
     return counts, len(lines)
 
 
@@ -231,13 +239,13 @@ def claimed_counts(block):
 def check_test_count(fail):
     """Counts like "14 tests" and "all 14 pass" must match what pytest collects.
 
-    A claim that names one test file is checked against that file. A claim that
-    names none is about the suite and is checked against the total. Before there
-    was a second test file the two were the same number, and reading every claim
-    as a claim about the whole suite would now report the correct sentence
-    "`tests/test_event_feed.py`, 14 tests" as stale.
+    A claim that names one test target, a file or one class in a file, is
+    checked against that target. A claim that names none is about the suite and
+    is checked against the total. Before there was a second test file the two
+    were the same number, and reading every claim as a claim about the whole
+    suite would now report a correct per-file sentence as stale.
     """
-    per_file, total = collected_per_file()
+    counts, total = collected_targets()
     if not total:
         fail("tests", "pytest collected no tests")
         return
@@ -248,9 +256,9 @@ def check_test_count(fail):
             claims = claimed_counts(block)
             if not claims:
                 continue
-            cited = sorted(set(TEST_FILE_CITE.findall(block)))
+            cited = sorted(set(TEST_TARGET_CITE.findall(block)))
             if len(cited) == 1:
-                scope, expected = cited[0], per_file.get(cited[0], 0)
+                scope, expected = cited[0], counts.get(cited[0], 0)
             else:
                 scope, expected = "the suite", total
             for n in claims:
@@ -258,8 +266,9 @@ def check_test_count(fail):
                 if n != expected:
                     fail(doc.name, f"claims {n} tests for {scope}, pytest collects "
                                    f"{expected}")
+    files = sum(1 for key in counts if "::" not in key)
     print(f"  test count: {checked} claim(s) checked, "
-          f"{total} collected across {len(per_file)} file(s)")
+          f"{total} collected across {files} file(s)")
 
 
 def check_referenced_paths(fail):

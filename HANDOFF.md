@@ -151,6 +151,68 @@ sentence that opened with the word `All` had never been checked. It is now, and
 the brief's sentence about the import guard was reworded to put the file name
 before the count so the claim is both scoped and visible to the gate.
 
+### Phase 4, task 2
+
+**The buildup contract, declared and not implemented.** This closes the Phase 3
+finding that a penalty's event window holds only the kick.
+
+**`app/event_feed.py`** gains `SET_PIECE_SHOT_TYPES`, a `Buildup` shape, and
+`BuildupFeed`, which is `EventFeed` plus one `buildup(match_id, moment)`
+method. `Buildup` carries the moment, the raw events, the possession numbers
+included, and the goal's recorded shot type when it is a set piece.
+
+**It is a second protocol rather than a line added to `EventFeed`.** Adding
+`buildup` to `EventFeed` would have made
+`test_satisfies_the_event_feed_protocol` fail, because a `runtime_checkable`
+protocol's `isinstance` check wants every member present, and
+`StatsBombEventFeed` has no `buildup`. That failure would have been truthful
+but it would have broken a test that proves something separate and still true.
+Keeping them apart means the pending work fails on its own tests and nothing
+else. **Merging the two is the right change once `buildup` is built**, and the
+brief says so.
+
+**The rules the contract fixes**, each with a test: the goal's possession
+truncated at the shot; the previous possession in full, only for a set piece
+read from `shot.type.name`; raw source records in feed order; no crossing a
+period boundary; no padding.
+
+**Read from the data, for Bob's brief and the tests:**
+
+| Match | Goal | `shot.type.name` | Possessions | Events |
+| ----- | ---- | ---------------- | ----------- | -----: |
+| 1986 | 54:18 Maradona | `Open Play` | 117 | 24 |
+| 2022 | 22:24 Messi | `Penalty` | 31, 32 | 100 |
+| 2022 | 79:24 Mbappé | `Penalty` | 162, 163 | 10 |
+| 2022 | 117:05 Mbappé | `Penalty` | 237, 238 | 11 |
+
+Each penalty's own possession holds exactly one event, the kick. The foul is in
+the possession before, and all three have a `Foul Committed` record:
+Dembélé at 20:53, Otamendi at 78:13, Montiel at 115:39. **Only two of the three
+also have a `Foul Won` record;** the 117:05 penalty does not, so the tests key
+on `Foul Committed`.
+
+**Two of the three set piece types have no goal to test.** Among goals in these
+two matches `shot.type.name` is only `"Open Play"` or `"Penalty"`.
+`"Free Kick"` appears on six 1986 shots, none of which scored, and `"Corner"`
+appears in neither match. The contract specifies all three branches; the tests
+reach one of them.
+
+**Possessions really do span period boundaries,** which is why the no-crossing
+rule is a rule and not a formality: possession 99 of the 1986 match spans half
+time, and four possessions of the 2022 final span a boundary. None of the four
+covered goals hits the case, so the rule is specified and untested by data.
+
+**The suite.** `tests/test_event_feed.py::TestBuildup` is 13 tests. 12 fail
+with `No buildup implementation yet: StatsBombEventFeed has no buildup method`
+and nothing else. The thirteenth checks the written-down expected values
+against `data/raw/` without touching the implementation, so a wrong expectation
+fails on its own line rather than looking like a bug in Bob's code; it passes
+now and has to keep passing.
+
+**`scripts/check_docs.py` now resolves a count claim to a test class as well as
+a test file,** because one file holds two contracts in two states and the only
+honest numbers are the file total and the per-class breakdown.
+
 ## Data-check findings
 
 Match `3750191`, Argentina 2-1 England, quarter-final, 1986-06-22. 2,748 events.
@@ -866,17 +928,20 @@ What is in place:
 | ---- | ----- |
 | The contract | `app/event_feed.py`, shapes and protocol |
 | The implementation | `app/statsbomb_event_feed.py`, class `StatsBombEventFeed` |
-| The tests | `tests/test_event_feed.py`, 14 tests, all passing |
+| The tests | `tests/test_event_feed.py`, 27 tests |
+| Of those, pending | the 13 in `tests/test_event_feed.py::TestBuildup` |
 | The brief it was built to | `docs/bob_brief.md` |
 
 Run the suite with `.\.venv-prelude\Scripts\python.exe -m pytest`.
 
 Two things to settle before writing narration copy:
 
-- **Set-piece buildup needs the prior possession.** A penalty's window holds
-  only the kick, as recorded above. Whatever reaches back for the buildup is a
-  caller-side decision or a contract change; it is not something to patch into
-  `event_window` quietly, because the contract's truncation rule is deliberate.
+- **Set-piece buildup needs the prior possession. Settled: it is a contract
+  change, and it is declared.** `buildup` is on `BuildupFeed` in
+  `app/event_feed.py` with its tests written and failing, and
+  `docs/bob_brief.md` carries it as Task 3. `event_window` was left alone, as
+  its truncation rule is deliberate. Bob implements the method; Phase 4 calls
+  it rather than reaching around it.
 - **"Verified from play data" is the whole point of the raw-record rule.** Every
   line that carries the label has to trace to an event in the window it was
   written from. A line that cannot be pointed at does not get the label, and

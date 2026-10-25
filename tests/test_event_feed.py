@@ -23,7 +23,13 @@ from pathlib import Path
 
 import pytest
 
-from app.event_feed import EventFeed, EventWindow
+from app.event_feed import (
+    SET_PIECE_SHOT_TYPES,
+    Buildup,
+    BuildupFeed,
+    EventFeed,
+    EventWindow,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw"
@@ -238,3 +244,338 @@ class TestEventWindow:
         for event in window.events:
             assert event["id"] in raw_by_id
             assert event == raw_by_id[event["id"]]
+
+
+# --- The buildup contract ----------------------------------------------------
+#
+# Not implemented. Every test in TestBuildup fails until Bob builds `buildup`;
+# see docs/bob_brief.md, Task 3.
+#
+# The expected values below were read out of data/raw/ and written down, the
+# same way the 1986 goals above were. Writing them down is the point: a helper
+# that derived them would reimplement the rule under test and then agree with
+# any implementation that made the same mistake. These literals can disagree
+# with the implementation, which is what makes them worth having.
+#
+# `test_the_expected_values_are_what_the_raw_data_says` checks every one of them
+# against the raw JSON without going near the feed, so a wrong literal fails on
+# its own line rather than quietly making another test assert the wrong thing.
+# That test passes today. The rest fail.
+
+BUILDUP_OPEN_PLAY_1986 = {
+    # Maradona's second, the goal the Phase 2 hero copy was written from.
+    "clock": (54, 18),
+    "player": "Diego Armando Maradona",
+    "shot_type": "Open Play",
+    "period": 2,
+    # One possession. Nothing reaches back to possession 116.
+    "possessions": [117],
+    "event_count": 24,
+    "first_index": 1948,
+    "last_index": 1971,
+}
+
+# All three 2022 penalties. Each is alone in its own possession, so the goal's
+# possession contributes exactly one event, the kick, and everything else in the
+# buildup comes from the possession before, which is where the foul is.
+BUILDUP_PENALTIES_2022 = [
+    {
+        "clock": (22, 24),
+        "player": "Lionel Andrés Messi Cuccittini",
+        "shot_type": "Penalty",
+        "period": 1,
+        "possessions": [31, 32],
+        "event_count": 100,
+        "first_index": 672,
+        "last_index": 771,
+        "foul_type": "Foul Committed",
+        "foul_player": "Ousmane Dembélé",
+        "foul_index": 769,
+        "foul_clock": (20, 53),
+    },
+    {
+        "clock": (79, 24),
+        "player": "Kylian Mbappé Lottin",
+        "shot_type": "Penalty",
+        "period": 2,
+        "possessions": [162, 163],
+        "event_count": 10,
+        "first_index": 2919,
+        "last_index": 2928,
+        "foul_type": "Foul Committed",
+        "foul_player": "Nicolás Hernán Otamendi",
+        "foul_index": 2926,
+        "foul_clock": (78, 13),
+    },
+    {
+        "clock": (117, 5),
+        "player": "Kylian Mbappé Lottin",
+        "shot_type": "Penalty",
+        "period": 4,
+        "possessions": [237, 238],
+        "event_count": 11,
+        "first_index": 4193,
+        "last_index": 4203,
+        # This one has no "Foul Won" record, only the foul committed. Two of the
+        # three penalties have both, so asserting on "Foul Won" would pass twice
+        # and fail here for a reason that has nothing to do with buildup.
+        "foul_type": "Foul Committed",
+        "foul_player": "Gonzalo Ariel Montiel",
+        "foul_index": 4202,
+        "foul_clock": (115, 39),
+    },
+]
+
+
+def make_buildup_feed() -> BuildupFeed:
+    """The implementation under test, for the buildup contract.
+
+    Mirrors `make_feed`. While `buildup` is unimplemented every test in
+    `TestBuildup` fails here with a message saying exactly that, rather than an
+    `AttributeError` raised from somewhere in the middle of a test body.
+    """
+    feed = make_feed()
+    if not hasattr(feed, "buildup"):
+        pytest.fail(
+            f"No buildup implementation yet: {type(feed).__name__} has no "
+            "buildup method. This is the expected failure until Bob builds it; "
+            "see docs/bob_brief.md, Task 3."
+        )
+    return feed
+
+
+def moment_at(feed, match_id, clock):
+    """The one goal at `clock`. Fails loudly rather than picking one of two."""
+    found = [
+        m
+        for m in feed.defining_moments(match_id)
+        if m.type == "Goal" and (m.minute, m.second) == clock
+    ]
+    assert len(found) == 1, f"expected one goal at {clock}, found {len(found)}"
+    return found[0]
+
+
+def goal_shot(events, clock):
+    """The raw Goal-outcome shot at `clock`, read from the source file."""
+    found = [
+        e
+        for e in events
+        if e["type"]["name"] == "Shot"
+        and e["shot"]["outcome"]["name"] == "Goal"
+        and (e["minute"], e["second"]) == clock
+    ]
+    assert len(found) == 1, f"expected one goal shot at {clock}, found {len(found)}"
+    return found[0]
+
+
+class TestBuildup:
+    """The buildup contract. Not implemented; see docs/bob_brief.md, Task 3.
+
+    Two matches, four goals, covering both branches of the rule:
+
+      * The 1986 54:18 goal is open play, so its buildup is one possession
+        ending on the shot, and nothing reaches back.
+      * The three 2022 penalties are set pieces, so each reaches back one
+        possession, and each of those possessions holds the foul that won the
+        penalty.
+    """
+
+    def test_the_expected_values_are_what_the_raw_data_says(self):
+        """The literals above, checked against data/raw/ without the feed.
+
+        This is the one test in the class that passes today, and it has to: a
+        wrong literal would make a buildup test assert the wrong thing, and the
+        failure would look like a bug in Bob's implementation.
+        """
+        for match_id, path, cases in (
+            (MATCH_1986, EVENTS_1986, [BUILDUP_OPEN_PLAY_1986]),
+            (MATCH_2022, EVENTS_2022, BUILDUP_PENALTIES_2022),
+        ):
+            events = read_json(path)
+            by_possession = {}
+            for event in events:
+                by_possession.setdefault(event["possession"], []).append(event)
+
+            for case in cases:
+                shot = goal_shot(events, case["clock"])
+                assert shot["player"]["name"] == case["player"]
+                assert shot["shot"]["type"]["name"] == case["shot_type"]
+                assert shot["period"] == case["period"]
+                assert shot["possession"] == case["possessions"][-1]
+
+                # Rebuild the expected run from the possession numbers the case
+                # names, truncating the goal's own possession at the shot.
+                expected = []
+                for number in case["possessions"]:
+                    for event in by_possession[number]:
+                        if event["index"] <= shot["index"]:
+                            expected.append(event)
+                assert len(expected) == case["event_count"]
+                assert expected[0]["index"] == case["first_index"]
+                assert expected[-1]["index"] == case["last_index"]
+                assert expected[-1]["id"] == shot["id"]
+
+                # A set piece is one of the recorded types, and reaches back.
+                is_set_piece = case["shot_type"] in SET_PIECE_SHOT_TYPES
+                assert is_set_piece == (len(case["possessions"]) == 2)
+
+                if "foul_player" in case:
+                    foul = next(
+                        e for e in expected if e["index"] == case["foul_index"]
+                    )
+                    assert foul["type"]["name"] == case["foul_type"]
+                    assert foul["player"]["name"] == case["foul_player"]
+                    assert (foul["minute"], foul["second"]) == case["foul_clock"]
+                    assert foul["possession"] == case["possessions"][0]
+
+    def test_the_implementation_satisfies_the_buildup_protocol(self):
+        feed = make_buildup_feed()
+        assert isinstance(feed, BuildupFeed)
+
+    def test_the_1986_goal_is_one_possession_ending_on_the_shot(self):
+        case = BUILDUP_OPEN_PLAY_1986
+        feed = make_buildup_feed()
+        moment = moment_at(feed, MATCH_1986, case["clock"])
+
+        buildup = feed.buildup(MATCH_1986, moment)
+
+        assert isinstance(buildup, Buildup)
+        assert buildup.moment == moment
+        assert list(buildup.possessions) == case["possessions"]
+        assert len(buildup.events) == case["event_count"]
+        assert (
+            buildup.events[-1]["id"]
+            == goal_shot(read_json(EVENTS_1986), case["clock"])["id"]
+        )
+
+    def test_an_open_play_goal_does_not_reach_back(self):
+        """The possession before 117 exists and holds 13 events. None of them
+        belongs in the buildup, because the goal was not a set piece."""
+        case = BUILDUP_OPEN_PLAY_1986
+        feed = make_buildup_feed()
+        moment = moment_at(feed, MATCH_1986, case["clock"])
+
+        buildup = feed.buildup(MATCH_1986, moment)
+
+        assert buildup.set_piece is None
+        assert {e["possession"] for e in buildup.events} == {case["possessions"][0]}
+
+    def test_every_open_play_goal_in_both_matches_is_one_possession(self):
+        """Wider than the four goals the literals cover: whatever the feed calls
+        an open play goal gets exactly one possession."""
+        feed = make_buildup_feed()
+        for match_id, path in ((MATCH_1986, EVENTS_1986), (MATCH_2022, EVENTS_2022)):
+            events = read_json(path)
+            for moment in feed.defining_moments(match_id):
+                shot = goal_shot(events, (moment.minute, moment.second))
+                if shot["shot"]["type"]["name"] in SET_PIECE_SHOT_TYPES:
+                    continue
+                buildup = feed.buildup(match_id, moment)
+                assert buildup.set_piece is None
+                assert len(buildup.possessions) == 1
+
+    def test_each_2022_penalty_reaches_back_one_possession(self):
+        feed = make_buildup_feed()
+        for case in BUILDUP_PENALTIES_2022:
+            moment = moment_at(feed, MATCH_2022, case["clock"])
+            buildup = feed.buildup(MATCH_2022, moment)
+
+            assert list(buildup.possessions) == case["possessions"]
+            assert len(buildup.events) == case["event_count"]
+            assert buildup.events[0]["index"] == case["first_index"]
+            assert buildup.events[-1]["index"] == case["last_index"]
+
+    def test_each_2022_penalty_includes_the_foul_that_won_it(self):
+        """The reason buildup exists. `event_window` cannot reach the foul: the
+        penalty is alone in its possession and the foul is in the one before,
+        71 to 91 seconds earlier."""
+        feed = make_buildup_feed()
+        for case in BUILDUP_PENALTIES_2022:
+            moment = moment_at(feed, MATCH_2022, case["clock"])
+            buildup = feed.buildup(MATCH_2022, moment)
+
+            fouls = [
+                e
+                for e in buildup.events
+                if e["type"]["name"] == case["foul_type"]
+                and e["player"]["name"] == case["foul_player"]
+            ]
+            assert len(fouls) == 1, (
+                f"the {case['clock']} penalty's buildup is missing the "
+                f"{case['foul_type']} by {case['foul_player']}"
+            )
+            foul = fouls[0]
+            assert foul["index"] == case["foul_index"]
+            assert (foul["minute"], foul["second"]) == case["foul_clock"]
+
+    def test_each_2022_penalty_ends_on_the_kick(self):
+        feed = make_buildup_feed()
+        events = read_json(EVENTS_2022)
+        for case in BUILDUP_PENALTIES_2022:
+            moment = moment_at(feed, MATCH_2022, case["clock"])
+            buildup = feed.buildup(MATCH_2022, moment)
+
+            last = buildup.events[-1]
+            assert last["id"] == goal_shot(events, case["clock"])["id"]
+            assert last["type"]["name"] == "Shot"
+            assert last["shot"]["outcome"]["name"] == "Goal"
+            assert last["shot"]["type"]["name"] == "Penalty"
+
+    def test_the_set_piece_field_is_the_recorded_shot_type(self):
+        """Read off the shot, not inferred from play_pattern, which is "Other"
+        on all three penalties and says nothing useful."""
+        feed = make_buildup_feed()
+        for case in BUILDUP_PENALTIES_2022:
+            moment = moment_at(feed, MATCH_2022, case["clock"])
+            buildup = feed.buildup(MATCH_2022, moment)
+            assert buildup.set_piece == case["shot_type"] == "Penalty"
+
+    def test_a_penalty_buildup_holds_more_than_its_event_window(self):
+        """The Phase 3 finding, turned into a test. A 30 second window around
+        each of these penalties holds exactly one event. If buildup ever returns
+        the same thing, it has stopped doing its job."""
+        feed = make_buildup_feed()
+        for case in BUILDUP_PENALTIES_2022:
+            moment = moment_at(feed, MATCH_2022, case["clock"])
+            window = feed.event_window(MATCH_2022, moment, seconds_before=30.0)
+            buildup = feed.buildup(MATCH_2022, moment)
+
+            assert len(window.events) == 1
+            assert len(buildup.events) > len(window.events)
+
+    def test_buildup_stays_inside_the_goals_period(self):
+        """Possessions do span period boundaries in this data, so this is a real
+        rule and not a formality: possession 99 of the 1986 match spans half
+        time, and four possessions of the 2022 final span a boundary."""
+        feed = make_buildup_feed()
+        for match_id, path, cases in (
+            (MATCH_1986, EVENTS_1986, [BUILDUP_OPEN_PLAY_1986]),
+            (MATCH_2022, EVENTS_2022, BUILDUP_PENALTIES_2022),
+        ):
+            events = read_json(path)
+            for case in cases:
+                moment = moment_at(feed, match_id, case["clock"])
+                buildup = feed.buildup(match_id, moment)
+                for event in buildup.events:
+                    assert event["period"] == case["period"]
+                assert case["period"] == goal_shot(events, case["clock"])["period"]
+
+    def test_buildup_is_in_feed_order(self):
+        feed = make_buildup_feed()
+        for case in BUILDUP_PENALTIES_2022:
+            moment = moment_at(feed, MATCH_2022, case["clock"])
+            buildup = feed.buildup(MATCH_2022, moment)
+            indexes = [e["index"] for e in buildup.events]
+            assert indexes == sorted(indexes)
+
+    def test_buildup_events_are_raw_source_records(self):
+        """Untouched feed records, because "Verified from play data" has to point
+        at something in data/raw/. Same rule as `event_window`."""
+        feed = make_buildup_feed()
+        raw_by_id = {e["id"]: e for e in read_json(EVENTS_2022)}
+        for case in BUILDUP_PENALTIES_2022:
+            moment = moment_at(feed, MATCH_2022, case["clock"])
+            buildup = feed.buildup(MATCH_2022, moment)
+            for event in buildup.events:
+                assert event["id"] in raw_by_id
+                assert event == raw_by_id[event["id"]]

@@ -3,10 +3,18 @@
 This is the contract for the EventFeed and moment-detection module. The module
 is reserved for you; nobody else in this repo implements it.
 
-**Status: built.** `app/statsbomb_event_feed.py` is in the repo and all 14
-acceptance tests in `tests/test_event_feed.py` pass. It took two sessions: the
-build, then a fix to where the event window ends. The contract below is unchanged, and it is what any further
-change to the module is measured against.
+**Status: `EventFeed` built, `buildup` not started.**
+
+- `app/statsbomb_event_feed.py` is in the repo and satisfies the `EventFeed`
+  protocol. It took two sessions: the build, then a fix to where the event
+  window ends.
+- `tests/test_event_feed.py` holds 27 tests. The ones covering `EventFeed`
+  pass.
+- The 13 in `tests/test_event_feed.py::TestBuildup` are **Task 3**, below, and
+  fail until `buildup` is implemented.
+
+The `EventFeed` contract is unchanged, and it is what any further change to the
+module is measured against.
 
 ## What you build
 
@@ -103,24 +111,26 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 
 ## The tests to pass
 
-`tests/test_event_feed.py`, 14 tests. Run them with:
+`tests/test_event_feed.py`, 27 tests. Run them with:
 
 ```
 .\.venv-prelude\Scripts\python.exe -m pytest
 ```
 
-The module is built, and `pytest -q` reports:
+`pytest -q` reports:
 
 ```
-42 passed
+12 failed, 43 passed
 ```
 
-That total covers more than this module. Phase 4 added
-`tests/test_narration_provider.py`, so the 14 EventFeed tests are a subset of
-it; run `pytest tests/test_event_feed.py` to see them alone.
+The 12 failures are all the same thing: `buildup` is not implemented, which is
+Task 3. Everything else passes. The total also covers more than this module,
+because Phase 4 added `tests/test_narration_provider.py`; run
+`pytest tests/test_event_feed.py` to see this module's tests alone.
 
 The suite still guards the import, and three messages mean three different
-things if that changes. In `tests/test_event_feed.py`, all 14 failing with
+things if that changes. In `tests/test_event_feed.py`, every test that builds
+the feed failing with
 `No EventFeed implementation yet: app.statsbomb_event_feed does not exist`
 means the module file has gone.
 `app.statsbomb_event_feed exists but does not provide StatsBombEventFeed` means
@@ -135,6 +145,7 @@ rather than reported as the module being absent.
 | `Test1986` | three goals, their exact values, order, floored clock, index reconciliation |
 | `Test2022` | goals match the raw feed, index reconciliation, shootout excluded |
 | `TestEventWindow` | window ends at the moment, is in feed order, is within the span, reports the requested span, returns untouched source records |
+| `TestBuildup` | the buildup contract, Task 3. Not implemented, so these fail |
 
 ### Where the expected values come from
 
@@ -223,3 +234,152 @@ was requested rather than the span covered, which is what the contract says.
 data only. Do not add a GPS parameter, a fourth input, or a stand-in for one.
 **Stop and report** if a task appears to require GPS presence inside this
 module.
+
+## Task 3: the buildup
+
+**Not implemented. This is yours.** The contract is declared, the tests are
+written and failing, and nothing in the repo implements the method.
+
+### Why it exists
+
+Task 2 of the last session found this, and `HANDOFF.md` records it: a penalty is
+alone in its own possession. A 30 second `event_window` around one of the 2022
+final's three penalties holds exactly one event, the kick. The foul that won the
+penalty is in the possession before, 71 to 91 seconds earlier.
+
+Narration needs that foul. Padding the window to reach it would break the
+window's own truncation rule, which is deliberate, so reaching back is a
+separate method rather than a change to `event_window`.
+
+### What you build
+
+`buildup(match_id, moment)` on `StatsBombEventFeed`, returning a `Buildup`.
+The shapes are already in `app/event_feed.py`:
+
+```python
+SET_PIECE_SHOT_TYPES = frozenset({"Penalty", "Free Kick", "Corner"})
+
+@dataclass(frozen=True)
+class Buildup:
+    moment: Moment
+    events: Sequence[RawEvent]   # raw records, feed order, ending on the shot
+    possessions: Sequence[int]   # possession numbers included, in order
+    set_piece: str | None        # the shot's recorded type, or None
+```
+
+`app/event_feed.py` declares `buildup` on `BuildupFeed`, which is `EventFeed`
+plus this one method. It is a second protocol rather than a line added to
+`EventFeed` so that the tests proving `EventFeed` is satisfied keep passing
+while `buildup` is pending. **Once you have built it, merging the two protocols
+into one is a good change**: make it in `app/event_feed.py` and update
+`tests/test_event_feed.py` in the same commit, the same way the contract says
+to make any other contract change.
+
+### The rules
+
+Each one has a test. The full statement is the docstring on
+`BuildupFeed.buildup`; this is the summary.
+
+1. **The goal's possession, truncated at the shot.** Every event of the
+   possession the goal shot belongs to, up to and including the shot. What
+   StatsBomb records after the shot in that possession, usually the
+   goalkeeper's event, is excluded. Same truncation as `event_window`, for the
+   same reason.
+2. **The previous possession, in full, only for a set piece.** A goal is a set
+   piece when its `shot.type.name` is in `SET_PIECE_SHOT_TYPES`, read off the
+   goal event itself. Then the possession numbered one below the goal's comes
+   first, in full, followed by the goal's possession. An open play goal gets one
+   possession and nothing reaches back.
+3. **Raw source records, feed order, oldest first.** Untouched, exactly as
+   `event_window` returns them. A test compares each returned event to the
+   record with the same `id` in the source file.
+4. **Do not cross a period boundary.** Every event is in the goal's own period.
+   This is not hypothetical: possession 99 of the 1986 match spans half time,
+   and four possessions of the 2022 final span a period boundary. If the
+   previous possession began in an earlier period, only its events in the goal's
+   period belong.
+5. **Do not pad.** If the previous possession does not exist, or lies entirely
+   in an earlier period, return what exists and no more. A short buildup is
+   correct, the same way a short window is correct.
+
+### Read the type off the shot, not off `play_pattern`
+
+`shot.type.name` is where the set piece is recorded. On all three 2022
+penalties, `play_pattern.name` is `"Other"`, which says nothing useful. There is
+a test for this.
+
+### What the data actually holds
+
+Read out of `data/raw/`. The four goals the tests cover:
+
+| Match | Goal | `shot.type.name` | Possessions | Events |
+| ----- | ---- | ---------------- | ----------- | -----: |
+| 1986 | 54:18 Maradona | `Open Play` | 117 | 24 |
+| 2022 | 22:24 Messi | `Penalty` | 31, 32 | 100 |
+| 2022 | 79:24 Mbappé | `Penalty` | 162, 163 | 10 |
+| 2022 | 117:05 Mbappé | `Penalty` | 237, 238 | 11 |
+
+Each penalty's goal possession contributes exactly one event, the kick.
+Everything else comes from the possession before.
+
+The foul in each penalty's previous possession:
+
+| Goal | Foul event | Player | Clock |
+| ---- | ---------- | ------ | ----- |
+| 22:24 | `Foul Committed` | Ousmane Dembélé (France) | 20:53 |
+| 79:24 | `Foul Committed` | Nicolás Hernán Otamendi (Argentina) | 78:13 |
+| 117:05 | `Foul Committed` | Gonzalo Ariel Montiel (Argentina) | 115:39 |
+
+**Two of the three also have a `Foul Won` record; the 117:05 one does not.**
+The tests assert on `Foul Committed`, which all three have. If you key anything
+on `Foul Won` it will work twice and fail once.
+
+### Two of the three set piece types have no goal to test against
+
+Among the goals in these two matches, `shot.type.name` is only ever
+`"Open Play"` or `"Penalty"`. `"Free Kick"` appears on six 1986 shots, none of
+which scored, and `"Corner"` appears in neither match. So rule 2 is specified
+for all three set piece types and exercised by tests for penalties only. Build
+all three branches from the recorded type; do not add a fourth type, and do not
+narrow the set to `"Penalty"` because that is what the tests reach.
+
+### The tests to pass
+
+`tests/test_event_feed.py::TestBuildup`, 13 tests. 12 of them fail with:
+
+```
+No buildup implementation yet: StatsBombEventFeed has no buildup method.
+```
+
+The thirteenth, `test_the_expected_values_are_what_the_raw_data_says`, passes
+now and must keep passing. It checks the expected values in the test file
+against `data/raw/` without going near your implementation, so a wrong
+expectation fails on its own line instead of looking like a bug in your code.
+If it ever fails, the test file is wrong, not you.
+
+The expected values are written out literally in the test file, read out of
+`data/raw/`. They are written down rather than derived, on purpose: a helper
+that derived them would reimplement the rule under test and then agree with any
+implementation that made the same mistake.
+
+### Stop conditions
+
+The same rules as before apply, and these are the ones this task is most likely
+to run into.
+
+**Do not change what counts as a defining moment.** `buildup` takes a `Moment`
+that `defining_moments` already returned. If a buildup seems to need a kind of
+moment that does not exist yet, **stop and report it**.
+
+**Do not add a GPS parameter or a fourth input.** `buildup` reads play data
+from `data/raw/` and nothing else.
+
+**Do not reach for a shot type that is not in the data.** If a goal turns up
+whose `shot.type.name` is none of the five StatsBomb values you can see in
+these two files, **stop and report it** rather than adding a branch for a value
+you have not read.
+
+**If a rule above is wrong, say so and change the contract deliberately.** The
+contract is yours to change, in `app/event_feed.py`, with
+`tests/test_event_feed.py` updated in the same commit. Do not work around it,
+and do not leave the two disagreeing.

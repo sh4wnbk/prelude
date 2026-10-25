@@ -99,8 +99,9 @@ Everything above it is structure.
   implementation. Reads a match from `data/raw/`, returns its goals as
   moments (periods 1 to 4, so the shootout is excluded), and returns the run-up
   to a goal as untouched source records.
-- `tests/test_event_feed.py`: 14 acceptance tests for the EventFeed contract.
-  All 14 pass against `app/statsbomb_event_feed.py`.
+- `tests/test_event_feed.py`: 27 tests, covering the built EventFeed contract
+  and the buildup contract that is not built yet. The EventFeed ones pass
+  against `app/statsbomb_event_feed.py`.
 - `app/narration_provider.py`: one narration interface with two backends,
   Ollama (the default, local) and watsonx.ai (only when named). Callable from
   Python; no screen calls it. `provider()` returns the Ollama backend, and
@@ -121,6 +122,11 @@ Everything above it is structure.
 - `app/narration_config.py`: the model ids and which one is active. Values
   only, with no behaviour: it reads no environment variable and opens no
   connection.
+- The `buildup` contract in `app/event_feed.py`: the `Buildup` shape and the
+  `BuildupFeed` protocol, which is `EventFeed` plus one method. Nothing
+  implements the method, so the 13 tests in
+  `tests/test_event_feed.py::TestBuildup` fail on purpose. It is reserved for
+  IBM Bob, and `docs/bob_brief.md` carries the brief as Task 3.
 - The play buttons and waveforms on the moment card and the moments list. They
   change their own icons and nothing else, because there is no audio yet.
 
