@@ -2,8 +2,8 @@ r"""Record a real Ollama response into tests/golden/, for the tests to replay.
 
 `tests/test_narration_provider.py` must not open a socket, so it replays a
 recorded response instead of calling a model. This script is what records one.
-It is the only place in the repo that calls a model, it is run by hand, and it
-is not part of the test suite.
+It is run by hand and is not part of the test suite; `scripts/narrate_once.py`
+is the other script that calls a model, and it records nothing.
 
 It needs a local Ollama server with the development model pulled:
 

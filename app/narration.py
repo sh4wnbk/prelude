@@ -22,6 +22,12 @@ be measured on: counting retries would hide how often the first attempt was
 wrong, which is the number that says whether the prompt and the model are
 working.
 
+The narration a model writes carries a citation tag per sentence, naming the
+facts that sentence used, and the check needs them. They are machinery, not
+copy, so `Narrated.text` has them stripped and is what a screen shows and a
+voice reads; `Narrated.tagged_text` keeps the cited version, which is the one
+the check passed and the one a reader can audit sentence by sentence.
+
 The fallback is the last resort, and if it somehow fails the check too, this
 raises rather than returning something unlabelled. There is no path here that
 hands back narration the data does not support.
@@ -31,10 +37,9 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from app.event_feed import EventFeed, Moment
-from app.grounding import Claim, GroundingResult, check
+from app.grounding import Claim, check, strip_citations
 from app.narration_prompt import (
     DEFAULT_SENTENCES,
-    Facts,
     build_prompt,
     facts_from_buildup,
     template_narration,
@@ -67,9 +72,11 @@ class NarrationNotGrounded(RuntimeError):
 class Attempt:
     """One go at narrating a moment, grounded or not.
 
-    `number` counts from 1. `source` is `MODEL` or `TEMPLATE`. `failures` is
-    empty when the attempt was grounded, and otherwise holds every claim that
-    could not be pointed at.
+    `number` counts from 1. `source` is `MODEL` or `TEMPLATE`. `text` is the
+    attempt exactly as it was written, citation tags included, because that is
+    what was checked and a failure report has to be recognisable against it.
+    `failures` is empty when the attempt was grounded, and otherwise holds every
+    claim that could not be pointed at.
     """
 
     number: int
@@ -92,6 +99,11 @@ class Attempt:
 class Narrated:
     """The narration for one moment, and the record of how it was arrived at.
 
+    `text` is the narration to show and to voice: one paragraph, with the
+    citation tags taken off. `tagged_text` is the same narration as it was
+    checked, each sentence still naming the facts it used, which is what an
+    audit of a line reads.
+
     `labelled` says whether the text may carry "Verified from play data". It is
     true whenever there is text at all, because nothing ungrounded is returned;
     it is kept as a field so a caller reads the permission rather than assuming
@@ -100,6 +112,7 @@ class Narrated:
 
     moment: Moment
     text: str
+    tagged_text: str
     source: str
     labelled: bool
     attempts: tuple[Attempt, ...]
@@ -180,9 +193,17 @@ def narrate(
 def _narrated(
     moment: Moment, text: str, source: str, attempts: Sequence[Attempt]
 ) -> Narrated:
+    """Wrap the narration that passed, stripped for showing and kept for audit.
+
+    `text` is what passed the check with its citations taken off. Nothing is
+    re-checked here: the stripped text cannot pass the check, because a sentence
+    with no citation has nothing to be read against, which is why the tagged
+    version is the one kept beside it.
+    """
     return Narrated(
         moment=moment,
-        text=text,
+        text=strip_citations(text),
+        tagged_text=text,
         source=source,
         labelled=True,
         attempts=tuple(attempts),

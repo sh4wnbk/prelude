@@ -330,15 +330,133 @@ score or the result are now refused. "Win" and "won" are deliberately not in
 that list, because `wins a foul` is a recorded `Foul Won` event and banning the
 word would fail every penalty buildup.
 
-**What the check cannot do.** It verifies that everything a line names is in
-the data; it does not verify that the line's reading of those facts is right.
-Worked through in `docs/VOICE.md` with a line that passes: the records show
-Beardsley, Butcher, Fenwick and Shilton dribbled past and Beardsley, Reid and
-Butcher applying pressure, so "dribbles past Peter Beardsley, Peter Reid and
-Terry Butcher" is grounded in every token and still describes something that
-did not happen. The check catches invention, which is the failure a model
-actually has. It does not catch misdescription, and no claim that the narration
-is correct should rest on it alone.
+**What the check could not do, and task 3b changed.** It verified that
+everything a line named was in the data; it did not verify that the line's
+reading of those facts was right. The worked example was a line that passed:
+the records show Beardsley, Butcher, Fenwick and Shilton dribbled past and
+Beardsley, Reid and Butcher applying pressure, so "dribbles past Peter
+Beardsley, Peter Reid and Terry Butcher" was grounded in every token and still
+described something that did not happen. That line is refused now; see the task
+3b section below for how, and `docs/VOICE.md` for what is still out of reach.
+
+### Phase 4, task 3b
+
+**The narration cites its facts, and each sentence is checked against the ones
+it cited.** The buildup becomes a numbered list of plain facts, one per
+recorded event, built by code out of the records:
+
+```
+   1. José Luis Cuciuffo (Argentina) recovers the ball, 54:02
+  ...
+  10. Peter Beardsley (England) is dribbled past, 54:08
+  11. Diego Armando Maradona (Argentina) dribbles, 54:08
+  13. Peter Reid (England) presses, 54:08
+  14. Terry Butcher (England) is dribbled past, 54:13
+  ...
+  24. Diego Armando Maradona (Argentina) shoots, 54:18
+```
+
+The model narrates from that list and starts each sentence with the numbers it
+used: `[11] Maradona dribbles past Peter Beardsley.` The check then reads the
+sentence against those facts and nothing else.
+
+| Where | What changed |
+| ----- | ------------ |
+| `app/narration_prompt.py` | `Fact`, the numbered list, `cited_line`, and a prompt built round it |
+| `app/grounding.py` | `sentences`, `strip_citations`, and a per-sentence check |
+| `app/narration.py` | `Narrated.text` is stripped for showing, `tagged_text` keeps the citations |
+| `scripts/narrate_once.py` | new: one goal through a real model, every attempt printed |
+
+**Pairing is what catches misdescription.** Every name in a sentence is paired
+with every action in it, and the pair has to meet inside one cited fact. Reid's
+only record in that passage is a `Pressure`, so no fact pairs him with a
+dribble and no choice of citations rescues the sentence. It fails on Reid alone:
+the two defenders it was right about are left out of the report, because a
+refusal listing all three would send a retry to rewrite the true part.
+`tests/test_grounding.py::TestMisdescription` is that case by name.
+
+**Pairing is blunt, and the cost is in the repo rather than left to be found.**
+Nothing in the text says which name goes with which action, so "Di Maria wins a
+foul and Messi scores for Argentina" is true and is refused: no one fact pairs
+Messi with the foul. Rule 2 of the prompt asks for one action per sentence
+because of this, and `TestPairingRefusesSomeTrueSentences` holds both halves,
+the refusal and the same words in two sentences passing.
+
+**Per-second clocks are groundable now, which reverses an earlier decision.**
+The run of play used to print minutes only, because a per-second clock could
+not be checked and a model that quoted one was failed for it. A clock is now
+checked against the cited fact's own clock, so the facts print it and "54:13"
+belongs to a sentence citing fact 14 or 15 and to no other. `Facts.numbers` is
+gone with it: a bare digit is grounded by a cited fact's minute or the goal's
+second, and the set of minutes for the whole buildup no longer decides anything.
+
+**Three words were added to `ACTION_CLAIMS`:** "carry", "receive" and "press".
+`EVENT_VERBS` says those events in those words, so a model reads them off the
+facts and writes them back, and a word the facts use to state an event is a
+word that asserts it. The noun "pressure" is deliberately not there: "under
+pressure" is as often scene setting as a claim about a `Pressure` record.
+
+**Two parser bugs came out of live runs, not from review.** Both were false
+positives, which is the expensive kind here, and both are named tests:
+
+| What failed | Why it was wrong | Fix |
+| ----------- | ---------------- | --- |
+| every citation shifted by one | the model wrote `... defender. [15] He carries ...`, and a tag was read as part of the chunk it started | a tag at the start of a chunk belongs to the sentence before it |
+| four sentences reported as untagged | the model numbered its own lines "1." to "4.", and a bare number before a full stop read as a sentence | a chunk that is only a number is a list marker |
+
+**The prompt's shape was settled by live runs, and three layouts lost.** Asking
+for the tag at the end of the sentence, with the goal as the worked example,
+got the goal's number on all four sentences: the model read the example as the
+answer. Adding a procedure and a no-shared-numbers rule to the same layout got
+sentences with no tag at all, which is worse, because a model that has finished
+the sentence has nothing left to look up. Asking for the number first got a tag
+on every line. Two more variants (one example from the middle of the list, and
+the shape with no example at all) were tried and dropped: 0 of 3 each.
+
+**What the live runs actually produced.** Two runs of
+`scripts/narrate_once.py` over the 1986 54:18 goal with the prompt as it
+stands:
+
+| Run | Model attempts | What came back |
+| --- | -------------- | -------------- |
+| 1 | 1 refused, 2 grounded | four lines, every citation right, labelled |
+| 2 | 1 grounded | one line, labelled |
+
+Run 1's second attempt is the narration this task was for:
+
+```
+[1] José Luis Cuciuffo recovers the ball.
+[7] Diego Armando Maradona receives the ball.
+[9] Peter Beardsley presses.
+[24] Diego Armando Maradona shoots.
+```
+
+Its first attempt failed on one claim, `[18] Diego Armando Maradona shoots`,
+where fact 18 is a dribble and the shot is fact 24.
+
+Two earlier runs under the same layout, before a line of the prompt was
+rewrapped, went one each way: one returned model narration of one line, the
+other failed all three attempts and fell back to the template. So the fallback
+has been exercised live as well as over all nine goals in the tests. Counting
+every model attempt across the four runs, 10 of 42 lines carried a bad
+citation. **No run produced a false positive:** every refusal named the right
+words against the wrong fact number.
+
+So the pipeline works end to end against a real model, and one of the two
+first attempts in the table was grounded. Four runs are not a rate; nothing
+measures the rate over the nine goals yet, which is still Task 4. What the runs
+do say about `granite4:micro` is that it produces the format reliably and
+miscites about one line in four: it can say the facts and cannot always copy an
+index out of 24 lines.
+
+**One live pass was a degenerate one, and it is worth knowing.** Run 2's
+attempt was `[24] Diego Armando Maradona shoots.` and nothing else: grounded,
+labelled, and barely a narration, where the prompt asked for four sentences. The
+check refuses narration that asserts nothing checkable, not narration that
+asserts too little, and nothing enforces the sentence count. Adding a floor
+would mean the check refusing copy for its length rather than its grounding,
+which is a different job; if it is wanted, it belongs in `app/narration.py`
+beside the retry rule.
 
 ### Phase 4, task 2c
 
@@ -1121,6 +1239,14 @@ grounding check and the pipeline are built. What nothing does yet is run
 attempt is grounded. `pass_rate` is there for it, and
 `Narrated.first_attempt_grounded` is the number it reports: retries must not be
 counted, or the figure hides how often the model drifts.
+
+`scripts/narrate_once.py` is one goal through a real model, so the loop over
+nine is what is missing rather than the call. Two runs of it over the 1986
+54:18 goal had no grounded first attempt, and the task 3b section records why,
+so expect the measured rate on `granite4:micro` to be low and do not read that
+as the prompt failing: every refusal in those runs was a real miscitation. The
+comparison the rate is for is between models, which is what
+`app/narration_config.py` holds the two watsonx candidates for.
 
 What is in place:
 

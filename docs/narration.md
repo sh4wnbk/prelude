@@ -1,11 +1,12 @@
 # Narration: config, providers, prompt and grounding
 
-What exists at this commit is the config, the provider layer, the prompt, the
-grounding check and the pipeline that ties them together. **No narration
-reaches a screen, and none of it is spoken.** This document describes the
-modules that are in the repo, where their API shapes came from, and why the
-test suite can prove what it proves. `docs/VOICE.md` is the written voice the
-prompt and the check between them enforce.
+What exists at this commit is the config, the provider layer, the numbered
+facts, the prompt, the grounding check, the pipeline that ties them together,
+and a script that runs one goal through a real model. **No narration reaches a
+screen, and none of it is spoken.** This document describes the modules that are
+in the repo, where their API shapes came from, and why the test suite can prove
+what it proves. `docs/VOICE.md` is the written voice the prompt and the check
+between them enforce, and what the check still cannot decide.
 
 ## The three models, and the two jobs
 
@@ -145,15 +146,23 @@ the request body fails the test rather than quietly invalidating the recording.
 
 | Module | What it does |
 | ------ | ------------ |
-| `app/narration_prompt.py` | `Facts` read off one `Buildup`, the prompt built from them, and the fallback narration |
+| `app/narration_prompt.py` | the numbered facts read off one `Buildup`, the prompt built round them, and the fallback narration |
 | `app/grounding.py` | decides whether a narration's claims trace back to the data |
 | `app/narration.py` | generates, checks, retries, falls back, and records every attempt |
+| `scripts/narrate_once.py` | runs one goal through a real model and prints every attempt |
 
-**`Facts` is the whole of what a narration may mention**: the players, the
-teams, the minutes, the actions, and the goal's own shot type and body part.
-Every field is copied from a raw record. Nothing is counted, ranked or
-inferred, because a fact the extractor invented is a fact the check would then
-happily approve.
+**`Facts` is the whole of what a narration may mention**, and its centre is the
+numbered fact list: one plain sentence per recorded event, built by code out of
+the record, plus the goal's own shot type and body part. Every field is copied
+from a raw record. Nothing is counted, ranked or inferred, because a fact the
+extractor invented is a fact the check would then happily approve.
+
+**A narration cites the facts each sentence used**, and the check reads that
+sentence against those facts and nothing else. The citation comes first on the
+line, `[11] Maradona dribbles past Peter Beardsley.`, because that is the order
+the work happens in: pick a fact, read its number, then say it. The tags are
+stripped before anything is shown or voiced, and the cited version is kept as
+`Narrated.tagged_text` for audit.
 
 **The prompt states the rules the check enforces**, in the same words, because
 a prompt asking for less than the check requires would set the model up to fail
@@ -174,18 +183,21 @@ is the number to measure; counting retries would hide how often a model drifts.
 
 ### What the check cannot do
 
-It verifies that everything a line names is in the data. It does not verify
-that the line's reading of those facts is right. `docs/VOICE.md` works through
-a line that passes the check and still describes something that did not happen.
-The check catches invention, which is the failure a language model actually
-has; it does not catch misdescription.
+It reads each sentence against the facts that sentence cited, which catches
+invention and the misdescriptions that come from attaching a name, a clock or
+an action to the wrong record. It does not read the sentence's grammar, so
+direction survives: "Maradona passes to Enrique" and "Enrique passes to
+Maradona" cite the same facts and both pass. `docs/VOICE.md` works through what
+pairing a name with an action does and does not decide, and what it costs.
 
 ## What is not built
 
 - No audio. Narration text is not spoken, and the TTS variables in
   `.env.example` are unused by any code in the repo. Watson Text to Speech is
   Phase 5; `HANDOFF.md` records the service and voice details it will need.
-- No screen reads narration. The prompt, the check and the pipeline are
-  callable from Python and from nowhere else.
+- No screen reads narration. The facts, the prompt, the check and the pipeline
+  are callable from Python and from `scripts/narrate_once.py`, and from nowhere
+  else.
 - No measured pass rate. `app/narration.py` exposes `pass_rate`, and nothing
   in the repo runs it over the nine goals and writes the result down.
+  `scripts/narrate_once.py` does one goal, so the loop is what is missing.

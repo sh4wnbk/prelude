@@ -110,21 +110,31 @@ Everything above it is structure.
 - `scripts/record_narration_golden.py`: calls the local Ollama server once and
   records the request and response into `tests/golden/`, so the tests can
   replay a real response instead of making a call.
+- `scripts/narrate_once.py`: narrates one goal with a real model and prints
+  every attempt, the claims the check refused, and whether the first attempt
+  was grounded. Defaults to the 1986 goal at 54:18; takes a match id and a
+  clock for any other. It needs a local Ollama server and writes nothing.
 - `tests/test_narration_provider.py`: 28 tests over the config and both
   backends. All 28 pass, and none of them opens a connection:
   `tests/conftest.py` replaces `urllib.request.urlopen` and
   `socket.socket.connect` with functions that raise, for every test in the
   suite.
-- `app/narration_prompt.py`: the facts a narration may use, read off one
-  buildup, the prompt built from them, and the fallback narration assembled
-  straight from the events.
+- `app/narration_prompt.py`: turns one buildup into a numbered list of plain
+  facts, one per recorded event, built by code out of the records; the prompt
+  that asks a model to narrate from that list and cite the facts each sentence
+  used; and the fallback narration, one sentence per fact, assembled with no
+  model.
 - `app/grounding.py`: decides whether a narration's claims trace back to the
-  data. Refuses invented names, numbers and actions, a wrong shot type or body
-  part, verdict nicknames, editorial epithets, claims about the result, em
-  dashes, and narration that asserts nothing checkable.
+  data, sentence by sentence, against the facts that sentence cited. Refuses
+  invented names, numbers, clocks and actions; a name or action in the passage
+  but not in the cited facts; a name paired with an action no single cited fact
+  records; a sentence that cites nothing or cites a fact that does not exist; a
+  wrong shot type or body part; verdict nicknames, editorial epithets, claims
+  about the result, em dashes; and narration that asserts nothing checkable.
 - `app/narration.py`: narrates one moment. Generates, checks, regenerates up to
   twice, then falls back to the template, and records every attempt with the
-  claims that failed. Nothing ungrounded is returned.
+  claims that failed. Nothing ungrounded is returned. The citation tags are
+  stripped from the text it returns and kept beside it for audit.
 - `app/credentials.py`: finds and reads the credentials file, which lives
   **outside this repo**: `~/.prelude/.env` by default, or wherever
   `PRELUDE_ENV_FILE` points. A path inside the repo is refused rather than
@@ -135,13 +145,14 @@ Everything above it is structure.
   fake credentials file into a temporary directory; none reads the real one,
   and `tests/conftest.py` points `PRELUDE_ENV_FILE` at an absent path for the
   whole suite so none can.
-- `tests/test_narration_prompt.py`: 17 tests over the facts, the prompt and
-  the fallback narration. All pass.
-- `tests/test_grounding.py`: 32 tests over the grounding check, one per way a
-  narration can be wrong or can look wrong and be fine. All pass.
-- `tests/test_narration.py`: 20 tests over the pipeline, covering the retries,
-  the fallback, the failure log and the first-attempt pass rate. All pass, and
-  no test calls a model.
+- `tests/test_narration_prompt.py`: 27 tests over the facts, the numbered fact
+  list, the prompt and the fallback narration. All pass.
+- `tests/test_grounding.py`: 57 tests over the grounding check, one per way a
+  narration can be wrong or can look wrong and be fine, including the
+  misdescription it refuses by pairing a name with an action. All pass.
+- `tests/test_narration.py`: 24 tests over the pipeline, covering the retries,
+  the fallback, the citation stripping, the failure log and the first-attempt
+  pass rate. All pass, and no test calls a model.
 
 **Exists but does nothing yet:**
 
@@ -153,16 +164,18 @@ Everything above it is structure.
 - The play buttons and waveforms on the moment card and the moments list. They
   change their own icons and nothing else, because there is no audio yet.
 
-**Not built yet:** narration text, audio output, and GPS presence handling.
-The provider layer that would generate narration exists and works, but nothing
-builds a prompt for it, so no narration has been generated and nothing decides
-whether a generated line could carry "Verified from play data". The screens read
-their content from `app/web/matches.json` and carry the selected match between
-them; what they do not have is sound. Nothing wires the EventFeed to the screens
-yet: the module returns moments, event windows and buildups, and no screen
-reads them. `docs/narration.md` records what the narration modules are and what
-they are not, and `docs/VOICE.md` is the written voice the prompt and the
-grounding check enforce between them.
+**Not built yet:** narration on a screen, audio output, and GPS presence
+handling. Narration itself runs: `scripts/narrate_once.py` generates it for one
+goal, the check decides whether it may carry "Verified from play data", and the
+pipeline falls back when it may not. What nothing does yet is measure how often
+a first attempt is grounded across the nine goals, or put a narration in front
+of a reader. The screens read their content from `app/web/matches.json` and
+carry the selected match between them; what they do not have is sound or
+narration. Nothing wires the EventFeed to the screens yet: the module returns
+moments, event windows and buildups, and no screen reads them.
+`docs/narration.md` records what the narration modules are and what they are
+not, and `docs/VOICE.md` is the written voice the prompt and the grounding check
+enforce between them, with what the check still cannot decide.
 
 No claim in this README is intended to run ahead of the code. If you find one
 that does, it is a bug in the README.

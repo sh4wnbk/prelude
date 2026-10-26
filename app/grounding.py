@@ -3,34 +3,64 @@
 `CLAUDE.md` allows "Verified from play data" only over narration whose claims
 trace back to the event data, and says there is no partial credit. This module
 is what decides that. It takes a narration and the `Facts` it was written from,
-pulls out the claims the narration makes, and reports the ones that cannot be
+pulls out the claims each sentence makes, and reports the ones that cannot be
 pointed at.
 
-**What it checks.** A claim is something a line asserts that the records can
+**The narration cites its facts.** `app/narration_prompt.py` gives the model a
+numbered list, one plain fact per recorded event, and the prompt requires every
+sentence to end with the numbers of the facts it used:
+
+    Maradona dribbles past Terry Butcher. [14, 15]
+
+Those numbers are what this module checks against. A sentence is read against
+the facts it cited, not against the buildup as a lump, and
+`strip_citations` takes the tags off again before anything is shown or voiced.
+
+**What it checks.** A claim is something a sentence asserts that the records can
 confirm or refuse:
 
-| Kind | A line claiming it | Grounded when |
-| ---- | ------------------ | ------------- |
-| `name` | a capitalised word | it is part of a player or team name in the buildup |
-| `number` | a digit | it is a buildup minute, or the goal's second |
-| `action` | "passes", "dribbles", "clears" | that event type is in the buildup |
+| Kind | A sentence claiming it | Grounded when |
+| ---- | ---------------------- | ------------- |
+| `name` | a capitalised word | it is a player or team name in a cited fact |
+| `number` | a bare digit | it is a cited fact's minute, or the goal's second |
+| `clock` | "54:13" | it is the clock of a cited fact |
+| `action` | "passes", "dribbles", "clears" | a cited fact records that event type |
+| `pairing` | a name and an action together | one cited fact holds both |
 | `shot_type` | "penalty", "free kick", "corner" | the goal shot is recorded as that |
 | `body_part` | "header", "left foot" | the goal shot is recorded as that |
+| `untagged` | a sentence citing nothing | never; every sentence cites its facts |
+| `citation` | a number that is not a fact | never |
 | `banned` | a nickname, a verdict, an em dash | never; these are refused outright |
 
-A narration that makes **no** name or number claim is refused too, as
+A narration that makes **no** name, number or clock claim is refused too, as
 `unverifiable`. Prose that names nobody and quotes no clock has nothing tracing
 back to the data, so there is nothing for the label to be true about. A check
 that passed it would be reporting "found no problem" in a narration that
 asserted nothing, which is not the same as grounded.
 
-**What it cannot check, and this matters.** It verifies that everything a line
-*names* is in the data. It does not verify that the line's reading of those
-facts is right. "Maradona passes to Enrique" and "Enrique passes to Maradona"
-are both grounded if both players and a pass are in the buildup, and only one
-of them may be what happened. The check catches invention, which is the failure
-a language model actually has; it does not catch misdescription. Any claim that
-the app's narration is *correct* rests on more than this module.
+**Pairing is the point of the numbering.** Checking that each word appears
+somewhere in the passage catches invention and nothing else. The records for the
+54:18 goal hold a `Dribble` and they hold Peter Reid, so "dribbles past Peter
+Reid" passes a membership check while describing something that did not happen:
+Reid pressured and was never dribbled past. So every name in a sentence is also
+paired with every action in it, and the pair has to meet inside one cited fact.
+Reid's only record in that passage is a `Pressure`, so no cited fact can pair
+him with a dribble, and the sentence is refused.
+
+Pairing every name with every action is deliberately blunt. Nothing in the text
+says which name goes with which action, so a sentence holding two actions and
+three names is one the check cannot read exactly, and refusing it is the
+conservative answer. Rule 3 of the prompt therefore asks for one action per
+sentence. The cost is real and is the price of catching misdescription: "Di
+Maria wins a foul and Messi scores" is true and is refused, because no one fact
+pairs Messi with the foul. Written as two sentences, both pass.
+
+**What it still cannot do.** It reads a sentence against the facts that sentence
+cited; it does not read the sentence's grammar. Direction survives: "Maradona
+passes to Enrique" and "Enrique passes to Maradona" cite the same facts and both
+pass, and only one of them is what happened. Prose that asserts nothing about an
+event (who was where, what it meant) is outside its reach entirely. Any claim
+that the app's narration is *correct* rests on more than this module.
 
 Accents are normalised before matching, so "Hector" matches the recorded
 "Héctor". That is a spelling variant of a player who is really there, not an
@@ -45,38 +75,75 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Mapping, Sequence
 
-from app.narration_prompt import Facts
+from app.narration_prompt import Fact, Facts
 
-#: Words that assert a specific StatsBomb event type. A narration using one is
-#: claiming that event is in the passage, so the type has to be there.
-#: Deliberately narrow: these are the actions a model adds when it drifts, and
-#: a word that is not here is ordinary prose rather than a claim.
-ACTION_CLAIMS: Mapping[str, str] = {
-    "passes": "Pass",
-    "passed": "Pass",
-    "pass": "Pass",
-    "dribbles": "Dribble",
-    "dribbled": "Dribble",
-    "dribble": "Dribble",
-    "clears": "Clearance",
-    "cleared": "Clearance",
-    "clearance": "Clearance",
-    "blocks": "Block",
-    "blocked": "Block",
-    "intercepts": "Interception",
-    "interception": "Interception",
-    "saves": "Goal Keeper",
-    "save": "Goal Keeper",
-    "fouls": "Foul Committed",
-    "fouled": "Foul Committed",
-    "foul": "Foul Committed",
-    "shoots": "Shot",
-    "shot": "Shot",
+#: "X passes to Y" is two records: a `Pass` on X's and a `Ball Receipt*` on Y's.
+#: Both ground the word, so naming the player a pass reached is not reported as
+#: an invented action.
+_PASS = frozenset({"Pass", "Ball Receipt*"})
+
+#: "X dribbles past Y" is likewise two records: a `Dribble` on X's and a
+#: `Dribbled Past` on Y's. This pair is what makes the Reid case decidable.
+_DRIBBLE = frozenset({"Dribble", "Dribbled Past"})
+
+#: "X fouls Y" is a `Foul Committed` on X's record and a `Foul Won` on Y's.
+_FOUL = frozenset({"Foul Committed", "Foul Won"})
+
+#: Three event types have one word each and no second side.
+_CARRY = frozenset({"Carry"})
+_RECEIPT = frozenset({"Ball Receipt*"})
+_PRESSURE = frozenset({"Pressure"})
+
+#: Words that assert a specific StatsBomb event type, and the types that satisfy
+#: them. A narration using one is claiming that event is in the facts it cited,
+#: so one of the types has to be there.
+#:
+#: Deliberately narrow: these are the actions a model writes when it drifts, and
+#: a word that is not here is ordinary prose rather than a claim. A word maps to
+#: more than one type only where one phrase asserts both sides of the same
+#: event, which is what lets a sentence name the player an action was done to.
+#:
+#: The list grows from live runs rather than from a wish to be complete. "carry",
+#: "receive" and "press" are here because `EVENT_VERBS` says those events in
+#: those words, so a model reads them off the facts and writes them back, and a
+#: word the facts use to state an event is a word that asserts it. The noun
+#: "pressure" is deliberately absent: "under pressure" is as often scene setting
+#: as a claim about a `Pressure` record, and refusing it would cost good copy.
+ACTION_CLAIMS: Mapping[str, frozenset[str]] = {
+    "passes": _PASS,
+    "passed": _PASS,
+    "pass": _PASS,
+    "dribbles": _DRIBBLE,
+    "dribbled": _DRIBBLE,
+    "dribble": _DRIBBLE,
+    "carries": _CARRY,
+    "carried": _CARRY,
+    "carry": _CARRY,
+    "receives": _RECEIPT,
+    "received": _RECEIPT,
+    "receive": _RECEIPT,
+    "presses": _PRESSURE,
+    "pressed": _PRESSURE,
+    "press": _PRESSURE,
+    "clears": frozenset({"Clearance"}),
+    "cleared": frozenset({"Clearance"}),
+    "clearance": frozenset({"Clearance"}),
+    "blocks": frozenset({"Block"}),
+    "blocked": frozenset({"Block"}),
+    "intercepts": frozenset({"Interception"}),
+    "interception": frozenset({"Interception"}),
+    "saves": frozenset({"Goal Keeper"}),
+    "save": frozenset({"Goal Keeper"}),
+    "fouls": _FOUL,
+    "fouled": _FOUL,
+    "foul": _FOUL,
+    "shoots": frozenset({"Shot"}),
+    "shot": frozenset({"Shot"}),
 }
 
-#: Words that assert the goal's recorded shot type. The highest-value entries
-#: in this module: a goal becoming a penalty is a change of fact, and the run
-#: of play alone does not reveal it.
+#: Words that assert the goal's recorded shot type. The highest-value entries in
+#: this module: a goal becoming a penalty is a change of fact, and the run of
+#: play alone does not reveal it.
 SHOT_TYPE_CLAIMS: Mapping[str, str] = {
     "penalty": "Penalty",
     "penalties": "Penalty",
@@ -97,8 +164,8 @@ BODY_PART_CLAIMS: Mapping[str, str] = {
 
 #: Refused wherever they appear. `CLAUDE.md` bans verdict nicknames and
 #: editorial epithets from app output, and narration is app output; it bans em
-#: dashes from copy. `scripts/scan_copy.py` enforces the same rule on the
-#: static screens, which is a different surface from generated text.
+#: dashes from copy. `scripts/scan_copy.py` enforces the same rule on the static
+#: screens, which is a different surface from generated text.
 BANNED_PATTERNS: Sequence[tuple[str, str]] = (
     ("verdict nickname", r"goal of the century"),
     ("verdict nickname", r"hand of god"),
@@ -126,16 +193,16 @@ BANNED_PATTERNS: Sequence[tuple[str, str]] = (
     ("editorial epithet", r"\bdramatic\b"),
     ("editorial epithet", r"\bsublime\b"),
     ("editorial epithet", r"\bmasterful\b"),
-    # Outcome claims. A buildup is one passage of play and carries no
-    # scoreline, so anything about the result is outside the facts the
-    # narration was written from. Both narrations in the first run that passed
-    # every other check ended on "securing Argentina's victory" and "secured
-    # the victory for his team", neither of which the data says.
+    # Outcome claims. A buildup is one passage of play and carries no scoreline,
+    # so anything about the result is outside the facts the narration was
+    # written from. Both narrations in the first run that passed every other
+    # check ended on "securing Argentina's victory" and "secured the victory
+    # for his team", neither of which the data says.
     #
-    # "win" and "won" are deliberately absent: "wins a foul" is a recorded
-    # Foul Won event, and banning the word would fail every penalty buildup.
-    # "score" and its forms are absent for the same reason, since the goal is
-    # the thing being narrated.
+    # "win" and "won" are deliberately absent: "wins a foul" is a recorded Foul
+    # Won event, and banning the word would fail every penalty buildup. "score"
+    # and its forms are absent for the same reason, since the goal is the thing
+    # being narrated.
     ("outcome claim", r"\bvictor\w*\b"),
     ("outcome claim", r"\btriumph\w*\b"),
     ("outcome claim", r"\bdefeat\w*\b"),
@@ -192,11 +259,11 @@ NOT_A_NAME = frozenset(
 )
 
 #: Words that name a team by nationality rather than by its recorded name. One
-#: is grounded when the team it refers to is in the buildup, so "the English
-#: defender" is fine in a match England played in and refused in one it did
-#: not. The table only covers the teams in `data/raw/`; a third match needs its
-#: own entries, and until it has them a demonym for its teams is reported as an
-#: unknown name rather than silently allowed.
+#: is grounded when the team it refers to is in a cited fact, so "the English
+#: defender" is fine over a fact recorded against England and refused over one
+#: that is not. The table only covers the teams in `data/raw/`; a third match
+#: needs its own entries, and until it has them a demonym for its teams is
+#: reported as an unknown name rather than silently allowed.
 TEAM_DEMONYMS = {
     "english": "England",
     "argentine": "Argentina",
@@ -207,6 +274,22 @@ TEAM_DEMONYMS = {
 
 _WORD = re.compile(r"[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ'’-]*")
 _NUMBER = re.compile(r"\d+")
+
+#: A clock, as a fact writes it: minute, colon, two-digit second.
+_CLOCK = re.compile(r"\b(\d{1,3}):(\d{2})\b")
+
+#: A citation tag: the fact numbers a sentence used. Written "[14, 15]" by the
+#: prompt's example; a space or a bare run of numbers is accepted too, because
+#: refusing a narration over its punctuation would throw away good copy.
+_TAG = re.compile(r"\[\s*\d+(?:\s*[,;\s]\s*\d+)*\s*\]")
+
+#: A sentence: everything up to a full stop, question mark or exclamation mark,
+#: or to the end of a line.
+_SENTENCE = re.compile(r"[^.!?\n]+[.!?]*")
+
+#: A list marker a model wrote in front of its own sentences, which the splitter
+#: sees as a sentence holding one number.
+_ENUMERATOR = re.compile(r"\d+\s*[.)]?")
 
 #: A possessive ending. The word pattern keeps apostrophes so a name like
 #: O'Brien survives, which also means "Argentina's" arrives with its ending
@@ -220,17 +303,38 @@ def bare(folded_word: str) -> str:
     return _POSSESSIVE.sub("", folded_word)
 
 
+def fold(text: str) -> str:
+    """Lowercase and strip accents, so "Hector" matches "Héctor"."""
+    decomposed = unicodedata.normalize("NFKD", text)
+    return "".join(c for c in decomposed if not unicodedata.combining(c)).lower()
+
+
 @dataclass(frozen=True)
 class Claim:
     """One thing a narration asserts, and where it said it."""
 
     kind: str
     value: str
-    line_number: int
-    line: str
+    sentence_number: int
+    sentence: str
 
     def __str__(self) -> str:
-        return f"line {self.line_number}: {self.kind} {self.value!r}"
+        return f"sentence {self.sentence_number}: {self.kind} {self.value!r}"
+
+
+@dataclass(frozen=True)
+class Sentence:
+    """One sentence of a narration, and the facts it cited.
+
+    `text` has the citation tags taken out, so nothing downstream reads a fact
+    number as a clock or a count. `raw` keeps the sentence as the model wrote
+    it, for a failure report that has to be recognisable.
+    """
+
+    number: int
+    text: str
+    cites: tuple[int, ...]
+    raw: str
 
 
 @dataclass(frozen=True)
@@ -257,17 +361,12 @@ class GroundingResult:
         )
 
 
-def fold(text: str) -> str:
-    """Lowercase and strip accents, so "Hector" matches "Héctor"."""
-    decomposed = unicodedata.normalize("NFKD", text)
-    return "".join(c for c in decomposed if not unicodedata.combining(c)).lower()
-
-
 def name_parts(facts: Facts) -> frozenset[str]:
     """Every word of every player and team name in the buildup, folded.
 
-    Narration shortens "Diego Armando Maradona" to "Maradona", so the parts are
-    what a line can be matched against rather than the whole name.
+    What this answers is "is this name in the passage at all", which is what
+    tells an invented player from a miscited one. Whether a name is grounded is
+    a question about the facts one sentence cited; see `fact_names`.
     """
     parts: set[str] = set()
     for name in list(facts.players) + list(facts.teams):
@@ -276,38 +375,182 @@ def name_parts(facts: Facts) -> frozenset[str]:
     return frozenset(parts)
 
 
-def _lines(text: str) -> list[tuple[int, str]]:
-    """Numbered non-empty lines. A narration is usually one block, so a
-    sentence is also treated as a line for reporting."""
-    numbered = []
-    for number, raw in enumerate(text.splitlines(), start=1):
-        if raw.strip():
-            numbered.append((number, raw.strip()))
-    return numbered
+def fact_names(fact: Fact) -> frozenset[str]:
+    """Every word of the player and team named by one fact, folded.
+
+    Narration shortens "Diego Armando Maradona" to "Maradona", so the parts are
+    what a sentence can be matched against rather than the whole name.
+    """
+    parts: set[str] = set()
+    for name in (fact.beat.player, fact.beat.team):
+        for part in _WORD.findall(name):
+            parts.add(fold(part))
+    return frozenset(parts)
+
+
+def _tag_numbers(tag: str) -> tuple[int, ...]:
+    return tuple(int(number) for number in _NUMBER.findall(tag))
+
+
+def sentences(text: str) -> tuple[Sentence, ...]:
+    """Split a narration into sentences and read each one's citations.
+
+    The prompt asks for the tag inside the sentence, and the first live run
+    against `granite4:micro` put it just after the full stop instead, every
+    time: "Maradona dribbles past a defender. [15] He carries the ball. [17]".
+    A splitter that reads a tag as part of the chunk it starts shifts every
+    citation by one sentence and then fails the narration for it, which is this
+    module's bug and not the model's. So a tag at the start of a chunk is read
+    as belonging to the sentence before it.
+
+    Unless that sentence already cited something: a model that writes its tags
+    in front of its sentences instead is then read the way it meant too, and
+    the tag carries forward to the sentence it opens. Both layouts say which
+    facts were used, and refusing one of them over where the full stop fell
+    would throw away good copy.
+    """
+    found: list[Sentence] = []
+    carried: tuple[int, ...] = ()
+
+    def add_to_previous(cites: tuple[int, ...], raw: str) -> bool:
+        if not found or found[-1].cites:
+            return False
+        previous = found[-1]
+        found[-1] = Sentence(
+            number=previous.number,
+            text=previous.text,
+            cites=cites,
+            raw=f"{previous.raw} {raw}",
+        )
+        return True
+
+    for chunk in _SENTENCE.findall(text):
+        rest = chunk.strip()
+
+        while True:
+            leading = _TAG.match(rest)
+            if leading is None:
+                break
+            cites = _tag_numbers(leading.group(0))
+            if not add_to_previous(cites, leading.group(0)):
+                carried += cites
+            rest = rest[leading.end():].lstrip()
+
+        if not rest:
+            continue
+
+        inner = tuple(
+            number for tag in _TAG.findall(rest) for number in _tag_numbers(tag)
+        )
+        said = _TAG.sub(" ", rest).strip()
+
+        # Nothing but punctuation left: a tag standing on its own between two
+        # sentences, which the loop above has already placed unless the
+        # sentence before it was tagged.
+        if not said.strip(" \t.,;:!?"):
+            if inner and not add_to_previous(inner, rest):
+                carried += inner
+            continue
+
+        # A bare number before a full stop is a list marker, not a sentence.
+        # One live attempt numbered its four sentences "1." to "4.", which read
+        # as four sentences asserting a count and citing nothing. A sentence
+        # that is only a number says nothing either way, so dropping it cannot
+        # hide a claim.
+        if _ENUMERATOR.fullmatch(said):
+            carried += inner
+            continue
+
+        found.append(
+            Sentence(
+                number=len(found) + 1,
+                text=re.sub(r"\s{2,}", " ", said),
+                cites=carried + inner,
+                raw=rest,
+            )
+        )
+        carried = ()
+    return tuple(found)
+
+
+def strip_citations(text: str) -> str:
+    """The narration as it is shown and voiced: no tags, one paragraph.
+
+    The citations are machinery for the check, not copy. `CLAUDE.md` governs
+    what the app says, and "[14, 15]" is not something a screen displays or a
+    voice reads aloud, so it comes off before either. The sentences are joined
+    into a single paragraph because that is how narration is displayed and
+    spoken; the per-line layout is only what the prompt asked the model for.
+    """
+    without_tags = _TAG.sub("", text)
+    tidied = re.sub(r"[ \t]+([.,;:!?])", r"\1", without_tags)
+    lines = [line.strip() for line in tidied.splitlines()]
+    return re.sub(r"\s{2,}", " ", " ".join(line for line in lines if line)).strip()
+
+
+@dataclass(frozen=True)
+class _NameClaim:
+    """A capitalised word, and what it has to be grounded against."""
+
+    word: str
+    value: str
+    demonym: bool
+
+
+@dataclass(frozen=True)
+class _ActionClaim:
+    """An action word, and the event types that satisfy it."""
+
+    word: str
+    types: frozenset[str]
+
+
+def _supports_name(fact: Fact, claim: _NameClaim) -> bool:
+    if claim.demonym:
+        return fact.beat.team == claim.value
+    return claim.value in fact_names(fact)
+
+
+def _in_the_buildup(claim: _NameClaim, facts: Facts, known: frozenset[str]) -> bool:
+    if claim.demonym:
+        return claim.value in facts.teams
+    return claim.value in known
+
+
+def _cited(cites: Sequence[int]) -> str:
+    return "[" + ", ".join(str(number) for number in sorted(set(cites))) + "]"
 
 
 def check(text: str, facts: Facts) -> GroundingResult:
     """Decide whether `text` is grounded in `facts`.
 
-    Returns every failing claim rather than stopping at the first, and counts
-    the claims it looked at so a pass means something more than "found no
-    problem in a narration that asserted nothing".
+    Every sentence is read against the facts it cited. Returns every failing
+    claim rather than stopping at the first, and counts the claims it looked at
+    so a pass means something more than "found no problem in a narration that
+    asserted nothing".
     """
+    by_number = {fact.number: fact for fact in facts.facts}
+    goal = facts.goal_fact
     known_names = name_parts(facts)
     failures: list[Claim] = []
-    # The name and number claims found anywhere in the narration. These are the
-    # ones that tie it to this moment, so a narration with none of them is
-    # refused below however clean the rest of it looks.
+    # The name, number and clock claims found anywhere in the narration. These
+    # are the ones that tie it to this moment, so a narration with none of them
+    # is refused below however clean the rest of it looks.
     claims_made: list[str] = []
     checked = 0
 
-    for number, line in _lines(text):
-        folded = fold(line)
+    for sentence in sentences(text):
+        folded = fold(sentence.text)
+
+        def failed(kind: str, value: str) -> None:
+            failures.append(
+                Claim(kind, value, sentence.number, sentence.raw)
+            )
 
         for label, pattern in BANNED_PATTERNS:
             for hit in re.findall(pattern, folded):
                 checked += 1
-                failures.append(Claim(label, hit if isinstance(hit, str) else line, number, line))
+                failed(label, hit if isinstance(hit, str) else sentence.text)
 
         # Multi-word claims first, so "free kick" is not read as "kick".
         for phrase, required in SHOT_TYPE_CLAIMS.items():
@@ -315,13 +558,9 @@ def check(text: str, facts: Facts) -> GroundingResult:
                 checked += 1
                 if facts.set_piece != required:
                     recorded = facts.set_piece or "Open Play"
-                    failures.append(
-                        Claim(
-                            "shot_type",
-                            f"{phrase!r} but the shot is recorded as {recorded}",
-                            number,
-                            line,
-                        )
+                    failed(
+                        "shot_type",
+                        f"{phrase!r} but the shot is recorded as {recorded}",
                     )
 
         for phrase, required in BODY_PART_CLAIMS.items():
@@ -329,75 +568,158 @@ def check(text: str, facts: Facts) -> GroundingResult:
                 checked += 1
                 if facts.body_part != required:
                     recorded = facts.body_part or "not recorded"
-                    failures.append(
-                        Claim(
-                            "body_part",
-                            f"{phrase!r} but the body part is recorded as {recorded}",
-                            number,
-                            line,
-                        )
+                    failed(
+                        "body_part",
+                        f"{phrase!r} but the body part is recorded as {recorded}",
                     )
 
-        for word in _WORD.findall(line):
+        names: list[_NameClaim] = []
+        actions: list[_ActionClaim] = []
+
+        for word in _WORD.findall(sentence.text):
             folded_word = bare(fold(word))
 
             if folded_word in ACTION_CLAIMS:
-                checked += 1
-                required = ACTION_CLAIMS[folded_word]
-                if required not in facts.actions:
-                    failures.append(
-                        Claim(
-                            "action",
-                            f"{word!r} claims a {required} event, which is not in the buildup",
-                            number,
-                            line,
-                        )
-                    )
+                actions.append(_ActionClaim(word, ACTION_CLAIMS[folded_word]))
                 continue
 
             if not word[0].isupper() or folded_word in NOT_A_NAME:
                 continue
 
-            if folded_word in TEAM_DEMONYMS:
-                checked += 1
-                claims_made.append("name")
-                team = TEAM_DEMONYMS[folded_word]
-                if team not in facts.teams:
-                    failures.append(
-                        Claim(
-                            "name",
-                            f"{word!r} refers to {team}, which is not in the buildup",
-                            number,
-                            line,
-                        )
-                    )
-                continue
-
-            checked += 1
             claims_made.append("name")
-            if folded_word not in known_names:
-                failures.append(Claim("name", word, number, line))
+            if folded_word in TEAM_DEMONYMS:
+                names.append(
+                    _NameClaim(word, TEAM_DEMONYMS[folded_word], demonym=True)
+                )
+            else:
+                names.append(_NameClaim(word, folded_word, demonym=False))
 
-        for digits in _NUMBER.findall(line):
+        clocks = [
+            (match.group(0), int(match.group(1)), int(match.group(2)))
+            for match in _CLOCK.finditer(sentence.text)
+        ]
+        claims_made += ["clock"] * len(clocks)
+
+        # A clock's digits are already accounted for, so they are taken out
+        # before the bare numbers are read: "54:13" is one clock claim, not the
+        # minute 54 and the count 13.
+        digits = _NUMBER.findall(_CLOCK.sub(" ", sentence.text))
+        claims_made += ["number"] * len(digits)
+
+        cited: list[Fact] = []
+        for number in sentence.cites:
+            fact = by_number.get(number)
+            if fact is None:
+                checked += 1
+                failed(
+                    "citation",
+                    f"[{number}] is not one of the {len(facts.facts)} facts "
+                    "this narration was written from",
+                )
+            elif fact not in cited:
+                cited.append(fact)
+
+        if not cited:
+            if not sentence.cites:
+                checked += 1
+                failed(
+                    "untagged",
+                    "the sentence cites no fact, so there is nothing to check "
+                    "its names, actions and clocks against",
+                )
+            continue
+
+        # Names and actions are checked for membership first. A claim that
+        # failed there is not paired afterwards: one failure per mistake, so a
+        # retry reads a list of problems rather than a list of consequences.
+        held_names: list[_NameClaim] = []
+        for claim in names:
             checked += 1
-            claims_made.append("number")
-            if int(digits) not in facts.numbers:
-                failures.append(
-                    Claim(
-                        "number",
-                        f"{digits} is not a minute in the buildup or the "
-                        "second the goal was scored at",
-                        number,
-                        line,
-                    )
+            if any(_supports_name(fact, claim) for fact in cited):
+                held_names.append(claim)
+            elif _in_the_buildup(claim, facts, known_names):
+                failed(
+                    "name",
+                    f"{claim.word!r} is in the buildup but not in the facts "
+                    f"this sentence cites, {_cited(sentence.cites)}",
+                )
+            elif claim.demonym:
+                failed(
+                    "name",
+                    f"{claim.word!r} refers to {claim.value}, which is not in "
+                    "the buildup",
+                )
+            else:
+                failed("name", claim.word)
+
+        held_actions: list[_ActionClaim] = []
+        for claim in actions:
+            checked += 1
+            wanted = " or ".join(sorted(claim.types))
+            if any(fact.beat.action in claim.types for fact in cited):
+                held_actions.append(claim)
+            elif claim.types & facts.actions:
+                failed(
+                    "action",
+                    f"{claim.word!r} claims a {wanted} event, which is in the "
+                    f"buildup but not in the facts this sentence cites, "
+                    f"{_cited(sentence.cites)}",
+                )
+            else:
+                failed(
+                    "action",
+                    f"{claim.word!r} claims a {wanted} event, which is not in "
+                    "the buildup",
                 )
 
+        for action in held_actions:
+            for name in held_names:
+                checked += 1
+                if any(
+                    fact.beat.action in action.types and _supports_name(fact, name)
+                    for fact in cited
+                ):
+                    continue
+                wanted = " or ".join(sorted(action.types))
+                failed(
+                    "pairing",
+                    f"{name.word!r} with {action.word!r}: no cited fact records "
+                    f"a {wanted} involving {name.word}, so the sentence pairs "
+                    "two facts that the data does not pair",
+                )
+
+        for written, minute, second in clocks:
+            checked += 1
+            if not any(
+                (fact.beat.minute, fact.beat.second) == (minute, second)
+                for fact in cited
+            ):
+                failed(
+                    "clock",
+                    f"{written} is not the clock of any fact this sentence "
+                    f"cites, {_cited(sentence.cites)}",
+                )
+
+        for written in digits:
+            checked += 1
+            value = int(written)
+            if any(value == fact.beat.minute for fact in cited):
+                continue
+            if goal in cited and value == goal.beat.second:
+                continue
+            failed(
+                "number",
+                f"{written} is not the minute of a fact this sentence cites, "
+                "or the second the goal was scored at",
+            )
+
     if not claims_made:
+        checked += 1
         failures.append(
             Claim(
                 "unverifiable",
                 "the narration names no player, team or clock value from the "
-                "buildup, so nothing in it traces back to the data",
+                "facts, so nothing in it traces back to the data",
                 0,
                 text.strip(),
             )

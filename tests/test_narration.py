@@ -12,6 +12,10 @@ one defender, then another, then the goalkeeper reads as something else with
 the middle removed. Nor is a failing line kept unlabelled. The whole narration
 fails together, is regenerated, and falls back to the template if it keeps
 failing.
+
+Narration carries a citation tag per sentence, which is what the check reads.
+The tags come off before anything is shown or voiced, so `Narrated.text` is the
+stripped paragraph and `Narrated.tagged_text` is what passed the check.
 """
 
 import pytest
@@ -25,6 +29,7 @@ from app.narration import (
     narrate,
     pass_rate,
 )
+from app.grounding import strip_citations
 from app.narration_prompt import facts_from_buildup, template_narration
 from app.narration_provider import Narration
 from app.statsbomb_event_feed import StatsBombEventFeed
@@ -32,10 +37,16 @@ from app.statsbomb_event_feed import StatsBombEventFeed
 MATCH_1986 = 3750191
 GOAL_1986 = (54, 18)
 
-GROUNDED = "Maradona dribbles and shoots, and scores for Argentina."
-INVENTED_PLAYER = "Maradona passes to Valdano, who scores for Argentina."
-INVENTED_PENALTY = "Maradona scores the penalty for Argentina."
-SAYS_NOTHING = "He turns away from two, then goes again."
+# Narration as a model writes it, each sentence citing the facts it used. Fact
+# 22 is Maradona's last Dribble and fact 24 is his shot; the numbers are read
+# out of data/raw/ and written down, like the ones in tests/test_grounding.py.
+GROUNDED = "Maradona dribbles and shoots, and scores for Argentina. [22, 24]"
+INVENTED_PLAYER = "Maradona passes to Valdano, who scores for Argentina. [6, 7]"
+INVENTED_PENALTY = "Maradona scores the penalty for Argentina. [24]"
+SAYS_NOTHING = "He turns away from two, then goes again. [8]"
+
+# The same narration as it is shown and voiced.
+GROUNDED_SHOWN = "Maradona dribbles and shoots, and scores for Argentina."
 
 
 class Script:
@@ -84,7 +95,8 @@ def narrate_with(feed, moment, *lines, **kwargs):
 class TestFirstAttemptPasses:
     def test_it_keeps_the_model_narration(self, feed, moment):
         narrated, provider = narrate_with(feed, moment, GROUNDED)
-        assert narrated.text == GROUNDED
+        assert narrated.text == GROUNDED_SHOWN
+        assert narrated.tagged_text == GROUNDED
         assert narrated.source == MODEL
         assert not narrated.used_fallback
         assert len(provider.prompts) == 1
@@ -107,7 +119,7 @@ class TestRetries:
     def test_a_failing_narration_is_regenerated_whole(self, feed, moment):
         """Not repaired, not trimmed: asked for again."""
         narrated, provider = narrate_with(feed, moment, INVENTED_PLAYER, GROUNDED)
-        assert narrated.text == GROUNDED
+        assert narrated.text == GROUNDED_SHOWN
         assert narrated.source == MODEL
         assert len(provider.prompts) == 2
         assert provider.prompts[0] == provider.prompts[1]
@@ -154,7 +166,8 @@ class TestFallback:
         narrated, _ = narrate_with(
             feed, moment, INVENTED_PLAYER, INVENTED_PENALTY, SAYS_NOTHING
         )
-        assert narrated.text == template_narration(facts)
+        assert narrated.tagged_text == template_narration(facts)
+        assert narrated.text == strip_citations(template_narration(facts))
 
     def test_the_fallback_is_checked_like_any_other_narration(self, feed, moment):
         """"Grounded by construction" is a claim worth testing, so the pipeline
@@ -176,7 +189,12 @@ class TestFallback:
 
     def test_nothing_ungrounded_is_ever_returned(self, feed, moment):
         """The point of the whole module. Whatever the model does, the text
-        that comes back passed the check."""
+        that comes back passed the check.
+
+        The cited version is what is re-checked. The stripped paragraph cannot
+        pass, because a sentence with no citation has nothing to be read
+        against, which is why both are kept.
+        """
         from app.grounding import check
 
         facts = facts_from_buildup(feed.buildup(MATCH_1986, moment))
@@ -187,7 +205,7 @@ class TestFallback:
             (INVENTED_PLAYER, INVENTED_PENALTY, SAYS_NOTHING),
         ):
             narrated, _ = narrate_with(feed, moment, *lines)
-            assert check(narrated.text, facts).grounded, narrated.text
+            assert check(narrated.tagged_text, facts).grounded, narrated.tagged_text
 
     def test_an_ungroundable_fallback_raises_rather_than_voicing_it(
         self, feed, moment, monkeypatch
@@ -196,13 +214,52 @@ class TestFallback:
         say, so this raises instead of handing back something unlabelled."""
         monkeypatch.setattr(
             "app.narration.template_narration",
-            lambda facts: "Valdano scores the penalty of the century.",
+            lambda facts: "Valdano scores the penalty of the century. [24]",
         )
         with pytest.raises(NarrationNotGrounded) as raised:
             narrate_with(
                 feed, moment, INVENTED_PLAYER, INVENTED_PENALTY, SAYS_NOTHING
             )
         assert "nothing safe to voice" in str(raised.value)
+
+
+class TestCitations:
+    """The tags are machinery for the check, not copy.
+
+    `CLAUDE.md` governs what the app says, and "[22, 24]" is not something a
+    screen displays or a voice reads aloud, so it comes off before either. What
+    passed the check is kept beside it, because that is the version a reader can
+    audit sentence by sentence.
+    """
+
+    def test_the_narration_that_is_shown_carries_no_tags(self, feed, moment):
+        for lines in (
+            (GROUNDED,),
+            (INVENTED_PLAYER, GROUNDED),
+            (INVENTED_PLAYER, INVENTED_PENALTY, SAYS_NOTHING),
+        ):
+            narrated, _ = narrate_with(feed, moment, *lines)
+            assert "[" not in narrated.text, narrated.text
+            assert "]" not in narrated.text, narrated.text
+
+    def test_the_narration_that_is_shown_is_one_paragraph(self, feed, moment):
+        """The prompt asks for one sentence per line, which is how the tags are
+        read. The voice does not want the line breaks."""
+        narrated, _ = narrate_with(
+            feed, moment, INVENTED_PLAYER, INVENTED_PENALTY, SAYS_NOTHING
+        )
+        assert "\n" not in narrated.text
+        assert narrated.text.startswith(f"Minute {moment.minute}.")
+
+    def test_the_cited_version_is_kept(self, feed, moment):
+        narrated, _ = narrate_with(feed, moment, GROUNDED)
+        assert narrated.tagged_text == GROUNDED
+        assert strip_citations(narrated.tagged_text) == narrated.text
+
+    def test_an_attempt_is_recorded_as_the_model_wrote_it(self, feed, moment):
+        """A failure report has to be recognisable against what was checked."""
+        narrated, _ = narrate_with(feed, moment, INVENTED_PLAYER, GROUNDED)
+        assert narrated.attempts[0].text == INVENTED_PLAYER
 
 
 class TestFailureLog:
@@ -246,6 +303,6 @@ class TestPassRate:
 
     def test_a_retried_narration_is_not_counted_as_a_pass(self, feed, moment):
         retried = narrate_with(feed, moment, INVENTED_PLAYER, GROUNDED)[0]
-        assert retried.text == GROUNDED
+        assert retried.text == GROUNDED_SHOWN
         assert not retried.first_attempt_grounded
         assert pass_rate([retried]) == (0, 1)
