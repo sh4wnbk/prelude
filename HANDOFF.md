@@ -458,6 +458,47 @@ would mean the check refusing copy for its length rather than its grounding,
 which is a different job; if it is wanted, it belongs in `app/narration.py`
 beside the retry rule.
 
+### Phase 4, task 3c
+
+**Four documents, each statement carrying its file and its test.**
+
+| Document | What it covers |
+| -------- | -------------- |
+| `docs/HARNESS.md` | the environment, the data, the eight entry points, the test harness and its two guards |
+| `docs/VERIFICATION.md` | the five claim surfaces and the checker for each, with one test per claim kind |
+| `docs/GOVERNANCE.md` | each rule in `CLAUDE.md`, what enforces it, and where the weak layer is blind |
+| `docs/IBM_STACK.md` | Bob's module and its session exports, the watsonx provider, both candidate model ids, and TTS and Orchestrate under Planned |
+
+**The citations are checked, which is the point of writing them.**
+`check_cited_tests` in `scripts/check_docs.py` resolves every test a doc names
+against a live `pytest --collect-only` run, in all three forms pytest addresses
+one plus a bare class or test name. It found nothing stale on its first run, so
+it was tested the other way: three bad citations were added to `docs/HARNESS.md`
+and the gate reported all three, one per form.
+
+The gate now reads 13 docs, and on this commit it resolves 132 citations of a
+test alongside 208 path references. The number of count claims it checks is not
+quotable here, because this paragraph would be one of them: the first draft of
+it put a figure in front of the word "test" twice, and `check_test_count` read
+both as claims about the suite and failed. That is the older check working on
+the newer document, not a false alarm, and it is why the sentence is phrased
+this way.
+
+**What the new checks share with the old ones.** The four documents went into
+`DOCS`, so they get the path check and the no-em-dash check that every doc
+already had. `TEST_TARGET_CITE` became `TEST_NODE_CITE` and now matches a full
+node id as well as a file and a class, so a count claim beside a single cited
+test is scoped to that test rather than read as a claim about the suite.
+`collected_targets` became `collected`, which keeps its one collection run
+because three checks now read it.
+
+**Nothing tests `scripts/check_docs.py` itself,** as with the other two gates:
+its evidence is the counts it prints and its exit code. `docs/VERIFICATION.md`
+says so in the same words, under what is not verified.
+
+**`README.md` gained a documents table** so the four are findable, and it states
+the one property that makes them evidence rather than description.
+
 ### Phase 4, task 2c
 
 **The credentials moved out of the repo.** They now live at `~/.prelude/.env`

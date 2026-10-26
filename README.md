@@ -180,6 +180,26 @@ enforce between them, with what the check still cannot decide.
 No claim in this README is intended to run ahead of the code. If you find one
 that does, it is a bug in the README.
 
+## The documents
+
+| Document | What it covers |
+| -------- | -------------- |
+| [`docs/HARNESS.md`](docs/HARNESS.md) | everything you run to exercise the repo, and what each thing stands on |
+| [`docs/VERIFICATION.md`](docs/VERIFICATION.md) | what this repo claims, and what checks each claim |
+| [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) | the rules in `CLAUDE.md`, and what enforces each one |
+| [`docs/IBM_STACK.md`](docs/IBM_STACK.md) | which IBM parts are built, and which are planned |
+| [`docs/VOICE.md`](docs/VOICE.md) | the narration voice the prompt and the grounding check enforce |
+| [`docs/narration.md`](docs/narration.md) | the narration modules, where their shapes came from, and what they are not |
+| [`docs/DESIGN.md`](docs/DESIGN.md) | the screens, cited against the markup |
+| [`docs/bob_brief.md`](docs/bob_brief.md) | the brief IBM Bob built the EventFeed module to |
+| [`docs/data_check.md`](docs/data_check.md) | generated: the 1986 goals and shot counts, from the data |
+| [`HANDOFF.md`](HANDOFF.md) | what was built when, what was deviated from, and what is next |
+
+The first four put the file and a test beside nearly every statement they make,
+and `scripts/check_docs.py` resolves every one of those citations against a live
+pytest collection, so a renamed test breaks the gate rather than leaving a
+citation pointing nowhere.
+
 ## Credentials
 
 No credential is in this repo. `.env.example` lists the variable names and

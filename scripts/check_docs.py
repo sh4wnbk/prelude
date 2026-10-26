@@ -1,11 +1,13 @@
 r"""Check that the docs still describe the code they quote.
 
-Every doc in this repo points at code: `docs/DESIGN.md` cites file and line,
-`docs/bob_brief.md` quotes live test output and a test count, `README.md` lists
-what runs. All of that is correct when written and goes stale silently the next
-time the code moves. Nothing re-validates it, which is how a citation survived a
-file shrinking by twenty lines and how the brief kept quoting a failure message
-that had been rewritten.
+Every doc in this repo points at code: `docs/DESIGN.md` cites a screen and a
+class string in it, `docs/bob_brief.md` quotes live test output and a test
+count, `README.md` lists what runs, and `docs/HARNESS.md`,
+`docs/VERIFICATION.md`, `docs/GOVERNANCE.md` and `docs/IBM_STACK.md` put a file
+and a test beside nearly every statement they make. All of that is correct when
+written and goes stale silently the next time the code moves. Nothing
+re-validates it, which is how a citation survived a file shrinking by twenty
+lines and how the brief kept quoting a failure message that had been rewritten.
 
 This checks the quotable claims. It does not check prose. Exit code is 1 if
 anything has drifted, so it can gate a commit. Run:
@@ -39,6 +41,10 @@ DOCS = [
     ROOT / "HANDOFF.md",
     ROOT / "CLAUDE.md",
     ROOT / "docs" / "DESIGN.md",
+    ROOT / "docs" / "GOVERNANCE.md",
+    ROOT / "docs" / "HARNESS.md",
+    ROOT / "docs" / "IBM_STACK.md",
+    ROOT / "docs" / "VERIFICATION.md",
     ROOT / "docs" / "bob_brief.md",
     ROOT / "docs" / "data_check.md",
     ROOT / "docs" / "narration.md",
@@ -198,29 +204,57 @@ def check_quoted_pytest_result(fail):
         print("  bob_brief.md: quoted pytest result matches live output")
 
 
-# A test target named in a claim, which scopes that claim to it: either a test
-# file or one class inside one, written the way pytest addresses it. There is
-# more than one test file now, so a bare count has to be read as a count of
-# something, and one file can hold tests in two states at once:
+# A test target named in a doc, written the way pytest addresses it: a test
+# file, one class inside one, or one test. A target scopes a count claim beside
+# it, and `check_cited_tests` resolves every one of them whether a count is
+# beside it or not.
+#
+# There is more than one test file now, so a bare count has to be read as a
+# count of something, and one file can hold tests in two states at once:
 # `tests/test_event_feed.py` holds the built EventFeed contract and the pending
 # buildup contract together, so the only honest counts are the file's total and
 # the per-class breakdown.
-TEST_TARGET_CITE = re.compile(
-    r"`(tests/test_[A-Za-z0-9_]+\.py(?:::[A-Za-z0-9_]+)?)`"
+TEST_NODE_CITE = re.compile(
+    r"`(tests/test_[A-Za-z0-9_]+\.py(?:::[A-Za-z0-9_]+){0,2})`"
 )
 
+# A class or a test named on its own, which the docs do where the sentence
+# around it makes the file obvious. Anchored on the opening backtick, so a name
+# inside a longer span such as `tests/test_grounding.py` is not read as one.
+BARE_TEST_CITE = re.compile(r"`(test_[a-z0-9_]+|Test[A-Za-z0-9_]*)`")
 
-def collected_targets():
-    """(counts by file and by file::class, suite total), from pytest itself."""
-    lines = [l for l in run_pytest("--collect-only", "-q").splitlines() if "::" in l]
+_COLLECTED = None
+
+
+def collected():
+    """(counts by target, suite total, every node id), from pytest itself.
+
+    `counts` is keyed by test file, by file::class, and by full node id, so one
+    lookup answers both "how many tests does this target hold" and "is this a
+    target at all". Kept after the first call, because three checks read it and
+    a collection pass over the suite is not free.
+    """
+    global _COLLECTED
+    if _COLLECTED is not None:
+        return _COLLECTED
+
+    nodes = [
+        line.strip().replace("\\", "/")
+        for line in run_pytest("--collect-only", "-q").splitlines()
+        if "::" in line
+    ]
     counts = {}
-    for line in lines:
-        path, _, rest = line.strip().replace("\\", "/").partition("::")
+    for node in nodes:
+        path, _, rest = node.partition("::")
         counts[path] = counts.get(path, 0) + 1
         if "::" in rest:
             target = f"{path}::{rest.split('::', 1)[0]}"
             counts[target] = counts.get(target, 0) + 1
-    return counts, len(lines)
+        # The node id itself holds one test, which is what makes a count claim
+        # beside a single cited test scope to that test.
+        counts[node] = 1
+    _COLLECTED = (counts, len(nodes), tuple(nodes))
+    return _COLLECTED
 
 
 def claimed_counts(block):
@@ -246,18 +280,23 @@ def check_test_count(fail):
     were the same number, and reading every claim as a claim about the whole
     suite would now report a correct per-file sentence as stale.
     """
-    counts, total = collected_targets()
+    counts, total, _ = collected()
     if not total:
         fail("tests", "pytest collected no tests")
         return
 
     checked = 0
-    for doc in (ROOT / "docs" / "bob_brief.md", ROOT / "HANDOFF.md", ROOT / "README.md"):
+    for doc in (
+        ROOT / "docs" / "bob_brief.md",
+        ROOT / "HANDOFF.md",
+        ROOT / "README.md",
+        ROOT / "docs" / "HARNESS.md",
+    ):
         for block in design_blocks(doc.read_text(encoding="utf-8")):
             claims = claimed_counts(block)
             if not claims:
                 continue
-            cited = sorted(set(TEST_TARGET_CITE.findall(block)))
+            cited = sorted(set(TEST_NODE_CITE.findall(block)))
             if len(cited) == 1:
                 scope, expected = cited[0], counts.get(cited[0], 0)
             else:
@@ -270,6 +309,49 @@ def check_test_count(fail):
     files = sum(1 for key in counts if "::" not in key)
     print(f"  test count: {checked} claim(s) checked, "
           f"{total} collected across {files} file(s)")
+
+
+def check_cited_tests(fail):
+    """A test a doc cites is one pytest collects.
+
+    `docs/HARNESS.md`, `docs/VERIFICATION.md`, `docs/GOVERNANCE.md` and
+    `docs/IBM_STACK.md` put a file and a test beside nearly every statement they
+    make, which is the only thing that makes those documents evidence rather
+    than description. A renamed test would leave them pointing at nothing while
+    still reading as evidence, so a citation is checked the way a path is: it
+    resolves, or the gate fails.
+
+    Both forms are checked. A node id is resolved against what pytest collects,
+    in any of the three ways pytest addresses one: a file, a class in a file, or
+    a single test. A class or test named on its own is resolved against the
+    names pytest collected, for the places where the file is obvious from the
+    sentence around it.
+    """
+    counts, total, nodes = collected()
+    if not total:
+        fail("tests", "pytest collected no tests")
+        return
+
+    classes = {part for node in nodes for part in node.split("::")[1:-1]}
+    names = {node.split("::")[-1] for node in nodes}
+
+    checked = 0
+    for doc in DOCS:
+        text = doc.read_text(encoding="utf-8")
+        for cite in sorted(set(TEST_NODE_CITE.findall(text))):
+            checked += 1
+            if cite not in counts:
+                fail(doc.name, f"cites {cite}, which pytest does not collect")
+        for cite in sorted(set(BARE_TEST_CITE.findall(text))):
+            checked += 1
+            if cite.startswith("test_"):
+                if cite not in names:
+                    fail(doc.name,
+                         f"cites the test {cite}, which pytest does not collect")
+            elif cite not in classes:
+                fail(doc.name,
+                     f"cites the test class {cite}, which pytest does not collect")
+    print(f"  tests cited: {checked} citation(s) resolved against {total} collected")
 
 
 def check_referenced_paths(fail):
@@ -346,6 +428,7 @@ def main():
         check_design_landmarks,
         check_quoted_pytest_result,
         check_test_count,
+        check_cited_tests,
         check_referenced_paths,
         check_quoted_screen_copy,
         check_no_em_dashes,
