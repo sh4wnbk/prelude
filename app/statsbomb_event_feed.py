@@ -132,11 +132,14 @@ class StatsBombEventFeed:
         shot_type = shot["shot"]["type"]["name"]
         is_set_piece = shot_type in SET_PIECE_SHOT_TYPES
 
-        # Collect the goal's possession up to and including the shot.
+        # Collect the goal's possession up to and including the shot,
+        # restricted to the goal's own period (a possession can span a
+        # period boundary).
         goal_possession_events = [
             e
             for e in events
             if e["possession"] == goal_possession
+            and e["period"] == goal_period
             and e["index"] <= shot_index
         ]
 

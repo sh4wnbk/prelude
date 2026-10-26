@@ -579,3 +579,70 @@ class TestBuildup:
             for event in buildup.events:
                 assert event["id"] in raw_by_id
                 assert event == raw_by_id[event["id"]]
+
+    def test_goal_possession_does_not_cross_period_boundary(self):
+        """A goal possession that spans a period boundary must be truncated at
+        the period, not just the shot.
+
+        This is the latent gap noted in `docs/bob_brief.md` Task 4: before the
+        fix `goal_possession_events` had no period filter, so events from the
+        prior period that shared the same possession number were included.
+
+        The test synthesises a minimal feed where possession 1 straddles the
+        half-time boundary (one event in period 1, the shot in period 2) and
+        asserts that the buildup contains only the period-2 event.
+        """
+        from app.statsbomb_event_feed import StatsBombEventFeed
+
+        prior_event = {
+            "id": "aaa",
+            "index": 1,
+            "period": 1,
+            "minute": 44,
+            "second": 59,
+            "type": {"name": "Pass"},
+            "possession": 1,
+            "team": {"name": "Argentina"},
+            "player": {"name": "Diego Armando Maradona"},
+        }
+        shot_event = {
+            "id": "bbb",
+            "index": 2,
+            "period": 2,
+            "minute": 0,
+            "second": 15,
+            "type": {"name": "Shot"},
+            "possession": 1,
+            "team": {"name": "Argentina"},
+            "player": {"name": "Diego Armando Maradona"},
+            "shot": {
+                "outcome": {"name": "Goal"},
+                "type": {"name": "Open Play"},
+            },
+        }
+        synthetic_events = [prior_event, shot_event]
+
+        feed = StatsBombEventFeed()
+        feed.load_match = lambda match_id: synthetic_events  # type: ignore[method-assign]
+
+        from app.event_feed import Moment
+        moment = Moment(
+            type="Goal",
+            team="Argentina",
+            player="Diego Armando Maradona",
+            minute=0,
+            second=15,
+        )
+        buildup = feed.buildup(0, moment)
+
+        event_ids = [e["id"] for e in buildup.events]
+        assert "bbb" in event_ids, "the goal shot must be in the buildup"
+        assert "aaa" not in event_ids, (
+            "event from period 1 must be excluded: the goal's possession "
+            "spans a period boundary and must be truncated at the period"
+        )
+        for event in buildup.events:
+            assert event["period"] == 2, (
+                f"all buildup events must be in period 2, got period "
+                f"{event['period']} for event {event['id']!r}"
+            )
