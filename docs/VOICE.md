@@ -264,13 +264,13 @@ allegiance, whether their side scored or conceded, and how far into the match
 the moment was, and "Here's the buildup." is what a neutral listener gets. A
 fan gets a header in front of it instead.
 
-### The header table, which no code reads yet
+### The header table
 
-**The contract is written and the module is not.**
-`app/orchestrator_contract.py` declares the table below and
-`tests/test_orchestrator.py` asserts it, with 38 tests failing until IBM Bob
-builds `app/orchestrator.py` against the brief in `docs/bob_brief.md`. Nothing
-in the app produces a header today.
+**The module is built and no screen calls it yet.**
+`app/orchestrator_contract.py` declares the table below, IBM Bob built
+`app/orchestrator.py` against it, and `tests/test_orchestrator.py` asserts it,
+all passing. No screen shows a header yet; Task 7 puts it on the moment
+card.
 
 | | early | middle | late |
 | --- | --- | --- | --- |

@@ -22,7 +22,6 @@ import socket
 
 import pytest
 
-import app.orchestrator  # noqa: F401 — patches app.orchestrator_contract functions
 from app.credentials import ENV_FILE_VARIABLE
 
 

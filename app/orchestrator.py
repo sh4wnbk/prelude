@@ -131,14 +131,3 @@ class PreludeOrchestrator:
 
 
 assert isinstance(PreludeOrchestrator(), Orchestrator)
-
-# Patch the contract module so tests that import the six functions directly
-# from app.orchestrator_contract get the real implementations.
-import app.orchestrator_contract as _contract  # noqa: E402
-
-_contract.greeting_word = greeting_word
-_contract.phase = phase
-_contract.score_state = score_state
-_contract.outcome = outcome
-_contract.header = header
-_contract.default_persona = default_persona

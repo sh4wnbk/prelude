@@ -101,8 +101,8 @@ Everything above it is structure.
   to a goal as untouched source records. `buildup` returns the goal's whole
   possession, plus the previous possession when the goal came from a set piece,
   which is how the foul that won a penalty reaches a caller.
-- `tests/test_event_feed.py`: 27 tests over the EventFeed contract, including
-  `buildup`. All 27 pass against `app/statsbomb_event_feed.py`.
+- `tests/test_event_feed.py`: 28 tests over the EventFeed contract, including
+  `buildup`. All 28 pass against `app/statsbomb_event_feed.py`.
 - `app/narration_provider.py`: one narration interface with two backends,
   Ollama (the default, local) and watsonx.ai (only when named). Callable from
   Python; no screen calls it. `provider()` returns the Ollama backend, and
@@ -163,6 +163,13 @@ Everything above it is structure.
 
 **Exists but does nothing yet:**
 
+- `app/orchestrator.py`: picks the line said before the narration starts:
+  "today" or "tonight" from the kickoff time, a header from the listener's
+  side, whether it scored or conceded, and how far into regulation time the
+  goal came, and a default persona. The shapes and the header wording live in
+  `app/orchestrator_contract.py`. Callable from Python; no screen calls it yet.
+- `tests/test_orchestrator.py`: 47 tests over the orchestrator, covering both
+  demo matches and a made-up sixty minute sport. All 47 pass.
 - `app/event_feed.py`: the data shapes and the `EventFeed` interface. A
   contract only; `app/statsbomb_event_feed.py` is what implements it.
 - `app/narration_config.py`: the model ids and which one is active. Values

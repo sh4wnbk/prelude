@@ -204,7 +204,7 @@ rule is a rule and not a formality: possession 99 of the 1986 match spans half
 time, and four possessions of the 2022 final span a boundary. None of the four
 covered goals hits the case, so the rule is specified and untested by data.
 
-**The suite.** `tests/test_event_feed.py::TestBuildup` is 13 tests. While the
+**The suite.** `tests/test_event_feed.py::TestBuildup` was thirteen tests at this point. While the
 method was unbuilt, 12 failed with
 `No buildup implementation yet: StatsBombEventFeed has no buildup method` and
 nothing else. The thirteenth checks the written-down expected values against
@@ -697,9 +697,9 @@ about.
 
 **The orchestrator contract is declared and its tests fail. Bob builds it
 next.** `app/orchestrator_contract.py` holds the shapes, the wording table and
-six functions, every one of which raises. `tests/test_orchestrator.py` holds
-44 tests: 38 fail with `NotImplementedError: the orchestrator is not built
-yet` and 6 pass. `docs/bob_brief.md` carries the brief as Task 4.
+six functions, every one of which raises. `tests/test_orchestrator.py` was
+handed over with forty-four tests: 38 failed with `NotImplementedError: the
+orchestrator is not built yet` and 6 passed. `docs/bob_brief.md` carries the brief as Task 4.
 
 **What the orchestrator is for.** The narration says only what the play data
 proves, and that rule leaves it unable to greet anyone, unable to know which
@@ -768,6 +768,38 @@ outside `tests/test_orchestrator.py` means something is actually wrong.
 latent period gap in `buildup` in the same session, since that is his module:
 the set-piece reach back a possession has nothing stopping it crossing a
 period boundary, and no goal in either demo match triggers it today.
+
+### Phase 4, Bob task 4
+
+**The orchestrator is built, by IBM Bob, in `1c4063a`.** `app/orchestrator.py`
+implements the six functions declared in `app/orchestrator_contract.py` and
+`PreludeOrchestrator`, whose `opening` returns the greeting word, the header
+and the default persona together. The contract was not edited.
+
+**Claude Code's follow-up changed where the tests import from.** The tests
+written in Task 5 imported the six functions from the contract, which only raises, so they
+could not pass unless the contract changed. Bob was forbidden to edit it, and
+instead overwrote the contract's functions from `app/orchestrator.py` at
+import time, adding an import to `tests/conftest.py` so the overwrite ran
+before any test. The tests were the fault, so the fix went there:
+`tests/test_orchestrator.py` now imports the functions from
+`app/orchestrator.py` and the shapes and wording from the contract, the
+overwrite block and the conftest import are gone, and the contract's
+functions raise again on their own. Three tests were added in
+`tests/test_orchestrator.py::TestTheOpening`, because none of the
+handed-over tests called `opening`, which is what the app will call.
+
+**The period gap was not where the brief said.** The brief placed it in the
+set-piece reach back a possession, but that reach already filtered by the
+goal's period. The unguarded path was the goal's own possession, and
+possession 99 of the 1986 match is one that spans half time. Bob added the
+period filter there, with
+`tests/test_event_feed.py::TestBuildup::test_goal_possession_does_not_cross_period_boundary`,
+a synthetic feed that fails without the fix. No goal in either demo match
+reaches it, so no narration output changes.
+
+**The suite is all green.** `pytest -q` reports `298 passed`, and the four
+gates pass.
 
 ### Phase 4, task 3c
 
@@ -1589,13 +1621,12 @@ Tasks 3d through Phase 7, as agreed with Shawn, copied here so a fresh session
 has the whole arc rather than one task at a time.
 
 **Everything in this section is planned work except where a task is marked
-done.** Tasks 3d, 4a, 4c and 5 are built; nothing below them exists. The paths
-named here that have not been written yet are listed in `DELIBERATELY_ABSENT`
-in `scripts/check_docs.py`, so the docs gate fails if one of them appears and
-this section was not updated with it. `docs/narration_eval.md`,
-`app/orchestrator_contract.py` and `tests/test_orchestrator.py` have all come
-off that list as the tasks that write them landed; `app/orchestrator.py` is
-what is left on it, and it is Bob's.
+done.** Tasks 3d, 4a, 4c and 5 are built, and so is Bob's task 4, the
+orchestrator; nothing below them exists. Paths a doc names before they are
+written go on `DELIBERATELY_ABSENT` in `scripts/check_docs.py`, so the docs
+gate fails if one appears and this section was not updated with it. The list
+is empty now: `app/orchestrator.py` was the last entry, and came off when Bob
+built it.
 
 Shawn is asked whether to continue at the end of each task, after the exit
 commands have run, because an adjustment may be wanted before the next one
@@ -1688,9 +1719,8 @@ a "Task 4: the orchestrator" section to `docs/bob_brief.md`.
 Exit when: the new tests fail only because the orchestrator isn't implemented,
 everything else passes, and the work is pushed. Stop; Shawn runs Bob.
 
-**Bob, task 4:** implement the orchestrator. Shawn writes the prompt when Task 5
-is pushed. Bob can also fix the latent period gap in `buildup` in the same
-session, since that is Bob's module.
+**Bob, task 4 (done, `1c4063a`):** implemented the orchestrator and fixed the
+period gap in `buildup`. See "Phase 4, Bob task 4" under What was built.
 
 ### Task 6: personas
 
@@ -1786,17 +1816,19 @@ speed, per persona; this file records which leads; and Shawn picks the model.
   session (all gates, both matches, a real-phone check).
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Shawn runs Bob, then Task 6)
+## Next first action (Task 6, the personas)
 
-**Nothing in this repo is the next action. Shawn runs Bob against Task 4 in
-`docs/bob_brief.md`,** which implements `app/orchestrator.py` against the
-contract and turns the 38 failing tests green. That path is the only one left
-on `DELIBERATELY_ABSENT` in `scripts/check_docs.py`, so the docs gate fails
-the moment it appears and the brief still calls it unbuilt.
+**Task 6 in the Plan is next,** and it is Claude Code's. Bob's task 4 is built
+and checked: `app/orchestrator.py` passes all of `tests/test_orchestrator.py`,
+and every gate is green.
 
-After Bob: Task 6, the personas. Task 4b, the paid watsonx comparison, can run
-at any point and now has one extra arm to run, recorded in the Plan: one
-candidate without the beats block, on the five multi-beat goals only.
+**One thing is outstanding from Bob's session: its export is not in the repo
+yet.** The screenshot and markdown for task 4 go in `bob_sessions/` like the
+three before them, scrubbed of credentials before the commit.
+
+Task 4b, the paid watsonx comparison, can run at any point and has one extra
+arm recorded in the Plan: one candidate without the beats block, on the five
+multi-beat goals only.
 
 **Read `docs/narration_eval.md` first.** It is the measured state of the
 narration, and it now holds two runs. Task 4a found grounding healthy on the
@@ -1817,8 +1849,8 @@ What is in place:
 | ---- | ----- |
 | The contract | `app/event_feed.py`, shapes and protocol |
 | The implementation | `app/statsbomb_event_feed.py`, class `StatsBombEventFeed` |
-| The tests | `tests/test_event_feed.py`, 27 tests, all passing |
-| The buildup tests | the 13 in `tests/test_event_feed.py::TestBuildup` |
+| The tests | `tests/test_event_feed.py`, 28 tests, all passing |
+| The buildup tests | the 14 in `tests/test_event_feed.py::TestBuildup` |
 | The brief it was built to | `docs/bob_brief.md` |
 
 Run the suite with `.\.venv-prelude\Scripts\python.exe -m pytest`.

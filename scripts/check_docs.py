@@ -59,14 +59,12 @@ DOCS = [
 # until the plan entry is rewritten as built work, which is what stops a plan
 # quietly outliving the thing it planned.
 #
-# `docs/narration_eval.md` came off this list when Task 4a built it, and
-# `app/orchestrator_contract.py` and `tests/test_orchestrator.py` came off it
-# when Task 5 wrote them. What is left is the module Bob builds next, which
-# `docs/bob_brief.md` names as the thing to create. When it exists, this line
-# fails until the brief and the plan are rewritten to describe built work.
-DELIBERATELY_ABSENT = {
-    "app/orchestrator.py",   # Bob, task 4, against app/orchestrator_contract.py
-}
+# `docs/narration_eval.md` came off this list when Task 4a built it,
+# `app/orchestrator_contract.py` and `tests/test_orchestrator.py` when Task 5
+# wrote them, and `app/orchestrator.py` when Bob built it in Task 4. Nothing is
+# deliberately absent now. Add a path here when a doc names one before it is
+# written.
+DELIBERATELY_ABSENT: set[str] = set()
 
 PATH_IN_BACKTICKS = re.compile(
     r"`((?:app|docs|scripts|tests|bob_sessions)/[A-Za-z0-9_./-]+)`"

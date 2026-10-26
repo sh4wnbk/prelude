@@ -8,7 +8,9 @@ is reserved for you; nobody else in this repo implements it.
 - `app/statsbomb_event_feed.py` is in the repo and satisfies the `EventFeed`
   protocol in full. It took three sessions: the build, a fix to where the event
   window ends, then `buildup`.
-- `tests/test_event_feed.py` holds 27 tests and they all pass.
+- `tests/test_event_feed.py` holds 28 tests and they all pass. The 28th,
+  `test_goal_possession_does_not_cross_period_boundary`, came with the period
+  gap fix in the Task 4 session.
 - `buildup` landed in `24e1a8d`, and that session merged `BuildupFeed` into
   `EventFeed`, which is what the Task 3 brief below asked for. `BuildupFeed`
   survives in `app/event_feed.py` as an alias of `EventFeed`, so the tests'
@@ -111,7 +113,7 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 
 ## The tests to pass
 
-`tests/test_event_feed.py`, 27 tests. Run them with:
+`tests/test_event_feed.py`, 28 tests. Run them with:
 
 ```
 .\.venv-prelude\Scripts\python.exe -m pytest
@@ -120,7 +122,7 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-38 failed, 256 passed
+298 passed
 ```
 
 The total covers far more than this module now. Phase 4 added the narration
@@ -128,12 +130,9 @@ provider, the prompt, the grounding check and the evaluation, each with its
 own tests; run `pytest tests/test_event_feed.py` to see this module's tests
 alone.
 
-**The 38 failures are the next task, not a broken repo.** They are all in
-`tests/test_orchestrator.py` and every one of them fails with
-`NotImplementedError: the orchestrator is not built yet`, raised by
-`app/orchestrator_contract.py`. That is the state Task 4 below is handed over
-in. Everything else passes, and a failure anywhere else means something is
-actually wrong.
+Every test passes, so any failure means something is actually wrong. That
+includes `tests/test_orchestrator.py`, which went green when Task 4 below was
+built.
 
 The suite still guards the import, and three messages mean three different
 things if that changes. In `tests/test_event_feed.py`, every test that builds
@@ -355,14 +354,16 @@ narrow the set to `"Penalty"` because that is what the tests reach.
 
 ### The tests to pass
 
-`tests/test_event_feed.py::TestBuildup`, 13 tests. All 13 pass.
+`tests/test_event_feed.py::TestBuildup`, 14 tests. All 14 pass. The fourteenth,
+`test_goal_possession_does_not_cross_period_boundary`, was added with the period
+gap fix in the Task 4 session.
 
 While the method was unbuilt, 12 of them failed with
 `No buildup implementation yet: StatsBombEventFeed has no buildup method.`
 That guard is still in the test file, so the same message returns if the method
 is ever removed.
 
-The thirteenth, `test_the_expected_values_are_what_the_raw_data_says`, passed
+Of the first thirteen, `test_the_expected_values_are_what_the_raw_data_says`, passed
 throughout and must keep passing. It checks the expected values in the test
 file against `data/raw/` without going near the implementation, so a wrong
 expectation fails on its own line instead of looking like a bug in the code.
@@ -396,6 +397,21 @@ contract is yours to change, in `app/event_feed.py`, with
 and do not leave the two disagreeing.
 
 ## Task 4: the orchestrator
+
+**Status: built, in `1c4063a`.** `app/orchestrator.py` implements the six
+functions and `PreludeOrchestrator`, whose `opening` puts their answers
+together. All 47 tests in `tests/test_orchestrator.py` pass. The contract is
+unchanged and its functions still raise; callers import from
+`app/orchestrator.py`.
+
+The tests as first written imported the six functions from the contract, which
+could only raise, so they could not pass without the contract changing. Bob
+was told not to edit it, and worked around it by overwriting the contract's
+functions from `app/orchestrator.py` at import time, with an import added to
+`tests/conftest.py` to make that run first. The fault was in the tests, so the
+fix went there: they now import the functions from `app/orchestrator.py`, and
+the overwrite and the extra import were removed. Three tests on `opening`
+itself were added at the same time, since none of the 44 called it.
 
 Build the module that decides what is said **before** the narration starts.
 
@@ -476,17 +492,13 @@ support a team they did not pick.
 
 ### The tests to pass
 
-`tests/test_orchestrator.py`, 44 tests. 38 fail and 6 pass.
+`tests/test_orchestrator.py`, 47 tests, all passing. 44 were handed over
+with the brief, and 38 of those failed with `NotImplementedError` until the
+module was built. The 3 in `TestTheOpening` were added afterwards.
 
-Every one of the 38 fails with `NotImplementedError: the orchestrator is not
-built yet`, raised by the contract. Nothing fails on an import, a fixture or a
-missing file, so any other kind of failure once you start means something you
-changed, not something that was already broken.
-
-The 6 that pass are `TestTheContractItself`, which reads the wording table and
-the cutoff. They pass now and must keep passing: they are what makes a change
-to the wording a deliberate edit rather than something that slips through
-while everything else is red.
+`TestTheContractItself` reads the wording table and the cutoff. It passed
+before the module existed and must keep passing: it is what makes a change to
+the wording a deliberate edit rather than something that slips through.
 
 `TestAnotherSport` is a sixty minute game in a sport that does not exist. It is
 the proof that nothing counts in football: if a 90 is ever written into the
@@ -510,11 +522,14 @@ inputs in `CLAUDE.md` have not changed.
 descriptions, writing styles and voices are Task 6, and a persona given a
 personality here is one that has to be unpicked later.
 
-### One known gap, which is yours to fix in the same session
+### One known gap, fixed in the same session
 
-`buildup` has a latent period gap: it reaches back a possession for a set
-piece, and nothing stops that reach crossing a period boundary. No goal in
-either demo match triggers it, so no test fails today. It is your module, so
-fix it here rather than leaving it for someone to find with a goal in the
-first minute of a half.
+The gap as described here was in the set-piece reach back a possession. That
+reach already filtered by the goal's period. The unguarded path was the goal's
+own possession: a possession that straddled a period boundary would have
+carried events from the earlier period into the buildup. The goal possession
+now filters by period too, and
+`tests/test_event_feed.py::TestBuildup::test_goal_possession_does_not_cross_period_boundary`
+builds a feed with that shape and checks only the goal's period is returned.
+No goal in either demo match triggers it.
 

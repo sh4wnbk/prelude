@@ -99,11 +99,8 @@ It needs a local Ollama server running the model in `app/narration_config.py`.
 
 ## The test harness
 
-The suite is 294 tests in eight files. 256 pass and 38 fail, and the 38 are
-the orchestrator contract waiting for its implementation: every one of them
-raises `NotImplementedError: the orchestrator is not built yet` from
-`app/orchestrator_contract.py`. A failure anywhere else means something is
-wrong. It is run from the repo root:
+The suite is 298 tests in eight files, and all of them pass, so any failure
+means something is wrong. It is run from the repo root:
 
 ```
 .\.venv-prelude\Scripts\python.exe -m pytest
@@ -121,7 +118,7 @@ No path setting is needed: `pyproject.toml` sets `pythonpath = ["."]` and
 | `tests/test_narration_provider.py` | the model config and both backends |
 | `tests/test_credentials.py` | where the credentials file lives, and what is refused |
 | `tests/test_narration_eval.py` | the key beats, the coverage measure and the token recorder |
-| `tests/test_orchestrator.py` | the greeting, the phase, the score state, the header table and the default persona, all failing until Bob builds the module |
+| `tests/test_orchestrator.py` | the greeting, the phase, the score state, the header table, the default persona and `opening`, against `app/orchestrator.py` |
 
 ### Two guards, on every test
 

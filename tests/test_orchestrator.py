@@ -1,16 +1,10 @@
-"""Acceptance tests for the orchestrator, written before it exists.
+"""Acceptance tests for the orchestrator.
 
 `app/orchestrator_contract.py` declares the shapes, the wording table and the
-functions; every function in it raises. These tests say what the functions
-have to return, and they fail until IBM Bob builds the module.
-`docs/bob_brief.md` carries the brief as Task 4.
-
-**They fail, and they fail for one reason.** Every test here calls something
-the contract declares and does not implement, so the failure is
-`NotImplementedError` from the contract and never an import error, a missing
-fixture or a typo in a test. That is the state the task is handed over in, and
-a green suite before Bob has built anything would mean these tests are not
-asserting what they claim to.
+functions, and every function in it raises. IBM Bob built
+`app/orchestrator.py` against it (Task 4 in `docs/bob_brief.md`), and these
+tests call that module. The constants and shapes are still read from the
+contract, because the contract is what the wording is edited in.
 
 **Both demo matches are covered, and one sport that does not exist.** The
 phase of a game is a share of regulation time rather than a count of minutes,
@@ -50,7 +44,12 @@ from app.orchestrator_contract import (
     TONIGHT,
     Event,
     Listener,
+    Opening,
+    Orchestrator,
     ScoringMoment,
+)
+from app.orchestrator import (
+    PreludeOrchestrator,
     default_persona,
     greeting_word,
     header,
@@ -288,6 +287,27 @@ class TestTheDefaultPersona:
 
     def test_a_neutral_listener_gets_the_storyteller(self):
         assert default_persona(ANYONE) == STORYTELLER
+
+
+class TestTheOpening:
+    """`opening` is what the app calls, so it is checked as a whole too."""
+
+    def test_satisfies_the_protocol(self):
+        assert isinstance(PreludeOrchestrator(), Orchestrator)
+
+    def test_argentina_fan_on_the_1986_54_18_goal(self):
+        assert PreludeOrchestrator().opening(MEXICO_86, GOAL_54_18, ARGENTINA) == Opening(
+            greeting="today",
+            header="Good news. Here's how it happened.",
+            persona="mate",
+        )
+
+    def test_neutral_listener_on_the_2022_22_24_penalty(self):
+        assert PreludeOrchestrator().opening(QATAR_22, GOAL_22_24, ANYONE) == Opening(
+            greeting="tonight",
+            header="Here's the buildup.",
+            persona="storyteller",
+        )
 
 
 class TestAnotherSport:
