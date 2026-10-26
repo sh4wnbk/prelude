@@ -99,7 +99,7 @@ It needs a local Ollama server running the model in `app/narration_config.py`.
 
 ## The test harness
 
-The suite is 298 tests in eight files, and all of them pass, so any failure
+The suite is 299 tests in eight files, and all of them pass, so any failure
 means something is wrong. It is run from the repo root:
 
 ```

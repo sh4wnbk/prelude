@@ -94,7 +94,7 @@ NEUTRAL_TAIL = "Here's the buildup."
 HEADER_PREFIXES: Mapping[tuple[str, str], str] = {
     (SCORED, EARLY): "Great start.",
     (SCORED, MIDDLE): "Good news.",
-    (SCORED, LATE): "Your side again.",
+    (SCORED, LATE): "Late one for your side.",
     (CONCEDED, EARLY): "Still early.",
     (CONCEDED, MIDDLE): "There's still time.",
     (CONCEDED, LATE): "",
@@ -219,7 +219,7 @@ def header(moment: ScoringMoment, listener: Listener) -> str:
 def default_persona(listener: Listener) -> str:
     """`MATE` for a fan, `STORYTELLER` for a neutral listener.
 
-    A partisan voice is for somebody who has a side. Saying "your side again"
+    A partisan voice is for somebody who has a side. Saying "late one for your side"
     in the Mate's voice to a neutral listener would be telling them they
     support a team they did not choose.
     """

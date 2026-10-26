@@ -168,8 +168,8 @@ Everything above it is structure.
   side, whether it scored or conceded, and how far into regulation time the
   goal came, and a default persona. The shapes and the header wording live in
   `app/orchestrator_contract.py`. Callable from Python; no screen calls it yet.
-- `tests/test_orchestrator.py`: 47 tests over the orchestrator, covering both
-  demo matches and a made-up sixty minute sport. All 47 pass.
+- `tests/test_orchestrator.py`: 48 tests over the orchestrator, covering both
+  demo matches and a made-up sixty minute sport. All 48 pass.
 - `app/event_feed.py`: the data shapes and the `EventFeed` interface. A
   contract only; `app/statsbomb_event_feed.py` is what implements it.
 - `app/narration_config.py`: the model ids and which one is active. Values

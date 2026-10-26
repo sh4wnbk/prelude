@@ -274,7 +274,7 @@ card.
 
 | | early | middle | late |
 | --- | --- | --- | --- |
-| your side scored | Great start. | Good news. | Your side again. |
+| your side scored | Great start. | Good news. | Late one for your side. |
 | your side conceded | Still early. | There's still time. | no prefix |
 | neutral | no prefix | no prefix | no prefix |
 
@@ -287,6 +287,13 @@ phase, with nothing generated and nothing a model chooses. Changing a word is
 a one line edit to `HEADER_PREFIXES` in the contract, which is why the
 implementation is told to read the prefixes out of the table rather than
 writing any of them down.
+
+**The late scored cell says nothing about earlier goals.** It first read "Your
+side again.", which was false for England's only goal in 1986, at 80:37: the
+header is built from the kickoff time, the score after the moment and the
+listener's side, and none of those says whether this side scored before.
+`tests/test_orchestrator.py::TestTheHeader::test_a_late_first_goal_gets_no_again`
+holds it to that.
 
 **The late conceded cell is empty on purpose.** "There's still time" is a
 kindness early and a lie late, and a phone telling somebody there is still

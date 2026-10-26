@@ -236,7 +236,13 @@ class TestTheHeader:
         assert header(GOAL_54_18, ARGENTINA) == "Good news. Here's how it happened."
 
     def test_a_fan_whose_side_scored_late(self):
-        assert header(GOAL_107_58, ARGENTINA) == "Your side again. Here's how it happened."
+        assert header(GOAL_107_58, ARGENTINA) == "Late one for your side. Here's how it happened."
+
+    def test_a_late_first_goal_gets_no_again(self):
+        # England's only goal of the 1986 match. The cell once read "Your side
+        # again.", which was false here: the header must not claim a goal
+        # before this one, because nothing it is built from records one.
+        assert header(GOAL_80_37, ENGLAND) == "Late one for your side. Here's how it happened."
 
     def test_a_fan_whose_side_conceded_early(self):
         assert header(GOAL_22_24, FRANCE) == "Still early. Here's how it happened."
@@ -350,7 +356,7 @@ class TestAnotherSport:
     def test_the_header_table_is_the_same_table(self):
         home = Listener(allegiance=TEAM_A)
         assert header(self.moment(10), home) == "Great start. Here's how it happened."
-        assert header(self.moment(50), home) == "Your side again. Here's how it happened."
+        assert header(self.moment(50), home) == "Late one for your side. Here's how it happened."
 
     def test_a_neutral_listener_gets_the_same_line(self):
         assert header(self.moment(10), Listener(allegiance=NEUTRAL)) == NEUTRAL_TAIL

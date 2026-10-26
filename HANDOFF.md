@@ -798,8 +798,17 @@ period filter there, with
 a synthetic feed that fails without the fix. No goal in either demo match
 reaches it, so no narration output changes.
 
-**The suite is all green.** `pytest -q` reports `298 passed`, and the four
+**The suite is all green.** At `f7d8c97`, `pytest -q` reported `298 passed`, and the four
 gates pass.
+
+**The late scored header changed after Bob's session.** It read "Your side
+again.", which was false for England's only goal in 1986, at 80:37, since
+nothing the header is built from records an earlier goal. It now reads "Late
+one for your side.", and
+`tests/test_orchestrator.py::TestTheHeader::test_a_late_first_goal_gets_no_again`
+covers that goal.
+
+`pytest -q` now reports `299 passed`.
 
 ### Phase 4, task 3c
 

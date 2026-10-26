@@ -122,7 +122,7 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-298 passed
+299 passed
 ```
 
 The total covers far more than this module now. Phase 4 added the narration
@@ -400,7 +400,7 @@ and do not leave the two disagreeing.
 
 **Status: built, in `1c4063a`.** `app/orchestrator.py` implements the six
 functions and `PreludeOrchestrator`, whose `opening` puts their answers
-together. All 47 tests in `tests/test_orchestrator.py` pass. The contract is
+together. All 48 tests in `tests/test_orchestrator.py` pass. The contract is
 unchanged and its functions still raise; callers import from
 `app/orchestrator.py`.
 
@@ -487,14 +487,16 @@ as nothing reaches past the table.
 **The default persona.** `MATE` for a fan, `STORYTELLER` for a neutral
 listener. The personas themselves are Task 6; the contract declares their ids
 and nothing else about them. A partisan voice is for somebody who has a side:
-telling a neutral listener "your side again" would be telling them they
+telling a neutral listener "late one for your side" would be telling them they
 support a team they did not pick.
 
 ### The tests to pass
 
-`tests/test_orchestrator.py`, 47 tests, all passing. 44 were handed over
+`tests/test_orchestrator.py`, 48 tests, all passing. 44 were handed over
 with the brief, and 38 of those failed with `NotImplementedError` until the
-module was built. The 3 in `TestTheOpening` were added afterwards.
+module was built. Four were added afterwards: the 3 in `TestTheOpening`,
+and `TestTheHeader::test_a_late_first_goal_gets_no_again` when the late
+scored wording changed.
 
 `TestTheContractItself` reads the wording table and the cutoff. It passed
 before the module existed and must keep passing: it is what makes a change to
