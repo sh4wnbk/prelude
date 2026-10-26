@@ -693,6 +693,82 @@ Task 4b should run the watsonx candidates with it, since it is in the prompt
 now, and a candidate that covers the beats without being told is worth knowing
 about.
 
+### Phase 4, task 5
+
+**The orchestrator contract is declared and its tests fail. Bob builds it
+next.** `app/orchestrator_contract.py` holds the shapes, the wording table and
+six functions, every one of which raises. `tests/test_orchestrator.py` holds
+44 tests: 38 fail with `NotImplementedError: the orchestrator is not built
+yet` and 6 pass. `docs/bob_brief.md` carries the brief as Task 4.
+
+**What the orchestrator is for.** The narration says only what the play data
+proves, and that rule leaves it unable to greet anyone, unable to know which
+side the listener is on, and stopped dead on the goal. So everything addressed
+to the fan happens in one line before the narration, and that line is this
+module's whole output. The app's placeholder, "Here's the buildup.", is the
+neutral case of it.
+
+| Input | What it carries |
+| ----- | --------------- |
+| `Event` | kickoff, both teams, the sport |
+| `ScoringMoment` | which side scored, the clock, the score after it, regulation length |
+| `Listener` | allegiance, and an optional name that stays on the phone |
+
+| Output | What it is |
+| ------ | ---------- |
+| `greeting` | "today" or "tonight" |
+| `header` | the line as shown, prefix and tail already joined |
+| `persona` | the default persona id for this listener |
+
+**The rules the tests encode.** "tonight" at or after `EVENING_CUTOFF`, which
+is 17:00 and configuration rather than a rule. The phase as a share of
+regulation time, early being the first third and late the final quarter, with
+a boundary belonging to the later phase. The score state after the moment, for
+the listener's side. The header from a fixed table by allegiance, outcome and
+phase. "There's still time" never late. The Mate for a fan, the Storyteller
+for a neutral listener.
+
+**The phase is where the sport agnosticism lives, so it has a test that cannot
+be satisfied by football.** `TestAnotherSport` is a sixty minute game in a
+sport that does not exist. Twenty minutes in is late in a ninety minute game
+and early in that one. If a 90 is ever written into the phase rule, those
+tests fail and no test about the two demo matches does.
+
+**Three details worth knowing before reading the tests.**
+
+Conceding is not the same as being behind. Argentina conceded at 80:37 in 1986
+and were still 2 to 1 up, and the header for that is chosen on the outcome
+while the score state is a separate answer. Both are tested on that moment.
+
+A neutral listener has no score state and no outcome, and both functions raise
+`ValueError` rather than returning a third value. Inventing "level" for
+somebody with no side would put a wrong word in a header.
+
+The late conceded cell is empty, so the header is the tail alone. A test
+asserts no header runs two spaces together, because an empty prefix joined
+carelessly is exactly how that happens.
+
+**The wording is Shawn's to finish.** `HEADER_PREFIXES` in the contract holds
+the starting wording and `docs/VOICE.md` now carries the table with it marked
+as unbuilt. The brief tells Bob to read prefixes out of the table rather than
+writing any into the code, so changing a word stays a one line edit.
+
+**The header is not narration and must never be labelled.** It is built from
+the kickoff time, the score and the listener's own answer, none of which is
+event data, so "Verified from play data" has nothing to say about it. It is
+also the one line in the app spoken to the fan, which is the thing the ending
+rule keeps out of narration: the header goes before, and nothing goes after.
+
+**The suite is red on purpose until Bob runs.** `pytest -q` reports
+`38 failed, 256 passed`, `docs/HARNESS.md` and `docs/bob_brief.md` both say so
+and both are checked against live output by `scripts/check_docs.py`. A failure
+outside `tests/test_orchestrator.py` means something is actually wrong.
+
+**Stop here.** Shawn runs Bob against the Task 4 brief. Bob also fixes the
+latent period gap in `buildup` in the same session, since that is his module:
+the set-piece reach back a possession has nothing stopping it crossing a
+period boundary, and no goal in either demo match triggers it today.
+
 ### Phase 4, task 3c
 
 **Four documents, each statement carrying its file and its test.**
@@ -1513,11 +1589,13 @@ Tasks 3d through Phase 7, as agreed with Shawn, copied here so a fresh session
 has the whole arc rather than one task at a time.
 
 **Everything in this section is planned work except where a task is marked
-done.** Tasks 3d and 4a are built; nothing below them exists. The paths named
-here that have not been written yet are listed in `DELIBERATELY_ABSENT` in
-`scripts/check_docs.py`, so the docs gate fails if one of them appears and this
-section was not updated with it. `docs/narration_eval.md` was on that list and
-came off it when Task 4a wrote it.
+done.** Tasks 3d, 4a, 4c and 5 are built; nothing below them exists. The paths
+named here that have not been written yet are listed in `DELIBERATELY_ABSENT`
+in `scripts/check_docs.py`, so the docs gate fails if one of them appears and
+this section was not updated with it. `docs/narration_eval.md`,
+`app/orchestrator_contract.py` and `tests/test_orchestrator.py` have all come
+off that list as the tasks that write them landed; `app/orchestrator.py` is
+what is left on it, and it is Bob's.
 
 Shawn is asked whether to continue at the end of each task, after the exit
 commands have run, because an adjustment may be wanted before the next one
@@ -1579,7 +1657,7 @@ Exit when: the comparison is in the report, the pass rate is shown beside
 coverage (so a gain in one that costs the other would be visible), tests and
 gates pass, and the work is pushed.
 
-### Task 5: orchestrator contract and failing tests
+### Task 5: orchestrator contract and failing tests (done)
 
 Write `app/orchestrator_contract.py` (contract only, no logic), declaring the
 orchestrator's inputs: the event (kickoff time, teams, sport), the moment
@@ -1657,6 +1735,16 @@ Before running, state how many watsonx calls it will make: 2 models by 3
 personas by the chosen goals by runs. Keep it to the hero moments if the count
 is high.
 
+**Run one candidate without the beats block as well, on the five multi-beat
+goals only, so the extra calls stay small.** Task 4c added the block because
+`granite4:micro` would not reach the beats without it, and that is a statement
+about a 3B model rather than about every model. A candidate that covers the
+beats unprompted does not need the block, and the block costs sentences and
+therefore costs grounding: on the 22:24 penalty it cost `granite4:micro` every
+first attempt. `build_prompt` takes `Facts`, so the no-block arm is a prompt
+built with the block suppressed and nothing else changed, and
+`scripts/narration_eval.py --compare` already renders a before and after.
+
 Run it, add the results to `docs/narration_eval.md`, and save sample narrations
 for Shawn to read.
 
@@ -1698,13 +1786,17 @@ speed, per persona; this file records which leads; and Shawn picks the model.
   session (all gates, both matches, a real-phone check).
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Task 5, the orchestrator contract)
+## Next first action (Shawn runs Bob, then Task 6)
 
-**Write the contract and the failing tests, then stop for Bob.** Task 5 in the
-Plan section says what to declare and which rules the tests encode. Nothing of
-it exists: `app/orchestrator_contract.py` and `tests/test_orchestrator.py` are
-both on `DELIBERATELY_ABSENT` in `scripts/check_docs.py`, which fails the docs
-gate the moment either appears and the plan still calls it absent.
+**Nothing in this repo is the next action. Shawn runs Bob against Task 4 in
+`docs/bob_brief.md`,** which implements `app/orchestrator.py` against the
+contract and turns the 38 failing tests green. That path is the only one left
+on `DELIBERATELY_ABSENT` in `scripts/check_docs.py`, so the docs gate fails
+the moment it appears and the brief still calls it unbuilt.
+
+After Bob: Task 6, the personas. Task 4b, the paid watsonx comparison, can run
+at any point and now has one extra arm to run, recorded in the Plan: one
+candidate without the beats block, on the five multi-beat goals only.
 
 **Read `docs/narration_eval.md` first.** It is the measured state of the
 narration, and it now holds two runs. Task 4a found grounding healthy on the

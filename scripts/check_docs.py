@@ -54,16 +54,18 @@ DOCS = [
 ]
 
 # Paths the docs name on purpose while they do not exist. Each one is described
-# in the docs as not yet built, so an absent file is the correct state. These
-# two are named by the Plan section of `HANDOFF.md`, which says what each is
-# for and which task writes it. The check runs in both directions: when one of
-# them is built, this line fails until the plan entry is rewritten as built
-# work, which is what stops a plan quietly outliving the thing it planned.
-# `docs/narration_eval.md` was on this list and came off it when Task 4a built
-# it, which is the mechanism working.
+# in the docs as not yet built, so an absent file is the correct state. The
+# check runs in both directions: when one of them is built, this line fails
+# until the plan entry is rewritten as built work, which is what stops a plan
+# quietly outliving the thing it planned.
+#
+# `docs/narration_eval.md` came off this list when Task 4a built it, and
+# `app/orchestrator_contract.py` and `tests/test_orchestrator.py` came off it
+# when Task 5 wrote them. What is left is the module Bob builds next, which
+# `docs/bob_brief.md` names as the thing to create. When it exists, this line
+# fails until the brief and the plan are rewritten to describe built work.
 DELIBERATELY_ABSENT = {
-    "app/orchestrator_contract.py",   # Task 5
-    "tests/test_orchestrator.py",     # Task 5
+    "app/orchestrator.py",   # Bob, task 4, against app/orchestrator_contract.py
 }
 
 PATH_IN_BACKTICKS = re.compile(

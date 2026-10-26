@@ -258,13 +258,53 @@ no claim the "Verified from play data" label is about. **No code produces it
 yet.** It is recorded here because the wording is settled, not because a screen
 or a script says it.
 
-It is a placeholder in the exact sense that it is the neutral case of something
-larger. Planned for Task 5: an orchestrator picks the opening line from the
-listener's allegiance, whether their side scored or conceded, and how far into
-the match the moment was, and "Here's the buildup." is what a neutral listener
-gets. A fan gets a header in front of it instead. That table, and its final
-wording, belong in this document when the orchestrator exists; until then
-`HANDOFF.md` carries the planned version under Plan, Task 5.
+It is a placeholder in the exact sense that it is the neutral case of
+something larger. An orchestrator picks the opening line from the listener's
+allegiance, whether their side scored or conceded, and how far into the match
+the moment was, and "Here's the buildup." is what a neutral listener gets. A
+fan gets a header in front of it instead.
+
+### The header table, which no code reads yet
+
+**The contract is written and the module is not.**
+`app/orchestrator_contract.py` declares the table below and
+`tests/test_orchestrator.py` asserts it, with 38 tests failing until IBM Bob
+builds `app/orchestrator.py` against the brief in `docs/bob_brief.md`. Nothing
+in the app produces a header today.
+
+| | early | middle | late |
+| --- | --- | --- | --- |
+| your side scored | Great start. | Good news. | Your side again. |
+| your side conceded | Still early. | There's still time. | no prefix |
+| neutral | no prefix | no prefix | no prefix |
+
+A fan's prefix is followed by "Here's how it happened." A neutral listener
+gets "Here's the buildup." and no prefix.
+
+**This is the starting wording and Shawn writes the final wording.** What is
+settled is the shape: a fixed table, looked up by allegiance, outcome and
+phase, with nothing generated and nothing a model chooses. Changing a word is
+a one line edit to `HEADER_PREFIXES` in the contract, which is why the
+implementation is told to read the prefixes out of the table rather than
+writing any of them down.
+
+**The late conceded cell is empty on purpose.** "There's still time" is a
+kindness early and a lie late, and a phone telling somebody there is still
+time when there is not is worse than a phone saying nothing. It is the one
+cell with a test of its own in both directions.
+
+**The phase is a share of regulation time, not a count of minutes.** Early is
+the first third and late is the final quarter, so a sixty minute game is read
+the same way as a ninety minute one without changing anything.
+`tests/test_orchestrator.py::TestAnotherSport` is a sport that does not exist,
+and it is what fails if a 90 is ever written into the rule.
+
+**None of this is narration and none of it carries the label.** The header is
+built from the kickoff time, the score and the listener's own answer, not from
+the event data, so "Verified from play data" has nothing to say about it. It
+is also the one line in the app addressed to the fan, which is what the
+ending rule above keeps out of the narration itself: the header goes before
+the narration, and nothing goes after it.
 
 ## It ends on the goal, and there is no closer
 
