@@ -8,10 +8,11 @@ exist because the first live run produced exactly that, and the words it tripped
 on ("Finally", "Argentina's", a clock the prompt itself had printed) are named in
 the tests so they cannot come back.
 
-Every narration here carries citation tags, because the check reads a sentence
-against the facts that sentence cited. The numbers are the real fact numbers for
-these two buildups, read out of `data/raw/` and written down, so a test says
-which record it means rather than deriving it from the thing under test. The 54
+Every narration here is in the past tense, carries a citation per sentence, and
+ends on the goal, because those are the three things the check asks of a
+narration before it reads a single claim. The numbers are the real fact numbers
+for these two buildups, read out of `data/raw/` and written down, so a test says
+which record it means rather than deriving it from the thing under test. The
 facts worth knowing for the 1986 goal are in `FACTS_1986` below.
 
 Nothing here calls a model. The narrations are written in the test.
@@ -22,6 +23,8 @@ import pytest
 from app.grounding import (
     ACTION_CLAIMS,
     BANNED_PATTERNS,
+    PRESENT_TENSE,
+    PRESENT_TENSE_PHRASES,
     TEAM_DEMONYMS,
     GroundingResult,
     bare,
@@ -42,32 +45,43 @@ PENALTY_2022 = (22, 24)
 
 # The facts of the 54:18 buildup this file cites, read out of data/raw/. The
 # whole list is 24 facts, one per recorded event; these are the ones the tests
-# point at.
+# point at. They are in the past tense, because the buildup already happened.
 FACTS_1986 = """
-   3. José Luis Cuciuffo (Argentina) passes, 54:03
-   6. Héctor Adolfo Enrique (Argentina) passes, 54:06
-   7. Diego Armando Maradona (Argentina) receives the ball, 54:07
-   8. Diego Armando Maradona (Argentina) carries the ball, 54:07
-  10. Peter Beardsley (England) is dribbled past, 54:08
-  11. Diego Armando Maradona (Argentina) dribbles, 54:08
-  13. Peter Reid (England) presses, 54:08
-  14. Terry Butcher (England) is dribbled past, 54:13
-  15. Diego Armando Maradona (Argentina) dribbles, 54:13
-  17. Terry Fenwick (England) is dribbled past, 54:15
-  18. Diego Armando Maradona (Argentina) dribbles, 54:15
-  21. Peter Shilton (England) is dribbled past, 54:18
-  22. Diego Armando Maradona (Argentina) dribbles, 54:18
-  24. Diego Armando Maradona (Argentina) shoots, 54:18
+   3. José Luis Cuciuffo (Argentina) passed, 54:03
+   6. Héctor Adolfo Enrique (Argentina) passed, 54:06
+   7. Diego Armando Maradona (Argentina) received the ball, 54:07
+   8. Diego Armando Maradona (Argentina) carried the ball, 54:07
+  10. Peter Beardsley (England) was dribbled past, 54:08
+  11. Diego Armando Maradona (Argentina) dribbled, 54:08
+  13. Peter Reid (England) pressed, 54:08
+  14. Terry Butcher (England) was dribbled past, 54:13
+  15. Diego Armando Maradona (Argentina) dribbled, 54:13
+  16. Diego Armando Maradona (Argentina) carried the ball, 54:13
+  17. Terry Fenwick (England) was dribbled past, 54:15
+  18. Diego Armando Maradona (Argentina) dribbled, 54:15
+  21. Peter Shilton (England) was dribbled past, 54:18
+  22. Diego Armando Maradona (Argentina) dribbled, 54:18
+  24. Diego Armando Maradona (Argentina) shot, 54:18
 """
 
 # The 2022 penalty buildup reaches back a possession, so the foul that won it is
 # in the list: 98 is Dembélé's Foul Committed, 99 is Di María's Foul Won, and
 # 100 is Messi's shot.
 FACTS_2022 = """
-  98. Ousmane Dembélé (France) commits a foul, 20:53
-  99. Ángel Fabián Di María Hernández (Argentina) wins a foul, 20:53
- 100. Lionel Andrés Messi Cuccittini (Argentina) shoots, 22:24
+  98. Ousmane Dembélé (France) committed a foul, 20:53
+  99. Ángel Fabián Di María Hernández (Argentina) won a foul, 20:53
+ 100. Lionel Andrés Messi Cuccittini (Argentina) shot, 22:24
 """
+
+# The narration ends on the goal and nothing follows it, so a fragment about the
+# run-up carries this as its last sentence. Fact 24 is the shot.
+GOAL_SENTENCE = "[24] Diego Armando Maradona shot and scored for Argentina."
+PENALTY_GOAL_SENTENCE = "[100] Messi shot and scored for Argentina."
+
+
+def narration(*lines: str) -> str:
+    """The lines given, ending on the goal, which the check requires."""
+    return "\n".join(lines + (GOAL_SENTENCE,))
 
 
 @pytest.fixture(scope="module")
@@ -103,7 +117,7 @@ class TestGrounded:
 
     def test_a_plain_grounded_line(self, facts_1986):
         result = check(
-            "Maradona dribbles and shoots, and scores for Argentina. [22, 24]",
+            "[22, 24] Maradona dribbled and shot, and scored for Argentina.",
             facts_1986,
         )
         assert result.grounded, result.summary
@@ -113,7 +127,7 @@ class TestGrounded:
         "Argentina's" arrived with its ending attached and matched nothing. Two
         model attempts died on this before the ending came off."""
         result = check(
-            "Argentina's Maradona shoots. [24]\nMaradona's effort scores. [24]",
+            "[24] Argentina's Maradona shot.\n[24] Maradona's effort scored.",
             facts_1986,
         )
         assert result.grounded, result.summary
@@ -122,8 +136,8 @@ class TestGrounded:
         """Three model attempts in a row failed on "Finally", which was this
         module's bug and not the model's."""
         result = check(
-            "Finally, Maradona shoots for Argentina. [24]\n"
-            "However, it is close. [24]",
+            "[24] Finally, Maradona shot for Argentina.\n"
+            "[24] However, it was close.",
             facts_1986,
         )
         assert result.grounded, result.summary
@@ -132,8 +146,10 @@ class TestGrounded:
         """Fact 14 is recorded against England, which is what the demonym has
         to sit in; a demonym is checked in the cited facts like any name."""
         result = check(
-            "Maradona dribbles past the English defenders for Argentina. "
-            "[14, 15]",
+            narration(
+                "[14, 15] Maradona dribbled past the English defenders for "
+                "Argentina."
+            ),
             facts_1986,
         )
         assert result.grounded, result.summary
@@ -142,12 +158,14 @@ class TestGrounded:
         """Hector for Héctor is a spelling variant of a player who is really
         there, not an invented one. Fact 6 is Enrique's pass and fact 7 is
         Maradona receiving it, so naming both ends of the pass needs both."""
-        result = check("Hector Enrique passes to Maradona. [6, 7]", facts_1986)
+        result = check(
+            narration("[6, 7] Hector Enrique passed to Maradona."), facts_1986
+        )
         assert result.grounded, result.summary
 
     def test_the_goal_minute_and_second(self, facts_1986):
         result = check(
-            "Maradona scores in minute 54, second 18. [24]", facts_1986
+            "[24] Maradona scored in minute 54, second 18.", facts_1986
         )
         assert result.grounded, result.summary
 
@@ -155,33 +173,37 @@ class TestGrounded:
         """A per-second clock is groundable now, which it was not before the
         facts were numbered: 54:07 is fact 7's clock, and citing fact 7 is what
         makes it something a reader can be pointed at."""
-        result = check("Maradona receives it at 54:07. [7]", facts_1986)
+        result = check(
+            narration("[7] Maradona received it at 54:07."), facts_1986
+        )
         assert result.grounded, result.summary
 
     def test_one_sentence_may_span_several_facts(self, facts_1986):
         """Two defenders beaten is two `Dribbled Past` records and two
         `Dribble` records, and the sentence that says so cites all four."""
         result = check(
-            "Maradona dribbles past Terry Butcher and Terry Fenwick. "
-            "[14, 15, 17, 18]",
+            narration(
+                "[14, 15, 17, 18] Maradona dribbled past Terry Butcher and "
+                "Terry Fenwick."
+            ),
             facts_1986,
         )
         assert result.grounded, result.summary
 
     def test_a_penalty_narration_may_say_penalty(self, facts_penalty):
         result = check(
-            "Messi scores from the penalty spot for Argentina. [100]",
+            "[100] Messi scored from the penalty spot for Argentina.",
             facts_penalty,
         )
         assert result.grounded, result.summary
 
     def test_a_penalty_narration_may_say_a_foul_was_won(self, facts_penalty):
-        """"wins a foul" is a recorded Foul Won event, which is why the
-        outcome-claim patterns leave "win" and "won" alone. One action per
-        sentence, so the foul and the goal are two sentences."""
+        """"won a foul" is a recorded Foul Won event, which is why "won" grounds
+        against one instead of being refused as a claim about a result. One
+        action per sentence, so the foul and the goal are two sentences."""
         result = check(
-            "Di Maria wins a foul. [99]\n"
-            "Messi scores from the penalty spot for Argentina. [100]",
+            "[99] Di Maria won a foul.\n"
+            "[100] Messi scored from the penalty spot for Argentina.",
             facts_penalty,
         )
         assert result.grounded, result.summary
@@ -191,12 +213,12 @@ class TestGrounded:
         sentences together on one line, and the splitter read each tag as part
         of the sentence it started, shifting every citation by one. The layout
         is not what was wrong with that narration, so narration written this way
-        and citing correctly has to pass: fact 15 is a Dribble, 16 the Carry
+        and citing correctly has to pass: fact 15 is a dribble, 16 the carry
         beside it, 24 the shot."""
         result = check(
-            "Diego Armando Maradona dribbles past a defender. [15] "
-            "He carries the ball. [16] "
-            "He shoots and scores for Argentina. [24]",
+            "Diego Armando Maradona dribbled past a defender. [15] "
+            "He carried the ball. [16] "
+            "He shot and scored for Argentina. [24]",
             facts_1986,
         )
         assert result.grounded, result.summary
@@ -211,34 +233,194 @@ class TestGrounded:
                 assert result.grounded, f"{moment}: {result.summary}"
 
 
+class TestTense:
+    """A buildup is playback, so it is told in the past tense.
+
+    The facts are written that way and the narration follows. A present-tense
+    verb is not a weaker way of saying the past one: it narrates the passage as
+    though it were still happening, which is a different claim from the one the
+    records support.
+    """
+
+    def test_a_past_tense_narration_passes(self, facts_1986):
+        result = check(
+            "[7] Maradona received the ball inside his own half.\n"
+            "[10, 11] He dribbled past Peter Beardsley.\n"
+            "[14, 15] He dribbled past Terry Butcher.\n"
+            "[24] Maradona shot and scored for Argentina.",
+            facts_1986,
+        )
+        assert result.grounded, result.summary
+
+    def test_a_present_tense_sentence_is_flagged(self, facts_1986):
+        result = check(
+            narration("[10, 11] Maradona dribbles past Peter Beardsley."),
+            facts_1986,
+        )
+        assert not result.grounded
+        assert kinds(result) == {"tense"}
+        assert "dribbled" in result.summary
+
+    def test_the_present_tense_of_every_action_word_is_refused(self, facts_1986):
+        """One sentence per entry, so a word added to the table without a
+        refusal behind it fails here rather than passing quietly."""
+        for present, past in PRESENT_TENSE.items():
+            result = check(
+                narration(f"[24] Maradona {present} the ball."), facts_1986
+            )
+            assert not result.grounded, present
+            assert "tense" in kinds(result), present
+            assert past in result.summary, present
+
+    def test_an_auxiliary_carries_the_tense_too(self, facts_1986):
+        """"is dribbled past" holds the past participle the facts use, so the
+        tense sits in "is" and a single word cannot catch it."""
+        result = check(
+            narration("[10] Peter Beardsley is dribbled past."), facts_1986
+        )
+        assert not result.grounded
+        assert kinds(result) == {"tense"}
+        assert "was dribbled past" in result.summary
+
+    def test_the_past_participle_on_its_own_is_fine(self, facts_1986):
+        """What is refused is the auxiliary, not the participle: the facts
+        themselves say "was dribbled past"."""
+        result = check(
+            narration("[10] Peter Beardsley was dribbled past."), facts_1986
+        )
+        assert result.grounded, result.summary
+
+    def test_won_a_foul_is_allowed(self, facts_penalty):
+        result = check(
+            "[99] Di Maria won a foul.\n" + PENALTY_GOAL_SENTENCE,
+            facts_penalty,
+        )
+        assert result.grounded, result.summary
+
+    def test_won_the_match_is_refused(self, facts_penalty):
+        """The same word, and what is being won decides it: a `Foul Won` is a
+        record, and the result of the match is in no buildup."""
+        result = check(
+            "[99] Di Maria won a foul.\n"
+            "[100] Messi scored and Argentina won the match.",
+            facts_penalty,
+        )
+        assert not result.grounded
+        assert "outcome claim" in kinds(result)
+        assert "won the match" in result.summary
+
+    def test_winning_anything_the_buildup_cannot_show_is_refused(
+        self, facts_1986
+    ):
+        for ending in ("won the game", "won the final", "won the World Cup"):
+            result = check(
+                f"[24] Maradona scored and Argentina {ending}.", facts_1986
+            )
+            assert not result.grounded, ending
+            assert "outcome claim" in kinds(result), ending
+
+
+class TestEnding:
+    """The narration ends on the goal, and nothing follows it.
+
+    There is no closing line addressed to the fan. The moment the goal lands the
+    stadium takes over, so the app stops talking; `docs/VOICE.md` carries the
+    reasoning. What the check can hold is where the narration stops, which is
+    the sentence citing the shot the moment was built from.
+    """
+
+    def test_a_narration_that_ends_on_the_shot_passes(self, facts_1986):
+        result = check(
+            "[10, 11] Maradona dribbled past Peter Beardsley.\n"
+            + GOAL_SENTENCE,
+            facts_1986,
+        )
+        assert result.grounded, result.summary
+
+    def test_a_last_sentence_that_does_not_cite_the_shot_is_refused(
+        self, facts_1986
+    ):
+        result = check(
+            "[24] Maradona shot and scored for Argentina.\n"
+            "[10, 11] He had dribbled past Peter Beardsley to get there.",
+            facts_1986,
+        )
+        assert not result.grounded
+        assert kinds(result) == {"ending"}
+        assert "fact 24" in result.summary
+
+    def test_a_narration_that_stops_before_the_goal_is_refused(self, facts_1986):
+        result = check(
+            "[7] Maradona received the ball.\n"
+            "[10, 11] He dribbled past Peter Beardsley.",
+            facts_1986,
+        )
+        assert not result.grounded
+        assert kinds(result) == {"ending"}
+
+    def test_a_closing_line_addressed_to_the_fan_is_refused(self, facts_1986):
+        """The shape the no-closer decision exists for: the passage, and then a
+        sentence of the app's own. Citation placement cannot catch this one,
+        because a closer can cite the goal's fact as easily as the goal sentence
+        can, so what catches it is the second person: there is no line spoken to
+        the fan for "you" to belong to."""
+        result = check(
+            GOAL_SENTENCE + "\n[24] That is the moment you came for.",
+            facts_1986,
+        )
+        assert not result.grounded
+        assert "address to the reader" in kinds(result)
+
+    def test_what_the_ending_rule_alone_cannot_catch(self, facts_1986):
+        """Worth knowing rather than implying otherwise. A closing line that
+        cites the goal's fact, keeps out of the second person and asserts
+        nothing checkable is refused by nothing here: the ending rule holds
+        where the narration stops, not what its last sentence means."""
+        result = check(
+            GOAL_SENTENCE + "\n[24] That was the moment.", facts_1986
+        )
+        assert result.grounded, result.summary
+
+    def test_the_fallback_ends_on_the_goal(self, feed):
+        """All nine goals: the fallback's last sentence cites the shot."""
+        for match_id in (MATCH_1986, MATCH_2022):
+            for moment in feed.defining_moments(match_id):
+                facts = facts_from_buildup(feed.buildup(match_id, moment))
+                last = sentences(template_narration(facts))[-1]
+                assert last.cites == (facts.goal_fact.number,), moment
+
+
 class TestNotGrounded:
     """Narration the check has to refuse."""
 
     def test_an_invented_player(self, facts_1986):
         result = check(
-            "Maradona passes to Valdano, who scores. [6, 7]", facts_1986
+            narration("[6, 7] Maradona passed to Valdano."), facts_1986
         )
         assert not result.grounded
         assert kinds(result) == {"name"}
         assert "Valdano" in result.summary
 
     def test_a_real_player_who_is_not_in_this_passage(self, facts_1986):
-        """Rule 2 of the prompt says so explicitly: a real player who is not in
+        """Rule 3 of the prompt says so explicitly: a real player who is not in
         the buildup is still not something this narration can point at."""
-        result = check("Burruchaga squares it for Maradona. [7]", facts_1986)
+        result = check(
+            narration("[7] Burruchaga squared it for Maradona."), facts_1986
+        )
         assert not result.grounded
         assert kinds(result) == {"name"}
 
     def test_a_demonym_for_a_team_that_is_not_playing(self, facts_1986):
         result = check(
-            "The Brazilian defender cannot stop Maradona. [22]", facts_1986
+            narration("[22] The Brazilian defender could not stop Maradona."),
+            facts_1986,
         )
         assert not result.grounded
         assert kinds(result) == {"name"}
         assert "Brazil" in result.summary
 
     def test_the_wrong_body_part(self, facts_1986):
-        result = check("Maradona heads it in for Argentina. [24]", facts_1986)
+        result = check("[24] Maradona headed it in for Argentina.", facts_1986)
         assert not result.grounded
         assert kinds(result) == {"body_part"}
         assert "Left Foot" in result.summary
@@ -248,7 +430,7 @@ class TestNotGrounded:
         so a model can invent a penalty without contradicting anything it was
         shown."""
         result = check(
-            "Maradona scores the penalty for Argentina. [24]", facts_1986
+            "[24] Maradona scored the penalty for Argentina.", facts_1986
         )
         assert not result.grounded
         assert kinds(result) == {"shot_type"}
@@ -256,13 +438,13 @@ class TestNotGrounded:
 
     def test_a_set_piece_turned_into_the_wrong_one(self, facts_penalty):
         result = check(
-            "Messi scores from the corner for Argentina. [100]", facts_penalty
+            "[100] Messi scored from the corner for Argentina.", facts_penalty
         )
         assert not result.grounded
         assert kinds(result) == {"shot_type"}
 
     def test_an_action_that_is_not_in_the_buildup(self, facts_1986):
-        result = check("Shilton saves, then Maradona scores. [21, 24]", facts_1986)
+        result = check(narration("[21] Shilton saved it."), facts_1986)
         assert not result.grounded
         assert kinds(result) == {"action"}
         assert "Goal Keeper" in result.summary
@@ -273,7 +455,9 @@ class TestNotGrounded:
         """A miscitation, not an invention, and the report says which it is: a
         retry that reads "not in the buildup" for a dribble that is in the
         buildup would be told to drop a true sentence."""
-        result = check("Maradona dribbles past a defender. [7, 8]", facts_1986)
+        result = check(
+            narration("[7, 8] Maradona dribbled past a defender."), facts_1986
+        )
         assert not result.grounded
         assert kinds(result) == {"action"}
         assert "not in the facts this sentence cites" in result.summary
@@ -283,7 +467,8 @@ class TestNotGrounded:
         is grounded only by a minute or the goal's own second: a count would
         otherwise land on whatever second an event happened at."""
         result = check(
-            "Maradona beats 7 defenders in minute 54. [22]", facts_1986
+            narration("[22] Maradona beat 7 defenders in minute 54."),
+            facts_1986,
         )
         assert not result.grounded
         assert kinds(result) == {"number"}
@@ -291,7 +476,9 @@ class TestNotGrounded:
     def test_a_clock_from_a_fact_the_sentence_did_not_cite(self, facts_1986):
         """54:07 is a real clock in this buildup: it is fact 7's. Cited against
         fact 22, which is 54:18, it is a claim about the wrong event."""
-        result = check("Maradona dribbles at 54:07. [22]", facts_1986)
+        result = check(
+            narration("[22] Maradona dribbled at 54:07."), facts_1986
+        )
         assert not result.grounded
         assert kinds(result) == {"clock"}
         assert "54:07" in result.summary
@@ -299,7 +486,9 @@ class TestNotGrounded:
     def test_a_name_in_the_buildup_but_not_in_the_cited_facts(self, facts_1986):
         """Fenwick is in the passage and fact 14 is Butcher, so this is the
         right action attached to the wrong player."""
-        result = check("Terry Fenwick is dribbled past. [14]", facts_1986)
+        result = check(
+            narration("[14] Terry Fenwick was dribbled past."), facts_1986
+        )
         assert not result.grounded
         assert kinds(result) == {"name"}
         assert "Fenwick" in result.summary
@@ -309,7 +498,15 @@ class TestNotGrounded:
         Fenwick being dribbled past; Maradona carrying the ball at the same
         second is fact 19. Every word of the sentence is in the passage and the
         clock is real, and it still cites the wrong record: the wrong player and
-        the wrong action, both reported against the fact it named."""
+        the wrong action, both reported against the fact it named.
+
+        It is in the present tense, because it was written before the voice was
+        settled, so it is refused for that as well. Kept verbatim anyway: what
+        it holds is that citing the wrong record is caught. The miscited carry
+        is now reported as the tense mistake it also is, because a
+        present-tense verb is refused before it is read as a claim, so the
+        miscitation that survives as a claim is the wrong player.
+        """
         result = check(
             "Diego Armando Maradona dribbles the ball (54:13). [15] "
             "Maradona carries the ball as he approaches the goal (54:15). [17] "
@@ -317,20 +514,27 @@ class TestNotGrounded:
             facts_1986,
         )
         assert not result.grounded
-        assert kinds(result) == {"name", "action"}
-        assert all(f.sentence_number == 2 for f in result.failures)
-        assert all("[17]" in f.value for f in result.failures)
+        assert kinds(result) == {"name", "tense"}
+        miscitations = [f for f in result.failures if f.kind != "tense"]
+        assert miscitations
+        assert all(f.sentence_number == 2 for f in miscitations)
+        assert all("[17]" in f.value for f in miscitations)
 
     def test_a_sentence_that_cites_nothing(self, facts_1986):
         """Every sentence names the facts it used. One that does not cannot be
         read against anything, however true it reads."""
-        result = check("Maradona shoots and scores for Argentina.", facts_1986)
+        result = check(
+            "[7] Maradona received the ball.\n"
+            "He carried it past a defender.\n" + GOAL_SENTENCE,
+            facts_1986,
+        )
         assert not result.grounded
         assert kinds(result) == {"untagged"}
+        assert result.failures[0].sentence_number == 2
 
     def test_a_citation_that_is_not_one_of_the_facts(self, facts_1986):
         result = check(
-            "Maradona shoots and scores for Argentina. [99]", facts_1986
+            narration("[99] Maradona dribbled past a defender."), facts_1986
         )
         assert not result.grounded
         assert kinds(result) == {"citation"}
@@ -338,7 +542,7 @@ class TestNotGrounded:
 
     def test_a_verdict_nickname(self, facts_1986):
         result = check(
-            "Maradona scores the Goal of the Century. [24]", facts_1986
+            "[24] Maradona scored the Goal of the Century.", facts_1986
         )
         assert not result.grounded
         assert "verdict nickname" in kinds(result)
@@ -347,7 +551,7 @@ class TestNotGrounded:
         """The first run that got past the name checks still called it "this
         decisive moment" and "a significant moment"."""
         result = check(
-            "Maradona scores a decisive goal for Argentina. [24]", facts_1986
+            "[24] Maradona scored a decisive goal for Argentina.", facts_1986
         )
         assert not result.grounded
         assert kinds(result) == {"editorial epithet"}
@@ -356,9 +560,10 @@ class TestNotGrounded:
         """A buildup is one passage of play and carries no scoreline, so the
         result is outside the facts the narration was written from."""
         for line in (
-            "Maradona scores for Argentina, securing the victory. [24]",
-            "Maradona scores the winner for Argentina. [24]",
-            "Maradona's goal seals the trophy for Argentina. [24]",
+            "[24] Maradona scored for Argentina, securing the victory.",
+            "[24] Maradona scored the winner for Argentina.",
+            "[24] Maradona's goal sealed the trophy for Argentina.",
+            "[24] Maradona scored and Argentina won the match.",
         ):
             result = check(line, facts_1986)
             assert not result.grounded, line
@@ -366,7 +571,7 @@ class TestNotGrounded:
 
     def test_an_em_dash(self, facts_1986):
         result = check(
-            "Maradona turns away — and scores for Argentina. [22]", facts_1986
+            "[24] Maradona turned away — and scored for Argentina.", facts_1986
         )
         assert not result.grounded
         assert "em dash" in kinds(result)
@@ -375,11 +580,13 @@ class TestNotGrounded:
         """Prose that names nobody and quotes no clock has nothing tracing back
         to the data, so there is nothing for the label to be true about. A pass
         here would mean "found no problem", which is not the same as grounded.
-        It cites its facts, so the tags are not what refuses it.
+        It cites its facts and it ends on the goal, so neither of those is what
+        refuses it.
         """
         result = check(
-            "Just inside his own half, he turns away from two. [8]\n"
-            "Past one, past another, still going. [11]",
+            "[8] Just inside his own half, he turned away from two.\n"
+            "[11] Past one, past another, still going.\n"
+            "[24] He shot and scored.",
             facts_1986,
         )
         assert not result.grounded
@@ -388,7 +595,10 @@ class TestNotGrounded:
     def test_every_failing_claim_is_reported_not_just_the_first(self, facts_1986):
         """A retry and a log both need the whole list."""
         result = check(
-            "Valdano passes to Burruchaga, who heads it in for Brazil. [6, 7]",
+            narration(
+                "[6, 7] Valdano passed to Burruchaga, who headed it in for "
+                "Brazil."
+            ),
             facts_1986,
         )
         assert len(result.failures) >= 3
@@ -396,7 +606,7 @@ class TestNotGrounded:
 
     def test_a_failure_says_which_sentence_it_was_in(self, facts_1986):
         result = check(
-            "Maradona dribbles. [22]\nValdano scores. [24]", facts_1986
+            "[22] Maradona dribbled.\n[24] Valdano scored.", facts_1986
         )
         assert not result.grounded
         assert result.failures[0].sentence_number == 2
@@ -418,16 +628,16 @@ class TestMisdescription:
     # dribbled past, so this names three defenders beaten and one of them was
     # not.
     BEARDSLEY_REID_BUTCHER = (
-        "Maradona dribbles past Peter Beardsley, Peter Reid and Terry Butcher, "
-        "and scores for Argentina. [10, 11, 13, 14]"
+        "[10, 11, 13, 14] Maradona dribbled past Peter Beardsley, Peter Reid "
+        "and Terry Butcher.\n" + GOAL_SENTENCE
     )
 
     # The same sentence with Reid taken out, which is true and has to pass. The
     # two together are what show the refusal is about the pairing and not about
     # the shape of the sentence.
     BEARDSLEY_AND_BUTCHER = (
-        "Maradona dribbles past Peter Beardsley and Terry Butcher, "
-        "and scores for Argentina. [10, 11, 14]"
+        "[10, 11, 14] Maradona dribbled past Peter Beardsley and Terry "
+        "Butcher.\n" + GOAL_SENTENCE
     )
 
     def test_a_defender_who_pressured_was_not_dribbled_past(self, facts_1986):
@@ -444,6 +654,15 @@ class TestMisdescription:
         assert len(result.failures) == 1
         assert "Beardsley" not in result.failures[0].value
         assert "Butcher" not in result.failures[0].value
+
+    def test_it_still_fails_in_the_past_tense(self, facts_1986):
+        """The sentence is past tense now, which the voice requires, and the
+        tense was never what was wrong with it."""
+        assert "dribbled past" in self.BEARDSLEY_REID_BUTCHER
+        assert "dribbles" not in self.BEARDSLEY_REID_BUTCHER
+        result = check(self.BEARDSLEY_REID_BUTCHER, facts_1986)
+        assert "tense" not in kinds(result)
+        assert kinds(result) == {"pairing"}
 
     def test_the_same_sentence_without_the_wrong_name_passes(self, facts_1986):
         result = check(self.BEARDSLEY_AND_BUTCHER, facts_1986)
@@ -463,7 +682,8 @@ class TestMisdescription:
         mistake a model can tag its way out of."""
         every_fact = ", ".join(str(n) for n in range(1, len(facts_1986.facts) + 1))
         result = check(
-            f"Maradona dribbles past Peter Reid. [{every_fact}]", facts_1986
+            narration(f"[{every_fact}] Maradona dribbled past Peter Reid."),
+            facts_1986,
         )
         assert not result.grounded
         assert kinds(result) == {"pairing"}
@@ -480,7 +700,7 @@ class TestPairingRefusesSomeTrueSentences:
 
     def test_two_clauses_in_one_sentence_are_refused(self, facts_penalty):
         result = check(
-            "Di Maria wins a foul and Messi scores for Argentina. [99, 100]",
+            "[99, 100] Di Maria won a foul and Messi scored for Argentina.",
             facts_penalty,
         )
         assert not result.grounded
@@ -489,7 +709,7 @@ class TestPairingRefusesSomeTrueSentences:
 
     def test_the_same_words_in_two_sentences_pass(self, facts_penalty):
         result = check(
-            "Di Maria wins a foul. [99]\nMessi scores for Argentina. [100]",
+            "[99] Di Maria won a foul.\n[100] Messi scored for Argentina.",
             facts_penalty,
         )
         assert result.grounded, result.summary
@@ -499,22 +719,22 @@ class TestSentences:
     """Reading a narration into sentences and citations."""
 
     def test_a_sentence_carries_the_numbers_it_cites(self):
-        read = sentences("Maradona dribbles past Terry Butcher. [14, 15]")
+        read = sentences("[14, 15] Maradona dribbled past Terry Butcher.")
         assert len(read) == 1
         assert read[0].cites == (14, 15)
-        assert read[0].text == "Maradona dribbles past Terry Butcher."
+        assert read[0].text == "Maradona dribbled past Terry Butcher."
         assert read[0].number == 1
 
     def test_several_sentences_are_numbered_in_order(self):
-        read = sentences("First one. [1]\nThen another. [2]")
+        read = sentences("[1] First one.\n[2] Then another.")
         assert [s.number for s in read] == [1, 2]
         assert [s.cites for s in read] == [(1,), (2,)]
 
     def test_a_tag_after_the_full_stop_belongs_to_the_sentence_before(self):
-        """The prompt asks for the tag inside the sentence. A model that puts it
-        just outside has still said which facts it used, and refusing that would
-        throw away good copy over punctuation."""
-        read = sentences("Maradona shoots. [24]")
+        """The first chunk carries no tag, so the tags in this narration trail
+        their sentences. Refusing that layout over where the full stop fell
+        would throw away good copy."""
+        read = sentences("Maradona shot. [24]")
         assert len(read) == 1
         assert read[0].cites == (24,)
 
@@ -525,43 +745,54 @@ class TestSentences:
         which was this module's bug and not the model's.
         """
         read = sentences(
-            "Diego Armando Maradona dribbles past a defender. [15] "
-            "He carries the ball. [17] "
-            "He shoots and scores for Argentina. [24]"
+            "Diego Armando Maradona dribbled past a defender. [15] "
+            "He carried the ball. [16] "
+            "He shot and scored for Argentina. [24]"
         )
-        assert [s.cites for s in read] == [(15,), (17,), (24,)]
+        assert [s.cites for s in read] == [(15,), (16,), (24,)]
         assert [s.text for s in read] == [
-            "Diego Armando Maradona dribbles past a defender.",
-            "He carries the ball.",
-            "He shoots and scores for Argentina.",
+            "Diego Armando Maradona dribbled past a defender.",
+            "He carried the ball.",
+            "He shot and scored for Argentina.",
         ]
 
     def test_tags_written_in_front_of_their_sentences(self):
-        """The other layout a model reaches for. A leading tag goes to the
-        sentence before it only while that sentence has no tag of its own, so
-        this one is read the way it was meant too."""
-        read = sentences("[15] Maradona dribbles. [19] Maradona carries it.")
+        """The layout the prompt asks for. A tag opening the first chunk has no
+        sentence before it to belong to, which is what settles the narration as
+        citation-first."""
+        read = sentences("[15] Maradona dribbled.\n[19] Maradona carried it.")
         assert [s.cites for s in read] == [(15,), (19,)]
+
+    def test_an_untagged_sentence_in_a_citation_first_narration(self):
+        """Why the layout is settled once per narration rather than per tag.
+        Binding the third sentence's tag backwards would hand it to the second
+        and leave the third citing nothing, which flags the wrong sentence and
+        hides the one that cited nothing."""
+        read = sentences(
+            "[11] Maradona dribbled.\n"
+            "He carried the ball.\n"
+            "[24] Maradona shot."
+        )
+        assert [s.cites for s in read] == [(11,), (), (24,)]
 
     def test_a_fact_number_is_not_read_as_a_clock_or_a_count(self):
         """The tag comes out of the text before any claim is read, or every
         citation would be a number claim about the match clock."""
-        assert "24" not in sentences("Maradona shoots. [24]")[0].text
+        assert "24" not in sentences("[24] Maradona shot.")[0].text
 
     def test_strip_citations_leaves_no_tag_and_one_paragraph(self):
         stripped = strip_citations(
-            "Maradona dribbles past Terry Butcher. [14, 15]\n"
-            "Maradona shoots and scores. [24]"
+            "[14, 15] Maradona dribbled past Terry Butcher.\n"
+            "[24] Maradona shot and scored."
         )
         assert "[" not in stripped
         assert "\n" not in stripped
         assert stripped == (
-            "Maradona dribbles past Terry Butcher. "
-            "Maradona shoots and scores."
+            "Maradona dribbled past Terry Butcher. Maradona shot and scored."
         )
 
     def test_strip_citations_leaves_no_space_before_the_full_stop(self):
-        assert strip_citations("Maradona shoots [24].") == "Maradona shoots."
+        assert strip_citations("Maradona shot [24].") == "Maradona shot."
 
 
 class TestHelpers:
@@ -597,25 +828,53 @@ class TestHelpers:
             assert types <= set(EVENT_VERBS), (word, types - set(EVENT_VERBS))
 
     def test_the_two_sided_action_words_name_both_records(self):
-        """"X dribbles past Y" is a `Dribble` on X's record and a `Dribbled
+        """"X dribbled past Y" is a `Dribble` on X's record and a `Dribbled
         Past` on Y's. Without both in the set, naming the beaten defender would
         be reported as an invented action."""
-        assert ACTION_CLAIMS["dribbles"] == {"Dribble", "Dribbled Past"}
-        assert ACTION_CLAIMS["passes"] == {"Pass", "Ball Receipt*"}
+        assert ACTION_CLAIMS["dribbled"] == {"Dribble", "Dribbled Past"}
+        assert ACTION_CLAIMS["passed"] == {"Pass", "Ball Receipt*"}
         assert ACTION_CLAIMS["foul"] == {"Foul Committed", "Foul Won"}
+
+    def test_the_action_words_are_past_tense_or_tenseless(self):
+        """The facts are written in the past tense, so the words that ground an
+        event are the past forms and the nouns. A present form here would be a
+        word the check both grounds and refuses."""
+        assert not set(ACTION_CLAIMS) & set(PRESENT_TENSE)
+        for word in ("dribbled", "shot", "scored", "pressed", "recovered", "won"):
+            assert word in ACTION_CLAIMS, word
+
+    def test_every_present_form_has_a_past_form_the_check_knows(self):
+        """A present-tense entry whose past form the check does not recognise
+        would refuse a word and offer a replacement that fails too."""
+        said = {verb.split()[0] for verb in EVENT_VERBS.values()}
+        for present, past in PRESENT_TENSE.items():
+            assert past in ACTION_CLAIMS or past in said, (present, past)
+
+    def test_the_present_tense_phrases_offer_their_past_form(self):
+        """Each phrase differs from its replacement only in the auxiliary."""
+        for phrase, past in PRESENT_TENSE_PHRASES.items():
+            assert past.split()[0] in ("was", "were")
+            assert phrase.split()[1:] == past.split()[1:]
+
+    def test_every_fact_verb_is_past_tense(self):
+        """The facts are the narration's source, so a present-tense verb here
+        would be asking the model to copy the thing the check refuses."""
+        for action, verb in EVENT_VERBS.items():
+            first = verb.split()[0]
+            assert first not in PRESENT_TENSE, (action, verb)
 
 
 class TestResult:
     def test_a_grounded_result_says_how_much_it_checked(self, facts_1986):
         result = check(
-            "Maradona shoots and scores for Argentina. [24]", facts_1986
+            "[24] Maradona shot and scored for Argentina.", facts_1986
         )
         assert result.grounded
         assert result.checked > 0
         assert "grounded" in result.summary
 
     def test_an_ungrounded_result_lists_its_claims(self, facts_1986):
-        result = check("Valdano scores. [24]", facts_1986)
+        result = check("[24] Valdano scored.", facts_1986)
         assert not result.grounded
         assert "Valdano" in result.summary
         assert result.failures

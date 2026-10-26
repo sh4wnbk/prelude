@@ -159,14 +159,17 @@ extractor invented is a fact the check would then happily approve.
 
 **A narration cites the facts each sentence used**, and the check reads that
 sentence against those facts and nothing else. The citation comes first on the
-line, `[11] Maradona dribbles past Peter Beardsley.`, because that is the order
+line, `[11] Maradona dribbled past Peter Beardsley.`, because that is the order
 the work happens in: pick a fact, read its number, then say it. The tags are
 stripped before anything is shown or voiced, and the cited version is kept as
 `Narrated.tagged_text` for audit.
 
 **The prompt states the rules the check enforces**, in the same words, because
 a prompt asking for less than the check requires would set the model up to fail
-and the retry would not help it.
+and the retry would not help it. That includes the two the voice settled in task
+3d: the narration is past tense, because a buildup is playback of a passage that
+already happened, and it ends on the goal's own shot, because nothing follows
+the goal. `docs/VOICE.md` carries both.
 
 **The check is whole-narration.** `CLAUDE.md` gives no partial credit, so a
 narration passes or fails together. It reports every failing claim rather than

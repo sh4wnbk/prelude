@@ -458,6 +458,77 @@ would mean the check refusing copy for its length rather than its grounding,
 which is a different job; if it is wanted, it belongs in `app/narration.py`
 beside the retry rule.
 
+### Phase 4, task 3d
+
+**The narration is past tense, and it ends on the goal.**
+
+A buildup is playback. A fan opens Prelude after the moment has gone, and
+commentary in the present tense tells them it is happening now, which is the one
+thing this project is not doing. So `EVENT_VERBS` writes the facts as a record
+("dribbled", "was dribbled past", "shot"), the prompt asks for past-tense
+narration, and `app/grounding.py` refuses a present-tense verb instead of
+grounding it: `ACTION_CLAIMS` holds the past forms and the tenseless nouns, and
+`PRESENT_TENSE` holds the present forms with the past form to use instead.
+
+| What was added | Where |
+| -------------- | ----- |
+| past-tense facts | `EVENT_VERBS` in `app/narration_prompt.py` |
+| past-tense action words, and "scored", "recovered", "won" | `ACTION_CLAIMS` in `app/grounding.py` |
+| the present forms, refused | `PRESENT_TENSE` in `app/grounding.py` |
+| the two auxiliary phrasings, refused | `PRESENT_TENSE_PHRASES` in `app/grounding.py` |
+| the ending rule | `check` in `app/grounding.py` |
+| the second person, refused | `BANNED_PATTERNS` in `app/grounding.py` |
+
+**"Won" was the word that needed care.** "Won a foul" is a `Foul Won` record and
+has to stay sayable; "won the match" is a result no buildup carries. So "won"
+grounds against a `Foul Won`, and the outcome-claim pattern reaches past the
+verb to its object rather than refusing the word. Both halves are tested, in
+`tests/test_grounding.py::TestTense::test_won_a_foul_is_allowed` and
+`tests/test_grounding.py::TestTense::test_won_the_match_is_refused`.
+
+**There is no closer.** A closing sentence in the present tense, spoken to the
+fan, was the obvious thing to add and is dropped. The goal has just gone in, the
+stadium is doing what a stadium does, and a phone saying "that is the moment you
+came for" is competing with 80,000 people and losing. It would also be the one
+sentence in the narration that no fact could ground. So the narration stops on
+the goal: the last sentence has to cite the shot the moment was built from.
+
+Citation placement cannot catch a closer on its own, because a closer can cite
+the goal's fact as easily as the goal sentence can. What catches one is the
+second person, now refused wherever it appears. A closer that cites the goal,
+avoids "you" and asserts nothing checkable is caught by nothing, and
+`tests/test_grounding.py::TestEnding::test_what_the_ending_rule_alone_cannot_catch`
+records that rather than leaving it to be found.
+
+**One latent parser bug came out of writing the tests.** A tag between two
+sentences is ambiguous: in "A. [15] B." the tag can close A or open B, and both
+layouts occur. The rule was per tag, which misread a citation-first narration
+with an untagged sentence in the middle, binding the next sentence's tag
+backwards and so flagging the wrong sentence while hiding the one that cited
+nothing. The layout is now settled once per narration by the first chunk, since
+a tag opening the first chunk has no sentence before it to belong to.
+`tests/test_grounding.py::TestSentences::test_an_untagged_sentence_in_a_citation_first_narration`
+is that case.
+
+**The live runs.** Two over the 1986 54:18 goal, both returning grounded,
+labelled, past-tense model narration:
+
+| Run | Model attempts | What came back |
+| --- | -------------- | -------------- |
+| 1 | 1 grounded | four past-tense lines, labelled |
+| 2 | 1 and 2 refused, 3 grounded | four past-tense lines, labelled |
+
+The tense rule has not refused a live attempt yet: with the facts in the past
+tense the model wrote past tense without being corrected, which is what changing
+the facts was for. The ending rule did refuse one, and on a real mistake rather
+than a hypothetical: run 2's first attempt wrote the goal sentence and then
+added another after it. `docs/VOICE.md` carries both runs.
+
+Both grounded narrations are thin in the same way: the model takes facts 1 to 3
+in order and jumps to the shot, so the run the goal is famous for is the part it
+skips. Nothing refuses a narration for being dull, and nothing should; it is a
+model limit and it is worth knowing before the pass rate is measured.
+
 ### Phase 4, task 3c
 
 **Four documents, each statement carrying its file and its test.**

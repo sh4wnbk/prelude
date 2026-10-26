@@ -8,13 +8,19 @@ pointed at.
 
 **The narration cites its facts.** `app/narration_prompt.py` gives the model a
 numbered list, one plain fact per recorded event, and the prompt requires every
-sentence to end with the numbers of the facts it used:
+sentence to carry the numbers of the facts it used:
 
-    Maradona dribbles past Terry Butcher. [14, 15]
+    [14, 15] Maradona dribbled past Terry Butcher.
 
 Those numbers are what this module checks against. A sentence is read against
 the facts it cited, not against the buildup as a lump, and
 `strip_citations` takes the tags off again before anything is shown or voiced.
+
+**It is all past tense, and it ends on the goal.** A buildup is playback of a
+passage that already happened, so the facts are written in the past tense and a
+present-tense verb in a narration is refused rather than grounded. The last
+sentence has to cite the goal's shot, because nothing follows the goal: there is
+no closing line addressed to the fan. `docs/VOICE.md` carries both decisions.
 
 **What it checks.** A claim is something a sentence asserts that the records can
 confirm or refuse:
@@ -24,10 +30,12 @@ confirm or refuse:
 | `name` | a capitalised word | it is a player or team name in a cited fact |
 | `number` | a bare digit | it is a cited fact's minute, or the goal's second |
 | `clock` | "54:13" | it is the clock of a cited fact |
-| `action` | "passes", "dribbles", "clears" | a cited fact records that event type |
+| `action` | "passed", "dribbled", "cleared" | a cited fact records that event type |
 | `pairing` | a name and an action together | one cited fact holds both |
 | `shot_type` | "penalty", "free kick", "corner" | the goal shot is recorded as that |
 | `body_part` | "header", "left foot" | the goal shot is recorded as that |
+| `tense` | "dribbles", "is dribbled past" | never; the buildup already happened |
+| `ending` | a last sentence not citing the goal | never; the narration ends on the goal |
 | `untagged` | a sentence citing nothing | never; every sentence cites its facts |
 | `citation` | a number that is not a fact | never |
 | `banned` | a nickname, a verdict, an em dash | never; these are refused outright |
@@ -77,22 +85,24 @@ from typing import Mapping, Sequence
 
 from app.narration_prompt import Fact, Facts
 
-#: "X passes to Y" is two records: a `Pass` on X's and a `Ball Receipt*` on Y's.
+#: "X passed to Y" is two records: a `Pass` on X's and a `Ball Receipt*` on Y's.
 #: Both ground the word, so naming the player a pass reached is not reported as
 #: an invented action.
 _PASS = frozenset({"Pass", "Ball Receipt*"})
 
-#: "X dribbles past Y" is likewise two records: a `Dribble` on X's and a
+#: "X dribbled past Y" is likewise two records: a `Dribble` on X's and a
 #: `Dribbled Past` on Y's. This pair is what makes the Reid case decidable.
 _DRIBBLE = frozenset({"Dribble", "Dribbled Past"})
 
-#: "X fouls Y" is a `Foul Committed` on X's record and a `Foul Won` on Y's.
+#: "X fouled Y" is a `Foul Committed` on X's record and a `Foul Won` on Y's.
 _FOUL = frozenset({"Foul Committed", "Foul Won"})
 
-#: Three event types have one word each and no second side.
+#: Event types with one word each and no second side.
 _CARRY = frozenset({"Carry"})
 _RECEIPT = frozenset({"Ball Receipt*"})
 _PRESSURE = frozenset({"Pressure"})
+_RECOVERY = frozenset({"Ball Recovery"})
+_SHOT = frozenset({"Shot"})
 
 #: Words that assert a specific StatsBomb event type, and the types that satisfy
 #: them. A narration using one is claiming that event is in the facts it cited,
@@ -103,42 +113,97 @@ _PRESSURE = frozenset({"Pressure"})
 #: more than one type only where one phrase asserts both sides of the same
 #: event, which is what lets a sentence name the player an action was done to.
 #:
+#: **Past tense and the tenseless nouns, and nothing in the present.** A buildup
+#: is playback, so `EVENT_VERBS` writes the facts in the past tense and the
+#: narration follows. The present-tense form of each of these is in
+#: `PRESENT_TENSE` below and is refused rather than grounded: "dribbles" is not
+#: a weaker way of saying "dribbled", it is a narration describing the match as
+#: if it were still happening.
+#:
 #: The list grows from live runs rather than from a wish to be complete. "carry",
 #: "receive" and "press" are here because `EVENT_VERBS` says those events in
 #: those words, so a model reads them off the facts and writes them back, and a
 #: word the facts use to state an event is a word that asserts it. The noun
 #: "pressure" is deliberately absent: "under pressure" is as often scene setting
 #: as a claim about a `Pressure` record, and refusing it would cost good copy.
+#:
+#: "won" asserts a `Foul Won`, which is the only thing a buildup records being
+#: won. It is the word that makes "won a foul" groundable while
+#: `BANNED_PATTERNS` refuses "won the match": one is a record, the other is a
+#: claim about a result no buildup carries.
 ACTION_CLAIMS: Mapping[str, frozenset[str]] = {
-    "passes": _PASS,
     "passed": _PASS,
     "pass": _PASS,
-    "dribbles": _DRIBBLE,
     "dribbled": _DRIBBLE,
     "dribble": _DRIBBLE,
-    "carries": _CARRY,
     "carried": _CARRY,
     "carry": _CARRY,
-    "receives": _RECEIPT,
     "received": _RECEIPT,
     "receive": _RECEIPT,
-    "presses": _PRESSURE,
     "pressed": _PRESSURE,
     "press": _PRESSURE,
-    "clears": frozenset({"Clearance"}),
+    "recovered": _RECOVERY,
+    "recovery": _RECOVERY,
     "cleared": frozenset({"Clearance"}),
     "clearance": frozenset({"Clearance"}),
-    "blocks": frozenset({"Block"}),
     "blocked": frozenset({"Block"}),
-    "intercepts": frozenset({"Interception"}),
+    "block": frozenset({"Block"}),
+    "intercepted": frozenset({"Interception"}),
     "interception": frozenset({"Interception"}),
-    "saves": frozenset({"Goal Keeper"}),
+    "saved": frozenset({"Goal Keeper"}),
     "save": frozenset({"Goal Keeper"}),
-    "fouls": _FOUL,
     "fouled": _FOUL,
     "foul": _FOUL,
-    "shoots": frozenset({"Shot"}),
-    "shot": frozenset({"Shot"}),
+    "committed": frozenset({"Foul Committed"}),
+    "won": frozenset({"Foul Won"}),
+    "contested": frozenset({"Duel"}),
+    "dispossessed": frozenset({"Dispossessed"}),
+    "miscontrolled": frozenset({"Miscontrol"}),
+    "shot": _SHOT,
+    "scored": _SHOT,
+}
+
+#: Present-tense verbs, and the past-tense form the facts use instead. A buildup
+#: already happened, and narrating it as though it were live is the one thing
+#: this table refuses. Every value is a word `ACTION_CLAIMS` grounds or a verb
+#: `EVENT_VERBS` writes, which
+#: `tests/test_grounding.py::TestTense::test_every_present_form_has_a_past_form_the_check_knows`
+#: holds.
+#:
+#: It covers the verbs the facts and the narration actually use, not every verb
+#: in English: a word outside it is unchecked prose, and "turned", "advanced" or
+#: "went again" are nobody's claim about a record.
+PRESENT_TENSE: Mapping[str, str] = {
+    "passes": "passed",
+    "dribbles": "dribbled",
+    "carries": "carried",
+    "receives": "received",
+    "presses": "pressed",
+    "recovers": "recovered",
+    "clears": "cleared",
+    "blocks": "blocked",
+    "intercepts": "intercepted",
+    "saves": "saved",
+    "fouls": "fouled",
+    "commits": "committed",
+    "contests": "contested",
+    "miscontrols": "miscontrolled",
+    "shoots": "shot",
+    "scores": "scored",
+    "wins": "won",
+    "plays": "played",
+    "makes": "made",
+}
+
+#: The two facts written with an auxiliary. A single word cannot catch these,
+#: because the verb in them is already the past participle the facts use, so the
+#: tense sits in "is" and "are" and the phrase has to be matched whole. Matching
+#: "is" alone would refuse half of ordinary English.
+PRESENT_TENSE_PHRASES: Mapping[str, str] = {
+    "is dribbled past": "was dribbled past",
+    "are dribbled past": "were dribbled past",
+    "is dispossessed": "was dispossessed",
+    "are dispossessed": "were dispossessed",
 }
 
 #: Words that assert the goal's recorded shot type. The highest-value entries in
@@ -199,10 +264,13 @@ BANNED_PATTERNS: Sequence[tuple[str, str]] = (
     # check ended on "securing Argentina's victory" and "secured the victory
     # for his team", neither of which the data says.
     #
-    # "win" and "won" are deliberately absent: "wins a foul" is a recorded Foul
-    # Won event, and banning the word would fail every penalty buildup. "score"
-    # and its forms are absent for the same reason, since the goal is the thing
-    # being narrated.
+    # "win" and "won" are not banned as words: "won a foul" is a recorded Foul
+    # Won event, and refusing the word would fail every penalty buildup.
+    # "score" and its forms are left alone for the same reason, since the goal
+    # is the thing being narrated. What is refused is winning the thing a
+    # buildup cannot show, so the pattern reaches past the verb to its object.
+    ("outcome claim", r"\b(?:win|wins|won|winning)\s+the\s+"
+                      r"(?:match|game|final|tie|cup|title|trophy|world cup)\b"),
     ("outcome claim", r"\bvictor\w*\b"),
     ("outcome claim", r"\btriumph\w*\b"),
     ("outcome claim", r"\bdefeat\w*\b"),
@@ -212,6 +280,13 @@ BANNED_PATTERNS: Sequence[tuple[str, str]] = (
     ("outcome claim", r"\btrophy\b"),
     ("outcome claim", r"\bscoreline\b"),
     ("unearned authority", r"\bofficial\w*"),
+    # Addressing the fan. The narration ends on the goal and says nothing after
+    # it, so there is no line spoken to the reader for second person to belong
+    # to. The `ending` rule holds where the narration stops, which a closing
+    # line citing the goal's own fact satisfies; this holds what it may say.
+    ("address to the reader", r"\byou\b"),
+    ("address to the reader", r"\byour\b"),
+    ("address to the reader", r"\byours\b"),
     ("em dash", r"—"),
     ("en dash", r"–"),
 )
@@ -395,25 +470,38 @@ def _tag_numbers(tag: str) -> tuple[int, ...]:
 def sentences(text: str) -> tuple[Sentence, ...]:
     """Split a narration into sentences and read each one's citations.
 
-    The prompt asks for the tag inside the sentence, and the first live run
-    against `granite4:micro` put it just after the full stop instead, every
-    time: "Maradona dribbles past a defender. [15] He carries the ball. [17]".
-    A splitter that reads a tag as part of the chunk it starts shifts every
-    citation by one sentence and then fails the narration for it, which is this
-    module's bug and not the model's. So a tag at the start of a chunk is read
-    as belonging to the sentence before it.
+    Two layouts have to be read, and a tag between two sentences is ambiguous
+    between them. The prompt asks for the citation first, which is what the
+    fallback writes and what a model given that example produces:
 
-    Unless that sentence already cited something: a model that writes its tags
-    in front of its sentences instead is then read the way it meant too, and
-    the tag carries forward to the sentence it opens. Both layouts say which
-    facts were used, and refusing one of them over where the full stop fell
-    would throw away good copy.
+        [15] Maradona dribbled past a defender.
+
+    The first live run against `granite4:micro` put the tag just after the full
+    stop instead, every time, and ran the sentences together on one line:
+
+        Maradona dribbled past a defender. [15] He carried the ball. [16]
+
+    Read one way, "[15] He carried the ball." is a sentence citing fact 15. Read
+    the other, the tag closes the sentence before it and "He carried the ball."
+    cites nothing. Nothing inside the chunk settles it.
+
+    **The first chunk settles it for the whole narration.** A tag opening the
+    first chunk has no sentence before it to belong to, so a narration that
+    starts with one is citation-first and every leading tag binds to the
+    sentence it opens. Otherwise the tags trail, and a leading tag belongs to
+    the sentence before it. Deciding once per narration rather than per chunk is
+    what keeps an untagged sentence in a citation-first narration reported
+    against itself: binding its successor's tag backwards would flag the wrong
+    sentence and hide the one that cited nothing.
     """
     found: list[Sentence] = []
     carried: tuple[int, ...] = ()
 
+    first = next((c.strip() for c in _SENTENCE.findall(text) if c.strip()), "")
+    leading_binds_forward = _TAG.match(first) is not None
+
     def add_to_previous(cites: tuple[int, ...], raw: str) -> bool:
-        if not found or found[-1].cites:
+        if leading_binds_forward or not found or found[-1].cites:
             return False
         previous = found[-1]
         found[-1] = Sentence(
@@ -539,7 +627,8 @@ def check(text: str, facts: Facts) -> GroundingResult:
     claims_made: list[str] = []
     checked = 0
 
-    for sentence in sentences(text):
+    parsed = sentences(text)
+    for sentence in parsed:
         folded = fold(sentence.text)
 
         def failed(kind: str, value: str) -> None:
@@ -551,6 +640,18 @@ def check(text: str, facts: Facts) -> GroundingResult:
             for hit in re.findall(pattern, folded):
                 checked += 1
                 failed(label, hit if isinstance(hit, str) else sentence.text)
+
+        # The tense, before the words are read as claims. A present-tense verb
+        # is not a weaker way of saying the past one: it narrates the passage as
+        # though it were still happening, which is a different thing from what
+        # the records say.
+        for phrase, past in PRESENT_TENSE_PHRASES.items():
+            if phrase in folded:
+                checked += 1
+                failed(
+                    "tense",
+                    f"{phrase!r} is present tense; the facts say {past!r}",
+                )
 
         # Multi-word claims first, so "free kick" is not read as "kick".
         for phrase, required in SHOT_TYPE_CLAIMS.items():
@@ -578,6 +679,15 @@ def check(text: str, facts: Facts) -> GroundingResult:
 
         for word in _WORD.findall(sentence.text):
             folded_word = bare(fold(word))
+
+            if folded_word in PRESENT_TENSE:
+                checked += 1
+                failed(
+                    "tense",
+                    f"{word!r} is present tense; the facts say "
+                    f"{PRESENT_TENSE[folded_word]!r}",
+                )
+                continue
 
             if folded_word in ACTION_CLAIMS:
                 actions.append(_ActionClaim(word, ACTION_CLAIMS[folded_word]))
@@ -712,6 +822,23 @@ def check(text: str, facts: Facts) -> GroundingResult:
                 f"{written} is not the minute of a fact this sentence cites, "
                 "or the second the goal was scored at",
             )
+
+    # The narration ends on the goal. Nothing follows it: no summary, no
+    # comment, no line addressed to the fan. So the last sentence has to cite
+    # the shot the moment was built from, and a sentence after that one is a
+    # sentence the app did not need to say.
+    if parsed and goal.number not in parsed[-1].cites:
+        checked += 1
+        failures.append(
+            Claim(
+                "ending",
+                f"the narration ends on a sentence citing {_cited(parsed[-1].cites)}, "
+                f"not fact {goal.number}, the shot the moment was built from; "
+                "the narration ends on the goal and nothing follows it",
+                parsed[-1].number,
+                parsed[-1].raw,
+            )
+        )
 
     if not claims_made:
         checked += 1

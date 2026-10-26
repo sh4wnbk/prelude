@@ -40,25 +40,30 @@ from app.event_feed import Buildup, Moment, RawEvent
 #: here; a type with no entry falls back to naming the type itself rather than
 #: being guessed at, and `tests/test_narration_prompt.py` checks that fallback
 #: is unreachable with the data in the repo.
+#:
+#: **Past tense.** A buildup is playback of a passage that already happened, so
+#: the facts are written as a record of it rather than as live commentary. The
+#: narration follows, which `app/grounding.py` enforces: a present-tense verb in
+#: a narration is refused, and the past-tense form is what grounds an event.
 EVENT_VERBS: Mapping[str, str] = {
-    "Ball Recovery": "recovers the ball",
-    "Pass": "passes",
-    "Ball Receipt*": "receives the ball",
-    "Carry": "carries the ball",
-    "Dribble": "dribbles",
-    "Dribbled Past": "is dribbled past",
-    "Pressure": "presses",
-    "Duel": "contests the ball",
-    "Clearance": "clears",
-    "Block": "blocks",
-    "Interception": "intercepts",
-    "Dispossessed": "is dispossessed",
-    "Miscontrol": "miscontrols",
-    "Foul Committed": "commits a foul",
-    "Foul Won": "wins a foul",
-    "Goal Keeper": "plays the ball as goalkeeper",
-    "Error": "makes an error",
-    "Shot": "shoots",
+    "Ball Recovery": "recovered the ball",
+    "Pass": "passed",
+    "Ball Receipt*": "received the ball",
+    "Carry": "carried the ball",
+    "Dribble": "dribbled",
+    "Dribbled Past": "was dribbled past",
+    "Pressure": "pressed",
+    "Duel": "contested the ball",
+    "Clearance": "cleared",
+    "Block": "blocked",
+    "Interception": "intercepted",
+    "Dispossessed": "was dispossessed",
+    "Miscontrol": "miscontrolled",
+    "Foul Committed": "committed a foul",
+    "Foul Won": "won a foul",
+    "Goal Keeper": "played the ball as goalkeeper",
+    "Error": "made an error",
+    "Shot": "shot",
 }
 
 #: The actions the fallback narration will mention, in the order the events
@@ -281,7 +286,13 @@ def build_prompt(facts: Facts, sentences: int = DEFAULT_SENTENCES) -> str:
     plainly. A prompt that asked for less than the check requires would set the
     model up to fail, and the retry would not help it.
 
-    Rule 2 is the one that exists for the check's sake rather than the voice's.
+    Rule 1 is the voice: a buildup is playback of a passage that already
+    happened, so it is told in the past tense. Rule 2 is where the narration
+    stops. There is no closing line addressed to the fan, because the moment
+    the goal lands the stadium takes over and the app has nothing to add;
+    `docs/VOICE.md` carries that reasoning.
+
+    Rule 4 is the one that exists for the check's sake rather than the voice's.
     The check pairs every name in a sentence with every action in it, because
     nothing in the text says which name goes with which action, so a sentence
     about one action is a sentence the check can read exactly.
@@ -330,29 +341,37 @@ write the sentence. Never write a number you have not read off a line, and do
 not put the same number on every line.
 
 RULES
-1. Every name, action and clock in a sentence has to come from a fact that line
+1. Write in the past tense, as the facts above are written. This passage has
+   already happened and you are telling a fan what they missed, so "dribbled",
+   not "dribbles"; "shot", not "shoots"; "was dribbled past", not "is dribbled
+   past". A line in the present tense is rejected.
+2. The last line is about the goal and cites fact {goal.number}. Nothing follows
+   it: no summary, no comment, no sentence addressed to the reader. The
+   narration stops on the goal.
+3. Every name, action and clock in a sentence has to come from a fact that line
    cites, and a name has to sit in the same fact as the action you give it.
-   "dribbles past a defender" needs one cited fact that records a dribble by or
+   "dribbled past a defender" needs one cited fact that records a dribble by or
    against that defender; if no single fact pairs them, the line is rejected
    even though both words appear somewhere in the list. A real player who is
    not in this passage is rejected like an invented one.
-2. Give each line one action, so every name in it belongs to that action. Two
+4. Give each line one action, so every name in it belongs to that action. Two
    players doing two different things are two lines.
-3. Do not say the goal was a penalty, a free kick or a corner unless the shot
+5. Do not say the goal was a penalty, a free kick or a corner unless the shot
    type above says so. Do not name a body part other than the one above.
-4. A clock is written exactly as the fact you cite writes it, so a clock
+6. A clock is written exactly as the fact you cite writes it, so a clock
    belongs only to a line citing the fact it was printed on. Write any count as
    a word, not a digit: "past two defenders", never "past 2 defenders". The
    only other digits allowed are the minute of a cited fact and the second the
    goal was scored at.
-5. No nicknames and no verdicts for the goal, the players or the match. Say
+7. No nicknames and no verdicts for the goal, the players or the match. Say
    what the data records, not how good it was. Words like "decisive",
    "brilliant" and "significant" are rejected.
-6. Say nothing about the score, the result, or what the goal meant for the
+8. Say nothing about the score, the result, or what the goal meant for the
    match. What you have is one passage of play, and it does not say who won.
-7. No em dashes. Use a colon, a semicolon, parentheses or two sentences.
-8. Write {sentences} sentences of plain, present-tense commentary, one per line.
-   Output those lines only, with no preamble, heading or explanation.
+   "won a foul" is fine, because the facts record one; "won the match" is not.
+9. No em dashes. Use a colon, a semicolon, parentheses or two sentences.
+10. Write {sentences} sentences of plain past-tense commentary, one per line.
+    Output those lines only, with no preamble, heading or explanation.
 """
 
 
@@ -371,7 +390,9 @@ def template_narration(facts: Facts) -> str:
     action that fact does not record.
 
     The layout is the one `build_prompt` asks a model for, citation first, so
-    narration has one shape in this repo whether a model wrote it or not.
+    narration has one shape in this repo whether a model wrote it or not. It
+    ends on the goal, citing the shot the moment was built from, which is the
+    last thing the narration says.
     """
     goal = facts.goal_fact
     candidates = [
@@ -402,7 +423,7 @@ def template_narration(facts: Facts) -> str:
     lines = [f"[{goal.number}] Minute {goal.beat.minute}."]
     lines += [cited_line(fact) for fact in chosen]
     lines.append(
-        f"[{goal.number}] {goal.beat.player} shoots and scores for "
+        f"[{goal.number}] {goal.beat.player} shot and scored for "
         f"{goal.beat.team}."
     )
     return "\n".join(lines)

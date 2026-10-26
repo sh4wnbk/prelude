@@ -48,12 +48,16 @@ One test per kind of claim, and one per kind of mistake:
 | `number` | a bare digit is neither a cited minute nor the goal's second | `tests/test_grounding.py::TestNotGrounded::test_a_number_that_is_not_a_minute` |
 | `shot_type` | the goal is called a set piece it was not | `tests/test_grounding.py::TestNotGrounded::test_a_goal_turned_into_a_set_piece` |
 | `body_part` | the body part is not the recorded one | `tests/test_grounding.py::TestNotGrounded::test_the_wrong_body_part` |
+| `tense` | a present-tense verb, in a passage that already happened | `tests/test_grounding.py::TestTense::test_a_present_tense_sentence_is_flagged` |
+| `tense` | the tense sits in an auxiliary, "is dribbled past" | `tests/test_grounding.py::TestTense::test_an_auxiliary_carries_the_tense_too` |
+| `ending` | the last sentence does not cite the goal's shot | `tests/test_grounding.py::TestEnding::test_a_last_sentence_that_does_not_cite_the_shot_is_refused` |
 | `untagged` | the sentence cites no fact | `tests/test_grounding.py::TestNotGrounded::test_a_sentence_that_cites_nothing` |
 | `citation` | the cited number is not one of the facts | `tests/test_grounding.py::TestNotGrounded::test_a_citation_that_is_not_one_of_the_facts` |
 | `unverifiable` | the narration asserts nothing checkable | `tests/test_grounding.py::TestNotGrounded::test_narration_that_asserts_nothing_checkable` |
 | banned | a verdict nickname | `tests/test_grounding.py::TestNotGrounded::test_a_verdict_nickname` |
 | banned | an editorial epithet | `tests/test_grounding.py::TestNotGrounded::test_an_editorial_epithet` |
-| banned | a claim about the result | `tests/test_grounding.py::TestNotGrounded::test_an_outcome_claim` |
+| banned | a claim about the result, "won the match" | `tests/test_grounding.py::TestTense::test_won_the_match_is_refused` |
+| banned | a line addressed to the fan | `tests/test_grounding.py::TestEnding::test_a_closing_line_addressed_to_the_fan_is_refused` |
 | banned | an em dash | `tests/test_grounding.py::TestNotGrounded::test_an_em_dash` |
 
 **The verdict is whole-narration.** `CLAUDE.md` gives no partial credit, so a
@@ -78,7 +82,9 @@ exactly that failure:
 | one sentence drawing on several facts | `tests/test_grounding.py::TestGrounded::test_one_sentence_may_span_several_facts` |
 | the tag written after the full stop, as the live model wrote it | `tests/test_grounding.py::TestGrounded::test_tags_written_after_the_full_stops` |
 | a demonym over a fact recorded against that team | `tests/test_grounding.py::TestGrounded::test_a_demonym_grounds_against_its_team` |
-| "wins a foul", which is a recorded `Foul Won` event | `tests/test_grounding.py::TestGrounded::test_a_penalty_narration_may_say_a_foul_was_won` |
+| "won a foul", which is a recorded `Foul Won` event | `tests/test_grounding.py::TestTense::test_won_a_foul_is_allowed` |
+| a past participle the facts use, "was dribbled past" | `tests/test_grounding.py::TestTense::test_the_past_participle_on_its_own_is_fine` |
+| a whole narration in the past tense, ending on the goal | `tests/test_grounding.py::TestTense::test_a_past_tense_narration_passes` |
 
 **The fallback is checked like anything else.** It is assembled from the facts
 with no model, so it is grounded by construction, and
@@ -164,9 +170,21 @@ count it prints and its exit code.
 ## What is not verified
 
 - **Direction in a narration.** The check reads a sentence against the facts it
-  cited and not its grammar, so "Maradona passes to Enrique" and "Enrique passes
+  cited and not its grammar, so "Maradona passed to Enrique" and "Enrique passed
   to Maradona" cite the same facts and both pass. `docs/VOICE.md` works through
   this and the rest of what pairing cannot decide.
+- **Tense, beyond a list of verbs.** `PRESENT_TENSE` in `app/grounding.py`
+  covers the verbs the facts and the narration use, and
+  `tests/test_grounding.py::TestTense::test_the_present_tense_of_every_action_word_is_refused`
+  holds every entry in it. A verb outside that table carries no tense as far as
+  the check is concerned.
+- **What a closing line means.** The `ending` rule holds where a narration
+  stops, not what its last sentence says, and a closer can cite the goal's fact
+  as easily as the goal sentence can. The second person is what catches one in
+  practice; a closer that avoids it and asserts nothing checkable is caught by
+  nothing, which
+  `tests/test_grounding.py::TestEnding::test_what_the_ending_rule_alone_cannot_catch`
+  records.
 - **How much a narration says.** A single grounded sentence passes.
   `app/grounding.py` refuses narration that asserts nothing checkable, not
   narration that asserts too little, and nothing enforces the sentence count the

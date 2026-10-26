@@ -84,10 +84,12 @@ The epithet list exists because of a real line rather than a worry. The first
 live run that got past every other check still ended "This decisive moment
 marked a significant moment in the match's narrative", which `docs/VOICE.md`
 quotes. Claims about the score or the result are refused for the same reason
-(`tests/test_grounding.py::TestNotGrounded::test_an_outcome_claim`), and "win"
-and "won" are deliberately absent from that list, because "wins a foul" is a
-recorded `Foul Won` event
-(`tests/test_grounding.py::TestGrounded::test_a_penalty_narration_may_say_a_foul_was_won`).
+(`tests/test_grounding.py::TestNotGrounded::test_an_outcome_claim`). "Win" and
+"won" are not refused as words, because "won a foul" is a recorded `Foul Won`
+event (`tests/test_grounding.py::TestTense::test_won_a_foul_is_allowed`). What
+is refused is winning the thing no buildup carries, so the pattern reaches past
+the verb to its object and "won the match" fails
+(`tests/test_grounding.py::TestTense::test_won_the_match_is_refused`).
 
 A blank pattern would match every line and fail everything, so
 `tests/test_grounding.py::TestHelpers::test_no_banned_pattern_is_blank` holds the

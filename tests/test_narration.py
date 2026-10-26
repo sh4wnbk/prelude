@@ -37,16 +37,17 @@ from app.statsbomb_event_feed import StatsBombEventFeed
 MATCH_1986 = 3750191
 GOAL_1986 = (54, 18)
 
-# Narration as a model writes it, each sentence citing the facts it used. Fact
-# 22 is Maradona's last Dribble and fact 24 is his shot; the numbers are read
-# out of data/raw/ and written down, like the ones in tests/test_grounding.py.
-GROUNDED = "Maradona dribbles and shoots, and scores for Argentina. [22, 24]"
-INVENTED_PLAYER = "Maradona passes to Valdano, who scores for Argentina. [6, 7]"
-INVENTED_PENALTY = "Maradona scores the penalty for Argentina. [24]"
-SAYS_NOTHING = "He turns away from two, then goes again. [8]"
+# Narration as a model writes it: past tense, the citation first, ending on the
+# goal. Fact 22 is Maradona's last Dribble and fact 24 is his shot; the numbers
+# are read out of data/raw/ and written down, like the ones in
+# tests/test_grounding.py.
+GROUNDED = "[22, 24] Maradona dribbled and shot, and scored for Argentina."
+INVENTED_PLAYER = "[6, 7] Maradona passed to Valdano, who scored for Argentina."
+INVENTED_PENALTY = "[24] Maradona scored the penalty for Argentina."
+SAYS_NOTHING = "[8] He turned away from two, then went again."
 
 # The same narration as it is shown and voiced.
-GROUNDED_SHOWN = "Maradona dribbles and shoots, and scores for Argentina."
+GROUNDED_SHOWN = "Maradona dribbled and shot, and scored for Argentina."
 
 
 class Script:

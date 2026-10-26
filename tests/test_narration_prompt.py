@@ -44,8 +44,9 @@ GOAL_1986 = {
     "set_piece": None,
     "body_part": "Left Foot",
     "scorer": "Diego Armando Maradona",
-    # Fact 14, written out as the prompt prints it.
-    "fact_14": "Terry Butcher (England) is dribbled past, 54:13",
+    # Fact 14, written out as the prompt prints it. Past tense: a buildup is
+    # playback of a passage that already happened.
+    "fact_14": "Terry Butcher (England) was dribbled past, 54:13",
 }
 
 # The first of the three 2022 penalties, which reaches back a possession.
@@ -272,7 +273,7 @@ class TestTemplateNarration:
         for _, moment, facts in every_goal(feed):
             last = sentences(template_narration(facts))[-1]
             assert last.text == (
-                f"{moment.player} shoots and scores for {moment.team}."
+                f"{moment.player} shot and scored for {moment.team}."
             )
             assert last.cites == (facts.goal_fact.number,)
 
@@ -302,4 +303,4 @@ class TestTemplateNarration:
         """The whole reason buildup reaches back a possession. If the fallback
         drops the foul, the set piece has no cause in the narration."""
         facts = facts_for(feed, MATCH_2022, PENALTY_2022["clock"])
-        assert "commits a foul" in template_narration(facts)
+        assert "committed a foul" in template_narration(facts)

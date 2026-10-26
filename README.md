@@ -120,17 +120,19 @@ Everything above it is structure.
   `socket.socket.connect` with functions that raise, for every test in the
   suite.
 - `app/narration_prompt.py`: turns one buildup into a numbered list of plain
-  facts, one per recorded event, built by code out of the records; the prompt
-  that asks a model to narrate from that list and cite the facts each sentence
-  used; and the fallback narration, one sentence per fact, assembled with no
-  model.
+  past-tense facts, one per recorded event, built by code out of the records;
+  the prompt that asks a model to narrate from that list in the past tense, cite
+  the facts each sentence used, and stop on the goal; and the fallback
+  narration, one sentence per fact, assembled with no model.
 - `app/grounding.py`: decides whether a narration's claims trace back to the
   data, sentence by sentence, against the facts that sentence cited. Refuses
   invented names, numbers, clocks and actions; a name or action in the passage
   but not in the cited facts; a name paired with an action no single cited fact
   records; a sentence that cites nothing or cites a fact that does not exist; a
-  wrong shot type or body part; verdict nicknames, editorial epithets, claims
-  about the result, em dashes; and narration that asserts nothing checkable.
+  present-tense verb, in a passage that already happened; a narration that does
+  not end on the goal's own shot; a wrong shot type or body part; verdict
+  nicknames, editorial epithets, claims about the result, lines addressed to the
+  fan, em dashes; and narration that asserts nothing checkable.
 - `app/narration.py`: narrates one moment. Generates, checks, regenerates up to
   twice, then falls back to the template, and records every attempt with the
   claims that failed. Nothing ungrounded is returned. The citation tags are
@@ -147,7 +149,7 @@ Everything above it is structure.
   whole suite so none can.
 - `tests/test_narration_prompt.py`: 27 tests over the facts, the numbered fact
   list, the prompt and the fallback narration. All pass.
-- `tests/test_grounding.py`: 57 tests over the grounding check, one per way a
+- `tests/test_grounding.py`: 77 tests over the grounding check, one per way a
   narration can be wrong or can look wrong and be fine, including the
   misdescription it refuses by pairing a name with an action. All pass.
 - `tests/test_narration.py`: 24 tests over the pipeline, covering the retries,
