@@ -53,10 +53,16 @@ DOCS = [
 ]
 
 # Paths the docs name on purpose while they do not exist. Each one is described
-# in the docs as not yet built, so an absent file is the correct state. The list
-# is empty now that `app/statsbomb_event_feed.py` is built; the check stays,
-# because it is what catches a doc still calling a built file absent.
-DELIBERATELY_ABSENT = set()
+# in the docs as not yet built, so an absent file is the correct state. These
+# three are named by the Plan section of `HANDOFF.md`, which says what each is
+# for and which task writes it. The check runs in both directions: when one of
+# them is built, this line fails until the plan entry is rewritten as built
+# work, which is what stops a plan quietly outliving the thing it planned.
+DELIBERATELY_ABSENT = {
+    "app/orchestrator_contract.py",   # Task 5
+    "tests/test_orchestrator.py",     # Task 5
+    "docs/narration_eval.md",         # Task 4a, added to again by 4b
+}
 
 PATH_IN_BACKTICKS = re.compile(
     r"`((?:app|docs|scripts|tests|bob_sessions)/[A-Za-z0-9_./-]+)`"
@@ -339,6 +345,12 @@ def check_cited_tests(fail):
     for doc in DOCS:
         text = doc.read_text(encoding="utf-8")
         for cite in sorted(set(TEST_NODE_CITE.findall(text))):
+            # A planned test file is named by the Plan section before it is
+            # written, so it is exempt here for the same reason it is exempt
+            # from the path check. The exemption is only ever as wide as that
+            # one list, and the path check fails the moment the file appears.
+            if cite in DELIBERATELY_ABSENT:
+                continue
             checked += 1
             if cite not in counts:
                 fail(doc.name, f"cites {cite}, which pytest does not collect")

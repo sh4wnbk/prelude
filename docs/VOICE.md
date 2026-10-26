@@ -245,6 +245,26 @@ asks for one action per sentence, and why the voice above is short sentences.
 The trade is deliberate: a refused true sentence costs a regeneration, and an
 accepted false one would be labelled "Verified from play data".
 
+## It opens on one line, and that line is a placeholder
+
+One line comes before the narration, and for now it is:
+
+> Here's the buildup.
+
+It is not narration and it is not generated. It asserts nothing about the
+match, so there is nothing in it for the grounding check to read and it carries
+no claim the "Verified from play data" label is about. **No code produces it
+yet.** It is recorded here because the wording is settled, not because a screen
+or a script says it.
+
+It is a placeholder in the exact sense that it is the neutral case of something
+larger. Planned for Task 5: an orchestrator picks the opening line from the
+listener's allegiance, whether their side scored or conceded, and how far into
+the match the moment was, and "Here's the buildup." is what a neutral listener
+gets. A fan gets a header in front of it instead. That table, and its final
+wording, belong in this document when the orchestrator exists; until then
+`HANDOFF.md` carries the planned version under Plan, Task 5.
+
 ## It ends on the goal, and there is no closer
 
 The narration's last sentence is about the goal, and nothing follows it. No

@@ -517,6 +517,18 @@ labelled, past-tense model narration:
 | --- | -------------- | -------------- |
 | 1 | 1 grounded | four past-tense lines, labelled |
 | 2 | 1 and 2 refused, 3 grounded | four past-tense lines, labelled |
+| 3 | 1 grounded | four past-tense lines, labelled |
+
+Run 3 is the exit check for this task, run again in a later session against the
+same model and the same goal. It came back grounded on the first attempt, in
+the past tense, ending on fact 24:
+
+```
+[1] José Luis Cuciuffo recovered the ball.
+[2] José Luis Cuciuffo carried the ball.
+[3] José Luis Cuciuffo passed.
+[24] Diego Armando Maradona shot.
+```
 
 The tense rule has not refused a live attempt yet: with the facts in the past
 tense the model wrote past tense without being corrected, which is what changing
@@ -1342,6 +1354,180 @@ states before and after Heading out, Moments stopping at the session clock,
 Change event, and Heading out returning after a switch all behave as the settled
 decisions above describe, at 390 px and at 900 px. The per-match reset holds in
 both directions, and picking one match leaves the other match's key untouched.
+
+## Plan
+
+Tasks 3d through Phase 7, as agreed with Shawn, copied here so a fresh session
+has the whole arc rather than one task at a time.
+
+**Everything in this section is planned work, not built work.** Task 3d is done
+and is marked so; nothing below it exists. The three paths it names that have
+not been written yet are listed in `DELIBERATELY_ABSENT` in
+`scripts/check_docs.py`, so the docs gate fails if one of them appears and this
+section was not updated with it.
+
+Shawn is asked whether to continue at the end of each task, after the exit
+commands have run, because an adjustment may be wanted before the next one
+starts.
+
+### Task 3d: past tense, no closer, end on the goal (done, `aff2dfd`)
+
+Update `docs/VOICE.md`: the buildup is told in the past tense, as playback of
+what already happened. No closer: the narration ends on its sentence about the
+goal, because the stadium takes over and the app gets out of the way. The
+opening line is "Here's the buildup." for now (the orchestrator replaces it in
+Task 5).
+
+Write the numbered facts in the past tense ("Terry Butcher (England) was
+dribbled past, 54:13") and require past-tense narration in the prompt.
+
+Update the grounding check's action words to past-tense forms (dribbled, shot,
+scored, pressed, recovered, won a foul). Keep "won a foul" allowed and outcome
+claims like "won the match" banned, and test both.
+
+The final sentence must cite the goal's shot fact, with nothing after it. Test
+that a narration ending elsewhere is refused.
+
+Add tests: a true past-tense sentence passes; the Beardsley, Reid and Butcher
+line still fails in the past tense; a present-tense buildup sentence is flagged.
+
+Exit when: all tests and gates pass, a live run on `granite4:micro` over the
+1986 54:18 goal produces past-tense narration that passes, and the work is
+pushed.
+
+### Task 4a: comparison script (Ollama only)
+
+Write a script that narrates all 9 goals, 3 runs each, and records per
+narration: the first-attempt grounding pass rate, coverage (the share of key
+facts cited: the shot, every dribble past an opponent, and the foul for a
+penalty), tokens and time.
+
+Build and debug it on `granite4:micro` only. No watsonx calls.
+
+Write the results to `docs/narration_eval.md`, marked clearly as
+development-model results.
+
+Exit when: the script runs end to end on Ollama, the report shows pass rate and
+coverage per goal, and the work is pushed.
+
+### Task 5: orchestrator contract and failing tests
+
+Write `app/orchestrator_contract.py` (contract only, no logic), declaring the
+orchestrator's inputs: the event (kickoff time, teams, sport), the moment
+(which side scored, game clock, score after it, regulation length), and the
+listener (allegiance: team A, team B or neutral). Outputs: the greeting word
+("today" or "tonight"), the header line, and the default persona.
+
+The rules to encode in tests:
+
+- "tonight" when kickoff is at or after a cutoff set in config (start at
+  17:00), otherwise "today";
+- game phase as a share of regulation time (early is the first third, late is
+  the final quarter), so it works for any sport;
+- score state after the moment (ahead, level or behind, for the listener's
+  side);
+- the header comes from a fixed table by allegiance, scored or conceded, and
+  phase (Shawn's final wording goes in `docs/VOICE.md`; start with: scored =
+  "Great start." / "Good news." / "Your side again.", conceded = "Still early."
+  / "There's still time." / no prefix, neutral = no prefix, each followed by
+  "Here's how it happened." or, for neutral, "Here's the buildup.");
+- "There's still time" only appears when the phase isn't late;
+- default persona: fans get the Mate, neutral listeners get the Storyteller.
+
+Write the failing tests in `tests/test_orchestrator.py`, covering both demo
+matches plus one made-up non-football case (to prove it is sport-agnostic). Add
+a "Task 4: the orchestrator" section to `docs/bob_brief.md`.
+
+Exit when: the new tests fail only because the orchestrator isn't implemented,
+everything else passes, and the work is pushed. Stop; Shawn runs Bob.
+
+**Bob, task 4:** implement the orchestrator. Shawn writes the prompt when Task 5
+is pushed. Bob can also fix the latent period gap in `buildup` in the same
+session, since that is Bob's module.
+
+### Task 6: personas
+
+Define three personas in a committed config file, each with a name, a one-line
+description for the Profile screen, a writing style for the prompt, and an IBM
+voice to be confirmed: the Caller (classic play-by-play energy), the
+Storyteller (calm documentary narrator), and the Mate (partisan, like a friend
+in your row; offered only to fans). Inspired by styles, never named after real
+broadcasters.
+
+Feed the persona's style into the narration prompt. The grounding check and
+banned-word list apply unchanged to every persona.
+
+Extend the comparison script to run each persona, and run it on Ollama.
+
+Exit when: every persona produces narration that passes on the 1986 54:18 goal
+and one 2022 penalty, the report shows pass rate and coverage per persona, and
+the work is pushed.
+
+### Task 7: the card, the name and the Profile screen
+
+Build the "Who are you with tonight?" card (or "today?", from the orchestrator)
+from the existing design tokens in `docs/DESIGN.md`. It shows the two teams plus
+"Just here for the game", and an optional "What should we call you?" field. It
+appears after the fan confirms an event or enters through a ticket.
+
+Store the answers on the phone only. The name is never sent to a model or a
+server; it is added to the header text after narration is generated (for
+example, "Great start, Maria.").
+
+Turn on the Profile tab: the three persona cards with their descriptions, the
+current pick, and a way to change allegiance and name.
+
+Show the orchestrator's header at the top of the moment card.
+
+Exit when: the full flow works on both matches in a real browser, at 390px and
+on desktop, all gates pass, and the work is deployed and pushed.
+
+### Task 4b: the paid comparison (watsonx, once)
+
+Before running, state how many watsonx calls it will make: 2 models by 3
+personas by the chosen goals by runs. Keep it to the hero moments if the count
+is high.
+
+Run it, add the results to `docs/narration_eval.md`, and save sample narrations
+for Shawn to read.
+
+Exit when: the report compares both models by pass rate, coverage, cost and
+speed, per persona; this file records which leads; and Shawn picks the model.
+
+### Phase 5: voice and audio
+
+- Shawn: audition the voices (the PowerShell command from earlier) and assign
+  one IBM voice per persona. Test how the voice says the film character's name.
+- Claude Code: build the IBM Text to Speech backend against IBM's published API
+  (credentials from the file outside the repo).
+- Claude Code: add audio playback to the moment card (play, waveform, "Verified
+  from play data" shown only for narration that passed).
+- Claude Code: save audio for the hero moments only (1986 54:18 and the 2022 Di
+  Maria goal, by 3 personas, about 3,600 characters), staying inside the 10,000
+  free characters a month, and say the character count before generating.
+
+### Phase 6: hosting and Orchestrate
+
+- Claude Code: a small hosted backend (Render, as planned) holding the IBM keys,
+  with rate limiting, so judges get live, varied narration; the saved audio is
+  the fallback if it is down.
+- Bob: write the OpenAPI tool spec for the narration endpoint (the YAML the lab
+  guide's exercise uses).
+- Shawn: recreate the prelude agent in Orchestrate and import the spec as its
+  tool. Optionally host the orchestrator's routing there.
+- Claude Code: check the spec against the live endpoint, add a keepalive so a
+  judge never hits a cold start, and finish `docs/IBM_STACK.md`.
+
+### Phase 7: film and submission
+
+- Shawn: record the real app for the split screen (her on the left, the moment
+  card playing her named header and narration on the right, then the right half
+  drops away into the sunlight shot). Use the app's real audio.
+- Claude Code: fill the README's empty sections and the
+  judging-criteria-to-evidence table, each row backed by something runnable.
+- Shawn: finish the deck and the video. Claude Code: a final recon from a fresh
+  session (all gates, both matches, a real-phone check).
+- Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
 ## Next first action (Phase 4, task 4)
 
