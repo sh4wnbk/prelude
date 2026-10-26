@@ -21,6 +21,7 @@ from app.narration_prompt import (
     TEMPLATE_MAX_SENTENCES,
     key_beats,
     Facts,
+    beats_block,
     build_prompt,
     fact_list,
     facts_from_buildup,
@@ -49,6 +50,10 @@ GOAL_1986 = {
     # playback of a passage that already happened.
     "fact_14": "Terry Butcher (England) was dribbled past, 54:13",
 }
+
+# Lineker's header: the buildup holds no dribble past a defender and no foul,
+# so the shot is its only key beat and the beats block is empty for it.
+LINEKER = {"clock": (80, 37)}
 
 # The first of the three 2022 penalties, which reaches back a possession.
 PENALTY_2022 = {
@@ -245,14 +250,93 @@ class TestPrompt:
             assert rule in prompt.lower(), rule
 
     def test_the_prompt_asks_for_the_requested_sentence_count(self, feed):
-        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        """On a goal whose only key beat is the shot, nothing raises it."""
+        facts = facts_for(feed, MATCH_1986, LINEKER["clock"])
         assert "Write 3 sentences" in build_prompt(facts, sentences=3)
+
+    def test_the_count_rises_to_fit_the_beats_to_cover(self, feed):
+        """A prompt cannot ask for four sentences and then name five.
+
+        The 54:18 goal has four dribbles past a defender, so the beats block
+        asks for four sentences before the goal sentence. A requested count
+        below that would have the model drop one instruction to obey the
+        other.
+        """
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        assert len(key_beats(facts)) == 5
+        assert "Write 5 sentences" in build_prompt(facts, sentences=3)
+        assert "Write 5 sentences" in build_prompt(facts)
 
     def test_the_prompt_has_no_em_dashes(self, feed):
         """It tells the model not to use one, so it had better not model one."""
         for _, _, facts in every_goal(feed):
             assert "—" not in build_prompt(facts)
 
+
+class TestBeatsBlock:
+    """Task 4c: the key beats are named in the prompt, not left to be found.
+
+    The measured run in `docs/narration_eval.md` found `granite4:micro`
+    citing the shot and no other key beat in all fourteen narrations it wrote
+    for the goals where coverage can move, while passing the grounding check
+    every time. The facts were all there; the model took the first few in
+    order and jumped to the goal.
+    """
+
+    def test_it_names_every_key_beat_but_the_shot(self, feed):
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        block = beats_block(facts)
+        assert "THE BEATS TO COVER" in block
+        for number, defender in (
+            (10, "Peter Beardsley"),
+            (14, "Terry Butcher"),
+            (17, "Terry Fenwick"),
+            (21, "Peter Shilton"),
+        ):
+            assert f"fact {number}: {defender}" in block
+
+    def test_it_does_not_name_the_shot(self, feed):
+        """The last line is the goal, which the rules already cover."""
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        assert f"fact {facts.goal_fact.number}:" not in beats_block(facts)
+
+    def test_a_penalty_block_names_the_foul(self, feed):
+        facts = facts_for(feed, MATCH_2022, PENALTY_2022["clock"])
+        assert "won a foul" in beats_block(facts)
+
+    def test_it_is_empty_when_the_shot_is_the_only_key_beat(self, feed):
+        """Five of the nine goals, whose prompts this change leaves alone.
+
+        That is what makes it sound to rerun the other four and compare them
+        against the earlier numbers for these.
+        """
+        for match_id, clock in (
+            (MATCH_1986, LINEKER["clock"]),
+            (MATCH_2022, (35, 22)),
+            (MATCH_2022, (80, 59)),
+            (MATCH_2022, (107, 58)),
+        ):
+            facts = facts_for(feed, match_id, clock)
+            assert [b.kind for b in key_beats(facts)] == ["shot"]
+            assert beats_block(facts) == ""
+            assert "THE BEATS TO COVER" not in build_prompt(facts)
+
+    def test_every_number_it_cites_is_a_fact_in_the_passage(self, feed):
+        """It names fact numbers for the model to cite, so a wrong one here
+        would send every attempt to the grounding check with a bad tag."""
+        for _, _, facts in every_goal(feed):
+            numbers = {fact.number for fact in facts.facts}
+            for line in beats_block(facts).splitlines():
+                if line.strip().startswith("fact "):
+                    cited = int(line.strip().split()[1].rstrip(":"))
+                    assert cited in numbers
+
+    def test_the_block_sits_in_the_prompt_after_the_facts(self, feed):
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        prompt = build_prompt(facts)
+        assert prompt.index(facts.goal_fact.line) < prompt.index(
+            "THE BEATS TO COVER"
+        ) < prompt.index("WRITE IT LIKE THIS")
 
 class TestTemplateNarration:
     def test_it_stays_within_its_sentence_budget_unless_a_beat_needs_room(

@@ -445,15 +445,120 @@ def reproduction_command(args) -> str:
     """
     parts = [r".\.venv-prelude\Scripts\python.exe -I scripts\narration_eval.py"]
     if args.from_json:
-        return parts[0] + " --from-json <records>"
-    if args.goals:
-        parts.append(f"--goals {args.goals}")
-    if args.runs != DEFAULT_RUNS:
-        parts.append(f"--runs {args.runs}")
+        parts.append(f"--from-json {_repo_path(args.from_json)}")
+    else:
+        if args.goals:
+            parts.append(f"--goals {args.goals}")
+        if args.runs != DEFAULT_RUNS:
+            parts.append(f"--runs {args.runs}")
+    if args.compare:
+        parts.append(f"--compare {_repo_path(args.compare)}")
+        parts.append(f'--baseline-label "{args.baseline_label}"')
+        parts.append(f'--compare-label "{args.compare_label}"')
     return " ".join(parts)
 
 
-def report(records: Sequence[Record], command: str, model: str) -> str:
+def _repo_path(path: Path) -> str:
+    """A path as a reader could type it, or a placeholder if it was temporary.
+
+    The records a committed report is built from live in the repo, so the
+    command quoted in it is one that runs. A path outside the repo belongs to
+    one machine and is printed as a placeholder instead.
+    """
+    try:
+        return path.resolve().relative_to(ROOT).as_posix()
+    except ValueError:
+        return "<records>"
+
+
+def comparison(
+    before: Sequence[Record],
+    after: Sequence[Record],
+    before_label: str,
+    after_label: str,
+    note: str = "",
+) -> list[str]:
+    """Two runs of the same goals, side by side, pass rate beside coverage.
+
+    Only the goals in both runs are compared, because the second run covers
+    the goals whose prompt changed and nothing else.
+
+    Pass rate and coverage are printed together on purpose. Naming the beats
+    in the prompt asks the model for more sentences, and more sentences is
+    more chances to cite the wrong fact, so a gain in coverage bought with a
+    fall in grounding is the outcome worth seeing rather than the one worth
+    hiding. Nothing here is enforced: `app/grounding.py` is unchanged and
+    coverage is still only reported.
+    """
+    # In the order the goals were narrated, which is the order the feed lists
+    # them. Sorting the labels instead puts 117:05 before 22:24.
+    was = {r.goal for r in before}
+    shared: list[str] = []
+    for record in after:
+        if record.goal in was and record.goal not in shared:
+            shared.append(record.goal)
+    if not shared:
+        return []
+
+    def rows(records, goal):
+        return [r for r in records if r.goal == goal]
+
+    def rate(records):
+        passed = sum(1 for r in records if r.first_attempt_grounded)
+        return f"{passed}/{len(records)}"
+
+    def model_coverage(records):
+        """Coverage of the model's own narrations, template runs left out."""
+        rows = [r for r in records if r.source == MODEL]
+        return f"{mean([r.share for r in rows]) * 100:.0f}%" if rows else "n/a"
+
+    lines = [f"## {after_label} compared with {before_label}", ""]
+    add = lines.append
+
+    if note:
+        add(note)
+        add("")
+    add(f"The same {plural(len(shared), 'goal')} under both prompts, three "
+        f"runs each. Coverage is of the model's own narrations; a template "
+        "fallback reaches every beat by construction and would report its "
+        "completeness as the model's.")
+    add("")
+    add(f"| Goal | Beats | Grounded, {before_label} | Grounded, {after_label} "
+        f"| Coverage, {before_label} | Coverage, {after_label} |")
+    add("| ---- | ----: | ---------------------: | ---------------------: "
+        "| ----------------------: | ----------------------: |")
+    for goal in shared:
+        was, now = rows(before, goal), rows(after, goal)
+        add(f"| {goal} | {now[0].beats} | {rate(was)} | {rate(now)} | "
+            f"{model_coverage(was)} | {model_coverage(now)} |")
+
+    was_all = [r for r in before if r.goal in shared]
+    now_all = [r for r in after if r.goal in shared]
+    add(f"| **all {len(shared)}** | | **{rate(was_all)}** | "
+        f"**{rate(now_all)}** | **{model_coverage(was_all)}** | "
+        f"**{model_coverage(now_all)}** |")
+    add("")
+
+    was_model = [r for r in was_all if r.source == MODEL]
+    now_model = [r for r in now_all if r.source == MODEL]
+    was_only_shot = [r for r in was_model if r.covered == 1]
+    now_only_shot = [r for r in now_model if r.covered == 1]
+    add(f"Narrations that cited the shot and no other key beat: "
+        f"**{len(was_only_shot)} of {len(was_model)}** before, "
+        f"**{len(now_only_shot)} of {len(now_model)}** after.")
+    add("")
+    return lines
+
+
+def report(
+    records: Sequence[Record],
+    command: str,
+    model: str,
+    compare: Sequence[Record] = (),
+    baseline_label: str = "",
+    compare_label: str = "",
+    compare_note: str = "",
+) -> str:
     """The generated report.
 
     Doc copy, so `CLAUDE.md` governs it: no em dashes, nothing claimed that the
@@ -485,6 +590,13 @@ def report(records: Sequence[Record], command: str, model: str) -> str:
         "how many paid calls it will make before making them, and that is the "
         "comparison a model is chosen from.")
     add("")
+    if compare:
+        add(f"This report holds two runs. The body below is **{baseline_label}"
+            "**, the first full measurement. The section headed "
+            f"**{compare_label}** compares it against a later run of the "
+            "goals whose prompt changed, so the before and the after sit in "
+            "one document.")
+        add("")
     add("## How it was run")
     add("")
     add("| | |")
@@ -642,6 +754,13 @@ def report(records: Sequence[Record], command: str, model: str) -> str:
             "for any narration that passed at all.")
     add("")
 
+    if compare:
+        lines.extend(
+            comparison(
+                records, compare, baseline_label, compare_label, compare_note
+            )
+        )
+
     missed_rows = [r for r in records if r.missed and not r.error]
     add("## What was missed")
     add("")
@@ -710,6 +829,23 @@ def main(argv: Sequence[str]) -> int:
         "--from-json", type=Path,
         help="rebuild the report from a saved records file, generating nothing",
     )
+    parser.add_argument(
+        "--compare", type=Path,
+        help="a second records file to compare the report against, goal by "
+             "goal, with the pass rate beside the coverage",
+    )
+    parser.add_argument(
+        "--baseline-label", default="the first run",
+        help="what to call the report's own run in the comparison",
+    )
+    parser.add_argument(
+        "--compare-label", default="the second run",
+        help="what to call the --compare run in the comparison",
+    )
+    parser.add_argument(
+        "--compare-note", default="",
+        help="one sentence saying what differs between the two runs",
+    )
     args = parser.parse_args(argv)
 
     if args.runs < 1:
@@ -736,8 +872,19 @@ def main(argv: Sequence[str]) -> int:
         raise SystemExit("nothing was measured")
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
+    against = read_json(args.compare) if args.compare else ()
     args.out.write_text(
-        report(records, command, model), encoding="utf-8", newline="\n"
+        report(
+            records,
+            command,
+            model,
+            compare=against,
+            baseline_label=args.baseline_label,
+            compare_label=args.compare_label,
+            compare_note=args.compare_note,
+        ),
+        encoding="utf-8",
+        newline="\n",
     )
 
     grounded = sum(1 for r in records if r.first_attempt_grounded)

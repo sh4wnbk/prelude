@@ -398,6 +398,49 @@ def cited_line(fact: Fact) -> str:
     return f"[{fact.number}] {fact.beat.player} {verb}."
 
 
+def beats_block(facts: Facts) -> str:
+    """The key beats, named for the model, or empty when there are none.
+
+    The measured run behind `docs/narration_eval.md` found that
+    `granite4:micro` cited the shot and nothing else in all fourteen
+    narrations it wrote for the goals where coverage can move: no dribble past
+    a defender, no penalty foul. It passed the grounding check every time,
+    because the check asks whether what a sentence says is true and not
+    whether the narration got to the point. The facts were all in the prompt
+    and the model took the first few in order and jumped to the goal.
+
+    So the beats are named rather than left to be found. Each one is printed
+    with the fact number to cite for it, which is the record the fallback uses
+    too: the `Dribbled Past` for a dribble, naming the player who was beaten,
+    and the `Foul Won` for a penalty foul where there is one.
+
+    **It is empty for a goal whose only key beat is the shot**, which is five
+    of the nine in `data/raw/`. Those prompts are unchanged by this block, and
+    that is what makes it sound to compare a rerun of the other goals against
+    the earlier numbers for them.
+
+    Nothing here enforces anything. `app/grounding.py` is unchanged and still
+    refuses on truth alone; coverage is reported, not required.
+    """
+    required = [beat for beat in key_beats(facts) if beat.kind != SHOT]
+    if not required:
+        return ""
+
+    by_number = {fact.number: fact for fact in facts.facts}
+    lines = []
+    for beat in required:
+        number = _beat_fact_number(beat, by_number)
+        lines.append(f"  fact {number}: {by_number[number].text}")
+
+    return (
+        "\nTHE BEATS TO COVER\n"
+        "These are the turning points of this passage. A narration that leaves\n"
+        "one out has missed what happened, however true the rest of it is.\n"
+        "Give each one its own sentence, in this order, before the last line,\n"
+        "citing the fact number shown here:\n" + "\n".join(lines) + "\n"
+    )
+
+
 def build_prompt(facts: Facts, sentences: int = DEFAULT_SENTENCES) -> str:
     """The prompt for one goal.
 
@@ -432,6 +475,14 @@ def build_prompt(facts: Facts, sentences: int = DEFAULT_SENTENCES) -> str:
     body_part = facts.body_part or "not recorded"
     first, goal = facts.facts[0], facts.goal_fact
 
+    # One sentence per key beat plus the goal sentence, or the count asked
+    # for, whichever is larger. A prompt that asked for four sentences and
+    # then named five beats to cover would contradict itself, and the model
+    # would have to drop one of the two instructions to obey the other.
+    beats = beats_block(facts)
+    covered = len([b for b in key_beats(facts) if b.kind != SHOT])
+    sentences = max(sentences, covered + 1)
+
     return f"""You are writing the narration for one goal in a football match.
 The app this is for says only what the match data proves, so you may use the
 facts below and nothing else. Anything you add from memory will be rejected.
@@ -447,7 +498,7 @@ THE FACTS
 One numbered line per recorded event, in the order it happened. Nothing
 happened that is not here.
 {fact_list(facts)}
-
+{beats}
 WRITE IT LIKE THIS
 Write {sentences} lines. Each line starts with the numbers of the facts it is
 about, in square brackets, and then says them in one sentence:

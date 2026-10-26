@@ -636,6 +636,63 @@ transport wrapper rather than estimated from the text. `Transport` is the seam
 `app/narration_provider.py` already has for tests, so measuring cost needed no
 change to `app/`.
 
+### Phase 4, task 4c
+
+**The beats are named in the prompt now, and the model reaches them.** Task 4a
+measured the gap: across the five goals where coverage can move, all fourteen
+narrations `granite4:micro` wrote cited the shot and no other key beat, while
+passing the grounding check every time. The facts were all in the prompt and
+the model took the first few in order and jumped to the goal.
+
+`beats_block` in `app/narration_prompt.py` prints the key beats with the fact
+number to cite for each, and asks for one sentence on each before the last
+line. It uses the same record the fallback does: the `Dribbled Past` for a
+dribble, which names the player who was beaten, and the `Foul Won` for a
+penalty foul where there is one. The requested sentence count rises to fit,
+because a prompt that asked for four sentences and then named five beats would
+have the model drop one instruction to obey the other.
+
+The check is unchanged. Coverage is still reported and not enforced, and a
+narration that reaches every beat and miscites one of them is refused as
+before.
+
+**Only five goals were rerun, and that is sound rather than merely cheap.**
+The block is empty when the shot is the only key beat, so the prompt for those
+four goals is byte-identical to 4a's. Checked rather than asserted: the new
+`build_prompt` was run against the one at `ca26451` for all nine goals, and
+five differed and four did not. The property is pinned by
+`tests/test_narration_prompt.py::TestBeatsBlock::test_it_is_empty_when_the_shot_is_the_only_key_beat`.
+
+The five goals, three runs each:
+
+| | Task 4a | Task 4c |
+| --- | --: | --: |
+| grounded on the first attempt | 12 of 15 | 10 of 15 |
+| coverage of the model's narrations | 42% | 95% |
+| cited the shot and no other key beat | 14 of 14 | 1 of 14 |
+
+The 54:18 goal went from 1 of 3 grounded at 20% coverage to 3 of 3 at 100%. It
+is the first model narration in this repo to name all four defenders.
+
+**The pass rate fell, and the report shows it beside the coverage.** Twelve of
+fifteen to ten of fifteen. All of the loss is the 22:24 penalty, 2 of 3 to 0 of
+3: a hundred facts, a prompt of around nine thousand tokens, and the goal where
+naming the beats asks the most of a 3B model. The other four held or improved.
+Asking for more sentences is asking for more chances to cite the wrong fact, so
+a change that bought coverage with grounding would be a bad trade dressed as a
+good one, and the two numbers sit in one table per goal so it cannot hide.
+
+**Both runs are committed and the report is regenerated from them**, in
+`docs/narration_runs/`. `--compare` renders the before and after, so the
+comparison in `docs/narration_eval.md` is program output rather than numbers
+copied by hand, and the command that produces it is quoted in the document and
+runs as written.
+
+What this does not settle is whether a larger model needs the block at all.
+Task 4b should run the watsonx candidates with it, since it is in the prompt
+now, and a candidate that covers the beats without being told is worth knowing
+about.
+
 ### Phase 4, task 3c
 
 **Four documents, each statement carrying its file and its test.**
@@ -1506,6 +1563,22 @@ development-model results.
 Exit when: the script runs end to end on Ollama, the report shows pass rate and
 coverage per goal, and the work is pushed.
 
+### Task 4c: ask for the key beats (done)
+
+Added after Task 4a measured the gap it is about. Mark the key beats in the
+prompt (the list already lives in `app/narration_prompt.py`) and tell the model
+each one needs its own sentence before the goal sentence.
+
+Leave the grounding check unchanged. Coverage is still reported, not enforced.
+
+Rerun only the five multi-beat goals, 3 runs each, and add the results to
+`docs/narration_eval.md` next to the 4a numbers, so the before and after can be
+compared.
+
+Exit when: the comparison is in the report, the pass rate is shown beside
+coverage (so a gain in one that costs the other would be visible), tests and
+gates pass, and the work is pushed.
+
 ### Task 5: orchestrator contract and failing tests
 
 Write `app/orchestrator_contract.py` (contract only, no logic), declaring the
@@ -1634,14 +1707,13 @@ both on `DELIBERATELY_ABSENT` in `scripts/check_docs.py`, which fails the docs
 gate the moment either appears and the plan still calls it absent.
 
 **Read `docs/narration_eval.md` first.** It is the measured state of the
-narration and it says two things that bear on everything after it. The first
-is that grounding is not the problem on the development model: 22 of 27 first
-attempts passed. The second is that completeness is: across the five goals
-where coverage can move, all fourteen model narrations cited the shot and no
-other key beat, so not one dribble past a defender and not one penalty foul
-was mentioned. Task 4b is where a better model gets its chance at that, and a
-prompt change aimed at it should be measured with the same script rather than
-argued about.
+narration, and it now holds two runs. Task 4a found grounding healthy on the
+development model (22 of 27 first attempts) and completeness absent: all
+fourteen model narrations on the goals where coverage can move cited the shot
+and nothing else. Task 4c named the beats in the prompt and took coverage on
+those goals from 42% to 95%, at a cost of two first attempts out of fifteen,
+all of them on the 22:24 penalty. Any further prompt change should be measured
+the same way rather than argued about.
 
 The pass rate is worth re-measuring after any prompt change: `--goals` and
 `--runs` make a one-goal check cheap, and the full twenty-seven takes about

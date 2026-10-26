@@ -452,14 +452,52 @@ defender, and not one of the three penalty fouls. Every grounded narration
 cites the shot, because the ending rule makes it, so those narrations reached
 nothing the rule did not force.
 
-That is the thin narration quoted above, and it is the normal case rather than
-an unlucky run. It is a model limit rather than a check limit: nothing here
-refuses a narration for leaving the story out, and `docs/narration_eval.md`
-exists so that the gap is a number rather than an impression. What closes it
-is a better model, a better prompt, or both, which is what Task 4b is for.
+That is the thin narration quoted above, and it was the normal case rather
+than an unlucky run. Nothing here refuses a narration for leaving the story
+out, and `docs/narration_eval.md` exists so that the gap is a number rather
+than an impression.
 
 The fallback used to have the same gap and no longer does: it reaches every
 key beat on all nine goals, which is the section above.
+
+## Naming the beats closed most of the gap, and cost some grounding
+
+The facts were all in the prompt and the model walked past them. So the beats
+are named rather than left to be found: `beats_block` in
+`app/narration_prompt.py` prints the key beats of the passage with the fact
+number to cite for each, and asks for one sentence on each before the last
+line. The requested sentence count rises to fit, because a prompt asking for
+four sentences and then naming five beats would have the model drop one
+instruction to obey the other.
+
+**The check did not change.** `app/grounding.py` still refuses on truth alone.
+Coverage is reported, not enforced, and a narration that reaches every beat
+and miscites one of them is still refused.
+
+The block is empty for a goal whose only key beat is the shot, which is five
+of the nine, so those prompts are untouched and were not rerun. The other five
+goals, three runs each, before and after:
+
+| | Task 4a | Task 4c |
+| --- | --: | --: |
+| grounded on the first attempt | 12 of 15 | 10 of 15 |
+| coverage of the model's narrations | 42% | 95% |
+| cited the shot and no other key beat | 14 of 14 | 1 of 14 |
+
+The 54:18 goal went from 1 of 3 grounded at 20% coverage to 3 of 3 at 100%:
+the narration now names all four defenders, which is the first time any model
+output in this repo has told that run.
+
+**The trade is real and it is in the table on purpose.** Asking for more
+sentences is asking for more chances to cite the wrong fact, and the pass rate
+fell from 12 of 15 to 10 of 15. All of the loss is on the 22:24 penalty, which
+went from 2 of 3 to 0 of 3. That goal has a hundred facts and a prompt of some
+nine thousand tokens, and it is the one where naming the beats asks the most
+of a three billion parameter model. The other four goals held or improved.
+
+Both numbers are reported together for that reason: a prompt change that
+bought coverage with grounding would be a bad trade dressed as a good one, and
+`docs/narration_eval.md` shows the pair goal by goal so it cannot hide.
 
 ## The screens have not caught up
 

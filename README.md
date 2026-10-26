@@ -147,7 +147,7 @@ Everything above it is structure.
   fake credentials file into a temporary directory; none reads the real one,
   and `tests/conftest.py` points `PRELUDE_ENV_FILE` at an absent path for the
   whole suite so none can.
-- `tests/test_narration_prompt.py`: 30 tests over the facts, the numbered fact
+- `tests/test_narration_prompt.py`: 37 tests over the facts, the numbered fact
   list, the prompt, the key beats of a passage and the fallback narration,
   which has to reach every one of those beats. All pass.
 - `tests/test_grounding.py`: 77 tests over the grounding check, one per way a
