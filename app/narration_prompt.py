@@ -69,7 +69,8 @@ EVENT_VERBS: Mapping[str, str] = {
 #: The actions the fallback narration will mention, in the order the events
 #: happen. The rest of a possession is the receipts, carries and pressures that
 #: sit between them, which make a plain narration longer without making it say
-#: more. The goal shot is always included, whatever this holds.
+#: more. The goal shot is always included, whatever this holds, and so is every
+#: key beat: see `key_beats` and `template_narration`.
 TEMPLATE_KEY_ACTIONS = frozenset(
     {
         "Ball Recovery",
@@ -83,9 +84,27 @@ TEMPLATE_KEY_ACTIONS = frozenset(
     }
 )
 
-#: Sentences the fallback allows itself, counting the goal. Short on purpose:
-#: it is what gets voiced when a model could not stay inside the data.
+#: Sentences the fallback aims at, counting the minute line and the goal. Short
+#: on purpose: it is what gets voiced when a model could not stay inside the
+#: data. It is a target rather than a ceiling, because a key beat is never
+#: dropped to meet it; a passage with more key beats than this runs longer.
 TEMPLATE_MAX_SENTENCES = 5
+
+#: The two sides of one dribble past an opponent. StatsBomb records the
+#: `Dribble` against the player who beat someone and the `Dribbled Past`
+#: against the player who was beaten, so one beat of play is two records.
+DRIBBLE_TYPES = frozenset({"Dribble", "Dribbled Past"})
+
+#: The two sides of one foul, likewise.
+FOUL_TYPES = frozenset({"Foul Won", "Foul Committed"})
+
+#: What `Facts.set_piece` says when the goal was a penalty.
+PENALTY = "Penalty"
+
+#: The kinds of key beat.
+SHOT = "shot"
+DRIBBLE = "dribble"
+FOUL = "foul"
 
 #: Sentences the prompt asks a model for.
 DEFAULT_SENTENCES = 4
@@ -181,6 +200,106 @@ class Facts:
     @property
     def goal_beat(self) -> Beat:
         return self.goal_fact.beat
+
+
+@dataclass(frozen=True)
+class KeyBeat:
+    """One beat of play a narration of this goal ought to reach.
+
+    `numbers` holds every fact that records this beat, because a beat can be
+    recorded twice and citing either one says it happened. `label` is how a
+    report names the beat when a narration missed it.
+    """
+
+    kind: str
+    numbers: tuple[int, ...]
+    label: str
+
+    def covered_by(self, cited) -> bool:
+        cited = set(cited)
+        return any(number in cited for number in self.numbers)
+
+
+def key_beats(facts: Facts) -> tuple[KeyBeat, ...]:
+    """The beats of a passage that a narration of it ought to reach.
+
+    Three kinds, in the order they happened:
+
+    * **The shot**, always, and always exactly one. It is the last fact.
+    * **Every dribble past an opponent.** One beat per `Dribbled Past` record,
+      which is the record naming the player who was beaten. The `Dribble` on
+      the other player's record at the same clock joins the same beat, so
+      citing either covers it. A `Dribble` with no `Dribbled Past` beside it is
+      not a beat: it is a dribble that went past nobody.
+    * **The foul, for a penalty.** Every foul record in the buildup, as one
+      beat. A penalty has one foul, and each of the three penalty buildups in
+      this data holds exactly one (`Foul Won` and `Foul Committed` are its two
+      sides, and the 117:05 penalty has only the `Foul Committed` side), which
+      is why they are merged rather than paired by clock.
+
+    Two things use this and they have to agree, which is why it lives here
+    rather than beside either of them. `template_narration` builds a fallback
+    that reaches every one of these beats, and `scripts/narration_eval.py`
+    measures what share of them a narration reached. A separate definition in
+    the measuring script would eventually score the fallback against a rule
+    the fallback was not built to.
+
+    **What it cannot do.** Five of the nine goals in `data/raw/` have no
+    dribble past an opponent and no penalty, so their only key beat is the
+    shot, which `app/grounding.py` already requires the last sentence to cite.
+    Coverage of those five says nothing, and the report prints the beat count
+    beside the share so the two cases can be told apart.
+    """
+    beats: list[KeyBeat] = []
+
+    by_clock: dict[tuple[int, int], list[Fact]] = {}
+    for fact in facts.facts:
+        by_clock.setdefault((fact.beat.minute, fact.beat.second), []).append(fact)
+
+    for fact in facts.facts:
+        if fact.beat.action != "Dribbled Past":
+            continue
+        clock = (fact.beat.minute, fact.beat.second)
+        numbers = tuple(
+            sorted(
+                {fact.number}
+                | {
+                    other.number
+                    for other in by_clock[clock]
+                    if other.beat.action in DRIBBLE_TYPES
+                }
+            )
+        )
+        beats.append(
+            KeyBeat(
+                kind=DRIBBLE,
+                numbers=numbers,
+                label=f"dribbled past {fact.beat.player}",
+            )
+        )
+
+    if facts.set_piece == PENALTY:
+        fouls = tuple(
+            fact.number for fact in facts.facts if fact.beat.action in FOUL_TYPES
+        )
+        if fouls:
+            beats.append(
+                KeyBeat(
+                    kind=FOUL,
+                    numbers=fouls,
+                    label="the foul that won the penalty",
+                )
+            )
+
+    goal = facts.goal_fact
+    beats.append(
+        KeyBeat(
+            kind=SHOT,
+            numbers=(goal.number,),
+            label=f"the shot by {goal.beat.player}",
+        )
+    )
+    return tuple(sorted(beats, key=lambda beat: min(beat.numbers)))
 
 
 def _goal_shot(buildup: Buildup) -> RawEvent:
@@ -393,37 +512,91 @@ def template_narration(facts: Facts) -> str:
     narration has one shape in this repo whether a model wrote it or not. It
     ends on the goal, citing the shot the moment was built from, which is the
     last thing the narration says.
+
+    **It reaches every key beat.** Grounded is not the same as complete, and
+    the fallback used to be only the first. It collapsed a run of the same
+    player doing the same thing into one sentence, so Maradona's four dribbles
+    became one, and then trimmed the run-up from the front to fit a sentence
+    budget, which could drop that one too. The result said nothing false and
+    left out the reason the goal is remembered. A fallback assembled by code
+    out of the facts has no excuse for that: it can see every beat.
+
+    So `key_beats` is consulted first and every beat it names gets a sentence,
+    before any other fact is considered. A dribble beat is said with its
+    `Dribbled Past` record, which is the one naming the player who was beaten;
+    a foul beat with its `Foul Won` record where there is one, because the
+    side that won it is the side the narration is about, and otherwise with
+    the `Foul Committed` record that the 117:05 penalty records it as.
+
+    `TEMPLATE_MAX_SENTENCES` is a target rather than a ceiling now: the other
+    facts fill the narration up to it, and a passage with more key beats than
+    that runs longer rather than dropping one.
     """
     goal = facts.goal_fact
+    beats = key_beats(facts)
+    by_number = {fact.number: fact for fact in facts.facts}
+
+    # Every key beat but the shot, which has its own closing sentence. One
+    # fact per beat: the record that names the player the beat is about.
+    required: list[Fact] = []
+    for beat in beats:
+        if beat.kind == SHOT:
+            continue
+        required.append(by_number[_beat_fact_number(beat, by_number)])
+
+    spoken = {fact.number for fact in required} | {goal.number}
+    # A beat is said once, whichever of its records was chosen for it.
+    covered = {number for beat in beats for number in beat.numbers}
+
     candidates = [
         fact
         for fact in facts.facts[:-1]
         if fact.beat.action in TEMPLATE_KEY_ACTIONS
         and fact.beat.action in EVENT_VERBS
+        and fact.number not in covered
     ]
 
-    # A run like Maradona's is four separate Dribble events, which would read as
-    # the same sentence four times over. Collapsing a run of the same player
-    # doing the same thing loses no fact: the events are still what the label
-    # points at, and the sentence still describes them.
-    chosen: list[Fact] = []
+    # A run of the same player doing the same thing would read as the same
+    # sentence over and over. Collapsing it loses no fact: the events are still
+    # what the label points at. Key beats are already out of this list, so the
+    # collapse can no longer swallow one.
+    filler: list[Fact] = []
     for fact in candidates:
-        if chosen and (fact.beat.player, fact.beat.action) == (
-            chosen[-1].beat.player,
-            chosen[-1].beat.action,
+        if filler and (fact.beat.player, fact.beat.action) == (
+            filler[-1].beat.player,
+            filler[-1].beat.action,
         ):
             continue
-        chosen.append(fact)
+        filler.append(fact)
 
-    # The goal is the point of the narration, so it keeps its place and the
-    # run-up is trimmed from the front to fit around it.
-    room = max(TEMPLATE_MAX_SENTENCES - 2, 0)
-    chosen = chosen[-room:] if room else []
+    # The minute line and the goal line are two of the budget, and the key
+    # beats are not negotiable. Whatever is left over is filled from the front
+    # of the run-up being trimmed, so the sentences nearest the goal survive.
+    room = max(TEMPLATE_MAX_SENTENCES - 2 - len(required), 0)
+    filler = filler[-room:] if room else []
+
+    middle = sorted(required + filler, key=lambda fact: fact.number)
 
     lines = [f"[{goal.number}] Minute {goal.beat.minute}."]
-    lines += [cited_line(fact) for fact in chosen]
+    lines += [cited_line(fact) for fact in middle]
     lines.append(
         f"[{goal.number}] {goal.beat.player} shot and scored for "
         f"{goal.beat.team}."
     )
     return "\n".join(lines)
+
+
+def _beat_fact_number(beat: KeyBeat, by_number: Mapping[int, Fact]) -> int:
+    """Which of a beat's records the fallback says it with.
+
+    A dribble beat is said with the `Dribbled Past`, which names the player who
+    was beaten rather than only that someone went past somebody. A foul beat
+    prefers the `Foul Won`, which names the side the penalty was given to, and
+    falls back to the `Foul Committed` for the 117:05 penalty, which has no
+    `Foul Won` record at all.
+    """
+    preferred = {DRIBBLE: "Dribbled Past", FOUL: "Foul Won"}.get(beat.kind)
+    for number in beat.numbers:
+        if by_number[number].beat.action == preferred:
+            return number
+    return beat.numbers[0]

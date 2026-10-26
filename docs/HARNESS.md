@@ -99,7 +99,7 @@ It needs a local Ollama server running the model in `app/narration_config.py`.
 
 ## The test harness
 
-The suite is 212 tests in six files, and the whole of it passes. It is run from
+The suite is 243 tests in seven files, and the whole of it passes. It is run from
 the repo root:
 
 ```
@@ -117,6 +117,7 @@ No path setting is needed: `pyproject.toml` sets `pythonpath = ["."]` and
 | `tests/test_narration.py` | the pipeline: generate, check, retry, fall back, record |
 | `tests/test_narration_provider.py` | the model config and both backends |
 | `tests/test_credentials.py` | where the credentials file lives, and what is refused |
+| `tests/test_narration_eval.py` | the key beats, the coverage measure and the token recorder |
 
 ### Two guards, on every test
 

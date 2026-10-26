@@ -48,20 +48,22 @@ DOCS = [
     ROOT / "docs" / "bob_brief.md",
     ROOT / "docs" / "data_check.md",
     ROOT / "docs" / "narration.md",
+    ROOT / "docs" / "narration_eval.md",
     ROOT / "docs" / "VOICE.md",
     ROOT / "bob_sessions" / "README.md",
 ]
 
 # Paths the docs name on purpose while they do not exist. Each one is described
 # in the docs as not yet built, so an absent file is the correct state. These
-# three are named by the Plan section of `HANDOFF.md`, which says what each is
+# two are named by the Plan section of `HANDOFF.md`, which says what each is
 # for and which task writes it. The check runs in both directions: when one of
 # them is built, this line fails until the plan entry is rewritten as built
 # work, which is what stops a plan quietly outliving the thing it planned.
+# `docs/narration_eval.md` was on this list and came off it when Task 4a built
+# it, which is the mechanism working.
 DELIBERATELY_ABSENT = {
     "app/orchestrator_contract.py",   # Task 5
     "tests/test_orchestrator.py",     # Task 5
-    "docs/narration_eval.md",         # Task 4a, added to again by 4b
 }
 
 PATH_IN_BACKTICKS = re.compile(

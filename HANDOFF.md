@@ -541,6 +541,101 @@ in order and jumps to the shot, so the run the goal is famous for is the part it
 skips. Nothing refuses a narration for being dull, and nothing should; it is a
 model limit and it is worth knowing before the pass rate is measured.
 
+### Phase 4, task 4a
+
+**The pass rate and the coverage are measured now, and the second one is the
+bad news.** `scripts/narration_eval.py` narrates every goal three times and
+writes `docs/narration_eval.md`. It takes `--goals` (a match id for every goal
+in it, or `match:minute:second` for one) and `--runs`, so a change can be tried
+on one goal before twenty-seven; `--json` saves the records after every
+narration and `--from-json` rebuilds the report from them, which is what keeps
+a long run from being lost to a typo in the report code.
+
+Ollama only. There is no watsonx path in the script and no flag that adds one,
+because a loop of twenty-seven generations is the shape of accident that spends
+money on a paid endpoint; Task 4b writes that comparison and states its call
+count first.
+
+The full run, `granite4:micro`, 27 narrations in 854s:
+
+| | |
+| --- | --: |
+| grounded on the first attempt | 22 of 27 |
+| fell back to the template | 1 |
+| mean tokens per narration | 1,941 |
+| mean wall clock per narration | 32s on CPU |
+
+**Grounding holds up and completeness does not.** Coverage is the share of the
+key beats of a passage that a narration cited: the shot, every dribble past an
+opponent, and the foul for a penalty. Five of the nine goals have the shot as
+their only key beat and read 100% for anything that passed at all, so the
+report averages coverage over the five that can move and shows the other four
+on their own.
+
+Across those five goals the model wrote fourteen narrations and all fourteen
+cited the shot and no other key beat. Not one dribble past a defender, and not
+one of the three penalty fouls. Every grounded narration cites the shot
+because the ending rule requires it, so those fourteen reached nothing the rule
+did not force out of them. The mean, 45%, is kinder than that and moves with
+how many beats a goal has rather than with what the model found, which is why
+the report prints the count beside it.
+
+**Coverage is split by what wrote the narration.** A template fallback reaches
+every key beat by construction, so a column that mixed it with the model's own
+narrations would report the fallback's completeness as the model's. First
+attempt, after a retry and template are three columns.
+
+**The fallback was thin too, and that was a bug rather than a limit.** It
+scored 2 of 5 on the 54:18 goal: grounded in every word and missing three of
+the four defenders Maradona went past. It collapsed the run of four `Dribble`
+events into one sentence, then trimmed the run-up from the front to fit a
+five-sentence budget. A model writing a thin narration is a model limit; code
+assembling one out of the facts can see every beat and has no excuse.
+
+So `key_beats` moved into `app/narration_prompt.py`, where the fallback and the
+measure read one list rather than two that drift apart. The fallback gives
+every key beat a sentence before any other fact is considered, and
+`TEMPLATE_MAX_SENTENCES` became a target that a key beat outranks. A dribble
+beat is said with its `Dribbled Past` record, which names the player who was
+beaten; a foul beat prefers `Foul Won` and falls back to `Foul Committed`,
+which is all the 117:05 penalty records. The 54:18 fallback went from
+
+> Minute 54. José Luis Cuciuffo passed. Héctor Adolfo Enrique passed. Diego
+> Armando Maradona dribbled. Diego Armando Maradona shot and scored for
+> Argentina.
+
+to
+
+> Minute 54. Peter Beardsley was dribbled past. Terry Butcher was dribbled
+> past. Terry Fenwick was dribbled past. Peter Shilton was dribbled past. Diego
+> Armando Maradona shot and scored for Argentina.
+
+and it now scores 100% on all nine goals:
+`tests/test_narration_prompt.py::TestTemplateNarration::test_it_cites_every_key_beat_of_the_passage`
+and
+`tests/test_narration_eval.py::TestCoverage::test_the_fallback_scores_full_coverage_on_every_goal`.
+
+**The measure is tested against the narration it exists for.** A live first
+attempt that passes the check and skips every dribble is pinned with its real
+citations in
+`tests/test_narration_eval.py::TestCoverage::test_the_thin_narration_covers_only_the_shot`,
+which asserts 1 of 5, and a companion test asserts the same narration is
+grounded. If coverage ever scores that narration well, the number is measuring
+nothing.
+
+Two definition calls are worth knowing. A dribble past an opponent is one beat
+recorded twice, a `Dribble` on the attacker and a `Dribbled Past` on the
+defender, so citing either covers it; a beat exists only where there is a
+`Dribbled Past`, since that is what makes it past an opponent. And the penalty
+foul is every foul record in the buildup merged into one beat: keying it on
+`Foul Won` alone would have left the 117:05 penalty, which has only the
+`Foul Committed` side, reporting that nothing was missing.
+
+Tokens are Ollama's own `prompt_eval_count` and `eval_count`, read through a
+transport wrapper rather than estimated from the text. `Transport` is the seam
+`app/narration_provider.py` already has for tests, so measuring cost needed no
+change to `app/`.
+
 ### Phase 4, task 3c
 
 **Four documents, each statement carrying its file and its test.**
@@ -1360,11 +1455,12 @@ both directions, and picking one match leaves the other match's key untouched.
 Tasks 3d through Phase 7, as agreed with Shawn, copied here so a fresh session
 has the whole arc rather than one task at a time.
 
-**Everything in this section is planned work, not built work.** Task 3d is done
-and is marked so; nothing below it exists. The three paths it names that have
-not been written yet are listed in `DELIBERATELY_ABSENT` in
+**Everything in this section is planned work except where a task is marked
+done.** Tasks 3d and 4a are built; nothing below them exists. The paths named
+here that have not been written yet are listed in `DELIBERATELY_ABSENT` in
 `scripts/check_docs.py`, so the docs gate fails if one of them appears and this
-section was not updated with it.
+section was not updated with it. `docs/narration_eval.md` was on that list and
+came off it when Task 4a wrote it.
 
 Shawn is asked whether to continue at the end of each task, after the exit
 commands have run, because an adjustment may be wanted before the next one
@@ -1395,7 +1491,7 @@ Exit when: all tests and gates pass, a live run on `granite4:micro` over the
 1986 54:18 goal produces past-tense narration that passes, and the work is
 pushed.
 
-### Task 4a: comparison script (Ollama only)
+### Task 4a: comparison script (Ollama only) (done)
 
 Write a script that narrates all 9 goals, 3 runs each, and records per
 narration: the first-attempt grounding pass rate, coverage (the share of key
@@ -1529,22 +1625,27 @@ speed, per persona; this file records which leads; and Shawn picks the model.
   session (all gates, both matches, a real-phone check).
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Phase 4, task 4)
+## Next first action (Task 5, the orchestrator contract)
 
-**Measure the pass rate, then wire narration to a screen.** The prompt, the
-grounding check and the pipeline are built. What nothing does yet is run
-`app/narration.py` over the nine goals and write down how often the first
-attempt is grounded. `pass_rate` is there for it, and
-`Narrated.first_attempt_grounded` is the number it reports: retries must not be
-counted, or the figure hides how often the model drifts.
+**Write the contract and the failing tests, then stop for Bob.** Task 5 in the
+Plan section says what to declare and which rules the tests encode. Nothing of
+it exists: `app/orchestrator_contract.py` and `tests/test_orchestrator.py` are
+both on `DELIBERATELY_ABSENT` in `scripts/check_docs.py`, which fails the docs
+gate the moment either appears and the plan still calls it absent.
 
-`scripts/narrate_once.py` is one goal through a real model, so the loop over
-nine is what is missing rather than the call. Two runs of it over the 1986
-54:18 goal had no grounded first attempt, and the task 3b section records why,
-so expect the measured rate on `granite4:micro` to be low and do not read that
-as the prompt failing: every refusal in those runs was a real miscitation. The
-comparison the rate is for is between models, which is what
-`app/narration_config.py` holds the two watsonx candidates for.
+**Read `docs/narration_eval.md` first.** It is the measured state of the
+narration and it says two things that bear on everything after it. The first
+is that grounding is not the problem on the development model: 22 of 27 first
+attempts passed. The second is that completeness is: across the five goals
+where coverage can move, all fourteen model narrations cited the shot and no
+other key beat, so not one dribble past a defender and not one penalty foul
+was mentioned. Task 4b is where a better model gets its chance at that, and a
+prompt change aimed at it should be measured with the same script rather than
+argued about.
+
+The pass rate is worth re-measuring after any prompt change: `--goals` and
+`--runs` make a one-goal check cheap, and the full twenty-seven takes about
+fourteen minutes on CPU.
 
 What is in place:
 

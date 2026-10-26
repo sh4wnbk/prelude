@@ -19,6 +19,7 @@ from app.narration_prompt import (
     EVENT_VERBS,
     cited_line,
     TEMPLATE_MAX_SENTENCES,
+    key_beats,
     Facts,
     build_prompt,
     fact_list,
@@ -254,11 +255,48 @@ class TestPrompt:
 
 
 class TestTemplateNarration:
-    def test_it_stays_within_its_sentence_budget(self, feed):
+    def test_it_stays_within_its_sentence_budget_unless_a_beat_needs_room(
+        self, feed
+    ):
+        """The budget is a target, and a key beat outranks it.
+
+        `TEMPLATE_MAX_SENTENCES` used to be a ceiling, and reaching it was
+        what dropped three of Maradona's four dribbles. The ceiling now is the
+        minute line, every key beat but the shot, and the goal line.
+        """
         for _, _, facts in every_goal(feed):
-            assert 0 < len(sentences(template_narration(facts))) <= (
-                TEMPLATE_MAX_SENTENCES
-            )
+            said = sentences(template_narration(facts))
+            ceiling = max(TEMPLATE_MAX_SENTENCES, 2 + len(key_beats(facts)) - 1)
+            assert 0 < len(said) <= ceiling
+
+    def test_it_cites_every_key_beat_of_the_passage(self, feed):
+        """Grounded is not complete, and the fallback has to be both.
+
+        It is built by code out of the facts, so it can see every beat and has
+        no excuse for leaving one out. This is the property
+        `tests/test_narration_eval.py` then measures as coverage.
+        """
+        for _, _, facts in every_goal(feed):
+            cited = {n for s in sentences(template_narration(facts)) for n in s.cites}
+            for beat in key_beats(facts):
+                assert beat.covered_by(cited), f"{beat.label} is not in the fallback"
+
+    def test_the_1986_fallback_names_all_four_defenders(self, feed):
+        """The worked example, written out.
+
+        The old fallback collapsed the run to one sentence and then trimmed
+        it, so the goal everything else in this repo is tested against came
+        out as a pass, a pass and a dribble.
+        """
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        said = template_narration(facts)
+        for defender in (
+            "Peter Beardsley",
+            "Terry Butcher",
+            "Terry Fenwick",
+            "Peter Shilton",
+        ):
+            assert f"{defender} was dribbled past." in said
 
     def test_every_sentence_cites_the_fact_it_was_built_from(self, feed):
         """Grounded by construction means each sentence names its record, not
@@ -301,6 +339,24 @@ class TestTemplateNarration:
 
     def test_a_penalty_fallback_names_the_foul(self, feed):
         """The whole reason buildup reaches back a possession. If the fallback
-        drops the foul, the set piece has no cause in the narration."""
+        drops the foul, the set piece has no cause in the narration.
+
+        It is said with the `Foul Won` record where there is one, naming the
+        side the penalty was given to.
+        """
         facts = facts_for(feed, MATCH_2022, PENALTY_2022["clock"])
+        assert "won a foul" in template_narration(facts)
+
+    def test_a_penalty_recorded_only_as_a_foul_committed_still_names_it(
+        self, feed
+    ):
+        """The 117:05 penalty has no `Foul Won` record, only the other side.
+
+        Preferring `Foul Won` without a fallback would have left that penalty
+        with no foul in its narration at all.
+        """
+        facts = facts_for(feed, MATCH_2022, (117, 5))
+        actions = {fact.beat.action for fact in facts.facts}
+        assert "Foul Won" not in actions
+
         assert "committed a foul" in template_narration(facts)

@@ -22,6 +22,7 @@ into two places that have to agree:
 | `app/narration_prompt.py` | builds the numbered facts, and states the rules to the model in the prompt |
 | `app/grounding.py` | refuses a narration that broke them |
 | `scripts/narrate_once.py` | runs one goal through a real model and prints every attempt |
+| `scripts/narration_eval.py` | runs every goal several times and measures how often the rules held |
 
 A prompt that asked for less than the check enforces would set the model up to
 fail and a retry would not help it, so the rules below appear in both. When one
@@ -339,17 +340,18 @@ from the facts, in the same cited layout the prompt asks a model for:
 
 ```
 [24] Minute 54.
-[3] José Luis Cuciuffo passed.
-[6] Héctor Adolfo Enrique passed.
-[11] Diego Armando Maradona dribbled.
+[10] Peter Beardsley was dribbled past.
+[14] Terry Butcher was dribbled past.
+[17] Terry Fenwick was dribbled past.
+[21] Peter Shilton was dribbled past.
 [24] Diego Armando Maradona shot and scored for Argentina.
 ```
 
 which is shown and voiced as:
 
-> Minute 54. José Luis Cuciuffo passed. Héctor Adolfo Enrique passed. Diego
-> Armando Maradona dribbled. Diego Armando Maradona shot and scored for
-> Argentina.
+> Minute 54. Peter Beardsley was dribbled past. Terry Butcher was dribbled
+> past. Terry Fenwick was dribbled past. Peter Shilton was dribbled past. Diego
+> Armando Maradona shot and scored for Argentina.
 
 That is the fallback voice, and it is deliberately plainer than the voice above.
 It is grounded by construction, because every sentence is one fact said in the
@@ -358,6 +360,33 @@ same check anyway. One fact per sentence is also what keeps it inside the
 pairing rule. It uses full recorded names rather than shortening them, so that a
 fallback is not the thing that introduces a judgement about what a player is
 called.
+
+### Grounded was not enough: it has to be complete
+
+The fallback above used to read "Minute 54. José Luis Cuciuffo passed. Héctor
+Adolfo Enrique passed. Diego Armando Maradona dribbled. Diego Armando Maradona
+shot and scored for Argentina." Every word of that is grounded, and it leaves
+out three of the four defenders Maradona went past, which is the reason anyone
+remembers the goal. It collapsed the run of four `Dribble` events into one
+sentence, then trimmed the run-up from the front to fit a five-sentence budget,
+and the one surviving dribble was nearly trimmed too.
+
+A model writing a thin narration is a model limit. A fallback writing one is a
+bug, because it is assembled by code out of the facts and can see every beat.
+So `key_beats` in `app/narration_prompt.py` names the beats of a passage that a
+narration has to reach (the shot, every dribble past an opponent, and the foul
+for a penalty), the fallback gives every one of them a sentence before any
+other fact is considered, and the sentence budget became a target rather than a
+ceiling. The fallback now reaches every key beat on all nine goals:
+`tests/test_narration_prompt.py::TestTemplateNarration::test_it_cites_every_key_beat_of_the_passage`
+and, through the measure the evaluation uses,
+`tests/test_narration_eval.py::TestCoverage::test_the_fallback_scores_full_coverage_on_every_goal`.
+
+A dribble beat is said with the `Dribbled Past` record, which names the player
+who was beaten rather than only that someone went past somebody. A foul beat
+prefers the `Foul Won` record, naming the side the penalty was given to, and
+falls back to the `Foul Committed` record for the 117:05 penalty, which has no
+`Foul Won` side recorded at all.
 
 Nothing ungrounded is ever voiced or labelled. If even the fallback failed the
 check there would be nothing safe to say, and the pipeline raises rather than
@@ -399,9 +428,38 @@ Across these runs and the four under the present-tense prompt, every refusal was
 a real one and none was a false positive. The tense rule has not yet refused a
 live attempt: with the facts written in the past tense, the model wrote past
 tense without being corrected, which is the outcome the prompt and the facts
-were changed for. The pass rate is still the number that matters, six runs are
-not a rate, and nothing measures it over the nine goals; that is Task 4, and
-`Narrated.first_attempt_grounded` is what it has to count.
+were changed for.
+
+## What the measured run shows
+
+Six runs are not a rate. `scripts/narration_eval.py` narrates every goal three
+times and writes `docs/narration_eval.md`, which is where the numbers live and
+what any claim about this prompt should be read against. The first full run on
+`granite4:micro`, twenty-seven narrations:
+
+| | |
+| --- | --: |
+| grounded on the first attempt | 22 of 27 |
+| fell back to the template | 1 |
+| mean tokens per narration | 1,941 |
+| mean wall clock per narration | 32s on CPU |
+
+**Grounding is not the problem; completeness is.** Five of the nine goals have
+the shot as their only key beat, so coverage can only move on the other four
+plus the 117:05 penalty. Across those, the model wrote fourteen narrations and
+**all fourteen cited the shot and no other key beat**: not one dribble past a
+defender, and not one of the three penalty fouls. Every grounded narration
+cites the shot, because the ending rule makes it, so those narrations reached
+nothing the rule did not force.
+
+That is the thin narration quoted above, and it is the normal case rather than
+an unlucky run. It is a model limit rather than a check limit: nothing here
+refuses a narration for leaving the story out, and `docs/narration_eval.md`
+exists so that the gap is a number rather than an impression. What closes it
+is a better model, a better prompt, or both, which is what Task 4b is for.
+
+The fallback used to have the same gap and no longer does: it reaches every
+key beat on all nine goals, which is the section above.
 
 ## The screens have not caught up
 

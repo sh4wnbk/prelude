@@ -147,14 +147,19 @@ Everything above it is structure.
   fake credentials file into a temporary directory; none reads the real one,
   and `tests/conftest.py` points `PRELUDE_ENV_FILE` at an absent path for the
   whole suite so none can.
-- `tests/test_narration_prompt.py`: 27 tests over the facts, the numbered fact
-  list, the prompt and the fallback narration. All pass.
+- `tests/test_narration_prompt.py`: 30 tests over the facts, the numbered fact
+  list, the prompt, the key beats of a passage and the fallback narration,
+  which has to reach every one of those beats. All pass.
 - `tests/test_grounding.py`: 77 tests over the grounding check, one per way a
   narration can be wrong or can look wrong and be fine, including the
   misdescription it refuses by pairing a name with an action. All pass.
 - `tests/test_narration.py`: 24 tests over the pipeline, covering the retries,
   the fallback, the citation stripping, the failure log and the first-attempt
   pass rate. All pass, and no test calls a model.
+- `tests/test_narration_eval.py`: 28 tests over the coverage measure, the
+  token recorder and the goal selection in `scripts/narration_eval.py`,
+  including the live thin narration that passes the grounding check and
+  reaches one key beat of five. All pass.
 
 **Exists but does nothing yet:**
 
