@@ -95,6 +95,11 @@ Everything above it is structure.
   counts as written.
 - `scripts/check_docs.py`: checks that these docs still match the code they
   describe, and exits non-zero when one has gone stale.
+- `scripts/narration_eval.py`: narrates goals several times, in one persona or
+  all of them, and measures what came back: the first-attempt and after-retry
+  pass rates, coverage of the passage's key beats, words per sentence, tokens
+  and time. Writes [`docs/narration_eval.md`](docs/narration_eval.md), which
+  holds three runs. Ollama only.
 - `app/statsbomb_event_feed.py`: `StatsBombEventFeed`, the EventFeed
   implementation. Reads a match from `data/raw/`, returns its goals as
   moments (periods 1 to 4, so the shootout is excluded), and returns the run-up
@@ -163,7 +168,7 @@ Everything above it is structure.
   list, the prompt, the persona's style and the listener's side in it, the key
   beats of a passage and the fallback narration, which has to reach every one
   of those beats. All pass.
-- `tests/test_grounding.py`: 88 tests over the grounding check, one per way a
+- `tests/test_grounding.py`: 89 tests over the grounding check, one per way a
   narration can be wrong or can look wrong and be fine, including the
   misdescription it refuses by pairing a name with an action and the first
   person, which only the Mate may use and only over its own side's facts.
@@ -171,7 +176,7 @@ Everything above it is structure.
 - `tests/test_narration.py`: 24 tests over the pipeline, covering the retries,
   the fallback, the citation stripping, the failure log and the first-attempt
   pass rate. All pass, and no test calls a model.
-- `tests/test_narration_eval.py`: 28 tests over the coverage measure, the
+- `tests/test_narration_eval.py`: 49 tests over the coverage measure, the
   token recorder and the goal selection in `scripts/narration_eval.py`,
   including the live thin narration that passes the grounding check and
   reaches one key beat of five. All pass.

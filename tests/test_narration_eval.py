@@ -37,7 +37,24 @@ from app.narration_prompt import (
     template_narration,
 )
 from app.statsbomb_event_feed import StatsBombEventFeed
-from scripts.narration_eval import Recorder, coverage, goal_moments, surname
+from app.personas import MATE, THE_CALLER, THE_MATE
+from scripts.narration_eval import (
+    MODEL,
+    NO_PERSONA,
+    TEMPLATE,
+    Record,
+    Recorder,
+    Voice,
+    coverage,
+    goal_moments,
+    match_sides,
+    persona_section,
+    read_json,
+    read_personas,
+    sentence_length,
+    surname,
+    voices,
+)
 
 MATCH_1986 = 3750191
 MATCH_2022 = 3869685
@@ -65,6 +82,7 @@ THIN = (
     "[24] Diego Armando Maradona shot."
 )
 
+ROOT = Path(__file__).resolve().parent.parent
 GOLDEN = Path(__file__).resolve().parent / "golden" / "ollama_development_model.json"
 
 
@@ -341,3 +359,181 @@ class TestReportHelpers:
     def test_a_surname_is_the_last_word_of_a_recorded_name(self):
         assert surname("Diego Armando Maradona") == "Maradona"
         assert surname("Lionel Andrés Messi Cuccittini") == "Cuccittini"
+
+
+def a_record(**fields) -> Record:
+    """One measured narration, with the fields a test does not care about
+    filled in. The report code reads a lot of them and a test naming all
+    eighteen would say less, not more."""
+    base = dict(
+        match_id=MATCH_1986,
+        minute=54,
+        second=18,
+        team="Argentina",
+        player="Diego Armando Maradona",
+        set_piece="Open Play",
+        run=1,
+        first_attempt_grounded=True,
+        attempts=1,
+        source=MODEL,
+        covered=5,
+        beats=5,
+        missed=(),
+        prompt_tokens=100,
+        completion_tokens=10,
+        seconds=1.0,
+        text="[24] Maradona shot and scored for Argentina.",
+        tagged_text="[24] Maradona shot and scored for Argentina.",
+    )
+    return Record(**{**base, **fields})
+
+
+class TestTheVoices:
+    """Task 6c: a persona is a voice, and the Mate is two of them."""
+
+    def test_the_two_sides_are_read_off_the_records(self, feed):
+        assert match_sides(feed, MATCH_1986) == ("Argentina", "England")
+        assert match_sides(feed, MATCH_2022) == ("Argentina", "France")
+
+    def test_a_fans_only_persona_is_one_voice_per_side(self, feed):
+        built = voices(feed, MATCH_1986, [MATE])
+        assert [v.side for v in built] == ["Argentina", "England"]
+        assert {v.persona for v in built} == {THE_MATE}
+
+    def test_a_persona_with_no_side_is_one_voice(self, feed):
+        built = voices(feed, MATCH_1986, [THE_CALLER.id])
+        assert len(built) == 1
+        assert built[0].side is None
+
+    def test_all_is_every_persona(self):
+        assert read_personas("all") == ("caller", "storyteller", "mate")
+
+    def test_none_is_the_prompt_with_no_style_block(self, feed):
+        assert read_personas(NO_PERSONA) == ()
+        assert read_personas("") == ()
+
+    def test_an_unknown_persona_is_refused(self):
+        with pytest.raises(KeyError):
+            read_personas("commentator")
+
+    def test_a_voice_is_labelled_by_its_persona_and_side(self, feed):
+        assert Voice(persona=THE_CALLER, side=None).label == "caller"
+        assert Voice(persona=THE_MATE, side="England").label == "mate (England)"
+        assert Voice(persona=None, side=None).label == NO_PERSONA
+
+    def test_four_voices_over_a_match(self, feed):
+        built = voices(feed, MATCH_2022, read_personas("all"))
+        assert [v.label for v in built] == [
+            "caller",
+            "storyteller",
+            "mate (Argentina)",
+            "mate (France)",
+        ]
+
+
+class TestARecordCarriesItsVoice:
+    """And a records file written before personas existed still reads."""
+
+    def test_a_record_defaults_to_no_persona(self):
+        assert a_record().persona == NO_PERSONA
+        assert a_record().voice == NO_PERSONA
+
+    def test_a_partisan_record_names_its_side(self):
+        record = a_record(persona=MATE, side="England")
+        assert record.voice == "mate (England)"
+
+    def test_the_task_4a_records_still_read(self):
+        """`--from-json` rebuilds the committed report from them."""
+        path = ROOT / "docs" / "narration_runs" / "4a_granite4_micro.json"
+        rows = read_json(path)
+        assert len(rows) == 27
+        assert {r.persona for r in rows} == {NO_PERSONA}
+
+
+class TestOnlyTheModelCanPass:
+    """A template fallback is a failure, however complete it is."""
+
+    def test_a_model_narration_is_a_pass(self):
+        assert a_record(source=MODEL).model_wrote_it
+
+    def test_a_template_fallback_is_not(self):
+        assert not a_record(source=TEMPLATE, first_attempt_grounded=False).model_wrote_it
+
+    def test_the_section_counts_a_fallback_as_a_failure(self):
+        """Three runs of one voice: one first attempt, one retry, one
+        fallback. The first-attempt rate is 1/3 and the after-retry rate is
+        2/3, because the fallback is neither."""
+        rows = [
+            a_record(persona="caller", run=1),
+            a_record(persona="caller", run=2, first_attempt_grounded=False,
+                     attempts=2),
+            a_record(persona="caller", run=3, first_attempt_grounded=False,
+                     attempts=3, source=TEMPLATE),
+        ]
+        section = "\n".join(persona_section(rows))
+        assert "| caller | 3 | 1/3 | 2/3 | 1 |" in section
+
+    def test_coverage_leaves_the_fallback_out(self):
+        """A fallback cites every key beat by construction, so averaging it
+        in would report the fallback's completeness as the persona's."""
+        rows = [
+            a_record(persona="caller", covered=1, beats=5),
+            a_record(persona="caller", run=2, source=TEMPLATE, covered=5,
+                     beats=5, first_attempt_grounded=False),
+        ]
+        section = "\n".join(persona_section(rows))
+        assert "| caller | 2 | 1/2 | 1/2 | 1 | 20% |" in section
+
+
+class TestThePersonaSection:
+    def test_it_is_empty_when_no_record_carries_a_persona(self):
+        assert persona_section([a_record()]) == []
+
+    def test_it_names_every_voice_that_ran(self):
+        rows = [
+            a_record(persona="caller"),
+            a_record(persona="storyteller"),
+            a_record(persona=MATE, side="Argentina"),
+            a_record(persona=MATE, side="England"),
+        ]
+        section = "\n".join(persona_section(rows))
+        for voice in ("caller", "storyteller", "mate (Argentina)",
+                      "mate (England)"):
+            assert f"| {voice} |" in section
+
+    def test_it_counts_the_partisan_narrations_that_said_we(self):
+        rows = [
+            a_record(persona=MATE, side="Argentina",
+                     text="[24] We scored through Maradona."),
+            a_record(persona=MATE, side="Argentina", run=2,
+                     text="[24] Maradona shot and scored for Argentina."),
+        ]
+        section = "\n".join(persona_section(rows))
+        assert "2 narrations" in section
+        assert "**1** used" in section
+
+
+class TestSentenceLength:
+    """The crudest measure of a register, and the only one without a judgement."""
+
+    def test_it_averages_words_per_sentence(self):
+        row = a_record(
+            tagged_text="[1] He passed.\n[24] Maradona shot and scored for Argentina."
+        )
+        # Two sentences, two and six words.
+        assert sentence_length([row]) == "4.0"
+
+    def test_a_template_fallback_is_left_out(self):
+        """The fallback writes one fact a sentence in every voice, so folding
+        it in would report its shape as the persona's."""
+        model = a_record(tagged_text="[1] He passed.")
+        template = a_record(
+            source=TEMPLATE,
+            first_attempt_grounded=False,
+            tagged_text="[1] A much longer sentence than the other one here.",
+        )
+        assert sentence_length([model, template]) == sentence_length([model])
+
+    def test_no_model_narration_reads_n_a(self):
+        template = a_record(source=TEMPLATE, first_attempt_grounded=False)
+        assert sentence_length([template]) == "n/a"

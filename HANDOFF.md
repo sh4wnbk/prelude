@@ -929,6 +929,63 @@ commit.
 
 `pytest -q` reports `341 passed`, and the four gates pass.
 
+### Phase 4, task 6c
+
+**The personas were measured and they came back nearly the same.**
+`scripts/narration_eval.py` grew a `--personas` flag and a persona section,
+and 36 narrations ran on `granite4:micro`: three goals, four voices each (the
+Mate twice, once per side), three runs apiece, 2001 seconds in all. The
+records are `docs/narration_runs/6c_granite4_micro.json` and the report is the
+Task 6c section of `docs/narration_eval.md`.
+
+**The exit condition is met.** Every persona produced model-written,
+grounded narration on the 1986 54:18 goal and on the 2022 79:24 penalty. The
+22:24 penalty is reported whatever it came out as, and what it came out as is
+below.
+
+| Voice | First attempt | After a retry | Fell back | Coverage | Words per sentence |
+| ----- | ------------: | ------------: | --------: | -------: | -----------------: |
+| caller | 1/9 | 3/9 | 6 | 100% | 5.5 |
+| storyteller | 5/9 | 7/9 | 2 | 70% | 5.0 |
+| mate (Argentina) | 2/9 | 6/9 | 3 | 89% | 5.4 |
+| mate (England) | 2/3 | 3/3 | 0 | 87% | 5.3 |
+| mate (France) | 0/6 | 3/6 | 3 | 100% | 4.9 |
+
+**A template fallback is counted as a failure,** which is the measurement
+decision behind every number above. The fallback is assembled by code out of
+the facts in one plain register, so it is neither the model's narration nor
+the voice that was asked for.
+
+**Three findings, each a number rather than an impression.**
+
+*The registers did not reach the model.* Words per sentence came out between
+4.9 and 5.5 for every voice, the Caller included, whose style asks for short
+lines. The sample narrations in the report read alike for the same reason.
+This is a statement about a three billion parameter model and about nothing
+else; whether a larger one separates them is Task 4b's question.
+
+*The Mate never took the first person.* None of its 18 narrations used "we",
+"our" or "us". The rule built in task 6b is tested and correct and has so far
+had nothing to rule on, because the model did not reach for the word.
+
+*The style block cost first-attempt grounding.* On 54:18, Task 4c measured 3
+of 3 first attempts grounded with no persona; with a persona the same goal is
+3 of 12. Retries absorb most of it, 10 of 12 after one, which is why both
+rates are printed.
+
+**The Caller failed every run on the 22:24 penalty,** 0 of 3 model-written,
+three fallbacks. That goal has a hundred facts and the longest prompt in the
+data, and Task 4c already measured it as the one goal the beats block cost
+every first attempt. A persona on top of that block is what this row is. The
+Storyteller went 3 of 3 on the same goal, so it is not the goal alone.
+
+**What this does not say.** Nothing here is a model choice, and nothing here
+says a persona is a bad idea. It says that on the development model the three
+styles are not separable by the one measure available, and that is the thing
+to retest when a candidate model is picked.
+
+`pytest -q` reports `363 passed`, and the four gates pass.
+
 ### Phase 4, task 3c
 
 **Four documents, each statement carrying its file and its test.**
@@ -1749,7 +1806,7 @@ Tasks 3d through Phase 7, as agreed with Shawn, copied here so a fresh session
 has the whole arc rather than one task at a time.
 
 **Everything in this section is planned work except where a task is marked
-done.** Tasks 3d, 4a, 4c, 5, 6a and 6b are built, and so is Bob's task 4, the
+done.** Tasks 3d, 4a, 4c, 5, 6a, 6b and 6c are built, and so is Bob's task 4, the
 orchestrator; nothing below them exists. Paths a doc names before they are
 written go on `DELIBERATELY_ABSENT` in `scripts/check_docs.py`, so the docs
 gate fails if one appears and this section was not updated with it. The list
@@ -1879,7 +1936,7 @@ for every persona.
 Exit when: tests and all four gates pass, the docs are updated, and the work
 is pushed.
 
-#### Task 6c: the comparison on Ollama
+#### Task 6c: the comparison on Ollama (done)
 
 Extend `scripts/narration_eval.py` to run each persona, the Mate once with
 each side as the listener's team. Run it on `granite4:micro` over the 1986
@@ -1967,11 +2024,28 @@ speed, per persona; this file records which leads; and Shawn picks the model.
   session (all gates, both matches, a real-phone check).
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Task 6c, the persona comparison on Ollama)
+## Next first action (Shawn decides, then Task 7)
 
-**Task 6c in the Plan is next,** and it is Claude Code's. Tasks 6a and 6b are
-built: the config exists, the style goes into the prompt, and the Mate's
-first person is checked against the listener's side.
+**Task 6 is finished and Task 7 is next, after Shawn has read the Task 6c
+numbers.** The three personas are built, wired into the prompt and the check,
+and measured. What the measurement says is that on `granite4:micro` the three
+voices are not separable: words per sentence is 4.9 to 5.5 across all of them,
+and the Mate never once used the first person it is the only voice allowed.
+
+**That is a decision for Shawn rather than a bug to fix.** Three options, and
+nothing in the repo assumes one of them:
+
+1. Leave it. The personas are a Phase 5 and Task 7 feature and the model that
+   ships them is chosen in Task 4b, which is where this should be retested.
+2. Make the styles harder for a small model to ignore, and remeasure the same
+   three goals the same way so the before and after are comparable.
+3. Drop to two personas, or to one, if the voices cannot be told apart on the
+   model that ships.
+
+**Task 4b now has a third arm worth running**, since the persona prompt is
+the one that costs first-attempt grounding: one candidate with a persona and
+one without, on the same goals, so the cost is measured on a model that might
+not pay it.
 
 **Bob's task 4 export is committed.** It was scanned first, as
 `bob_sessions/README.md` requires, and nothing was scrubbed: no variable name

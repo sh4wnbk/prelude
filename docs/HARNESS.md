@@ -64,7 +64,7 @@ script to run. So the first command in a new clone is
 
 ## Entry points
 
-Eight scripts, each runnable on its own. None of them is imported by anything.
+Nine scripts, each runnable on its own. None of them is imported by anything.
 
 | Script | What it does | What it writes | What it reaches |
 | ------ | ------------ | -------------- | --------------- |
@@ -76,15 +76,19 @@ Eight scripts, each runnable on its own. None of them is imported by anything.
 | `scripts/check_docs.py` | gate: the claims these docs make against the code | nothing | runs `pytest` |
 | `scripts/record_narration_golden.py` | records one Ollama request and response | `tests/golden/ollama_development_model.json` | a local Ollama server |
 | `scripts/narrate_once.py` | narrates one goal and prints every attempt | nothing | a local Ollama server |
+| `scripts/narration_eval.py` | narrates goals several times in one or more personas and measures the result | `docs/narration_eval.md`, and records with `--json` | a local Ollama server |
 
 The three gates exit non-zero on any finding, which is what lets them gate a
 commit; each says so in its own docstring.
 
-**Two scripts call a model, and both are run by hand.** They are
-`scripts/record_narration_golden.py` and `scripts/narrate_once.py`, neither of
-which is part of the suite, so no test can reach a model through them. The
-guard that makes that more than a convention is in `tests/conftest.py` and is
-described below.
+**Three scripts call a model, and all three are run by hand.** They are
+`scripts/record_narration_golden.py`, `scripts/narrate_once.py` and
+`scripts/narration_eval.py`, none of which is part of the suite, so no test
+can reach a model through them. The guard that makes that more than a
+convention is in `tests/conftest.py` and is described below. All three reach
+the local Ollama server and none has a watsonx path: Task 4b writes the paid
+comparison separately, which is what keeps a loop of generations away from a
+paid endpoint.
 
 `scripts/narrate_once.py` defaults to the 1986 goal at 54:18 and takes a match
 id and a clock for any other:
@@ -97,9 +101,20 @@ id and a clock for any other:
 It needs a local Ollama server running the model in `app/narration_config.py`.
 `docs/VOICE.md` records what two runs of it actually produced.
 
+`scripts/narration_eval.py` is the measured version of the same thing, over
+many goals and several runs each. `--personas` picks the voices, defaulting to
+`none`, which is the prompt with no style block; a fans-only persona runs once
+per side. `--json` writes the records after every narration, and `--from-json`,
+`--compare` and `--persona-runs` rebuild the report from saved records without
+generating anything:
+
+```
+.\.venv-prelude\Scripts\python.exe -I scripts\narration_eval.py --goals 3750191:54:18 --runs 3 --personas all --json records.json
+```
+
 ## The test harness
 
-The suite is 341 tests in nine files, and all of them pass, so any failure
+The suite is 363 tests in nine files, and all of them pass, so any failure
 means something is wrong. It is run from the repo root:
 
 ```
@@ -117,7 +132,7 @@ No path setting is needed: `pyproject.toml` sets `pythonpath = ["."]` and
 | `tests/test_narration.py` | the pipeline: generate, check, retry, fall back, record |
 | `tests/test_narration_provider.py` | the model config and both backends |
 | `tests/test_credentials.py` | where the credentials file lives, and what is refused |
-| `tests/test_narration_eval.py` | the key beats, the coverage measure and the token recorder |
+| `tests/test_narration_eval.py` | the key beats, the coverage measure, the token recorder and the voices a run is split into |
 | `tests/test_orchestrator.py` | the greeting, the phase, the score state, the header table, the default persona and `opening`, against `app/orchestrator.py` |
 | `tests/test_personas.py` | the persona config: the three ids, the fields, the unconfirmed voices and the Profile copy |
 

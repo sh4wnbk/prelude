@@ -431,6 +431,33 @@ Reid" is the misdescription from the section above, said as a supporter, and
 it is refused for the same reason:
 `tests/test_grounding.py::TestThePartisanVoice::test_a_partisan_narration_is_held_to_every_other_rule`.
 
+### Measured: the three voices came back nearly the same
+
+`docs/narration_eval.md` holds the run, 36 narrations over three goals, three
+runs of each of four voices per goal, on `granite4:micro`. Two findings are
+worth carrying into Phase 5, and both are numbers rather than impressions.
+
+**The registers did not reach the model.** Words per sentence, the one thing
+in these styles that can be measured without a judgement, came out between 4.9
+and 5.5 for every voice, including the Caller, whose style asks for short
+lines, and the Storyteller, whose style asks for measured ones. The sample
+narrations printed in the report read alike for the same reason. Whether a
+larger model separates them is what Task 4b is for; this says nothing about
+`ibm/granite-4-h-small` or `openai/gpt-oss-120b`, only about a three billion
+parameter model.
+
+**The Mate never took the first person.** Of 18 narrations written in that
+voice, none used "we", "our" or "us". The permission is in the prompt and in
+the check, and nothing requires it: `app/grounding.py` refuses a partisan
+narration that misuses the word and has no opinion about one that never
+reaches for it. So the rule above is built and tested, and on this model it
+has not yet had anything to rule on.
+
+**The style block cost first-attempt grounding.** On the 54:18 goal, Task 4c
+measured 3 of 3 first attempts grounded with no persona; with a persona, the
+same goal came out 3 of 12. Retries absorb most of it, and the after-retry
+figure is 10 of 12, which is why the report prints both.
+
 **The style text is prompt copy and the Profile line is app output.** They are
 checked differently on purpose. The Profile line is read by a fan, so the
 no-nicknames rule applies to it. The style is said to a model, where naming a

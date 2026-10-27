@@ -23,6 +23,7 @@ import pytest
 from app.grounding import (
     ACTION_CLAIMS,
     BANNED_PATTERNS,
+    FIRST_PERSON,
     PRESENT_TENSE,
     PRESENT_TENSE_PHRASES,
     TEAM_DEMONYMS,
@@ -854,6 +855,25 @@ class TestThePartisanVoice:
         assert not result.grounded
         assert "pairing" in kinds(result)
         assert "Reid" in result.summary
+
+    def test_the_first_person_patterns_hold_their_word_boundaries(self):
+        """A contraction is caught and an ordinary word is not.
+
+        The words are patterns rather than a word list because an apostrophe
+        is a word boundary: the word loop reads "we're" as one word and
+        strips nothing from it, so a list would miss it. The other half is
+        that `\bus\b` must not fire on "because", which is what a pattern
+        with its boundaries lost would do.
+        """
+        import re
+
+        def hit(text):
+            return any(re.search(p, text.lower()) for p in FIRST_PERSON)
+
+        for said in ("we", "our", "ours", "us", "we're", "we've", "for us"):
+            assert hit(said), said
+        for said in ("because", "trust", "flour", "bus", "four", "pressure"):
+            assert not hit(said), said
 
     def test_a_banned_word_is_banned_in_every_voice(self, facts_1986):
         for persona, side in (

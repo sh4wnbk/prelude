@@ -23,6 +23,10 @@ Four things are recorded per narration:
 * **Tokens**, read off Ollama's own `prompt_eval_count` and `eval_count`
   rather than estimated from the text, which is what `Recorder` is for.
 * **Time**, wall clock around the generation call.
+* **The voice**, which persona was asked for and which side the listener was
+  on. `NO_PERSONA` means the prompt with no style block, which is what the
+  Task 4a and 4c runs measured and what makes them comparable with a later
+  one.
 
 Grounding and coverage answer different questions, and both are needed. The
 check refuses a narration that says something the data does not support; it has
@@ -31,11 +35,27 @@ out the goal's whole story. A first live run on the 1986 54:18 goal passed the
 check with four true sentences that skipped all four dribbles, which is the run
 coverage exists to put a number on.
 
+**The personas are opt in.** `--personas` picks the voices to run and
+defaults to `none`, the prompt with no style block, so the default run is the
+one the earlier numbers were measured with and the command quoted in the
+report still reproduces it. A `fans_only` persona becomes two runs, one per
+side, because it writes as the listener's team. `--persona-runs` takes a
+records file and adds its per-persona results to the report as a section of
+their own, which is how one document holds three runs.
+
+**Only the model can pass.** A template fallback is counted as a failure in
+the persona section: it is assembled by code out of the facts in one plain
+register, so it is neither the model's narration nor the voice that was asked
+for, and a column treating it as a pass would report the fallback's
+reliability as the persona's.
+
 Run it:
 
     .\.venv-prelude\Scripts\python.exe -I scripts\narration_eval.py --help
     .\.venv-prelude\Scripts\python.exe -I scripts\narration_eval.py \
         --goals 3750191:54:18 --runs 1 --out out.md
+    .\.venv-prelude\Scripts\python.exe -I scripts\narration_eval.py \
+        --goals 3750191:54:18 --runs 3 --personas all --json records.json
     .\.venv-prelude\Scripts\python.exe -I scripts\narration_eval.py
 
 The full default run is nine goals times three runs on a CPU, so it takes a
@@ -47,6 +67,7 @@ with `--from-json` instead of generating again.
 import argparse
 import json
 import statistics
+import re
 import sys
 import time
 from dataclasses import asdict, dataclass
@@ -58,7 +79,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from app.event_feed import Moment  # noqa: E402
-from app.grounding import sentences  # noqa: E402
+from app.grounding import FIRST_PERSON, sentences  # noqa: E402
 from app.narration import MODEL, TEMPLATE, narrate  # noqa: E402
 from app.narration_config import DEVELOPMENT_MODEL  # noqa: E402
 from app.narration_prompt import (  # noqa: E402
@@ -71,6 +92,7 @@ from app.narration_prompt import (  # noqa: E402
     key_beats,
 )
 from app.narration_provider import Transport, post, provider  # noqa: E402
+from app.personas import PERSONAS, Persona, persona as persona_by_id  # noqa: E402
 from app.statsbomb_event_feed import StatsBombEventFeed  # noqa: E402
 
 #: The two demo matches, in the order the app lists them.
@@ -82,6 +104,97 @@ MATCHES = (3750191, 3869685)
 DEFAULT_RUNS = 3
 
 DEFAULT_REPORT = ROOT / "docs" / "narration_eval.md"
+
+#: What a narration with no persona is called in a report. The prompt with no
+#: style block is a real arm of the comparison, not a missing value: it is the
+#: prompt the Task 4a and 4c numbers were measured with.
+NO_PERSONA = "none"
+
+
+@dataclass(frozen=True)
+class Voice:
+    """One persona, and the side it is being written for.
+
+    A voice rather than a persona, because the Mate is two runs and not one:
+    it writes as the listener's side, so the same persona over the same goal
+    is a different request for each team. The other two have no side and are
+    one voice each.
+    """
+
+    persona: Persona | None
+    side: str | None
+
+    @property
+    def id(self) -> str:
+        if self.persona is None:
+            return NO_PERSONA
+        return self.persona.id
+
+    @property
+    def label(self) -> str:
+        """How a report names this voice, the same way in every table."""
+        if self.side:
+            return f"{self.id} ({self.side})"
+        return self.id
+
+
+def match_sides(feed: StatsBombEventFeed, match_id: int) -> tuple[str, ...]:
+    """The two teams of a match, in the order the events first name them.
+
+    Read off the records rather than written down, like everything else here.
+    A match with anything but two teams in it is a match this script has
+    misread, so it raises rather than narrating for a side it invented.
+    """
+    sides: list[str] = []
+    for event in feed.load_match(match_id):
+        team = (event.get("team") or {}).get("name")
+        if team and team not in sides:
+            sides.append(team)
+    if len(sides) != 2:
+        raise SystemExit(
+            f"match {match_id} names {len(sides)} teams, expected two"
+        )
+    return tuple(sides)
+
+
+def voices(
+    feed: StatsBombEventFeed, match_id: int, chosen: Sequence[str]
+) -> tuple[Voice, ...]:
+    """The voices to run for one match, from a list of persona ids.
+
+    A `fans_only` persona becomes one voice per side, because it writes as the
+    listener's team and there are two of them. `NO_PERSONA` is the prompt with
+    no style block, which is what the earlier runs in `docs/narration_eval.md`
+    measured and what makes them comparable with these.
+    """
+    built: list[Voice] = []
+    for persona_id in chosen:
+        if persona_id == NO_PERSONA:
+            built.append(Voice(persona=None, side=None))
+            continue
+        persona = persona_by_id(persona_id)
+        if persona.fans_only:
+            built += [
+                Voice(persona=persona, side=side)
+                for side in match_sides(feed, match_id)
+            ]
+        else:
+            built.append(Voice(persona=persona, side=None))
+    return tuple(built)
+
+
+def read_personas(argument: str) -> tuple[str, ...]:
+    """The `--personas` argument: "all", "none", or a comma separated list."""
+    if argument in ("", NO_PERSONA):
+        return ()
+    if argument == "all":
+        return tuple(persona.id for persona in PERSONAS)
+    chosen = tuple(part.strip() for part in argument.split(",") if part.strip())
+    for persona_id in chosen:
+        if persona_id == NO_PERSONA:
+            continue
+        persona_by_id(persona_id)
+    return chosen
 
 @dataclass(frozen=True)
 class Coverage:
@@ -186,6 +299,12 @@ class Record:
     text: str
     tagged_text: str
     error: str = ""
+    # The voice, with defaults so a records file written before personas
+    # existed still reads: the Task 4a and 4c runs in docs/narration_runs/
+    # are rebuilt by --from-json and --compare, and an absent field there
+    # means the prompt had no style block, which is what NO_PERSONA says.
+    persona: str = NO_PERSONA
+    side: str = ""
 
     @property
     def clock(self) -> str:
@@ -195,6 +314,22 @@ class Record:
     def goal(self) -> str:
         """How the report names this goal, the same way in every table."""
         return f"{self.match_id} {self.clock} {surname(self.player)}"
+
+    @property
+    def voice(self) -> str:
+        """How the report names the voice it was written in."""
+        return f"{self.persona} ({self.side})" if self.side else self.persona
+
+    @property
+    def model_wrote_it(self) -> bool:
+        """A pass. The template fallback is not one.
+
+        A fallback is assembled by code out of the facts, in one plain
+        register, so it is neither the model's narration nor the voice that
+        was asked for. Counting it as a pass would report the fallback's
+        reliability as the model's.
+        """
+        return self.source == MODEL
 
     @property
     def share(self) -> float:
@@ -271,6 +406,7 @@ def measure(
     run: int,
     backend,
     recorder: Recorder,
+    voice: Voice = Voice(persona=None, side=None),
 ) -> Record:
     """Narrate one goal once and record what it cost and what it reached.
 
@@ -292,10 +428,19 @@ def measure(
         set_piece=facts.set_piece or "Open Play",
         run=run,
         beats=len(beats),
+        persona=voice.id,
+        side=voice.side or "",
     )
 
     try:
-        narrated = narrate(feed, match_id, moment, narration_provider=backend)
+        narrated = narrate(
+            feed,
+            match_id,
+            moment,
+            narration_provider=backend,
+            persona=voice.persona,
+            side=voice.side,
+        )
     except Exception as failure:  # noqa: BLE001 - recorded, not swallowed
         calls = recorder.take()
         return Record(
@@ -348,25 +493,48 @@ def run_evaluation(
     runs: int,
     json_path: Path | None = None,
     log=print,
+    personas: Sequence[str] = (),
 ) -> tuple[Record, ...]:
-    """Every goal, `runs` times each, in order, reporting as it goes."""
+    """Every goal in every voice, `runs` times each, reporting as it goes.
+
+    `personas` is a list of persona ids, empty for the prompt with no style
+    block. A `fans_only` persona is two voices, one per side, because it
+    writes as the listener's team; `voices` is what expands it.
+
+    The order is goal, then voice, then run, so a run that is stopped early
+    has whole voices measured rather than one run of each.
+    """
     backend, recorder = measuring_provider()
 
+    plan = [
+        (match_id, moment, voice)
+        for match_id, moment in goals
+        for voice in (
+            voices(feed, match_id, personas)
+            if personas
+            else (Voice(persona=None, side=None),)
+        )
+    ]
+
     records: list[Record] = []
-    total = len(goals) * runs
-    for index, (match_id, moment) in enumerate(goals, start=1):
+    total = len(plan) * runs
+    done = 0
+    for match_id, moment, voice in plan:
         for run in range(1, runs + 1):
-            done = (index - 1) * runs + run
+            done += 1
             log(
                 f"[{done}/{total}] match {match_id} "
                 f"{moment.minute}:{moment.second:02d} {moment.player}, "
-                f"run {run}"
+                f"{voice.label}, run {run}"
             )
-            record = measure(feed, match_id, moment, run, backend, recorder)
+            record = measure(
+                feed, match_id, moment, run, backend, recorder, voice
+            )
             records.append(record)
             log(
                 "         first attempt "
                 f"{'grounded' if record.first_attempt_grounded else 'refused'}"
+                f", {record.source}"
                 f", coverage {record.covered}/{record.beats}"
                 f", {record.tokens} tokens, {record.seconds:.1f}s"
                 + (f", {record.error}" if record.error else "")
@@ -389,6 +557,12 @@ def write_json(path: Path, records: Sequence[Record]) -> None:
 
 
 def read_json(path: Path) -> tuple[Record, ...]:
+    """Records from a saved file, including one written before personas.
+
+    The Task 4a and 4c files in `docs/narration_runs/` have no `persona` or
+    `side` field. The defaults on `Record` fill them in as `NO_PERSONA`, which
+    is what those runs were: the prompt with no style block.
+    """
     rows = json.loads(path.read_text(encoding="utf-8"))
     return tuple(
         Record(**{**row, "missed": tuple(row["missed"])}) for row in rows
@@ -455,6 +629,14 @@ def reproduction_command(args) -> str:
         parts.append(f"--compare {_repo_path(args.compare)}")
         parts.append(f'--baseline-label "{args.baseline_label}"')
         parts.append(f'--compare-label "{args.compare_label}"')
+        # The note is a paragraph of the report, so a command without it
+        # rebuilds a document one paragraph short of this one.
+        if args.compare_note:
+            parts.append(f'--compare-note "{args.compare_note}"')
+    if args.persona_runs:
+        parts.append(f"--persona-runs {_repo_path(args.persona_runs)}")
+    if not args.from_json and args.personas:
+        parts.append(f"--personas {args.personas}")
     return " ".join(parts)
 
 
@@ -550,6 +732,228 @@ def comparison(
     return lines
 
 
+def persona_section(records: Sequence[Record]) -> list[str]:
+    """Task 6c: the same goals in every voice, pass rate beside coverage.
+
+    Two pass rates are printed, and they answer different questions. **First
+    attempt** is the model's first answer passing the check, which is what a
+    prompt change moves. **After a retry** is whether any of the three
+    attempts passed, which is what a listener would actually get.
+
+    Only model-written narration counts as a pass in either. A template
+    fallback is assembled by code out of the facts in one plain register, so
+    it is neither the model's work nor the voice that was asked for, and a
+    column counting it as a pass would report the fallback's reliability as
+    the persona's. It has a column of its own instead.
+    """
+    if not any(r.persona != NO_PERSONA for r in records):
+        return []
+
+    goals: list[str] = []
+    for record in records:
+        if record.goal not in goals:
+            goals.append(record.goal)
+    voices_run: list[str] = []
+    for record in records:
+        if record.voice not in voices_run:
+            voices_run.append(record.voice)
+
+    def rate(rows: Sequence[Record], first_only: bool) -> str:
+        if not rows:
+            return "n/a"
+        if first_only:
+            passed = sum(
+                1 for r in rows if r.model_wrote_it and r.first_attempt_grounded
+            )
+        else:
+            passed = sum(1 for r in rows if r.model_wrote_it)
+        return f"{passed}/{len(rows)}"
+
+    def model_coverage(rows: Sequence[Record]) -> str:
+        written = [r for r in rows if r.model_wrote_it]
+        if not written:
+            return "n/a"
+        return f"{mean([r.share for r in written]) * 100:.0f}%"
+
+    lines = ["## Task 6c: the three personas", ""]
+    add = lines.append
+    add("Every voice over the same goals, on the same development model. A "
+        "persona changes the register and one rule: the Mate writes as the "
+        "listener's side and may say \"we\" over that side's facts, which "
+        "is why it is run once for each team and reported as two rows.")
+    add("")
+    add("A pass is narration the model wrote and the check accepted. A "
+        "template fallback is a failure here, however complete it is: it is "
+        "assembled by code in one plain register, so it is not the voice that "
+        "was asked for.")
+    add("")
+    add("| | |")
+    add("| --- | --- |")
+    add(f"| command | `{_persona_command(records)}` |")
+    # Per goal and in total, because they differ: the Mate runs once per
+    # side, and two matches with a team in common have three sides between
+    # them, so five voices appear over four per goal.
+    per_goal = sorted(
+        {len({r.voice for r in records if r.goal == goal}) for goal in goals}
+    )
+    add(f"| goals | {len(goals)} |")
+    add("| voices per goal | "
+        + (str(per_goal[0]) if len(per_goal) == 1
+           else f"{per_goal[0]} to {per_goal[-1]}")
+        + " |")
+    add(f"| voices in all | {len(voices_run)}, because a fans-only persona "
+        "runs once per side |")
+    add(f"| runs per voice | {max(r.run for r in records)} |")
+    add(f"| narrations | {len(records)} |")
+    add("")
+
+    add("### Per persona")
+    add("")
+    add("| Voice | Narrations | First attempt | After a retry | Fell back | "
+        "Coverage | Words per sentence | Tokens | Seconds |")
+    add("| ----- | ---------: | ------------: | ------------: | --------: | "
+        "-------: | -----------------: | -----: | ------: |")
+    for voice in voices_run:
+        rows = [r for r in records if r.voice == voice]
+        add(f"| {voice} | {len(rows)} | {rate(rows, True)} | "
+            f"{rate(rows, False)} | {len(fell_back(rows))} | "
+            f"{model_coverage(rows)} | {sentence_length(rows)} | "
+            f"{mean([float(r.tokens) for r in rows]):.0f} | "
+            f"{mean([r.seconds for r in rows]):.0f} |")
+    add("")
+    add("**Words per sentence is the one thing a register can be measured "
+        "by here,** and it is in the table because the Caller's style asks "
+        "for short lines and the Storyteller's for measured ones. It counts "
+        "the model's own narrations only, since the fallback writes one fact "
+        "a sentence whatever voice was asked for.")
+    add("")
+
+    add("### Per goal and voice")
+    add("")
+    add("| Goal | Voice | Key beats | First attempt | After a retry | "
+        "Fell back | Coverage |")
+    add("| ---- | ----- | --------: | ------------: | ------------: | "
+        "--------: | -------: |")
+    for goal in goals:
+        for voice in voices_run:
+            rows = [
+                r for r in records if r.goal == goal and r.voice == voice
+            ]
+            if not rows:
+                continue
+            add(f"| {goal} | {voice} | {rows[0].beats} | "
+                f"{rate(rows, True)} | {rate(rows, False)} | "
+                f"{len(fell_back(rows))} | {model_coverage(rows)} |")
+    add("")
+
+    add("### Per goal, every voice together")
+    add("")
+    add("| Goal | Key beats | First attempt | After a retry | Fell back | "
+        "Coverage |")
+    add("| ---- | --------: | ------------: | ------------: | --------: | "
+        "-------: |")
+    for goal in goals:
+        rows = [r for r in records if r.goal == goal]
+        add(f"| {goal} | {rows[0].beats} | {rate(rows, True)} | "
+            f"{rate(rows, False)} | {len(fell_back(rows))} | "
+            f"{model_coverage(rows)} |")
+    add("")
+
+    partisan = [r for r in records if r.side]
+    if partisan:
+        said_as_us = [r for r in partisan if _first_person(r.text)]
+        add(f"**The Mate is allowed the first person.** Of the "
+            f"{plural(len(partisan), 'narration')} written in that voice, "
+            f"**{len(said_as_us)}** used \"we\", \"our\" or \"us\" at "
+            "all. The permission is in the prompt and in the check, and "
+            "nothing makes a model take it: `app/grounding.py` has no "
+            "opinion about a partisan voice that narrates plainly, and a "
+            "narration that never says \"we\" is refused by nothing here.")
+        add("")
+
+    add("### One narration per voice")
+    add("")
+    add("The first run of each voice on each goal, as it would be shown and "
+        "voiced.")
+    add("")
+    for goal in goals:
+        for voice in voices_run:
+            rows = [r for r in records if r.goal == goal and r.voice == voice]
+            if not rows:
+                continue
+            first = rows[0]
+            add(f"**{goal}**, {voice} ({first.source}, "
+                f"{first.covered}/{first.beats} beats)")
+            add("")
+            add(f"> {first.text if first.text else '(raised: ' + first.error + ')'}")
+            add("")
+    return lines
+
+
+def sentence_length(rows: Sequence[Record]) -> str:
+    """Mean words per sentence across the model's narrations in `rows`.
+
+    The crudest possible measure of a register, and the only one available
+    without a judgement: a style that asks for short lines and gets the same
+    sentence length as one that does not has not reached the model. It reads
+    `tagged_text` through `app/grounding.py`'s own sentence splitter, so a
+    sentence here is the same thing the check counted, and it leaves the
+    template fallback out because the fallback writes one fact per sentence
+    in every voice.
+    """
+    lengths = [
+        len(sentence.text.split())
+        for row in rows
+        if row.model_wrote_it
+        for sentence in sentences(row.tagged_text)
+    ]
+    return f"{mean([float(n) for n in lengths]):.1f}" if lengths else "n/a"
+
+
+def _persona_command(records: Sequence[Record]) -> str:
+    """The command that produced these records, read back out of them.
+
+    Not the command that rebuilt the report, which is the one in the table at
+    the top: this section is a different run over different goals, and a
+    reader who wants these numbers again needs the one that generated them.
+    Built from the records rather than passed in, so it cannot describe a run
+    other than the one it is printed beside.
+    """
+    goals: list[str] = []
+    for record in records:
+        goal = f"{record.match_id}:{record.minute}:{record.second:02d}"
+        if goal not in goals:
+            goals.append(goal)
+    personas: list[str] = []
+    for record in records:
+        if record.persona not in personas:
+            personas.append(record.persona)
+    chosen = (
+        "all"
+        if personas == [p.id for p in PERSONAS]
+        else ",".join(personas)
+    )
+    return (
+        r".\.venv-prelude\Scripts\python.exe -I scripts\narration_eval.py"
+        f" --goals {','.join(goals)}"
+        f" --runs {max(r.run for r in records)}"
+        f" --personas {chosen}"
+    )
+
+
+def _first_person(text: str) -> bool:
+    """Whether a narration used "we", "our" or "us" at all.
+
+    `FIRST_PERSON` is `app/grounding.py`'s own list rather than a second one
+    written here. The check is what decides whether a partisan narration may
+    say these words, so counting how often a model took the permission has to
+    count the same words the permission is about.
+    """
+    return any(
+        re.search(pattern, text, re.IGNORECASE) for pattern in FIRST_PERSON
+    )
+
+
 def report(
     records: Sequence[Record],
     command: str,
@@ -558,6 +962,7 @@ def report(
     baseline_label: str = "",
     compare_label: str = "",
     compare_note: str = "",
+    personas: Sequence[Record] = (),
 ) -> str:
     """The generated report.
 
@@ -596,6 +1001,12 @@ def report(
             f"**{compare_label}** compares it against a later run of the "
             "goals whose prompt changed, so the before and the after sit in "
             "one document.")
+        add("")
+    if personas:
+        add("A third run is at the end, under **Task 6c**: the same model "
+            "over three goals in every persona, which is a different "
+            "question from the two above and is reported separately rather "
+            "than averaged into them.")
         add("")
     add("## How it was run")
     add("")
@@ -761,6 +1172,9 @@ def report(
             )
         )
 
+    if personas:
+        lines.extend(persona_section(personas))
+
     missed_rows = [r for r in records if r.missed and not r.error]
     add("## What was missed")
     add("")
@@ -846,6 +1260,17 @@ def main(argv: Sequence[str]) -> int:
         "--compare-note", default="",
         help="one sentence saying what differs between the two runs",
     )
+    parser.add_argument(
+        "--personas", default=NO_PERSONA,
+        help="which voices to run: 'all', 'none' (the default, the prompt "
+             "with no style block), or a comma separated list of persona "
+             "ids. A fans-only persona runs once per side.",
+    )
+    parser.add_argument(
+        "--persona-runs", type=Path,
+        help="a records file whose per-persona results are added to the "
+             "report as its own section",
+    )
     args = parser.parse_args(argv)
 
     if args.runs < 1:
@@ -859,13 +1284,23 @@ def main(argv: Sequence[str]) -> int:
     else:
         feed = StatsBombEventFeed()
         goals = goal_moments(feed, args.goals)
+        personas = read_personas(args.personas)
         model = provider().model
-        print(f"{len(goals)} goal(s), {args.runs} run(s) each, "
-              f"{len(goals) * args.runs} narration(s)")
+        pairs = (
+            sum(len(voices(feed, match_id, personas)) for match_id, _ in goals)
+            if personas
+            else len(goals)
+        )
+        print(f"{len(goals)} goal(s), {pairs} goal-voice pair(s), "
+              f"{args.runs} run(s) each, {pairs * args.runs} narration(s)")
+        if personas:
+            print(f"personas {', '.join(personas)}")
         print(f"model ollama {model}")
         print("a CPU-only generation takes a while\n")
         started = time.perf_counter()
-        records = run_evaluation(feed, goals, args.runs, args.json)
+        records = run_evaluation(
+            feed, goals, args.runs, args.json, personas=personas
+        )
         print(f"\ndone in {time.perf_counter() - started:.0f}s")
 
     if not records:
@@ -873,6 +1308,7 @@ def main(argv: Sequence[str]) -> int:
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     against = read_json(args.compare) if args.compare else ()
+    by_persona = read_json(args.persona_runs) if args.persona_runs else ()
     args.out.write_text(
         report(
             records,
@@ -882,6 +1318,7 @@ def main(argv: Sequence[str]) -> int:
             baseline_label=args.baseline_label,
             compare_label=args.compare_label,
             compare_note=args.compare_note,
+            personas=by_persona,
         ),
         encoding="utf-8",
         newline="\n",
