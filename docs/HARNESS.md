@@ -99,7 +99,7 @@ It needs a local Ollama server running the model in `app/narration_config.py`.
 
 ## The test harness
 
-The suite is 299 tests in eight files, and all of them pass, so any failure
+The suite is 320 tests in nine files, and all of them pass, so any failure
 means something is wrong. It is run from the repo root:
 
 ```
@@ -119,6 +119,7 @@ No path setting is needed: `pyproject.toml` sets `pythonpath = ["."]` and
 | `tests/test_credentials.py` | where the credentials file lives, and what is refused |
 | `tests/test_narration_eval.py` | the key beats, the coverage measure and the token recorder |
 | `tests/test_orchestrator.py` | the greeting, the phase, the score state, the header table, the default persona and `opening`, against `app/orchestrator.py` |
+| `tests/test_personas.py` | the persona config: the three ids, the fields, the unconfirmed voices and the Profile copy |
 
 ### Two guards, on every test
 

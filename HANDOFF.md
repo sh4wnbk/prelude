@@ -808,7 +808,65 @@ one for your side.", and
 `tests/test_orchestrator.py::TestTheHeader::test_a_late_first_goal_gets_no_again`
 covers that goal.
 
-`pytest -q` now reports `299 passed`.
+At `11d0f8f`, `pytest -q` reported `299 passed`.
+
+### Phase 4, task 6a
+
+**The persona config is committed and nothing reads the styles yet.**
+`app/personas.py` holds the three personas and `tests/test_personas.py` holds
+them to their shape, in 21 tests. No prompt passes a style to a model at this
+commit: that is task 6b.
+
+| Persona | Id | Register | Offered to |
+| ------- | -- | -------- | ---------- |
+| The Caller | `caller` | play-by-play pace, one action a line | everyone |
+| The Storyteller | `storyteller` | documentary calm, measured and plain | everyone |
+| The Mate | `mate` | partisan, a supporter in the next seat | fans only |
+
+**The ids were already declared and are not spelled twice.** `CALLER`,
+`STORYTELLER` and `MATE` are in `app/orchestrator_contract.py`, because Task 5
+had the orchestrator picking a default persona before this config existed.
+`app/personas.py` imports them, so a typo is an import failure rather than a
+persona nothing can select, and
+`tests/test_personas.py::TestTheThreePersonas::test_the_ids_are_the_ones_the_contract_declares`
+asserts the set.
+
+**A persona is a register and changes nothing about what may be said.**
+`app/grounding.py` reads a narration against the facts it cited whoever asked
+for it. A persona that could loosen the check would make "Verified from play
+data" mean something different depending on who was listening.
+
+**The two kinds of copy are checked differently, which is the one design
+decision in the file.** The Profile line is read by a fan, so the rules
+`CLAUDE.md` puts on app output apply to it and
+`tests/test_personas.py::TestProfileCopy` scans it. The style text is said to
+a model, where naming a banned word is sometimes the only way to forbid one,
+which is what rule 7 of the prompt already does; scanning the styles for those
+words would refuse the instruction that keeps them out of the narration. Both
+are held to the no-em-dash rule.
+
+**The voices are `None` and marked unconfirmed.** Phase 5 picks them by ear,
+nothing in this repo has heard one, and a plausible voice id written down now
+would be a guess with the look of a decision. `voice` and `voice_confirmed`
+together say "not chosen", and
+`tests/test_personas.py::TestTheVoicesAreNotChosenYet::test_a_null_voice_is_never_confirmed`
+refuses the state where one says otherwise.
+
+**One cross-check earns its place.** `default_persona` in
+`app/orchestrator.py` returns an id and reads nothing in this config, so a
+default that was fans only would hand a neutral listener a persona the Profile
+screen then refuses to show them. That disagreement would not raise anywhere,
+so
+`tests/test_personas.py::TestFansOnly::test_the_default_for_a_neutral_listener_is_one_they_may_choose`
+is what catches it.
+
+**One thing was left where it is and is worth saying.** `EVENING_CUTOFF` in
+`app/orchestrator_contract.py` carries a comment saying Task 6's config file is
+where it belongs. Moving it would change an import in `app/orchestrator.py`,
+which is Bob's module, so it stayed in the contract. It is a one line move
+whenever that module is open.
+
+`pytest -q` reports `320 passed`, and the four gates pass.
 
 ### Phase 4, task 3c
 
@@ -1630,7 +1688,7 @@ Tasks 3d through Phase 7, as agreed with Shawn, copied here so a fresh session
 has the whole arc rather than one task at a time.
 
 **Everything in this section is planned work except where a task is marked
-done.** Tasks 3d, 4a, 4c and 5 are built, and so is Bob's task 4, the
+done.** Tasks 3d, 4a, 4c, 5 and 6a are built, and so is Bob's task 4, the
 orchestrator; nothing below them exists. Paths a doc names before they are
 written go on `DELIBERATELY_ABSENT` in `scripts/check_docs.py`, so the docs
 gate fails if one appears and this section was not updated with it. The list
@@ -1733,21 +1791,44 @@ period gap in `buildup`. See "Phase 4, Bob task 4" under What was built.
 
 ### Task 6: personas
 
-Define three personas in a committed config file, each with a name, a one-line
-description for the Profile screen, a writing style for the prompt, and an IBM
-voice to be confirmed: the Caller (classic play-by-play energy), the
-Storyteller (calm documentary narrator), and the Mate (partisan, like a friend
-in your row; offered only to fans). Inspired by styles, never named after real
-broadcasters.
+Three tasks, committed one at a time, because the config, the prompt change
+and the measured run fail in different ways and a single commit would not say
+which.
 
-Feed the persona's style into the narration prompt. The grounding check and
-banned-word list apply unchanged to every persona.
+#### Task 6a: the persona config (done)
 
-Extend the comparison script to run each persona, and run it on Ollama.
+Three personas in a committed config file, each with an id matching the
+contract, a name, a one-line description for the Profile screen, a writing
+style for the prompt, a fans-only flag and an IBM voice to be confirmed: the
+Caller (classic play-by-play energy), the Storyteller (calm documentary
+narrator), and the Mate (partisan, like a friend in your row; offered only to
+fans). Inspired by styles, never named after real broadcasters. Tests for the
+config's shape. See "Phase 4, task 6a" under What was built.
 
-Exit when: every persona produces narration that passes on the 1986 54:18 goal
-and one 2022 penalty, the report shows pass rate and coverage per persona, and
-the work is pushed.
+#### Task 6b: the style into the prompt, and the Mate's partisanship
+
+Feed the persona's style text into `build_prompt`. The grounding check and the
+banned list apply unchanged to every persona.
+
+For the Mate only, pass the listener's side into the prompt and admit "we",
+"our" and "us" in the grounding check, refusing any sentence using them whose
+cited facts are not about the listener's team. "You" and "your" stay banned
+for every persona.
+
+Exit when: tests and all four gates pass, the docs are updated, and the work
+is pushed.
+
+#### Task 6c: the comparison on Ollama
+
+Extend `scripts/narration_eval.py` to run each persona, the Mate once with
+each side as the listener's team. Run it on `granite4:micro` over the 1986
+54:18 goal and the 2022 79:24 and 22:24 penalties, three runs each. Only
+model-written narration counts as a pass; a template fallback is a failure.
+
+Exit when: every persona passes on 54:18 and 79:24, the 22:24 numbers are
+reported whatever they are, the report shows the first-attempt and
+after-retry pass rates with coverage per persona and per goal, and the work is
+pushed.
 
 ### Task 7: the card, the name and the Profile screen
 
@@ -1825,15 +1906,16 @@ speed, per persona; this file records which leads; and Shawn picks the model.
   session (all gates, both matches, a real-phone check).
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Task 6, the personas)
+## Next first action (Task 6b, the style into the prompt)
 
-**Task 6 in the Plan is next,** and it is Claude Code's. Bob's task 4 is built
-and checked: `app/orchestrator.py` passes all of `tests/test_orchestrator.py`,
-and every gate is green.
+**Task 6b in the Plan is next,** and it is Claude Code's. Task 6a is built:
+`app/personas.py` holds the three personas, `tests/test_personas.py` holds
+them to their shape, and nothing feeds a style to a model yet.
 
-**One thing is outstanding from Bob's session: its export is not in the repo
-yet.** The screenshot and markdown for task 4 go in `bob_sessions/` like the
-three before them, scrubbed of credentials before the commit.
+**One thing is outstanding from Bob's session: its export is not committed
+yet.** `bob_sessions/phase4_task4_orchestrator.md` and its screenshot are on
+disk and untracked. They are Shawn's to commit, scrubbed of credentials like
+the three before them.
 
 Task 4b, the paid watsonx comparison, can run at any point and has one extra
 arm recorded in the Plan: one candidate without the beats block, on the five

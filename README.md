@@ -170,6 +170,13 @@ Everything above it is structure.
   `app/orchestrator_contract.py`. Callable from Python; no screen calls it yet.
 - `tests/test_orchestrator.py`: 48 tests over the orchestrator, covering both
   demo matches and a made-up sixty minute sport. All 48 pass.
+- `app/personas.py`: the three personas, each with an id, a name, a one-line
+  Profile description, the writing style said to the model, and whether it is
+  offered to fans only. The IBM voices are `None` and marked unconfirmed:
+  Phase 5 picks them by ear. Nothing reads the styles yet.
+- `tests/test_personas.py`: 21 tests over the config's shape, the ids against
+  `app/orchestrator_contract.py`, the unconfirmed voices and the Profile copy.
+  All 21 pass.
 - `app/event_feed.py`: the data shapes and the `EventFeed` interface. A
   contract only; `app/statsbomb_event_feed.py` is what implements it.
 - `app/narration_config.py`: the model ids and which one is active. Values

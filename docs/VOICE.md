@@ -313,6 +313,66 @@ is also the one line in the app addressed to the fan, which is what the
 ending rule above keeps out of the narration itself: the header goes before
 the narration, and nothing goes after it.
 
+## The three personas
+
+**The config exists and nothing reads the styles yet.** `app/personas.py`
+holds the three, `tests/test_personas.py` holds them to their shape, and no
+prompt, screen or script passes a style to a model at this commit. What is
+settled is who they are and what a persona may change.
+
+A persona is a register, not a set of permissions. It changes how the same
+facts are said and nothing about which facts may be said: `app/grounding.py`
+reads a narration against the facts it cited whoever asked for it, and
+`BANNED_PATTERNS` refuses the same nicknames, epithets and outcome claims in
+all three voices. A persona that could loosen the check would make the label
+mean something different depending on who was listening, which is the one
+thing it cannot mean.
+
+| Persona | Id | What it sounds like | Offered to |
+| ------- | -- | ------------------- | ---------- |
+| The Caller | `caller` | play-by-play pace, one action a line | everyone |
+| The Storyteller | `storyteller` | documentary calm, measured and plain | everyone |
+| The Mate | `mate` | partisan, a supporter in the next seat | fans only |
+
+**Inspired by styles, never named after anybody.** Each name is what the
+persona does rather than who it resembles. Naming a real commentator would
+claim a likeness this repo has no data for, and it would put a judgement about
+a person into app output.
+`tests/test_personas.py::TestProfileCopy::test_no_persona_is_named_after_a_person`
+holds the names to "The" and one common noun, and
+`tests/test_personas.py::TestProfileCopy::test_no_verdict_nickname_or_epithet`
+scans the Profile lines for the words `CLAUDE.md` keeps out of app output.
+
+**The Mate is the only one that needs a side.** It is the one voice that makes
+no sense without an allegiance: told to a neutral listener it would be saying
+they support a team they did not choose. `fans_only` is true for it and false
+for the other two, and `available` in `app/personas.py` is what leaves it out
+for a neutral listener.
+`tests/test_personas.py::TestFansOnly::test_a_neutral_listener_is_not_offered_the_mate`
+covers that, and
+`tests/test_personas.py::TestFansOnly::test_the_default_for_a_neutral_listener_is_one_they_may_choose`
+covers the disagreement that would not otherwise show up: `default_persona` in
+`app/orchestrator.py` returns an id and reads nothing in this config, so a
+default that was fans only would hand a neutral listener a persona the Profile
+screen then refuses to show them.
+
+**The voices are empty and marked unconfirmed.** Each persona has an IBM Text
+to Speech voice field, it is `None`, and `voice_confirmed` is false beside it.
+A voice is chosen in Phase 5 by listening to candidates say a narration, and
+nothing in this repo has listened to one. A plausible voice id written down now
+would be a guess with the look of a decision, so the pair of fields says "not
+chosen" instead:
+`tests/test_personas.py::TestTheVoicesAreNotChosenYet::test_a_null_voice_is_never_confirmed`.
+
+**The style text is prompt copy and the Profile line is app output.** They are
+checked differently on purpose. The Profile line is read by a fan, so the
+no-nicknames rule applies to it. The style is said to a model, where naming a
+banned word can be the only way to forbid it, which is what rule 7 of the
+prompt in `app/narration_prompt.py` already does; scanning it for those words
+would refuse the instruction that keeps them out of the narration. Both are
+held to the no-em-dash rule:
+`tests/test_personas.py::TestNoDashes::test_no_em_or_en_dash_in_any_field`.
+
 ## It ends on the goal, and there is no closer
 
 The narration's last sentence is about the goal, and nothing follows it. No
