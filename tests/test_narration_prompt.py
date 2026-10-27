@@ -10,14 +10,20 @@ with each other.
 """
 
 import json
+import re
 from pathlib import Path
 
 import pytest
 
-from app.grounding import sentences
-from app.personas import THE_CALLER, THE_MATE, THE_STORYTELLER
+from app.event_feed import Moment
+from app.grounding import check, fold, name_parts, sentences
+from app.personas import PERSONAS, THE_CALLER, THE_MATE, THE_STORYTELLER
 from app.narration_prompt import (
+    Beat,
+    Fact,
+    Facts,
     NoSideForAPartisanVoice,
+    fact_text,
     first_person_rule,
     persona_block,
     EVENT_VERBS,
@@ -574,3 +580,120 @@ class TestThePersonaInThePrompt:
         facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
         assert persona_block(None, None) == ""
         assert "you" in first_person_rule(None, None)
+
+
+#: The invented passage every persona's worked example narrates, as `Facts`.
+#: The fact numbers are the ones the examples cite, with the gaps a real
+#: passage has: a narration cites the beats and walks past the receipts and
+#: carries between them.
+def invented_passage():
+    """A `Facts` for a match that never happened.
+
+    Built here rather than read from `data/raw/`, because the examples are
+    deliberately about nobody: a worked example using real players would put
+    names in the prompt that the model could lift into a narration of a
+    different goal and have them pass the name check.
+    """
+    beats = {
+        4: Beat(
+            index=4, minute=12, second=3, player="Quillan",
+            team="Westhollow", action="Ball Recovery", event_id="invented-4",
+        ),
+        9: Beat(
+            index=9, minute=12, second=9, player="Brennick",
+            team="Carrowmore", action="Dribbled Past", event_id="invented-9",
+        ),
+        11: Beat(
+            index=11, minute=12, second=11, player="Tarrow",
+            team="Carrowmore", action="Dribbled Past", event_id="invented-11",
+        ),
+        12: Beat(
+            index=12, minute=12, second=12, player="Halloway",
+            team="Westhollow", action="Shot", event_id="invented-12",
+        ),
+    }
+    facts = tuple(
+        Fact(number=number, beat=beat, text=fact_text(beat))
+        for number, beat in sorted(beats.items())
+    )
+    return Facts(
+        moment=Moment(
+            type="Goal", team="Westhollow", player="Halloway",
+            minute=12, second=12,
+        ),
+        facts=facts,
+        players={b.player: b.team for b in beats.values()},
+        teams=("Westhollow", "Carrowmore"),
+        actions=frozenset(b.action for b in beats.values()),
+        set_piece=None,
+        body_part=None,
+    )
+
+
+class TestTheWorkedExamples:
+    """Task 6d: each persona shows its register instead of describing it.
+
+    The examples are what a model is asked to copy, so an example that broke
+    a rule would be the prompt teaching the model to fail the check. These
+    run each one through the real `app/grounding.py` against the invented
+    passage it narrates.
+    """
+
+    def test_every_persona_has_one(self):
+        assert [p.id for p in PERSONAS if not p.example.strip()] == []
+
+    def test_each_example_passes_the_real_grounding_check(self):
+        """The prompt cannot ask for something the check refuses."""
+        facts = invented_passage()
+        for persona in PERSONAS:
+            side = "Westhollow" if persona.fans_only else None
+            result = check(
+                persona.example, facts, persona=persona, side=side
+            )
+            assert result.grounded, f"{persona.id}: {result.summary}"
+
+    def test_the_examples_name_nobody_in_either_demo_match(self, feed):
+        """A real name in an example is a name a model could lift into a
+        narration of a different goal and have pass the name check."""
+        real = set()
+        for match_id in (MATCH_1986, MATCH_2022):
+            for moment in feed.defining_moments(match_id):
+                facts = facts_from_buildup(feed.buildup(match_id, moment))
+                real |= {fold(part) for part in name_parts(facts)}
+        for persona in PERSONAS:
+            words = {
+                fold(word).strip(".,")
+                for word in persona.example.split()
+                if word[:1].isupper()
+            }
+            assert not (words & real), f"{persona.id}: {words & real}"
+
+    def test_only_the_mate_uses_the_first_person(self):
+        for persona in PERSONAS:
+            used = re.search(r"\b(we|our|ours|us)\b", persona.example, re.I)
+            assert bool(used) == persona.fans_only, persona.id
+
+    def test_the_mate_never_puts_a_name_in_apposition(self):
+        """"We, Quillan, won it back" is what `openai/gpt-oss-120b` wrote in
+        Task 4b without an example to copy, and it reads as a label on a name
+        rather than as a supporter talking."""
+        assert not re.search(r"\b(we|us|our)\b\s*,", THE_MATE.example, re.I)
+
+    def test_each_example_ends_on_the_goal(self):
+        for persona in PERSONAS:
+            last = persona.example.strip().splitlines()[-1]
+            assert "[12]" in last, persona.id
+            assert "scored" in last, persona.id
+
+    def test_the_examples_differ_from_each_other(self):
+        """Three identical examples would teach one register three times."""
+        assert len({p.example for p in PERSONAS}) == len(PERSONAS)
+
+    def test_the_example_is_in_the_prompt(self, feed):
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        for persona in PERSONAS:
+            side = "Argentina" if persona.fans_only else None
+            prompt = build_prompt(facts, persona=persona, side=side)
+            assert "ANOTHER MATCH" in prompt
+            for line in persona.example.splitlines():
+                assert line in prompt, f"{persona.id}: {line}"

@@ -104,6 +104,21 @@ class TestEveryFieldIsFilled:
         wrapped = [p.id for p in PERSONAS if "\n" in p.profile]
         assert wrapped == []
 
+    def test_every_example_is_a_cited_narration(self):
+        """Shown rather than described, in the layout the prompt asks for.
+
+        An example without citations would be the prompt showing a model the
+        one shape `app/grounding.py` refuses outright.
+        """
+        wrong = []
+        for persona in PERSONAS:
+            lines = [l for l in persona.example.splitlines() if l.strip()]
+            if len(lines) < 2 or not all(
+                re.match(r"\s*\[\d+\]", line) for line in lines
+            ):
+                wrong.append(persona.id)
+        assert wrong == []
+
 
 class TestFansOnly:
     """The Mate is the only persona that needs the listener to have a side."""
@@ -189,7 +204,7 @@ class TestNoDashes:
     def test_no_em_or_en_dash_in_any_field(self):
         hits = []
         for p in PERSONAS:
-            text = " ".join((p.name, p.profile, p.style))
+            text = " ".join((p.name, p.profile, p.style, p.example))
             hits += [
                 f"{p.id}: {name}"
                 for name, dash in (("em dash", "—"), ("en dash", "–"))

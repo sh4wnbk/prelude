@@ -476,6 +476,24 @@ def persona_block(persona: Persona | None, side: str | None) -> str:
         return ""
 
     block = "\nTHE VOICE\n" + _wrapped(persona.style) + "\n"
+    # The register shown as well as described. It is a passage that never
+    # happened, with invented players and invented teams, so nothing in it
+    # can be read as a fact about the goal being narrated: a model that lifts
+    # a name out of it is refused by `app/grounding.py` like any other
+    # invention, which is a visible failure rather than a silent one. Task 4b
+    # is why it is here. All three voices wrote the same narration on a model
+    # that followed every other rule exactly, so what reached that model was
+    # the rules and not the prose.
+    block += (
+        "\nTHE REGISTER, ON A PASSAGE FROM ANOTHER MATCH\n"
+        + _wrapped(
+            "Those players and those teams are invented and are not in this "
+            "match. Copy the voice and not a word of the content:"
+        )
+        + "\n"
+        + "\n".join("  " + line for line in persona.example.splitlines())
+        + "\n"
+    )
     if persona.fans_only:
         if not side:
             raise NoSideForAPartisanVoice(

@@ -67,6 +67,19 @@ class Persona:
     side. It is the Mate and nothing else: a partisan voice told to a neutral
     listener would be telling them they support a team they did not choose.
 
+    `example` is the register shown rather than described: a short narration
+    of a passage that never happened, in that voice, cited the way a real one
+    has to be. Task 4b found that what reached a capable model was the rules
+    and not the prose, with all three voices writing the same narration, so
+    the styles are given something to copy rather than something to
+    interpret.
+
+    **The example is of an invented passage, and that is not decoration.** It
+    uses made-up players and made-up teams so that nothing in it can be
+    mistaken for a fact about the match being narrated. A model that copies a
+    name out of it is refused by `app/grounding.py` like any other invention,
+    which makes the failure visible rather than silent.
+
     `voice` is the IBM Text to Speech voice id and is `None` until Phase 5
     picks one by ear. `voice_confirmed` is false while it is a guess or absent,
     so the two fields together say "not chosen yet" rather than leaving an
@@ -77,6 +90,7 @@ class Persona:
     name: str
     profile: str
     style: str
+    example: str
     fans_only: bool
     voice: str | None = None
     voice_confirmed: bool = False
@@ -99,6 +113,12 @@ THE_CALLER = Persona(
         "every verb in the past tense. Name the player and what they did, and "
         "go straight to the next line. Do not say how good any of it was."
     ),
+    example=(
+        "[4] Quillan recovered it.\n"
+        "[9] Brennick was dribbled past.\n"
+        "[11] Tarrow was dribbled past.\n"
+        "[12] Halloway shot and scored for Westhollow."
+    ),
     fans_only=False,
 )
 
@@ -115,6 +135,12 @@ THE_STORYTELLER = Persona(
         "time. The facts carry it, so add no colour and no atmosphere the "
         "records do not hold: no weather, no crowd, no reading of anybody's "
         "intentions. Let the plainness be the register."
+    ),
+    example=(
+        "[4] Quillan recovered the ball for Westhollow.\n"
+        "[9] Brennick was dribbled past.\n"
+        "[11] Tarrow was dribbled past.\n"
+        "[12] Halloway shot and scored for Westhollow."
     ),
     fans_only=False,
 )
@@ -146,6 +172,23 @@ THE_MATE = Persona(
         "\"we\". Do not speak to the listener: no \"you\" and no \"your\". "
         "Partisan is about whose side the telling is on, not about saying the "
         "goal was good, so still say only what the facts record."
+    ),
+    # Written for a listener on Westhollow. "We" and "our" stand for the side
+    # and never sit beside a player's name: "We recovered it through
+    # Quillan", never "We, Quillan, recovered it". A model given the second
+    # writes the first person as a label on a name, which is what
+    # `openai/gpt-oss-120b` did in Task 4b without an example to copy.
+    #
+    # "Recovered" rather than "won it back", which `app/grounding.py` reads
+    # as a claim about a `Foul Won` event. The first draft of these examples
+    # said "won it back" and
+    # `tests/test_narration_prompt.py::TestTheWorkedExamples::test_each_example_passes_the_real_grounding_check`
+    # refused it, which is the prompt being held to the rules it states.
+    example=(
+        "[4] We recovered it through Quillan.\n"
+        "[9] Brennick was dribbled past.\n"
+        "[11] Tarrow was dribbled past.\n"
+        "[12] Halloway shot and scored for us."
     ),
     fans_only=True,
 )

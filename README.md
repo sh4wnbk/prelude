@@ -148,13 +148,14 @@ Everything above it is structure.
   may say "we", "our" and "us" about that side, in a sentence citing a fact
   recorded against it, and no other voice may say them at all.
 - `app/personas.py`: the three personas, each with an id, a name, a one-line
-  Profile description, the writing style said to the model, and whether it is
-  offered to fans only. `build_prompt` prints the chosen one's style, and the
+  Profile description, the writing style said to the model, a worked example
+  of that register on an invented passage, and whether it is offered to fans
+  only. `build_prompt` prints the chosen one's style, and the
   Mate's listener side with it. The IBM voices are `None` and marked
   unconfirmed: Phase 5 picks them by ear. No screen offers a choice yet.
-- `tests/test_personas.py`: 21 tests over the config's shape, the ids against
+- `tests/test_personas.py`: 22 tests over the config's shape, the ids against
   `app/orchestrator_contract.py`, the unconfirmed voices and the Profile copy.
-  All 21 pass.
+  All 22 pass.
 - `app/narration.py`: narrates one moment. Generates, checks, regenerates up to
   twice, then falls back to the template, and records every attempt with the
   claims that failed. Nothing ungrounded is returned. The citation tags are
@@ -169,7 +170,7 @@ Everything above it is structure.
   fake credentials file into a temporary directory; none reads the real one,
   and `tests/conftest.py` points `PRELUDE_ENV_FILE` at an absent path for the
   whole suite so none can.
-- `tests/test_narration_prompt.py`: 47 tests over the facts, the numbered fact
+- `tests/test_narration_prompt.py`: 55 tests over the facts, the numbered fact
   list, the prompt, the persona's style and the listener's side in it, the key
   beats of a passage and the fallback narration, which has to reach every one
   of those beats. All pass.

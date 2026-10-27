@@ -489,6 +489,40 @@ correctly, because every cited fact is the listener's side. The rule is doing
 its job and the prose is not, and nothing in this repo refuses a narration for
 being stilted.
 
+### Each persona shows its register as well as describing it
+
+Task 4b is why. A model that followed every other rule exactly wrote the same
+narration in all three voices, so what reached it was the rules and not the
+prose. Each persona now carries an `example` beside its `style`: a short
+narration in that voice, cited the way a real one has to be, which
+`build_prompt` prints under "THE REGISTER, ON A PASSAGE FROM ANOTHER MATCH".
+
+**The passage in it never happened.** The players and the teams are invented,
+so nothing in the example can be read as a fact about the goal being
+narrated, and a model that lifts a name out of it is refused by
+`app/grounding.py` like any other invention. That makes copying the content
+rather than the voice a visible failure instead of a silent one.
+`tests/test_narration_prompt.py::TestTheWorkedExamples::test_the_examples_name_nobody_in_either_demo_match`
+holds the names apart from both demo matches.
+
+**The examples are held to the rules they are teaching.**
+`tests/test_narration_prompt.py::TestTheWorkedExamples::test_each_example_passes_the_real_grounding_check`
+runs each one through `app/grounding.py` against the invented passage it
+narrates, the Mate's with its side. It earned its place immediately: the first
+draft of the Caller's example read "Quillan won it back", which the check
+reads as a claim about a `Foul Won` event over a fact recording a recovery.
+An example that breaks a rule is the prompt teaching a model to fail the
+check.
+
+**The Mate's example is where the first person is shown, not just allowed.**
+It reads "We recovered it through Quillan", never "We, Quillan, recovered
+it", because the second is what `openai/gpt-oss-120b` produced in Task 4b
+with no example to copy: "Our Peter Beardsley was dribbled past at 54:08."
+The check accepts that, correctly, and it reads as a label stuck on a name
+rather than as a supporter talking.
+`tests/test_narration_prompt.py::TestTheWorkedExamples::test_the_mate_never_puts_a_name_in_apposition`
+holds the example to the better shape.
+
 **The style text is prompt copy and the Profile line is app output.** They are
 checked differently on purpose. The Profile line is read by a fan, so the
 no-nicknames rule applies to it. The style is said to a model, where naming a

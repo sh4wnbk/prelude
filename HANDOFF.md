@@ -814,7 +814,7 @@ At `11d0f8f`, `pytest -q` reported `299 passed`.
 
 **The persona config is committed and nothing reads the styles yet.**
 `app/personas.py` holds the three personas and `tests/test_personas.py` holds
-them to their shape, in 21 tests. No prompt passes a style to a model at this
+them to their shape, in 22 tests. No prompt passes a style to a model at this
 commit: that is task 6b.
 
 | Persona | Id | Register | Offered to |
