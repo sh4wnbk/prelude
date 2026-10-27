@@ -47,6 +47,7 @@ from scripts.narration_eval import (
     Voice,
     call_tokens,
     coverage,
+    example_section,
     is_generation,
     goal_moments,
     match_sides,
@@ -800,3 +801,89 @@ class TestTheBeatsBlockComparison:
         # One narration a side, not three on the with-block side.
         assert "| with the beats block | 1 |" in block
         assert "| without it | 1 |" in block
+
+
+class TestTheWorkedExampleRound:
+    """Task 6d: the same voices before and after being shown their register."""
+
+    MODEL = "openai/gpt-oss-120b"
+
+    def _rows(self, arm, words, voices=("caller", "storyteller")):
+        """One narration per voice, each sentence `words` words long."""
+        return [
+            a_record(
+                arm=arm,
+                model=self.MODEL,
+                persona=voice,
+                calls=1,
+                generation_seconds=1.0,
+                tagged_text="[1] " + " ".join(["word"] * words) + ".",
+            )
+            for voice in voices
+        ]
+
+    def test_it_is_empty_without_both_runs(self):
+        assert example_section([], self._rows("d", 5)) == []
+        assert example_section(self._rows("a", 5), []) == []
+
+    def test_it_reports_both_sides_per_voice(self):
+        section = "\n".join(
+            example_section(self._rows("a", 4), self._rows("d", 8))
+        )
+        assert "Task 6d" in section
+        assert "| caller | 1 | 1/1 | 1/1 | 4.0 | 8.0 |" in section
+
+    def test_the_spread_is_the_answer(self):
+        """A model writing the same sentence length in every voice was given
+        three styles and wrote one."""
+        before = self._rows("a", 4, voices=("caller",)) + self._rows(
+            "a", 10, voices=("storyteller",)
+        )
+        after = self._rows("d", 6, voices=("caller",)) + self._rows(
+            "d", 7, voices=("storyteller",)
+        )
+        section = "\n".join(example_section(before, after))
+        # Six apart before, one apart after.
+        assert "| **spread** | **6.0** | **1.0** |" in section
+
+    def test_only_the_goals_both_runs_covered_are_compared(self):
+        """What makes the two columns about the examples and not the sample."""
+        before = [a_record(arm="a", model=self.MODEL, persona="caller")]
+        after = [
+            a_record(arm="d", model=self.MODEL, persona="caller"),
+            a_record(
+                arm="d",
+                model=self.MODEL,
+                persona="caller",
+                minute=79,
+                second=24,
+                player="Kylian Mbappé Lottin",
+            ),
+        ]
+        section = "\n".join(example_section(before, after))
+        assert "the same 1 goal" in section
+
+    def test_the_mate_first_person_is_counted_on_both_sides(self):
+        before = [
+            a_record(
+                arm="a", model=self.MODEL, persona="mate", side="Argentina",
+                text="[24] Maradona scored for Argentina.",
+            )
+        ]
+        after = [
+            a_record(
+                arm="d", model=self.MODEL, persona="mate", side="Argentina",
+                text="[24] We scored through Maradona.",
+            )
+        ]
+        section = "\n".join(example_section(before, after))
+        assert "0 of 1 narrations used" in section
+        assert "1 of 1 when it was shown" in section
+
+    def test_it_prints_every_voice_on_one_goal_side_by_side(self):
+        section = "\n".join(
+            example_section(self._rows("a", 4), self._rows("d", 8))
+        )
+        assert "side by side" in section
+        assert "**caller**" in section
+        assert "**storyteller**" in section

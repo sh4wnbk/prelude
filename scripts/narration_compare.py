@@ -22,6 +22,10 @@ for every arm, and makes no call at all. Nothing here runs without
 * **c**: one candidate, no beats block, the five multi-beat goals.
 * **c2**: the same candidate with the block on the two of those five that arm
   b does not cover, so the no-block comparison is paired on all five.
+* **d**: the shipped candidate, every voice, on two of arm a's three goals,
+  after each persona was given a worked example of its register. Task 4b
+  found the three voices writing the same narration, so this is the same
+  question asked again with the styles shown rather than described.
 
 **The budget is a hard stop.** `--max-tokens` is checked after every narration
 against the tokens the servers have reported so far, and the run stops between
@@ -55,7 +59,11 @@ sys.path.insert(0, str(ROOT))
 
 from app.event_feed import Moment  # noqa: E402
 from app.narration import narrate  # noqa: E402
-from app.narration_config import CANDIDATES, COMPARISON_DECODING  # noqa: E402
+from app.narration_config import (  # noqa: E402
+    ACTIVE_CANDIDATE,
+    CANDIDATES,
+    COMPARISON_DECODING,
+)
 from app.narration_prompt import (  # noqa: E402
     build_prompt,
     facts_from_buildup,
@@ -117,7 +125,11 @@ METER_UPLIFT = 1.12
 #: it would ship.
 REASONING_EFFORT = {"openai/gpt-oss-120b": "low"}
 
-ARMS = ("smoke", "b", "a", "c", "c2")
+#: The two goals the worked-example round reruns, which are two of the three
+#: the persona arms used, so the before and the after are the same passages.
+GOALS_2 = ((3750191, (54, 18)), (3869685, (79, 24)))
+
+ARMS = ("smoke", "b", "a", "c", "c2", "d")
 
 
 def read_arms(argument: str, default_runs: int) -> list[tuple[str, int]]:
@@ -172,6 +184,8 @@ def arm_plan(
     """
     both = [candidate.model_id for candidate in CANDIDATES]
     one = [CANDIDATES[0].model_id]
+    # Arm d runs on whatever is shipping, which is the point of it.
+    active = [ACTIVE_CANDIDATE.model_id]
     plan: list[tuple[str, int, Moment, Voice, bool]] = []
 
     def add(models, goals, chosen_voices, no_block=False, times=runs):
@@ -195,6 +209,8 @@ def arm_plan(
         add(one, MULTI_BEAT, plain, no_block=True)
     elif arm == "c2":
         add(one, C2_GOALS, plain)
+    elif arm == "d":
+        add(active, GOALS_2, every)
     else:
         raise SystemExit(f"unknown arm {arm!r}; the arms are {', '.join(ARMS)}")
     return plan

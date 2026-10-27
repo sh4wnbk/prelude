@@ -1092,6 +1092,59 @@ published documentation rather than from a recording.
 
 `pytest -q` reports `402 passed`, and the four gates pass.
 
+### Phase 4, task 6d, steps 2 and 3: the worked examples changed almost nothing
+
+**Each persona was given a worked example of its register, and the voices
+still did not separate.** `app/personas.py` gained an `example` beside its
+`style`: a short narration in that voice, cited the way a real one has to be,
+printed in the prompt under "THE REGISTER, ON A PASSAGE FROM ANOTHER MATCH".
+16 narrations on `openai/gpt-oss-120b`, two goals by four voices by two runs,
+16 generation calls, 33,071 tokens reported, 37,040 metered against a 60,000
+limit, in 61 seconds.
+
+| | Described | Shown |
+| --- | ---: | ---: |
+| grounded on the first attempt | 16 of 16 | 16 of 16 |
+| narrowest voice, words per sentence | 5.9 | 5.6 |
+| widest voice | 8.0 | 7.5 |
+| spread across the voices | 2.1 | 1.9 |
+| the Mate's narrations using the first person | 5 of 8 | 6 of 8 |
+
+**The spread narrowed rather than widened.** On the 54:18 goal the Caller,
+the Storyteller and the Mate for an Argentina listener wrote the same five
+sentences, differing in whether a clock is introduced by a comma or by "at".
+Showing the register did not work where describing it had not, and that is
+now two different ways of asking with the same answer.
+
+**The Mate moved, and not the way the example was written for.** The example
+says "We recovered it through Quillan". What came back for an England
+listener is "We were dribbled past, Peter Beardsley.", five times over. That
+is the apposition the example was written to replace, inverted: the name
+trails the clause instead of interrupting it. It is grounded, because every
+cited fact is England's.
+
+**Nothing was paid for in grounding.** Every one of the 16 was grounded on
+the first attempt, as every one was before, so the examples are inert rather
+than harmful. They are
+committed because the measurement is the point and reverting them would leave
+the report describing code that is not there.
+
+**The examples are held to the rules they teach.** Each one runs through the
+real `app/grounding.py` against the invented passage it narrates, which
+caught the first draft: the Caller's example read "Quillan won it back",
+which the check reads as a claim about a `Foul Won` event over a fact
+recording a recovery. An example that breaks a rule is the prompt teaching a
+model to fail the check.
+
+**What this leaves for Shawn.** Three ways of getting three voices out of one
+model have now been measured and none worked: a described register on a small
+model, a described register on a capable one, and a shown register on a
+capable one. The question is no longer "how do we make the personas
+distinguishable" but "do three personas earn their place in the app". That is
+a product decision, and Task 7 waits on it.
+
+`pytest -q` reports `417 passed`, and the four gates pass.
+
 ### Phase 4, task 3c
 
 **Four documents, each statement carrying its file and its test.**
@@ -2130,7 +2183,39 @@ speed, per persona; this file records which leads; and Shawn picks the model.
   session (all gates, both matches, a real-phone check).
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Shawn picks the model and decides on the personas)
+## Next first action (Shawn decides how many personas, then Task 7)
+
+**The model is picked and shipped.** `ACTIVE_CANDIDATE` is
+`openai/gpt-oss-120b`, with the chat endpoint and `reasoning_effort: low`
+travelling with it on `Candidate`. Task 6d step 1 records it.
+
+**The personas are the open question, and it is a product decision rather
+than a prompt problem.** Three ways of getting three voices out of one model
+have been measured and none worked:
+
+| What was tried | Model | Spread, words per sentence |
+| -------------- | ----- | -------------------------: |
+| the register described | `granite4:micro` | 0.6 |
+| the register described | `openai/gpt-oss-120b` | 2.1 |
+| the register shown, with a worked example | `openai/gpt-oss-120b` | 1.9 |
+
+On the last of those, the Caller, the Storyteller and the Mate wrote the same
+five sentences for the 54:18 goal. The grounding rules are narrow enough that
+there may not be three distinguishable voices inside them, which would be the
+honest reading.
+
+**What still works.** The Mate's first person is reachable, 6 of 8
+narrations, and it is the one thing that visibly marks a voice as partisan.
+It reads badly as the model writes it ("We were dribbled past, Peter
+Beardsley."), and the header the orchestrator already produces is addressed
+to the fan without a model being involved at all.
+
+**So the choice is roughly:** ship three personas that sound alike, ship two
+(a neutral voice and the Mate, which is the one with something to show), or
+ship one and let the orchestrator's header carry the personalisation. Task 7
+builds the Profile screen either way, and what it lists depends on this.
+
+### Settled earlier (Task 4b and Task 6)
 
 **Task 4b is run and Task 6 is finished. Both decisions are Shawn's, and
 Task 7 waits on them.**

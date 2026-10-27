@@ -712,6 +712,8 @@ def reproduction_command(args) -> str:
         parts.append(f"--persona-runs {_repo_path(args.persona_runs)}")
     if args.watsonx_runs:
         parts.append(f"--watsonx-runs {_repo_path(args.watsonx_runs)}")
+    if args.example_runs:
+        parts.append(f"--example-runs {_repo_path(args.example_runs)}")
     if not args.from_json and args.personas:
         parts.append(f"--personas {args.personas}")
     return " ".join(parts)
@@ -1272,6 +1274,114 @@ def watsonx_section(records: Sequence[Record]) -> list[str]:
     return lines
 
 
+def example_section(
+    before: Sequence[Record], after: Sequence[Record]
+) -> list[str]:
+    """Task 6d: the same voices, after each persona was shown its register.
+
+    Task 4b described each register in a paragraph and got one narration in
+    three voices from a model that obeyed every other rule exactly. So each
+    persona was given a worked example to copy instead. This is the same
+    question asked again, on the same goals and the same model, with the one
+    thing changed.
+
+    Only the goals and voices both runs covered are compared, which is what
+    makes the two columns about the examples rather than about the sample.
+    """
+    if not before or not after:
+        return []
+
+    model = after[0].model
+    goals = sorted({r.goal for r in after} & {r.goal for r in before})
+    was = [r for r in before if r.model == model and r.goal in goals]
+    now = [r for r in after if r.model == model and r.goal in goals]
+    if not was or not now:
+        return []
+
+    voices_run: list[str] = []
+    for record in list(was) + list(now):
+        if record.voice not in voices_run:
+            voices_run.append(record.voice)
+
+    lines = ["## Task 6d: one worked example per persona", ""]
+    add = lines.append
+
+    add(f"`{model}` over the same {plural(len(goals), 'goal')} as the "
+        "persona arm above, before and after each persona was given a short "
+        "narration in its own register to copy. The example is of an "
+        "invented passage, so nothing in it can be lifted into a real "
+        "narration without `app/grounding.py` refusing it.")
+    add("")
+    add("**Words per sentence is the measure, and the spread across the "
+        "voices is the answer.** A model writing the same sentence length in "
+        "every voice was given three styles and wrote one.")
+    add("")
+    add("| Voice | Narrations | First attempt, described | First attempt, "
+        "shown | Words per sentence, described | Words per sentence, shown |")
+    add("| ----- | ---------: | -----------------------: | "
+        "--------------------: | ----------------------------: | "
+        "------------------------: |")
+
+    def rate(rows):
+        if not rows:
+            return "n/a"
+        passed = sum(
+            1 for r in rows if r.model_wrote_it and r.first_attempt_grounded
+        )
+        return f"{passed}/{len(rows)}"
+
+    spreads: dict[str, list[float]] = {"described": [], "shown": []}
+    for voice in voices_run:
+        old = [r for r in was if r.voice == voice]
+        new = [r for r in now if r.voice == voice]
+        if not old or not new:
+            continue
+        old_words, new_words = sentence_length(old), sentence_length(new)
+        for key, value in (("described", old_words), ("shown", new_words)):
+            if value != "n/a":
+                spreads[key].append(float(value))
+        add(f"| {voice} | {len(new)} | {rate(old)} | {rate(new)} | "
+            f"{old_words} | {new_words} |")
+    add("")
+
+    if spreads["described"] and spreads["shown"]:
+        add("| | Described | Shown |")
+        add("| --- | ---: | ---: |")
+        for label, key in (("narrowest voice", min), ("widest voice", max)):
+            add(f"| {label} | {key(spreads['described']):.1f} | "
+                f"{key(spreads['shown']):.1f} |")
+        add(f"| **spread** | **{max(spreads['described']) - min(spreads['described']):.1f}** "
+            f"| **{max(spreads['shown']) - min(spreads['shown']):.1f}** |")
+        add("")
+
+    old_mate = [r for r in was if r.side]
+    new_mate = [r for r in now if r.side]
+    if old_mate and new_mate:
+        old_said = [r for r in old_mate if _first_person(r.text)]
+        new_said = [r for r in new_mate if _first_person(r.text)]
+        add(f"**The Mate's first person**: {len(old_said)} of "
+            f"{len(old_mate)} narrations used \"we\", \"our\" or \"us\" when "
+            f"the register was described, {len(new_said)} of "
+            f"{len(new_mate)} when it was shown.")
+        add("")
+
+    first_goal = goals[0]
+    add(f"### Every voice on {first_goal}, side by side")
+    add("")
+    add("The first run of each, after the examples. This is the comparison "
+        "to read before deciding how many personas to ship.")
+    add("")
+    for voice in voices_run:
+        rows = [r for r in now if r.voice == voice and r.goal == first_goal]
+        if not rows:
+            continue
+        add(f"**{voice}**")
+        add("")
+        add(f"> {rows[0].text}")
+        add("")
+    return lines
+
+
 def report(
     records: Sequence[Record],
     command: str,
@@ -1282,6 +1392,7 @@ def report(
     compare_note: str = "",
     personas: Sequence[Record] = (),
     watsonx: Sequence[Record] = (),
+    examples: Sequence[Record] = (),
 ) -> str:
     """The generated report.
 
@@ -1497,6 +1608,9 @@ def report(
     if watsonx:
         lines.extend(watsonx_section(watsonx))
 
+    if watsonx and examples:
+        lines.extend(example_section(watsonx, examples))
+
     missed_rows = [r for r in records if r.missed and not r.error]
     add("## What was missed")
     add("")
@@ -1594,6 +1708,11 @@ def main(argv: Sequence[str]) -> int:
              "report as its own section",
     )
     parser.add_argument(
+        "--example-runs", type=Path,
+        help="a records file from the worked-example round, compared against "
+             "the persona arm of --watsonx-runs",
+    )
+    parser.add_argument(
         "--watsonx-runs", type=Path,
         help="a records file from scripts/narration_compare.py, whose paid "
              "comparison is added to the report as its own section",
@@ -1637,6 +1756,7 @@ def main(argv: Sequence[str]) -> int:
     against = read_json(args.compare) if args.compare else ()
     by_persona = read_json(args.persona_runs) if args.persona_runs else ()
     paid = read_json(args.watsonx_runs) if args.watsonx_runs else ()
+    shown = read_json(args.example_runs) if args.example_runs else ()
     args.out.write_text(
         report(
             records,
@@ -1648,6 +1768,7 @@ def main(argv: Sequence[str]) -> int:
             compare_note=args.compare_note,
             personas=by_persona,
             watsonx=paid,
+            examples=shown,
         ),
         encoding="utf-8",
         newline="\n",

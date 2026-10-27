@@ -182,7 +182,7 @@ Everything above it is structure.
 - `tests/test_narration.py`: 24 tests over the pipeline, covering the retries,
   the fallback, the citation stripping, the failure log and the first-attempt
   pass rate. All pass, and no test calls a model.
-- `tests/test_narration_eval.py`: 66 tests over the coverage measure, the
+- `tests/test_narration_eval.py`: 72 tests over the coverage measure, the
   token recorder and the goal selection in `scripts/narration_eval.py`,
   including the live thin narration that passes the grounding check and
   reaches one key beat of five. All pass.

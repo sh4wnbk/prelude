@@ -523,6 +523,44 @@ rather than as a supporter talking.
 `tests/test_narration_prompt.py::TestTheWorkedExamples::test_the_mate_never_puts_a_name_in_apposition`
 holds the example to the better shape.
 
+### What the examples changed: almost nothing
+
+Measured the same way, on `openai/gpt-oss-120b`, over the two goals the
+persona arm used, 16 narrations. `docs/narration_eval.md` holds it.
+
+| | Described | Shown |
+| --- | ---: | ---: |
+| grounded on the first attempt | 16 of 16 | 16 of 16 |
+| narrowest voice, words per sentence | 5.9 | 5.6 |
+| widest voice | 8.0 | 7.5 |
+| spread across the voices | 2.1 | 1.9 |
+| the Mate's narrations using the first person | 5 of 8 | 6 of 8 |
+
+**The voices did not separate.** The spread narrowed rather than widened, and
+on the 54:18 goal the Caller, the Storyteller and the Mate for an Argentina
+listener wrote the same five sentences, differing in whether a clock is
+introduced by a comma or by "at". Showing the register did not work where
+describing it had not.
+
+**The one thing that did move is the Mate, and not in the direction the
+example was written for.** The example says "We recovered it through
+Quillan". What came back for an England listener is:
+
+> We were dribbled past, Peter Beardsley. We were dribbled past, Terry
+> Butcher. We were dribbled past, Terry Fenwick. We were dribbled past, Peter
+> Shilton. Diego Armando Maradona shot.
+
+That is the apposition the example was meant to replace, inverted: the name
+now trails the clause instead of interrupting it. It is grounded, because
+every cited fact is England's, and it is five sentences of the same sentence.
+The first person is reachable and the register is not, which is the same
+finding as before with one more thing ruled out.
+
+**Nothing was paid for in grounding.** All 16 passed on the first attempt,
+as all 16 did before the examples, so the examples are not harmful; they are
+inert. Whether three personas are worth shipping is a product decision rather
+than a prompt problem, and it is Shawn's.
+
 **The style text is prompt copy and the Profile line is app output.** They are
 checked differently on purpose. The Profile line is read by a fan, so the
 no-nicknames rule applies to it. The style is said to a model, where naming a
