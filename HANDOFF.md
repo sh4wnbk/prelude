@@ -814,8 +814,9 @@ At `11d0f8f`, `pytest -q` reported `299 passed`.
 
 **The persona config is committed and nothing reads the styles yet.**
 `app/personas.py` holds the three personas and `tests/test_personas.py` holds
-them to their shape, in 22 tests. No prompt passes a style to a model at this
-commit: that is task 6b.
+them to their shape, in 25 tests now and 22 at this commit. No prompt passes a
+style to a model at this commit: that is task 6b, and the style field is gone
+again after "after task 6d" below.
 
 | Persona | Id | Register | Offered to |
 | ------- | -- | -------- | ---------- |
@@ -876,11 +877,12 @@ whenever that module is open.
 they stood before personas existed, which is what the measured runs in
 `docs/narration_eval.md` were made with.
 
-**A persona changes the register and one rule.** Every other rule is the same
-text in all three voices, which is asserted rather than asserted about:
-`tests/test_narration_prompt.py::TestThePersonaInThePrompt::test_the_rules_are_the_same_in_every_voice`
-takes the RULES block of each prompt, removes the person rule, and requires
-what is left to be identical.
+**A persona changes the register and one rule.** Every other rule was the
+same text in all three voices, which was asserted rather than asserted about:
+a test took the RULES block of each prompt, removed the person rule, and
+required what was left to be identical. It went with the per-persona style
+text in the task below, along with the class it was in, so it is described
+here rather than cited.
 
 | Voice | "we", "our", "us" | "you", "your" |
 | ----- | ----------------- | ------------- |
@@ -1144,6 +1146,81 @@ distinguishable" but "do three personas earn their place in the app". That is
 a product decision, and Task 7 waits on it.
 
 `pytest -q` reports `417 passed`, and the four gates pass.
+
+### Phase 4, after task 6d: one narration style, and the personas become voices
+
+**Shawn's decision, on the three measured runs: the personas are separated by
+sound and not by text.** Tasks 6c, 4b and 6d asked three models for three
+registers three ways and got one register back each time, so the per-persona
+style text and the worked examples are out of the prompt and out of the
+config. The narration text is one text now: `NARRATION_STYLE` in
+`app/narration_prompt.py`, which is the Storyteller's style text, printed in
+every prompt under "THE STYLE".
+
+**`build_prompt` takes no persona and no side.** It took both from task 6b to
+task 6d. An argument that changed nothing would read as a register still
+reaching the model, so the signature says what is true and
+`tests/test_narration_prompt.py::TestTheOneNarrationStyle::test_the_prompt_takes_no_persona_and_no_side`
+holds it there. `narrate` still takes both and passes them to the check alone.
+
+**The Mate's "we" is out of the prompt and still guarded in the check.** The
+prompt now refuses the first person in the one voice it has, the Mate
+included. `check` in `app/grounding.py` is unchanged: it admits "we", "our"
+and "us" from a partisan persona in a sentence citing a fact recorded against
+that side, and refuses them everywhere else. Nothing asks a model for the
+word any more, so that rule is a guard against a model that writes it anyway.
+`NoSideForAPartisanVoice` moved to `app/grounding.py`, which is now its only
+raiser.
+
+**What a persona carries instead.** `style` and `example` came off `Persona`
+and five Phase 5 fields went on, every one of them `None`: `voice`, `rate`,
+`pitch`, `sentence_break` and `goal_break`, with `voice_confirmed` and
+`prosody_confirmed` false. The two breaks are milliseconds so the one before
+the goal can be read against the one between sentences. The `profile` lines
+describe a voice rather than a way of writing: "Quick play-by-play, keeping up
+with the move.", "Calm documentary, unhurried and even.", "Warm, from the next
+seat."
+
+**The measured negative result is kept.** The Task 6c, 4b and 6d sections of
+`docs/narration_eval.md` are unchanged in their numbers and each one now
+carries the same label: the code they measured is gone, and the runs are at
+`8f784cf`, `abf5702` and `128833a`. `scripts/narration_eval.py` writes that
+label, because the report is generated and a hand-edit would be overwritten by
+the next run. The report was regenerated from the saved records with
+`--from-json`, so no model was called to produce it.
+
+**One live check on `granite4:micro`, the 1986 54:18 goal, 3 runs.** The
+single-style prompt grounds. Two of the three narrations were written by the
+model and accepted by `app/grounding.py`, one on its first attempt and one on
+its second; the third failed three attempts and fell back to the template.
+Coverage was 5 of 5 key beats in all three, and the run took 235 seconds on
+CPU.
+
+```
+.\.venv-prelude\Scripts\python.exe -I scripts\narration_eval.py \
+    --goals 3750191:54:18 --runs 3 --out <outside the repo> --json <outside the repo>
+
+[1/3] first attempt refused, model, coverage 5/5, 3429 tokens, 127.8s
+[2/3] first attempt refused, template, coverage 5/5, 4947 tokens, 44.8s
+[3/3] first attempt grounded, model, coverage 5/5, 1846 tokens, 62.1s
+first attempt grounded 1/3
+mean coverage          100%
+```
+
+The report and the records were written outside the repo, because this is a
+check that the prompt still works and not a measurement:
+`docs/narration_eval.md` holds the runs that are measurements, and
+overwriting it with three narrations of one goal would lose them.
+
+**Three runs is not a rate and this one is not offered as one.** For context
+rather than as a comparison: on this goal and this model, Task 4c measured 3
+of 3 first attempts grounded with no style block in the prompt, Task 6c
+measured 3 of 12 with a persona's style block, and the shipped model grounded
+16 of 16 first attempts with one in Task 6d. A style block costing a small
+model its first attempt is a finding Task 6c already reported, and no watsonx
+call was made for this task.
+
+`pytest -q` reports `408 passed`, and the four gates pass.
 
 ### Phase 4, task 3c
 
@@ -2107,6 +2184,33 @@ reported whatever they are, the report shows the first-attempt and
 after-retry pass rates with coverage per persona and per goal, and the work is
 pushed.
 
+### Task 1 after 6d: one narration style, the personas separated by sound (done)
+
+Shawn's decision on the three measured runs. The per-persona style text and
+the worked examples come out of the prompt and out of `app/personas.py`; the
+narration text is one style for every persona, which is the Storyteller's. The
+Mate's "we" comes out of the prompt and the rule stays in `app/grounding.py`
+as a guard. `Persona` carries what Phase 5 needs instead: a voice, a rate, a
+pitch and two sentence breaks, all unconfirmed. The 6c, 4b and 6d results stay
+in `docs/narration_eval.md`, labelled as runs of code since removed.
+
+Exit when: tests and all four gates pass, and the work is pushed. See "Phase
+4, after task 6d" under What was built.
+
+### Task 2 after 6d: the game-focused header, contract and failing tests
+
+For Bob's task 5. `ScoringMoment` gains the score before the moment,
+explicitly rather than by subtracting one, because a score can move by any
+number of points. A transition is classified from the scoring side's view out
+of the before and the after alone (take the lead, overtake, extend, close the
+gap, draw level), with no transition depending on earlier history. A wording
+table keyed by that transition replaces the outcome-by-phase prefixes, the
+header is the same line for every listener, and allegiance picks the persona
+instead of changing the header.
+
+Exit when: the new tests fail only because Bob has not built them, everything
+else passes, the docs gate accounts for the red tests, and the work is pushed.
+
 ### Task 7: the card, the name and the Profile screen
 
 Build the "Who are you with tonight?" card (or "today?", from the orchestrator)
@@ -2150,10 +2254,33 @@ speed, per persona; this file records which leads; and Shawn picks the model.
 
 ### Phase 5: voice and audio
 
+**This is where the personas are, now that the narration text is one text.**
+Each persona becomes an IBM voice plus SSML prosody: a rate, a pitch, and the
+breaks between sentences. The five fields are on `Persona` in
+`app/personas.py`, all `None`, with `voice_confirmed` and `prosody_confirmed`
+false beside them.
+
+The rules Shawn settled for them, before any of it is built:
+
+- **Comprehension comes first.** The narration is names, actions and clocks,
+  and a listener who misses one has missed the thing the app is for.
+- **The Caller's energy is emphasis and pitch**, with a rate only modestly
+  above the Storyteller's and a ceiling on it. The Storyteller's rate is what
+  the other two are set against.
+- **Breaks let each beat land**, with a slightly longer break before the goal
+  sentence.
+- **The rates are set by ear**, by Shawn, in this phase. Words per minute is
+  then measured from the real audio rather than assumed, and the measured
+  ceiling goes into config.
+
 - Shawn: audition the voices (the PowerShell command from earlier) and assign
-  one IBM voice per persona. Test how the voice says the film character's name.
+  one IBM voice per persona, then set each one's rate, pitch and the two
+  breaks by ear. Test how the voice says the film character's name.
 - Claude Code: build the IBM Text to Speech backend against IBM's published API
-  (credentials from the file outside the repo).
+  (credentials from the file outside the repo), taking the voice and the
+  prosody from `app/personas.py` and emitting the breaks as SSML.
+- Claude Code: measure words per minute from the generated audio, report it,
+  and put the ceiling in config once Shawn has agreed it.
 - Claude Code: add audio playback to the moment card (play, waveform, "Verified
   from play data" shown only for narration that passed).
 - Claude Code: save audio for the hero moments only (1986 54:18 and the 2022 Di
@@ -2183,37 +2310,41 @@ speed, per persona; this file records which leads; and Shawn picks the model.
   session (all gates, both matches, a real-phone check).
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Shawn decides how many personas, then Task 7)
+## Next first action (Task 2: the game-focused header)
 
-**The model is picked and shipped.** `ACTIVE_CANDIDATE` is
-`openai/gpt-oss-120b`, with the chat endpoint and `reasoning_effort: low`
-travelling with it on `Candidate`. Task 6d step 1 records it.
+**Task 1 after 6d is done and Task 2 is next.** The narration text is one
+style, the personas are five empty Phase 5 fields each, and the three measured
+runs that led there are labelled in `docs/narration_eval.md` as runs of code
+since removed.
 
-**The personas are the open question, and it is a product decision rather
-than a prompt problem.** Three ways of getting three voices out of one model
-have been measured and none worked:
+Task 2 writes the game-focused header into `app/orchestrator_contract.py` and
+the failing tests into `tests/test_orchestrator.py`, for Bob's task 5. Nothing
+in `app/orchestrator.py` is touched: it is Bob's module, and the point of the
+task is to hand him red tests.
 
-| What was tried | Model | Spread, words per sentence |
-| -------------- | ----- | -------------------------: |
-| the register described | `granite4:micro` | 0.6 |
-| the register described | `openai/gpt-oss-120b` | 2.1 |
-| the register shown, with a worked example | `openai/gpt-oss-120b` | 1.9 |
+### Settled after task 6d
 
-On the last of those, the Caller, the Storyteller and the Mate wrote the same
-five sentences for the 54:18 goal. The grounding rules are narrow enough that
-there may not be three distinguishable voices inside them, which would be the
-honest reading.
+Three decisions, all Shawn's, all taken on the measured runs rather than on
+an argument about prompts.
 
-**What still works.** The Mate's first person is reachable, 6 of 8
-narrations, and it is the one thing that visibly marks a voice as partisan.
-It reads badly as the model writes it ("We were dribbled past, Peter
-Beardsley."), and the header the orchestrator already produces is addressed
-to the fan without a model being involved at all.
+**The personas are separated by sound, not by text.** Three attempts at three
+registers gave one register back each time: 0.6 words per sentence of spread
+on `granite4:micro` with the register described, 2.1 on
+`openai/gpt-oss-120b` described, 1.9 shown as a worked example. The narration
+text is one style for every persona now, and each persona becomes an IBM voice
+plus SSML prosody in Phase 5: rate, pitch, and breaks between sentences.
 
-**So the choice is roughly:** ship three personas that sound alike, ship two
-(a neutral voice and the Mate, which is the one with something to show), or
-ship one and let the orchestrator's header carry the personalisation. Task 7
-builds the Profile screen either way, and what it lists depends on this.
+**Comprehension comes first.** The Caller's energy comes from emphasis and
+pitch, with a rate only modestly above the Storyteller's and a ceiling on it.
+Sentence breaks let each beat land, with a slightly longer break before the
+goal sentence. Shawn sets the rates by ear in Phase 5, words per minute is
+measured from the real audio, and the measured ceiling goes into config. The
+Phase 5 entry in the Plan carries this.
+
+**The header becomes game-focused.** It states what the goal did to the score,
+not how the fan should feel. Allegiance no longer changes the header: it picks
+the persona. Task 2 above is that change, and `docs/VOICE.md` carries the
+wording.
 
 ### Settled earlier (Task 4b and Task 6)
 

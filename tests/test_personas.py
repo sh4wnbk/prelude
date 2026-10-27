@@ -11,11 +11,12 @@ Each test that is about all three personas loops over them and collects the
 ones that failed, rather than being parametrized, so a failure names the
 persona and the test keeps one node id a document can cite.
 
-Nothing here calls a model, and nothing here asserts that a style produces a
-particular register. What a persona sounds like is a judgement made by reading
-narration, which is what `scripts/narration_eval.py` is for.
+Nothing here calls a model, and nothing here asserts that a persona sounds
+like anything. A voice and its prosody are judgements made by listening, which
+is Phase 5, and the fields that will hold them are empty until then.
 """
 
+import dataclasses
 import re
 
 import pytest
@@ -56,9 +57,11 @@ OUTPUT_COPY_RULES = frozenset(
     }
 )
 
-#: Words below this and a style is a label rather than a register, which is
-#: the one way that field can be present and useless.
-STYLE_MIN_WORDS = 20
+#: The fields a persona carried while the prompt asked for a register. Both
+#: are gone: the narration text is one text, `NARRATION_STYLE` in
+#: `app/narration_prompt.py`, and a field here that nothing printed would read
+#: as a register still reaching a model.
+GONE_WITH_THE_REGISTER = ("style", "example")
 
 
 class TestTheThreePersonas:
@@ -94,30 +97,20 @@ class TestEveryFieldIsFilled:
         ]
         assert empty == []
 
-    def test_every_style_says_something(self):
-        thin = [
-            p.id for p in PERSONAS if len(p.style.split()) < STYLE_MIN_WORDS
-        ]
-        assert thin == []
-
     def test_every_profile_is_one_line(self):
         wrapped = [p.id for p in PERSONAS if "\n" in p.profile]
         assert wrapped == []
 
-    def test_every_example_is_a_cited_narration(self):
-        """Shown rather than described, in the layout the prompt asks for.
+    def test_no_persona_carries_prompt_copy(self):
+        """A `style` or an `example` here would be a register again.
 
-        An example without citations would be the prompt showing a model the
-        one shape `app/grounding.py` refuses outright.
+        Tasks 6c, 4b and 6d asked three models for three registers through
+        those two fields and got one register back each time, so the
+        narration text is one text and the separation moves to the audio.
+        `docs/narration_eval.md` holds the numbers.
         """
-        wrong = []
-        for persona in PERSONAS:
-            lines = [l for l in persona.example.splitlines() if l.strip()]
-            if len(lines) < 2 or not all(
-                re.match(r"\s*\[\d+\]", line) for line in lines
-            ):
-                wrong.append(persona.id)
-        assert wrong == []
+        fields = {f.name for f in dataclasses.fields(PERSONAS[0])}
+        assert fields.isdisjoint(GONE_WITH_THE_REGISTER)
 
 
 class TestFansOnly:
@@ -171,6 +164,49 @@ class TestTheVoicesAreNotChosenYet:
         ] == []
 
 
+class TestTheProsodyIsNotSetYet:
+    """The four numbers that separate the voices, and they are empty too.
+
+    Shawn sets them by ear in Phase 5: a rate, a pitch, and the pauses that
+    let each sentence land. Comprehension comes first, so the Caller's energy
+    is pitch and emphasis with a rate only modestly above the Storyteller's,
+    and words per minute is measured from the real audio rather than guessed
+    at here.
+    """
+
+    def test_every_prosody_field_is_null(self):
+        assert [
+            p.id for p in PERSONAS if any(v is not None for v in p.prosody)
+        ] == []
+
+    def test_every_persona_is_marked_unconfirmed(self):
+        assert [p.id for p in PERSONAS if p.prosody_confirmed] == []
+
+    def test_the_four_fields_are_the_prosody(self):
+        """`prosody` is the four, in the order they are set.
+
+        A caller asking whether a persona has a delivery yet asks once. If a
+        fifth field is added, this is what says it has to join the tuple.
+        """
+        for p in PERSONAS:
+            assert p.prosody == (
+                p.rate, p.pitch, p.sentence_break, p.goal_break
+            )
+
+    def test_an_empty_prosody_is_never_confirmed(self):
+        """The same broken state as a confirmed null voice, four fields over.
+
+        They are set in one sitting, because a rate heard without the breaks
+        around it is not a judgement anybody can make, so one flag covers the
+        four and a true flag means all four are set.
+        """
+        assert [
+            p.id
+            for p in PERSONAS
+            if p.prosody_confirmed and any(v is None for v in p.prosody)
+        ] == []
+
+
 class TestProfileCopy:
     """The Profile lines are app output, so `CLAUDE.md` governs them."""
 
@@ -199,12 +235,12 @@ class TestProfileCopy:
 
 
 class TestNoDashes:
-    """No em dashes anywhere, in the copy a fan reads or the copy a model does."""
+    """No em dashes in the copy a fan reads. Nothing here is read by a model."""
 
     def test_no_em_or_en_dash_in_any_field(self):
         hits = []
         for p in PERSONAS:
-            text = " ".join((p.name, p.profile, p.style, p.example))
+            text = " ".join((p.name, p.profile))
             hits += [
                 f"{p.id}: {name}"
                 for name, dash in (("em dash", "—"), ("en dash", "–"))

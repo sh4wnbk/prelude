@@ -35,7 +35,6 @@ from dataclasses import dataclass
 from typing import Mapping
 
 from app.event_feed import Buildup, Moment, RawEvent
-from app.personas import Persona
 
 #: How a StatsBomb event type is said in a fact and in the fallback narration.
 #: Every type that occurs in a buildup across the two matches in `data/raw/` is
@@ -110,6 +109,29 @@ FOUL = "foul"
 
 #: Sentences the prompt asks a model for.
 DEFAULT_SENTENCES = 4
+
+#: The one style every narration is written in, whatever persona was asked
+#: for. It was the Storyteller's style text in `app/personas.py` until the
+#: personas stopped carrying one.
+#:
+#: **There is one style because three could not be told apart.** Tasks 6c, 4b
+#: and 6d asked for three registers three ways, described to a small model,
+#: described to a capable one and shown to it as a worked example, and
+#: `docs/narration_eval.md` holds what came back: words per sentence spread
+#: 0.6, 2.1 and 1.9 across the voices, and on the 54:18 goal the three wrote
+#: the same five sentences. The rules below are narrow enough that there is no
+#: room for a register inside them, so the narration text is one text and
+#: Phase 5 separates the personas in the audio.
+#:
+#: It is the Storyteller's text, which is the plainest of the three and the
+#: one `docs/VOICE.md` was written around.
+NARRATION_STYLE = (
+    "Write in the calm, even voice of a documentary narrator. Measured "
+    "sentences, told in the past tense, one step of the passage at a time. "
+    "The facts carry it, so add no colour and no atmosphere the records do "
+    "not hold: no weather, no crowd, no reading of anybody's intentions. Let "
+    "the plainness be the register."
+)
 
 
 @dataclass(frozen=True)
@@ -443,98 +465,16 @@ def beats_block(facts: Facts) -> str:
     )
 
 
-class NoSideForAPartisanVoice(ValueError):
-    """A `fans_only` persona was asked for without a side to be on.
+def style_block() -> str:
+    """The one style every narration is written in, printed for the model.
 
-    The Mate writes as the listener's team, so a Mate request from somebody
-    with no team is a request the voice cannot be written in. Falling back to
-    a neutral register quietly would hand back narration in a voice nobody
-    asked for, and guessing a side would tell a neutral listener they support
-    a team they did not choose, so this raises instead.
+    It is `NARRATION_STYLE`, wrapped, and it does not depend on the persona:
+    three measured runs found no register reaching a model through this block,
+    so the block says one thing and `app/personas.py` carries the sound
+    instead. The constant is where the style is argued about and this function
+    does not paraphrase it.
     """
-
-
-def persona_block(persona: Persona | None, side: str | None) -> str:
-    """The voice, and the listener's side when the voice needs one.
-
-    The style text goes in whole, as `app/personas.py` wrote it, because a
-    register is the one part of this prompt that is a matter of taste: the
-    config is where it is argued about and this function does not paraphrase
-    it.
-
-    **The side is printed for a partisan persona and for no other.** The Mate
-    is the only voice that needs to know who is listening, and it is also the
-    only one `app/grounding.py` will admit "we" from. A persona that is not
-    partisan is given no side even when the app knows one, because printing a
-    fact the voice may not use is how a model ends up using it.
-
-    Empty for no persona at all, which is the prompt as it was before personas
-    existed and what the measured runs in `docs/narration_eval.md` were made
-    with.
-    """
-    if persona is None:
-        return ""
-
-    block = "\nTHE VOICE\n" + _wrapped(persona.style) + "\n"
-    # The register shown as well as described. It is a passage that never
-    # happened, with invented players and invented teams, so nothing in it
-    # can be read as a fact about the goal being narrated: a model that lifts
-    # a name out of it is refused by `app/grounding.py` like any other
-    # invention, which is a visible failure rather than a silent one. Task 4b
-    # is why it is here. All three voices wrote the same narration on a model
-    # that followed every other rule exactly, so what reached that model was
-    # the rules and not the prose.
-    block += (
-        "\nTHE REGISTER, ON A PASSAGE FROM ANOTHER MATCH\n"
-        + _wrapped(
-            "Those players and those teams are invented and are not in this "
-            "match. Copy the voice and not a word of the content:"
-        )
-        + "\n"
-        + "\n".join("  " + line for line in persona.example.splitlines())
-        + "\n"
-    )
-    if persona.fans_only:
-        if not side:
-            raise NoSideForAPartisanVoice(
-                f"the {persona.name} writes as the listener's side, so it "
-                "cannot be written for a listener who has not picked one"
-            )
-        block += (
-            "\nTHE LISTENER\n"
-            + _wrapped(
-                f"They are on {side}'s side. Call {side} \"we\", \"our\" or "
-                f'"us", and only in a sentence whose cited facts are about '
-                f"{side}. A sentence about the other team names them as the "
-                "facts name them."
-            )
-            + "\n"
-        )
-    return block
-
-
-def first_person_rule(persona: Persona | None, side: str | None) -> str:
-    """What the prompt says about person, which depends on the voice.
-
-    `app/grounding.py` refuses "you" and "your" from every persona, and
-    refuses "we", "our" and "us" from every persona but a partisan one. The
-    prompt has to say the same, because a prompt asking for less than the
-    check enforces sets the model up to fail and a retry does not help it.
-    """
-    if persona is not None and persona.fans_only:
-        text = (
-            "Never write to the listener: \"you\" and \"your\" are rejected. "
-            "Writing as their side is what this voice is for, so \"we\", "
-            "\"our\" and \"us\" are accepted in a sentence whose cited facts "
-            f"are about {side}, and rejected anywhere else."
-        )
-    else:
-        text = (
-            "Write about the players, never to the listener and never as one "
-            "of the teams: \"you\", \"your\", \"we\", \"our\" and \"us\" are "
-            "all rejected."
-        )
-    return "\n" + _wrapped(text, indent="   ")
+    return "\nTHE STYLE\n" + _wrapped(NARRATION_STYLE) + "\n"
 
 
 def _wrapped(text: str, indent: str = "") -> str:
@@ -556,26 +496,23 @@ def _wrapped(text: str, indent: str = "") -> str:
 def build_prompt(
     facts: Facts,
     sentences: int = DEFAULT_SENTENCES,
-    persona: Persona | None = None,
-    side: str | None = None,
     beats: bool = True,
 ) -> str:
     """The prompt for one goal.
 
-    `persona` is the voice it is written in, from `app/personas.py`, and
-    `side` is the team the listener is on. A partisan persona needs one and
-    raises `NoSideForAPartisanVoice` without it; the other two are given no
-    side even when the app knows it, because the register they are written in
-    has no use for it. `persona=None` is the prompt as it stood before
-    personas existed, which is what `docs/narration_eval.md` measured.
+    **There is one prompt, whoever is listening.** It took no persona until
+    Task 6b and takes none again: `NARRATION_STYLE` is the style it asks for
+    in every voice, and the persona a listener picked changes the audio in
+    Phase 5 rather than the words. Tasks 6c, 4b and 6d measured three ways of
+    asking three models for three registers through this prompt and got one
+    register back each time; `docs/narration_eval.md` holds the numbers.
 
-    **A persona changes the register and nothing else.** Every rule below is
-    the same in all three voices, because they are the rules
-    `app/grounding.py` enforces afterwards and a voice that could loosen one
-    would make "Verified from play data" mean something different depending on
-    who was listening. The one rule that reads differently is the one about
-    person, and it reads differently because the check treats the Mate
-    differently: see `first_person_rule`.
+    So the first person is refused here in every voice, the Mate included.
+    `app/grounding.py` still admits "we" from a partisan persona over that
+    side's facts, which is a guard behind a prompt that asks for less than the
+    check allows rather than a permission anything reaches for. A prompt
+    asking for *more* than the check enforces costs nothing; one asking for
+    less sets the model up to fail, and the retry does not help it.
 
     The rules in it are the rules `app/grounding.py` enforces afterwards, said
     plainly. A prompt that asked for less than the check requires would set the
@@ -613,8 +550,7 @@ def build_prompt(
     # then named five beats to cover would contradict itself, and the model
     # would have to drop one of the two instructions to obey the other.
     block = beats_block(facts) if beats else ""
-    voice = persona_block(persona, side)
-    person = first_person_rule(persona, side)
+    style = style_block()
     # A prompt that names no beats asks for no sentence per beat either, so
     # the count stays where the caller put it. Raising it for beats the model
     # was never shown would ask for sentences with nothing to fill them.
@@ -638,7 +574,7 @@ THE FACTS
 One numbered line per recorded event, in the order it happened. Nothing
 happened that is not here.
 {fact_list(facts)}
-{block}{voice}
+{block}{style}
 WRITE IT LIKE THIS
 Write {sentences} lines. Each line starts with the numbers of the facts it is
 about, in square brackets, and then says them in one sentence:
@@ -657,7 +593,9 @@ RULES
    past". A line in the present tense is rejected.
 2. The last line is about the goal and cites fact {goal.number}. Nothing follows
    it: no summary, no comment, no sentence addressed to the reader. The
-   narration stops on the goal.{person}
+   narration stops on the goal.
+   Write about the players, never to the listener and never as one of the
+   teams: "you", "your", "we", "our" and "us" are all rejected.
 3. Every name, action and clock in a sentence has to come from a fact that line
    cites, and a name has to sit in the same fact as the action you give it.
    "dribbled past a defender" needs one cited fact that records a dribble by or

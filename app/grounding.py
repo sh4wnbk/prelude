@@ -16,12 +16,17 @@ Those numbers are what this module checks against. A sentence is read against
 the facts it cited, not against the buildup as a lump, and
 `strip_citations` takes the tags off again before anything is shown or voiced.
 
-**A persona changes the register and not the rules.** `check` takes the
+**A persona changes the delivery and not the rules.** `check` takes the
 persona the narration was asked for and the side the listener is on, and the
-one difference they make is the first person: `app/personas.py` has the Mate
-writing as the listener's side, so that voice may say "we" over a fact about
-that side and no voice may say it anywhere else. Everything below reads the
-same narration the same way whoever wrote it.
+one difference they make is the first person: a partisan persona may say "we"
+over a fact about that side and no voice may say it anywhere else. Everything
+below reads the same narration the same way whoever wrote it.
+
+**That first-person rule is a guard rather than a permission in use.** The
+prompt in `app/narration_prompt.py` asks for one style in every voice and
+refuses the first person in all of them, so nothing now asks a model for
+"we". The rule stays because a model that writes it anyway has to be caught,
+and catching it needs to know whose side the word could be about.
 
 **It is all past tense, and it ends on the goal.** A buildup is playback of a
 passage that already happened, so the facts are written in the past tense and a
@@ -92,8 +97,23 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Mapping, Sequence
 
-from app.narration_prompt import Fact, Facts, NoSideForAPartisanVoice
+from app.narration_prompt import Fact, Facts
 from app.personas import Persona
+
+
+class NoSideForAPartisanVoice(ValueError):
+    """A `fans_only` persona was asked for without a side to be on.
+
+    The Mate is checked as the listener's team, so a Mate narration from
+    somebody with no team is one this module cannot read: the first person in
+    it has nothing to be true about. Checking it as though nobody were
+    partisan would admit "we" with no side behind it, and guessing a side
+    would decide for a listener who did not, so this raises instead.
+
+    It lived in `app/narration_prompt.py` while the prompt was the other
+    place that needed a side. The prompt takes no persona any more, so the
+    exception sits with its one raiser, `check`.
+    """
 
 #: "X passed to Y" is two records: a `Pass` on X's and a `Ball Receipt*` on Y's.
 #: Both ground the word, so naming the player a pass reached is not reported as
@@ -303,8 +323,8 @@ BANNED_PATTERNS: Sequence[tuple[str, str]] = (
 
 #: The first person plural, which belongs to one persona and no other.
 #:
-#: `app/personas.py` has the Mate writing as the listener's side, so "we" is
-#: what that voice is for. From the Caller or the Storyteller it is a claim
+#: `app/personas.py` has the Mate as the partisan voice, so "we" is the one
+#: it could be. From the Caller or the Storyteller it is a claim
 #: nobody made: neither is written as either team, and a narration that says
 #: "our goal" without a side to mean by it has put a loyalty in the app's
 #: mouth. `check` therefore refuses these from every persona but a partisan
@@ -671,9 +691,9 @@ def check(
     voice that could loosen one would make "Verified from play data" mean
     something different depending on who was listening.
 
-    A partisan persona with no side raises `NoSideForAPartisanVoice`, as
-    `build_prompt` does, rather than quietly checking the narration as though
-    nobody were partisan.
+    A partisan persona with no side raises `NoSideForAPartisanVoice` rather
+    than quietly checking the narration as though nobody were partisan. This
+    is the only place that raises it: the prompt takes no persona.
     """
     partisan = persona is not None and persona.fans_only
     if partisan and not side:

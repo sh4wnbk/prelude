@@ -132,9 +132,9 @@ Everything above it is structure.
 - `app/narration_prompt.py`: turns one buildup into a numbered list of plain
   past-tense facts, one per recorded event, built by code out of the records;
   the prompt that asks a model to narrate from that list in the past tense, cite
-  the facts each sentence used, and stop on the goal; the persona's style and,
-  for the Mate, the listener's side, printed into that prompt; and the fallback
-  narration, one sentence per fact, assembled with no model.
+  the facts each sentence used, and stop on the goal; `NARRATION_STYLE`, the one
+  style every narration is written in, printed into that prompt in every voice;
+  and the fallback narration, one sentence per fact, assembled with no model.
 - `app/grounding.py`: decides whether a narration's claims trace back to the
   data, sentence by sentence, against the facts that sentence cited. Refuses
   invented names, numbers, clocks and actions; a name or action in the passage
@@ -146,16 +146,19 @@ Everything above it is structure.
   fan, em dashes; and narration that asserts nothing checkable. It takes the
   persona and the listener's side, which change one thing: a partisan persona
   may say "we", "our" and "us" about that side, in a sentence citing a fact
-  recorded against it, and no other voice may say them at all.
+  recorded against it, and no other voice may say them at all. The prompt asks
+  for none of them in any voice, so that rule is a guard against a model that
+  writes the first person anyway rather than a permission anything uses.
 - `app/personas.py`: the three personas, each with an id, a name, a one-line
-  Profile description, the writing style said to the model, a worked example
-  of that register on an invented passage, and whether it is offered to fans
-  only. `build_prompt` prints the chosen one's style, and the
-  Mate's listener side with it. The IBM voices are `None` and marked
-  unconfirmed: Phase 5 picks them by ear. No screen offers a choice yet.
-- `tests/test_personas.py`: 22 tests over the config's shape, the ids against
-  `app/orchestrator_contract.py`, the unconfirmed voices and the Profile copy.
-  All 22 pass.
+  Profile description of what it sounds like, and whether it is offered to fans
+  only. They are separated by sound and not by text: the narration is one style
+  in every voice, and the IBM voice, rate, pitch and the two sentence breaks are
+  `None` and marked unconfirmed, because Phase 5 sets them by ear. Three
+  measured runs behind that decision are in `docs/narration_eval.md`. No screen
+  offers a choice yet.
+- `tests/test_personas.py`: 25 tests over the config's shape, the ids against
+  `app/orchestrator_contract.py`, the unconfirmed voice and prosody fields and
+  the Profile copy. All 25 pass.
 - `app/narration.py`: narrates one moment. Generates, checks, regenerates up to
   twice, then falls back to the template, and records every attempt with the
   claims that failed. Nothing ungrounded is returned. The citation tags are
@@ -170,10 +173,10 @@ Everything above it is structure.
   fake credentials file into a temporary directory; none reads the real one,
   and `tests/conftest.py` points `PRELUDE_ENV_FILE` at an absent path for the
   whole suite so none can.
-- `tests/test_narration_prompt.py`: 55 tests over the facts, the numbered fact
-  list, the prompt, the persona's style and the listener's side in it, the key
-  beats of a passage and the fallback narration, which has to reach every one
-  of those beats. All pass.
+- `tests/test_narration_prompt.py`: 43 tests over the facts, the numbered fact
+  list, the prompt, the one narration style printed in it, the key beats of a
+  passage and the fallback narration, which has to reach every one of those
+  beats. All pass.
 - `tests/test_grounding.py`: 89 tests over the grounding check, one per way a
   narration can be wrong or can look wrong and be fine, including the
   misdescription it refuses by pairing a name with an action and the first

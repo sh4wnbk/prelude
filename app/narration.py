@@ -156,11 +156,12 @@ def narrate(
     test, to replay a recorded response.
 
     `persona` is the voice, from `app/personas.py`, and `side` is the team the
-    listener is on. Both go to the prompt and to the check, which is what
-    keeps the two in step: the prompt states the first-person rule the check
-    then enforces, and a partisan persona without a side raises in both.
-    Leaving them out is the prompt and the check as they stood before personas
-    existed.
+    listener is on. Both go to the check and neither goes to the prompt: the
+    narration text is one text in every voice, and the persona decides how it
+    is spoken in Phase 5. What the check does with them is admit the first
+    person from a partisan voice over that side's facts, which is a guard
+    rather than something the prompt asks for; a partisan persona with no side
+    raises there.
 
     `beats` prints the key beats of the passage in the prompt. It is true
     everywhere but in one arm of the paid comparison, which measures what the
@@ -169,18 +170,16 @@ def narrate(
     statement about a three billion parameter model rather than about every
     model.
 
-    **The fallback is in no persona's voice.** It is assembled by code out of
-    the facts in one plain register, so a narration that reaches it is not the
-    voice that was asked for. It is still checked with the persona, because
-    the check is what decides whether anything may be labelled, and
+    **The fallback is not the model's narration.** It is assembled by code
+    out of the facts, sentence per fact, so a narration that reaches it is not
+    what the model wrote. It is still checked, because the check is what
+    decides whether anything may be labelled, and
     `scripts/narration_eval.py` counts a fallback as a failure for that
-    reason rather than as a narration in that voice.
+    reason rather than as a narration the model produced.
     """
     facts = facts_from_buildup(feed.buildup(match_id, moment))
     chosen = narration_provider or default_provider()
-    prompt = build_prompt(
-        facts, sentences=sentences, persona=persona, side=side, beats=beats
-    )
+    prompt = build_prompt(facts, sentences=sentences, beats=beats)
 
     attempts: list[Attempt] = []
     for number in range(1, max_retries + 2):

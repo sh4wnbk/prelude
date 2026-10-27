@@ -240,9 +240,10 @@ def prompt_for(
     no_block: bool,
 ) -> str:
     facts = facts_from_buildup(feed.buildup(match_id, moment))
-    return build_prompt(
-        facts, persona=voice.persona, side=voice.side, beats=not no_block
-    )
+    # The prompt is the same in every voice, so `voice` changes nothing
+    # here. It stays in the signature because an arm names one and the
+    # estimate is per narration, which is per voice.
+    return build_prompt(facts, beats=not no_block)
 
 
 def describe_plan(

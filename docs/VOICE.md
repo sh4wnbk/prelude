@@ -19,8 +19,8 @@ into two places that have to agree:
 
 | Where | What it does |
 | ----- | ------------ |
-| `app/personas.py` | the three registers the same facts can be said in |
-| `app/narration_prompt.py` | builds the numbered facts, and states the rules to the model in the prompt |
+| `app/narration_prompt.py` | builds the numbered facts, holds the one style in `NARRATION_STYLE`, and states the rules to the model in the prompt |
+| `app/personas.py` | the three voices the one narration can be spoken in, which is Phase 5 and not this document |
 | `app/grounding.py` | refuses a narration that broke them |
 | `scripts/narrate_once.py` | runs one goal through a real model and prints every attempt |
 | `scripts/narration_eval.py` | runs every goal several times and measures how often the rules held |
@@ -314,29 +314,52 @@ is also the one line in the app addressed to the fan, which is what the
 ending rule above keeps out of the narration itself: the header goes before
 the narration, and nothing goes after it.
 
-## The three personas
+## The three personas, and the one style
 
-**The styles are in the prompt and no screen offers a choice yet.**
-`app/personas.py` holds the three, `build_prompt` prints the chosen one's
-style, `check` in `app/grounding.py` takes the persona and the listener's
-side, and `narrate` passes both through. Nothing on a screen picks a persona:
-that is Task 7.
+**There is one narration style and the personas are separated by sound.**
+`NARRATION_STYLE` in `app/narration_prompt.py` is the style every narration is
+written in, whoever is listening, and `build_prompt` prints it under "THE
+STYLE" in every prompt
+(`tests/test_narration_prompt.py::TestTheOneNarrationStyle`). A persona
+changes how that text is spoken, which is Phase 5: an IBM Text to Speech
+voice, a rate, a pitch, and the pauses between sentences.
 
-A persona is a register, not a set of permissions. It changes how the same
-facts are said and nearly nothing about which facts may be said:
-`app/grounding.py` reads a narration against the facts it cited whoever asked
-for it, and `BANNED_PATTERNS` refuses the same nicknames, epithets and outcome
-claims in all three voices. The one difference is the first person, and the
-section below is what keeps it from being a loophole.
-`tests/test_narration_prompt.py::TestThePersonaInThePrompt::test_the_rules_are_the_same_in_every_voice`
-takes the prompts apart and asserts that the rules, with the person rule
-removed, are the same text in all three.
+That is a decision and not a simplification. The three measured sections at
+the end of this one are what it came out of: three ways of asking for three
+registers were tried, and each gave one register back.
 
 | Persona | Id | What it sounds like | Offered to |
 | ------- | -- | ------------------- | ---------- |
-| The Caller | `caller` | play-by-play pace, one action a line | everyone |
-| The Storyteller | `storyteller` | documentary calm, measured and plain | everyone |
-| The Mate | `mate` | partisan, a supporter in the next seat | fans only |
+| The Caller | `caller` | quick play-by-play, keeping up with the move | everyone |
+| The Storyteller | `storyteller` | calm documentary, unhurried and even | everyone |
+| The Mate | `mate` | warm, from the next seat | fans only |
+
+**Nothing in the narration text differs between them.** `app/grounding.py`
+reads a narration against the facts it cited whoever asked for it, and
+`BANNED_PATTERNS` refuses the same nicknames, epithets and outcome claims in
+all three. The prompt takes no persona at all:
+`tests/test_narration_prompt.py::TestTheOneNarrationStyle::test_the_prompt_takes_no_persona_and_no_side`
+holds it to that, because an argument that changed nothing would read as a
+register still reaching the model.
+
+**Comprehension comes first.** The Caller is the quick one, and its energy
+comes from emphasis and pitch rather than from speed: a rate far above the
+Storyteller's would cost a listener the names and the clock, which are the
+whole of what the narration carries. So the rate sits only modestly above the
+Storyteller's and has a ceiling. Breaks between sentences let each beat land,
+with a slightly longer one before the goal sentence. Shawn sets the numbers by
+ear in Phase 5, words per minute is measured from the real audio, and the
+measured ceiling goes into config.
+
+**The fields that will hold all that are empty and marked unconfirmed.** Each
+persona carries `voice`, `rate`, `pitch`, `sentence_break` and `goal_break`,
+every one of them `None`, with `voice_confirmed` and `prosody_confirmed` false
+beside them. Nothing in this repo has listened to a voice yet, and a plausible
+value written down now would be a guess with the look of a decision:
+`tests/test_personas.py::TestTheVoicesAreNotChosenYet` and
+`tests/test_personas.py::TestTheProsodyIsNotSetYet`. The two breaks are
+milliseconds so the one before the goal can be read against the one between
+sentences; the rate and the pitch are SSML values as that markup writes them.
 
 **Inspired by styles, never named after anybody.** Each name is what the
 persona does rather than who it resembles. Naming a real commentator would
@@ -360,34 +383,30 @@ covers the disagreement that would not otherwise show up: `default_persona` in
 default that was fans only would hand a neutral listener a persona the Profile
 screen then refuses to show them.
 
-**The voices are empty and marked unconfirmed.** Each persona has an IBM Text
-to Speech voice field, it is `None`, and `voice_confirmed` is false beside it.
-A voice is chosen in Phase 5 by listening to candidates say a narration, and
-nothing in this repo has listened to one. A plausible voice id written down now
-would be a guess with the look of a decision, so the pair of fields says "not
-chosen" instead:
-`tests/test_personas.py::TestTheVoicesAreNotChosenYet::test_a_null_voice_is_never_confirmed`.
+### The first person is refused in the prompt and guarded in the check
 
-### The Mate says "we", and nothing else does
+No narration says "we", "our" or "us" any more, because the prompt rejects the
+first person in the one voice it has
+(`tests/test_narration_prompt.py::TestTheOneNarrationStyle::test_the_prompt_refuses_the_first_person_in_the_one_voice_it_has`).
+The Mate was written as the listener's side from Task 6b to Task 6d, which is
+the one thing that visibly separated it, and what a model wrote with that
+permission is below: "Our Peter Beardsley was dribbled past at 54:08." and
+"We were dribbled past, Peter Beardsley.", five times over. Partisan warmth is
+something a voice can carry and that prose could not.
 
-The Mate is written as the listener's side, so "we", "our" and "us" are what
-that voice is made of. From the Caller or the Storyteller the same word is a
-loyalty nobody declared: neither is written as either team, and "our goal"
-from a voice with no side is the app claiming one.
-
-So the first person is refused by default and admitted for a partisan persona
-only, and then only where it has something to stand on. `FIRST_PERSON` in
-`app/grounding.py` holds the words, as patterns rather than as a word list,
-because an apostrophe is a word boundary and `we` is what catches
-"we're".
+**The rule stays in `app/grounding.py` as a guard.** `check` still refuses
+"we", "our" and "us" from every persona but a partisan one, and from a
+partisan one unless a cited fact is recorded against the listener's side.
+Nothing asks a model for the word, so the rule now exists to catch a model
+that writes it anyway rather than to permit one that was told to.
 
 | Voice | "we", "our", "us" | "you", "your" |
 | ----- | ----------------- | ------------- |
 | no persona | refused | refused |
 | the Caller | refused | refused |
 | the Storyteller | refused | refused |
-| the Mate, with a side | allowed over that side's facts | refused |
-| the Mate, with no side | the request itself is refused | refused |
+| the Mate, with a side | admitted over that side's facts | refused |
+| the Mate, with no side | the check itself is refused | refused |
 
 **A partisan sentence has to cite the listener's side.** One cited fact
 recorded against that side is enough, which is the same shape as a name claim:
@@ -409,53 +428,40 @@ Nothing in the words tells the two apart. What decides it is the team on the
 record the sentence cited.
 
 **"You" is refused in every voice, the Mate included.** The narration is not
-addressed to the fan in any register, which is the ending rule above: the
+addressed to the fan in any register, which is the ending rule below: the
 header goes before the narration and nothing goes after it.
 `tests/test_grounding.py::TestThePartisanVoice::test_you_is_refused_from_the_mate_too`
 holds the partisan voice to it.
 
-**A Mate request from a neutral listener is refused rather than softened.**
-Both `build_prompt` and `check` raise `NoSideForAPartisanVoice`. Falling back
-to a neutral register would hand back narration in a voice nobody asked for,
-and picking a side would tell a listener they support a team they did not
-choose.
+**A Mate narration from a neutral listener is refused rather than softened.**
+`check` raises `NoSideForAPartisanVoice`. Checking it as though nobody were
+partisan would admit "we" with no side behind it, and picking a side would
+tell a listener they support a team they did not choose.
 
-**The prompt says what the check enforces, in each voice.** A prompt asking
-for less than the check requires would set the model up to fail and a retry
-would not help it, so `first_person_rule` in `app/narration_prompt.py` writes
-the strict version for two voices and the partisan version, naming the side,
-for the Mate.
+### Measured once: the three voices came back nearly the same
 
-**It loosens the first person and nothing else.** "We dribbled past Peter
-Reid" is the misdescription from the section above, said as a supporter, and
-it is refused for the same reason:
-`tests/test_grounding.py::TestThePartisanVoice::test_a_partisan_narration_is_held_to_every_other_rule`.
+The next three sections are the measurement behind the decision at the top of
+this one. All three ran against code that has since been removed: each persona
+carried a `style` that the prompt printed, and from Task 6d a worked `example`
+of its register as well. `docs/narration_eval.md` holds the numbers and labels
+every section of them the same way.
 
-### Measured: the three voices came back nearly the same
-
-`docs/narration_eval.md` holds the run, 36 narrations over three goals, three
-runs of each of four voices per goal, on `granite4:micro`. Two findings are
-worth carrying into Phase 5, and both are numbers rather than impressions.
+The first run is 36 narrations over three goals, three runs of each of four
+voices per goal, on `granite4:micro`.
 
 **The registers did not reach the model.** Words per sentence, the one thing
-in these styles that can be measured without a judgement, came out between 4.9
-and 5.5 for every voice, including the Caller, whose style asks for short
-lines, and the Storyteller, whose style asks for measured ones. The sample
-narrations printed in the report read alike for the same reason. Whether a
-larger model separates them is what Task 4b is for; this says nothing about
-`ibm/granite-4-h-small` or `openai/gpt-oss-120b`, only about a three billion
-parameter model.
+in those styles that could be measured without a judgement, came out between
+4.9 and 5.5 for every voice, including the Caller, whose style asked for short
+lines, and the Storyteller, whose style asked for measured ones. The sample
+narrations printed in the report read alike for the same reason.
 
 **The Mate never took the first person.** Of 18 narrations written in that
-voice, none used "we", "our" or "us". The permission is in the prompt and in
-the check, and nothing requires it: `app/grounding.py` refuses a partisan
-narration that misuses the word and has no opinion about one that never
-reaches for it. So the rule above is built and tested, and on this model it
-has not yet had anything to rule on.
+voice, none used "we", "our" or "us". The permission was in the prompt and in
+the check, and nothing required it.
 
 **The style block cost first-attempt grounding.** On the 54:18 goal, Task 4c
 measured 3 of 3 first attempts grounded with no persona; with a persona, the
-same goal came out 3 of 12. Retries absorb most of it, and the after-retry
+same goal came out 3 of 12. Retries absorbed most of it, and the after-retry
 figure is 10 of 12, which is why the report prints both.
 
 ### Measured again on the paid models
@@ -476,57 +482,26 @@ impossible.
 sentence spread 2.0 across the voices for `openai/gpt-oss-120b`, against 0.6
 on the development model, and the narrations it wrote for the Caller, the
 Storyteller and the Mate on the 54:18 goal are the same five sentences with
-different punctuation. The styles in `app/personas.py` are read and obeyed as
-rules and not as a voice.
+different punctuation. The styles were read and obeyed as rules and not as a
+voice.
 
-**The Mate did take the first person, and it reads badly.** It used "we",
+**The Mate did take the first person, and it read badly.** It used "we",
 "our" or "us" in 9 of its 12 narrations on `openai/gpt-oss-120b`, against none
-on either smaller model, so the permission is reachable too. What it produced
+on either smaller model, so the permission was reachable too. What it produced
 is "Our Peter Beardsley was dribbled past at 54:08." and "We, Nicolás Hernán
 Otamendi, pressed, 78:11.": the possessive grafted onto a name rather than a
-supporter telling a friend what happened. The grounding check accepts it,
-correctly, because every cited fact is the listener's side. The rule is doing
-its job and the prose is not, and nothing in this repo refuses a narration for
-being stilted.
+supporter telling a friend what happened. The grounding check accepted it,
+correctly, because every cited fact was the listener's side. The rule was
+doing its job and the prose was not, and nothing in this repo refuses a
+narration for being stilted.
 
-### Each persona shows its register as well as describing it
+### Measured a third time: showing the register changed almost nothing
 
-Task 4b is why. A model that followed every other rule exactly wrote the same
-narration in all three voices, so what reached it was the rules and not the
-prose. Each persona now carries an `example` beside its `style`: a short
-narration in that voice, cited the way a real one has to be, which
-`build_prompt` prints under "THE REGISTER, ON A PASSAGE FROM ANOTHER MATCH".
-
-**The passage in it never happened.** The players and the teams are invented,
-so nothing in the example can be read as a fact about the goal being
-narrated, and a model that lifts a name out of it is refused by
-`app/grounding.py` like any other invention. That makes copying the content
-rather than the voice a visible failure instead of a silent one.
-`tests/test_narration_prompt.py::TestTheWorkedExamples::test_the_examples_name_nobody_in_either_demo_match`
-holds the names apart from both demo matches.
-
-**The examples are held to the rules they are teaching.**
-`tests/test_narration_prompt.py::TestTheWorkedExamples::test_each_example_passes_the_real_grounding_check`
-runs each one through `app/grounding.py` against the invented passage it
-narrates, the Mate's with its side. It earned its place immediately: the first
-draft of the Caller's example read "Quillan won it back", which the check
-reads as a claim about a `Foul Won` event over a fact recording a recovery.
-An example that breaks a rule is the prompt teaching a model to fail the
-check.
-
-**The Mate's example is where the first person is shown, not just allowed.**
-It reads "We recovered it through Quillan", never "We, Quillan, recovered
-it", because the second is what `openai/gpt-oss-120b` produced in Task 4b
-with no example to copy: "Our Peter Beardsley was dribbled past at 54:08."
-The check accepts that, correctly, and it reads as a label stuck on a name
-rather than as a supporter talking.
-`tests/test_narration_prompt.py::TestTheWorkedExamples::test_the_mate_never_puts_a_name_in_apposition`
-holds the example to the better shape.
-
-### What the examples changed: almost nothing
-
-Measured the same way, on `openai/gpt-oss-120b`, over the two goals the
-persona arm used, 16 narrations. `docs/narration_eval.md` holds it.
+Task 6d gave each persona a worked example of its register, a short narration
+of an invented passage, printed in the prompt for the model to copy rather
+than to interpret. Measured the same way, on `openai/gpt-oss-120b`, over the
+two goals the persona arm used, 16 narrations. `docs/narration_eval.md` holds
+it.
 
 | | Described | Shown |
 | --- | ---: | ---: |
@@ -543,32 +518,22 @@ introduced by a comma or by "at". Showing the register did not work where
 describing it had not.
 
 **The one thing that did move is the Mate, and not in the direction the
-example was written for.** The example says "We recovered it through
+example was written for.** The example said "We recovered it through
 Quillan". What came back for an England listener is:
 
 > We were dribbled past, Peter Beardsley. We were dribbled past, Terry
 > Butcher. We were dribbled past, Terry Fenwick. We were dribbled past, Peter
 > Shilton. Diego Armando Maradona shot.
 
-That is the apposition the example was meant to replace, inverted: the name
-now trails the clause instead of interrupting it. It is grounded, because
-every cited fact is England's, and it is five sentences of the same sentence.
-The first person is reachable and the register is not, which is the same
-finding as before with one more thing ruled out.
+That is an apposition inverted: the name trails the clause instead of
+interrupting it. It was grounded, because every cited fact is England's, and
+it is five sentences of the same sentence.
 
-**Nothing was paid for in grounding.** All 16 passed on the first attempt,
-as all 16 did before the examples, so the examples are not harmful; they are
-inert. Whether three personas are worth shipping is a product decision rather
-than a prompt problem, and it is Shawn's.
-
-**The style text is prompt copy and the Profile line is app output.** They are
-checked differently on purpose. The Profile line is read by a fan, so the
-no-nicknames rule applies to it. The style is said to a model, where naming a
-banned word can be the only way to forbid it, which is what rule 7 of the
-prompt in `app/narration_prompt.py` already does; scanning it for those words
-would refuse the instruction that keeps them out of the narration. Both are
-held to the no-em-dash rule:
-`tests/test_personas.py::TestNoDashes::test_no_em_or_en_dash_in_any_field`.
+**Nothing was paid for in grounding.** All 16 passed on the first attempt, as
+all 16 did before the examples, so the examples were inert rather than
+harmful. That is the whole of what three attempts showed: the grounding rules
+leave no room for a writing style, so the style text and the examples came out
+and the personas became voices.
 
 ## It ends on the goal, and there is no closer
 

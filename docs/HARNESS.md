@@ -109,8 +109,10 @@ It needs a local Ollama server running the model in `app/narration_config.py`.
 
 `scripts/narration_eval.py` is the measured version of the same thing, over
 many goals and several runs each. `--personas` picks the voices, defaulting to
-`none`, which is the prompt with no style block; a fans-only persona runs once
-per side. `--json` writes the records after every narration, and `--from-json`,
+`none`; a fans-only persona runs once per side. It reaches
+`app/grounding.py` and not the prompt, which takes no persona: the saved
+persona runs in `docs/narration_runs/` were measured while it did reach the
+prompt, and every persona section of the report says so. `--json` writes the records after every narration, and `--from-json`,
 `--compare` and `--persona-runs` rebuild the report from saved records without
 generating anything:
 
@@ -120,7 +122,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 417 tests in nine files, and all of them pass, so any failure
+The suite is 408 tests in nine files, and all of them pass, so any failure
 means something is wrong. It is run from the repo root:
 
 ```
@@ -140,7 +142,7 @@ No path setting is needed: `pyproject.toml` sets `pythonpath = ["."]` and
 | `tests/test_credentials.py` | where the credentials file lives, and what is refused |
 | `tests/test_narration_eval.py` | the key beats, the coverage measure, the token recorder and the voices a run is split into |
 | `tests/test_orchestrator.py` | the greeting, the phase, the score state, the header table, the default persona and `opening`, against `app/orchestrator.py` |
-| `tests/test_personas.py` | the persona config: the three ids, the fields, the unconfirmed voices and the Profile copy |
+| `tests/test_personas.py` | the persona config: the three ids, the fields, the unconfirmed voice and prosody and the Profile copy |
 
 ### Two guards, on every test
 

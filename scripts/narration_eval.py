@@ -24,9 +24,10 @@ Four things are recorded per narration:
   rather than estimated from the text, which is what `Recorder` is for.
 * **Time**, wall clock around the generation call.
 * **The voice**, which persona was asked for and which side the listener was
-  on. `NO_PERSONA` means the prompt with no style block, which is what the
-  Task 4a and 4c runs measured and what makes them comparable with a later
-  one.
+  on. It reaches `app/grounding.py` and no longer reaches the prompt: the
+  narration text is one style in every voice (`NARRATION_STYLE` in
+  `app/narration_prompt.py`). The persona columns in the saved runs were
+  measured while it did reach the prompt, and each of those sections says so.
 
 Grounding and coverage answer different questions, and both are needed. The
 check refuses a narration that says something the data does not support; it has
@@ -35,19 +36,19 @@ out the goal's whole story. A first live run on the 1986 54:18 goal passed the
 check with four true sentences that skipped all four dribbles, which is the run
 coverage exists to put a number on.
 
-**The personas are opt in.** `--personas` picks the voices to run and
-defaults to `none`, the prompt with no style block, so the default run is the
-one the earlier numbers were measured with and the command quoted in the
-report still reproduces it. A `fans_only` persona becomes two runs, one per
-side, because it writes as the listener's team. `--persona-runs` takes a
-records file and adds its per-persona results to the report as a section of
-their own, which is how one document holds three runs.
+**The personas are opt in, and they now change only the check.**
+`--personas` picks the voices to run and defaults to `none`. It changed the
+prompt from Task 6b to Task 6d, which is what the saved persona runs measured;
+the prompt takes no persona now, so a voice changes which first-person rule
+`app/grounding.py` applies and nothing else. A `fans_only` persona is still
+two runs, one per side, because that is what the check reads it against.
+`--persona-runs` takes a records file and adds its per-persona results to the
+report as a section of their own, which is how one document holds three runs.
 
 **Only the model can pass.** A template fallback is counted as a failure in
-the persona section: it is assembled by code out of the facts in one plain
-register, so it is neither the model's narration nor the voice that was asked
-for, and a column treating it as a pass would report the fallback's
-reliability as the persona's.
+the persona section: it is assembled by code out of the facts, so it is not
+the model's narration, and a column treating it as a pass would report the
+fallback's reliability as the model's.
 
 Run it:
 
@@ -105,10 +106,27 @@ DEFAULT_RUNS = 3
 
 DEFAULT_REPORT = ROOT / "docs" / "narration_eval.md"
 
-#: What a narration with no persona is called in a report. The prompt with no
-#: style block is a real arm of the comparison, not a missing value: it is the
-#: prompt the Task 4a and 4c numbers were measured with.
+#: What a narration with no persona is called in a report. It was a real arm
+#: of the comparison rather than a missing value: while a persona carried a
+#: style, `none` was the prompt without one, and it is the prompt the Task 4a
+#: and 4c numbers were measured with.
 NO_PERSONA = "none"
+
+#: The label every persona section carries, because the code those runs
+#: measured is gone. Doc copy, so `CLAUDE.md` governs it, and it names the
+#: commits rather than describing them: a reader can check out any of the
+#: three and build the prompt the numbers came from.
+REMOVED_SINCE = (
+    "**Measured on code since removed.** Each persona carried a `style` "
+    "that `build_prompt` printed under \"THE VOICE\", and from Task 6d a "
+    "worked `example` of its register as well. Three runs asked three models "
+    "for three registers and got one back each time, so both fields were "
+    "removed: the narration text is now one style for every persona, "
+    "`NARRATION_STYLE` in `app/narration_prompt.py`, and Phase 5 separates "
+    "the voices in the audio instead. The runs are at `8f784cf` (Task 6c), "
+    "`abf5702` (Task 4b) and `128833a` (Task 6d). The numbers below are what "
+    "they reported; nothing in them has been recomputed."
+)
 
 
 @dataclass(frozen=True)
@@ -856,15 +874,18 @@ def persona_section(records: Sequence[Record]) -> list[str]:
 
     lines = ["## Task 6c: the three personas", ""]
     add = lines.append
+    add(REMOVED_SINCE)
+    add("")
     add("Every voice over the same goals, on the same development model. A "
-        "persona changes the register and one rule: the Mate writes as the "
-        "listener's side and may say \"we\" over that side's facts, which "
-        "is why it is run once for each team and reported as two rows.")
+        "persona changed the register and one rule then: the Mate was "
+        "written as the listener's side and could say \"we\" over that "
+        "side's facts, which is why it was run once for each team and is "
+        "reported as two rows.")
     add("")
     add("A pass is narration the model wrote and the check accepted. A "
         "template fallback is a failure here, however complete it is: it is "
-        "assembled by code in one plain register, so it is not the voice that "
-        "was asked for.")
+        "assembled by code out of the facts, so it is not what the model "
+        "wrote.")
     add("")
     add("| | |")
     add("| --- | --- |")
@@ -1103,13 +1124,16 @@ def watsonx_section(records: Sequence[Record]) -> list[str]:
         "a template fallback is a failure here, as it is in the Task 6c "
         "numbers above.")
     add("")
+    add(REMOVED_SINCE)
+    add("")
 
     baseline = [r for r in records if r.arm == "b"]
     if baseline:
         add("### Grounding, with no persona")
         add("")
-        add("Arm b: the same three goals as Task 6c, with no style block, "
-            "which is the prompt the local numbers were measured with.")
+        add("Arm b: the same three goals as Task 6c, with no persona and "
+            "so no style block, which is the prompt the local numbers were "
+            "measured with.")
         add("")
         add("| Model | Narrations | First attempt | After a retry | Fell back "
             "| Coverage | Words per sentence | Tokens per call | Seconds per call |")
@@ -1306,10 +1330,12 @@ def example_section(
     lines = ["## Task 6d: one worked example per persona", ""]
     add = lines.append
 
+    add(REMOVED_SINCE)
+    add("")
     add(f"`{model}` over the same {plural(len(goals), 'goal')} as the "
         "persona arm above, before and after each persona was given a short "
-        "narration in its own register to copy. The example is of an "
-        "invented passage, so nothing in it can be lifted into a real "
+        "narration in its own register to copy. The example was of an "
+        "invented passage, so nothing in it could be lifted into a real "
         "narration without `app/grounding.py` refusing it.")
     add("")
     add("**Words per sentence is the measure, and the spread across the "
@@ -1369,7 +1395,8 @@ def example_section(
     add(f"### Every voice on {first_goal}, side by side")
     add("")
     add("The first run of each, after the examples. This is the comparison "
-        "to read before deciding how many personas to ship.")
+        "the decision was made on: the personas are separated by sound now, "
+        "not by text.")
     add("")
     for voice in voices_run:
         rows = [r for r in now if r.voice == voice and r.goal == first_goal]

@@ -28,6 +28,7 @@ from app.grounding import (
     PRESENT_TENSE_PHRASES,
     TEAM_DEMONYMS,
     GroundingResult,
+    NoSideForAPartisanVoice,
     bare,
     check,
     fold,
@@ -37,7 +38,6 @@ from app.grounding import (
 )
 from app.narration_prompt import (
     EVENT_VERBS,
-    NoSideForAPartisanVoice,
     facts_from_buildup,
     template_narration,
 )
