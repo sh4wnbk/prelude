@@ -147,6 +147,7 @@ def narrate(
     max_retries: int = MAX_RETRIES,
     persona: Persona | None = None,
     side: str | None = None,
+    beats: bool = True,
 ) -> Narrated:
     """Narrate `moment`, returning grounded text or raising.
 
@@ -161,6 +162,13 @@ def narrate(
     Leaving them out is the prompt and the check as they stood before personas
     existed.
 
+    `beats` prints the key beats of the passage in the prompt. It is true
+    everywhere but in one arm of the paid comparison, which measures what the
+    block costs on a model that may not need it: Task 4c added it because
+    `granite4:micro` would not reach the beats without it, and that is a
+    statement about a three billion parameter model rather than about every
+    model.
+
     **The fallback is in no persona's voice.** It is assembled by code out of
     the facts in one plain register, so a narration that reaches it is not the
     voice that was asked for. It is still checked with the persona, because
@@ -170,7 +178,9 @@ def narrate(
     """
     facts = facts_from_buildup(feed.buildup(match_id, moment))
     chosen = narration_provider or default_provider()
-    prompt = build_prompt(facts, sentences=sentences, persona=persona, side=side)
+    prompt = build_prompt(
+        facts, sentences=sentences, persona=persona, side=side, beats=beats
+    )
 
     attempts: list[Attempt] = []
     for number in range(1, max_retries + 2):

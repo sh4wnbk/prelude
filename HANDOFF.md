@@ -128,7 +128,7 @@ nothing in the repo may open that file to check. The file itself moved out of
 the repo in task 2c, below; at this commit it was still at the repo root.
 
 **The tests make no network calls, and that is enforced.**
-`tests/test_narration_provider.py` is 28 tests, and `tests/conftest.py`
+`tests/test_narration_provider.py` is 41 tests, and `tests/conftest.py`
 replaces `urllib.request.urlopen` and `socket.socket.connect` with functions
 that raise, for every test in the suite. Two tests check the guard itself.
 
@@ -986,6 +986,77 @@ to retest when a candidate model is picked.
 
 `pytest -q` reports `363 passed`, and the four gates pass.
 
+### Phase 4, task 4b
+
+**`openai/gpt-oss-120b` leads on grounding, and it is not close.** 87
+narrations, 155 generation calls, 303,382 tokens reported, 269 seconds, run
+once from `scripts/narration_compare.py`. The records are
+`docs/narration_runs/4b_watsonx.json` and the report is the Task 4b section of
+`docs/narration_eval.md`.
+
+| | `ibm/granite-4-h-small` | `openai/gpt-oss-120b` |
+| --- | ---: | ---: |
+| narrations | 54 | 33 |
+| model wrote it | 31 | 33 |
+| grounded on the first attempt | 16 | 33 |
+| fell back to the template | 23 | 0 |
+| generation calls per narration | 2.26 | 1.00 |
+| tokens per narration | 4,095 | 2,493 |
+| seconds of generation per narration | 2.7 | 3.3 |
+
+**It is cheaper per narration as well as better,** which is the result worth
+reading twice. It costs more per call, 2,493 tokens against 1,812, and it
+never makes a second call: Granite needed 122 calls for 54 narrations and
+still fell back 23 times. The only column Granite wins is latency, by six
+tenths of a second a narration.
+
+**The endpoint had to change, and that is a finding rather than a detail.**
+Neither candidate refused `/ml/v1/text/generation`, and both were unusable on
+it: it applies no chat template, so Granite answered with the tail of the
+prompt ("Nothing else follows. READY") in front of its narration and
+`openai/gpt-oss-120b` returned its reasoning as the answer. Both were run on
+`/ml/v1/text/chat` instead. A pass rate measured across two endpoints would
+compare those as much as the models, so it is one endpoint for both.
+
+**`openai/gpt-oss-120b` is run at `reasoning_effort: low`,** which is the one
+setting the two do not share. At the default it spent 1,496 completion tokens
+thinking before one narration, against Granite's 60, and a fan waits through
+that on every attempt and every retry. At low effort it spends 312 and still
+grounded every narration it wrote. Everything else is pinned identically, and
+the decoding is pinned at all because watsonx is greedy by default and three
+runs of a greedy model are one run reported three times.
+
+**The personas are still not distinguishable, on either paid model.** This is
+the question Task 6c left open and the answer did not change. Words per
+sentence spread 2.0 across the voices on `openai/gpt-oss-120b` against 0.6 on
+the development model, and the Caller, the Storyteller and the Mate wrote the
+same five sentences for the 54:18 goal with different punctuation. The styles
+are being read as rules and obeyed, not as a voice.
+
+**The Mate did reach for the first person on the larger model**, 9 of its 12
+narrations against none on either smaller one, and what it wrote is "Our Peter
+Beardsley was dribbled past at 54:08." The check accepts it because every
+cited fact is the listener's side, so the rule from task 6b is working. The
+prose is not, and nothing here refuses a narration for being stilted.
+
+**The beats block earns its place on Granite too.** On the five multi-beat
+goals, with the block 7 of 15 first attempts grounded at 95% coverage; without
+it 3 of 15 at 93%. On `granite4:micro` the block cost grounding and bought
+coverage. On this model it buys both, so the Task 4c trade is a small-model
+trade and not a general one.
+
+**What this does not settle.** One run of each arm, 2 runs on the persona arm
+rather than 3, and three goals of the nine. It is enough to rank the two
+candidates on grounding, which is what it was for, and not enough to put an
+interval on any figure in it.
+
+**What it cost against the budget.** 339,788 metered of the 500,000 hard stop,
+which never fired. The estimate before the run was 453,362 at the rate the
+development model had shown; the models retried far less than that, which is
+the whole reason it came in under.
+
+`pytest -q` reports `393 passed`, and the four gates pass.
+
 ### Phase 4, task 3c
 
 **Four documents, each statement carrying its file and its test.**
@@ -1806,7 +1877,7 @@ Tasks 3d through Phase 7, as agreed with Shawn, copied here so a fresh session
 has the whole arc rather than one task at a time.
 
 **Everything in this section is planned work except where a task is marked
-done.** Tasks 3d, 4a, 4c, 5, 6a, 6b and 6c are built, and so is Bob's task 4, the
+done.** Tasks 3d, 4a, 4b, 4c, 5, 6a, 6b and 6c are built, and so is Bob's task 4, the
 orchestrator; nothing below them exists. Paths a doc names before they are
 written go on `DELIBERATELY_ABSENT` in `scripts/check_docs.py`, so the docs
 gate fails if one appears and this section was not updated with it. The list
@@ -1967,7 +2038,7 @@ Show the orchestrator's header at the top of the moment card.
 Exit when: the full flow works on both matches in a real browser, at 390px and
 on desktop, all gates pass, and the work is deployed and pushed.
 
-### Task 4b: the paid comparison (watsonx, once)
+### Task 4b: the paid comparison (watsonx, once) (done)
 
 Before running, state how many watsonx calls it will make: 2 models by 3
 personas by the chosen goals by runs. Keep it to the hero moments if the count
@@ -2024,7 +2095,34 @@ speed, per persona; this file records which leads; and Shawn picks the model.
   session (all gates, both matches, a real-phone check).
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Shawn decides, then Task 7)
+## Next first action (Shawn picks the model and decides on the personas)
+
+**Task 4b is run and Task 6 is finished. Both decisions are Shawn's, and
+Task 7 waits on them.**
+
+**The model.** `openai/gpt-oss-120b` grounded 33 of 33 narrations on the first
+attempt with no fallback, against `ibm/granite-4-h-small` at 16 of 54 with 23
+fallbacks, and it costs fewer tokens per narration because it does not retry.
+It is six tenths of a second slower a narration. `ACTIVE_CANDIDATE` in
+`app/narration_config.py` is still Granite, and switching it is the one line
+that file was written for. Nothing in the repo assumes either way.
+
+**Two things to know before switching it.** The comparison ran on the chat
+endpoint, so whatever ships has to pass `chat=True`, and
+`openai/gpt-oss-120b` needs `reasoning_effort: low` or it spends about 1,500
+tokens thinking before every narration.
+
+**The personas.** The question Task 6c left open is answered and the answer is
+no: on both paid models the three voices write the same narration. The Mate
+reaches for the first person on the larger model, 9 of 12, and writes "Our
+Peter Beardsley was dribbled past." The three options from Task 6c still
+stand, with better evidence under them now: leave the personas as they are,
+rewrite the styles and remeasure the same way, or ship fewer of them. A fourth
+is open now that a model follows instructions this exactly: give each persona
+its own worked example in the prompt rather than a description of a register,
+since what reached this model was the rules and not the prose.
+
+### Settled by Task 4b and Task 6 (the old next action)
 
 **Task 6 is finished and Task 7 is next, after Shawn has read the Task 6c
 numbers.** The three personas are built, wired into the prompt and the check,

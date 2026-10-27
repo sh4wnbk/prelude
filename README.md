@@ -95,6 +95,11 @@ Everything above it is structure.
   counts as written.
 - `scripts/check_docs.py`: checks that these docs still match the code they
   describe, and exits non-zero when one has gone stale.
+- `scripts/narration_compare.py`: the paid comparison of the two watsonx
+  candidates, by persona. `--plan` prints the narrations, the calls and the
+  estimated tokens and makes no call; `--confirm` has to name the same arms as
+  `--arms`; `--max-tokens` stops the run between narrations. It is the only
+  script in the repo that can spend money.
 - `scripts/narration_eval.py`: narrates goals several times, in one persona or
   all of them, and measures what came back: the first-attempt and after-retry
   pass rates, coverage of the passage's key beats, words per sentence, tokens
@@ -119,8 +124,8 @@ Everything above it is structure.
   every attempt, the claims the check refused, and whether the first attempt
   was grounded. Defaults to the 1986 goal at 54:18; takes a match id and a
   clock for any other. It needs a local Ollama server and writes nothing.
-- `tests/test_narration_provider.py`: 28 tests over the config and both
-  backends. All 28 pass, and none of them opens a connection:
+- `tests/test_narration_provider.py`: 41 tests over the config and both
+  backends. All 41 pass, and none of them opens a connection:
   `tests/conftest.py` replaces `urllib.request.urlopen` and
   `socket.socket.connect` with functions that raise, for every test in the
   suite.
@@ -176,7 +181,7 @@ Everything above it is structure.
 - `tests/test_narration.py`: 24 tests over the pipeline, covering the retries,
   the fallback, the citation stripping, the failure log and the first-attempt
   pass rate. All pass, and no test calls a model.
-- `tests/test_narration_eval.py`: 49 tests over the coverage measure, the
+- `tests/test_narration_eval.py`: 66 tests over the coverage measure, the
   token recorder and the goal selection in `scripts/narration_eval.py`,
   including the live thin narration that passes the grounding check and
   reaches one key beat of five. All pass.

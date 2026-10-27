@@ -241,14 +241,64 @@ class Call:
     seconds: float
 
 
+def call_tokens(answer: Mapping[str, Any]) -> tuple[int, int]:
+    """(prompt, completion) tokens from one response, whichever API sent it.
+
+    Three shapes, because three APIs count the same thing under different
+    names, and none of them is guessed at: Ollama reports `prompt_eval_count`
+    and `eval_count` at the top level, watsonx text generation reports
+    `input_token_count` and `generated_token_count` inside `results[0]`, and
+    watsonx chat reports a `usage` object. A response carrying none of them
+    reports zero rather than an estimate, because a token count invented here
+    would be indistinguishable in the report from one the server sent.
+    """
+    if "prompt_eval_count" in answer or "eval_count" in answer:
+        return (
+            int(answer.get("prompt_eval_count") or 0),
+            int(answer.get("eval_count") or 0),
+        )
+
+    results = answer.get("results") or []
+    if results:
+        first = results[0] or {}
+        return (
+            int(first.get("input_token_count") or 0),
+            int(first.get("generated_token_count") or 0),
+        )
+
+    usage = answer.get("usage") or {}
+    if usage:
+        return (
+            int(usage.get("prompt_tokens") or 0),
+            int(usage.get("completion_tokens") or 0),
+        )
+
+    return (0, 0)
+
+
+def is_generation(answer: Mapping[str, Any]) -> bool:
+    """Whether a response is a generation rather than an IAM exchange.
+
+    The paid run authorises before it generates, and both go through this
+    transport. Counting the IAM exchange as an attempt would report every
+    watsonx narration as having tried twice as often as it did, so it is told
+    apart by what it answered with: an access token and nothing else.
+    """
+    return "access_token" not in answer
+
+
 class Recorder:
     """A transport that passes requests through and keeps the token counts.
 
     `Transport` is the seam the provider already has for tests, so measuring
-    tokens needs no change to `app/`. The counts come from Ollama's own
-    `prompt_eval_count` and `eval_count` rather than from counting words, which
-    would be a different number wearing the same name. A response without them
-    reports zero rather than guessing.
+    tokens needs no change to `app/`. The counts come from whichever server
+    answered, through `call_tokens`, rather than from counting words, which
+    would be a different number wearing the same name.
+
+    **An IAM exchange is not a call.** The watsonx provider authorises before
+    it generates, and both pass through here. Only generations are recorded,
+    so an attempt count means attempts at narrating; `iam_exchanges` on the
+    provider is what says how often it authorised.
     """
 
     def __init__(self, inner: Transport = post) -> None:
@@ -260,13 +310,15 @@ class Recorder:
     ) -> Mapping[str, Any]:
         started = time.perf_counter()
         answer = self._inner(url, body, headers)
-        self.calls.append(
-            Call(
-                prompt_tokens=int(answer.get("prompt_eval_count") or 0),
-                completion_tokens=int(answer.get("eval_count") or 0),
-                seconds=time.perf_counter() - started,
+        if is_generation(answer):
+            prompt_tokens, completion_tokens = call_tokens(answer)
+            self.calls.append(
+                Call(
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                    seconds=time.perf_counter() - started,
+                )
             )
-        )
         return answer
 
     def take(self) -> tuple[Call, ...]:
@@ -305,6 +357,23 @@ class Record:
     # means the prompt had no style block, which is what NO_PERSONA says.
     persona: str = NO_PERSONA
     side: str = ""
+    # What produced it, for a report holding more than one model. The local
+    # runs have no model field because they were all the development model,
+    # which is what the default says.
+    model: str = ""
+    arm: str = ""
+    beats_block: bool = True
+    # Latency, separated from `seconds`. `seconds` is the whole narration,
+    # every attempt and both checks; these two are the generation calls
+    # alone, which is what a fan waits through and what a model is compared
+    # on. The local records have neither, and a mean over zero calls is
+    # reported as n/a rather than as zero.
+    calls: int = 0
+    generation_seconds: float = 0.0
+
+    @property
+    def seconds_per_call(self) -> float | None:
+        return self.generation_seconds / self.calls if self.calls else None
 
     @property
     def clock(self) -> str:
@@ -407,6 +476,7 @@ def measure(
     backend,
     recorder: Recorder,
     voice: Voice = Voice(persona=None, side=None),
+    beats: bool = True,
 ) -> Record:
     """Narrate one goal once and record what it cost and what it reached.
 
@@ -440,6 +510,7 @@ def measure(
             narration_provider=backend,
             persona=voice.persona,
             side=voice.side,
+            beats=beats,
         )
     except Exception as failure:  # noqa: BLE001 - recorded, not swallowed
         calls = recorder.take()
@@ -456,6 +527,8 @@ def measure(
             text="",
             tagged_text="",
             error=f"{type(failure).__name__}: {failure}",
+            calls=len(calls),
+            generation_seconds=sum(call.seconds for call in calls),
         )
 
     calls = recorder.take()
@@ -472,6 +545,8 @@ def measure(
         seconds=time.perf_counter() - started,
         text=narrated.text,
         tagged_text=narrated.tagged_text,
+        calls=len(calls),
+        generation_seconds=sum(call.seconds for call in calls),
     )
 
 
@@ -635,6 +710,8 @@ def reproduction_command(args) -> str:
             parts.append(f'--compare-note "{args.compare_note}"')
     if args.persona_runs:
         parts.append(f"--persona-runs {_repo_path(args.persona_runs)}")
+    if args.watsonx_runs:
+        parts.append(f"--watsonx-runs {_repo_path(args.watsonx_runs)}")
     if not args.from_json and args.personas:
         parts.append(f"--personas {args.personas}")
     return " ".join(parts)
@@ -954,6 +1031,247 @@ def _first_person(text: str) -> bool:
     )
 
 
+def model_label(record: Record) -> str:
+    """How a report names the model behind a record."""
+    return record.model or "the development model"
+
+
+def pass_rate(rows: Sequence[Record], first_only: bool) -> str:
+    """Narrations the model wrote and the check accepted, over all of them.
+
+    A template fallback is a failure in both columns. It is assembled by code
+    out of the facts in one plain register, so it is neither the model's
+    narration nor the voice that was asked for.
+    """
+    if not rows:
+        return "n/a"
+    if first_only:
+        passed = sum(
+            1 for r in rows if r.model_wrote_it and r.first_attempt_grounded
+        )
+    else:
+        passed = sum(1 for r in rows if r.model_wrote_it)
+    return f"{passed}/{len(rows)}"
+
+
+def model_coverage(rows: Sequence[Record]) -> str:
+    written = [r for r in rows if r.model_wrote_it]
+    if not written:
+        return "n/a"
+    return f"{mean([r.share for r in written]) * 100:.0f}%"
+
+
+def per_call(rows: Sequence[Record]) -> tuple[str, str]:
+    """(tokens, seconds) per generation call, which is what a fan waits for.
+
+    Per call rather than per narration, because a narration that retried
+    twice cost three calls and a reader comparing two models wants the price
+    of one answer. The narration-level figures are the rates beside them.
+    """
+    calls = sum(r.calls for r in rows)
+    if not calls:
+        return ("n/a", "n/a")
+    tokens = sum(r.tokens for r in rows) / calls
+    seconds = sum(r.generation_seconds for r in rows) / calls
+    return (f"{tokens:,.0f}", f"{seconds:.1f}s")
+
+
+def watsonx_section(records: Sequence[Record]) -> list[str]:
+    """Task 4b: the two paid candidates, read against each other.
+
+    Four questions, in the order they matter for picking a model: which one
+    stays inside the data, whether the personas are distinguishable on it,
+    what the beats block costs a model that may not need it, and what each
+    answer costs in tokens and in seconds.
+    """
+    if not records:
+        return []
+
+    models: list[str] = []
+    for record in records:
+        if record.model and record.model not in models:
+            models.append(record.model)
+
+    lines = ["## Task 4b: the two watsonx candidates", ""]
+    add = lines.append
+
+    add("The paid comparison, run once. Both candidates answered the same "
+        "prompts through the same endpoint with the same decoding, and a "
+        "pass is narration the model wrote that `app/grounding.py` accepted: "
+        "a template fallback is a failure here, as it is in the Task 6c "
+        "numbers above.")
+    add("")
+
+    baseline = [r for r in records if r.arm == "b"]
+    if baseline:
+        add("### Grounding, with no persona")
+        add("")
+        add("Arm b: the same three goals as Task 6c, with no style block, "
+            "which is the prompt the local numbers were measured with.")
+        add("")
+        add("| Model | Narrations | First attempt | After a retry | Fell back "
+            "| Coverage | Words per sentence | Tokens per call | Seconds per call |")
+        add("| ----- | ---------: | ------------: | ------------: | --------: "
+            "| -------: | -----------------: | --------------: | ---------------: |")
+        for model in models:
+            rows = [r for r in baseline if r.model == model]
+            if not rows:
+                continue
+            tokens, seconds = per_call(rows)
+            add(f"| `{model}` | {len(rows)} | {pass_rate(rows, True)} | "
+                f"{pass_rate(rows, False)} | {len(fell_back(rows))} | "
+                f"{model_coverage(rows)} | {sentence_length(rows)} | "
+                f"{tokens} | {seconds} |")
+        add("")
+
+    personas = [r for r in records if r.arm == "a"]
+    if personas:
+        voices_run: list[str] = []
+        for record in personas:
+            if record.voice not in voices_run:
+                voices_run.append(record.voice)
+
+        add("### The personas, by model")
+        add("")
+        add("Arm a. Task 6c found the three registers indistinguishable on "
+            "the development model, by the one measure available without a "
+            "judgement: words per sentence. The same measure is in the last "
+            "column here, for a model with room to tell them apart.")
+        add("")
+        add("| Model | Voice | Narrations | First attempt | After a retry | "
+            "Fell back | Coverage | Words per sentence |")
+        add("| ----- | ----- | ---------: | ------------: | ------------: | "
+            "--------: | -------: | -----------------: |")
+        for model in models:
+            for voice in voices_run:
+                rows = [
+                    r for r in personas
+                    if r.model == model and r.voice == voice
+                ]
+                if not rows:
+                    continue
+                add(f"| `{model}` | {voice} | {len(rows)} | "
+                    f"{pass_rate(rows, True)} | {pass_rate(rows, False)} | "
+                    f"{len(fell_back(rows))} | {model_coverage(rows)} | "
+                    f"{sentence_length(rows)} |")
+        add("")
+
+        add("**Whether a register reached a model** is the spread of that "
+            "last column across its voices. A model writing the same "
+            "sentence length in every voice was given three styles and wrote "
+            "one.")
+        add("")
+        add("| Model | Narrowest voice | Widest voice | Spread |")
+        add("| ----- | --------------: | -----------: | -----: |")
+        for model in models:
+            lengths = []
+            for voice in voices_run:
+                rows = [
+                    r for r in personas
+                    if r.model == model and r.voice == voice
+                ]
+                value = sentence_length(rows)
+                if value != "n/a":
+                    lengths.append(float(value))
+            if not lengths:
+                continue
+            add(f"| `{model}` | {min(lengths):.1f} | {max(lengths):.1f} | "
+                f"{max(lengths) - min(lengths):.1f} |")
+        add("")
+
+        partisan = [r for r in personas if r.side]
+        if partisan:
+            add("**The Mate is the one voice allowed the first person**, and "
+                "whether it takes it is a thing to count rather than to "
+                "judge. On the development model it was none of eighteen.")
+            add("")
+            add("| Model | Mate narrations | Used \"we\", \"our\" or \"us\" |")
+            add("| ----- | --------------: | ------------------------: |")
+            for model in models:
+                rows = [r for r in partisan if r.model == model]
+                if not rows:
+                    continue
+                said = [r for r in rows if _first_person(r.text)]
+                add(f"| `{model}` | {len(rows)} | {len(said)} |")
+            add("")
+
+    block_off = [r for r in records if not r.beats_block]
+    if block_off:
+        # One candidate ran the no-block arm, so the with-block side is that
+        # candidate too. Reading it against both models would put the better
+        # grounder on one side of a comparison about the prompt.
+        ran_it = {r.model for r in block_off}
+        block_on = [
+            r
+            for r in records
+            if r.arm in ("b", "c2") and r.beats_block and r.model in ran_it
+        ]
+        shared = {r.goal for r in block_off} & {r.goal for r in block_on}
+        on = [r for r in block_on if r.goal in shared]
+        off = [r for r in block_off if r.goal in shared]
+        add("### What the beats block costs")
+        add("")
+        add("Arms c and c2. Task 4c added the block because "
+            "`granite4:micro` would not reach the key beats without it, and "
+            "that is a statement about a three billion parameter model "
+            "rather than about every model. The block asks for a sentence "
+            "per beat, and more sentences is more chances to cite the wrong "
+            "fact, so it buys coverage with grounding. A model that covers "
+            "the beats unprompted does not need to pay that.")
+        add("")
+        add(f"The {plural(len(shared), 'goal')} with more than one key beat, "
+            "under both prompts, on "
+            + ", ".join(f"`{model}`" for model in sorted(ran_it))
+            + ".")
+        add("")
+        add("| Prompt | Narrations | First attempt | After a retry | "
+            "Fell back | Coverage | Tokens per call |")
+        add("| ------ | ---------: | ------------: | ------------: | "
+            "--------: | -------: | --------------: |")
+        for label, rows in (("with the beats block", on),
+                            ("without it", off)):
+            if not rows:
+                continue
+            tokens, _ = per_call(rows)
+            add(f"| {label} | {len(rows)} | {pass_rate(rows, True)} | "
+                f"{pass_rate(rows, False)} | {len(fell_back(rows))} | "
+                f"{model_coverage(rows)} | {tokens} |")
+        add("")
+
+    add("### What it cost")
+    add("")
+    add("| Model | Narrations | Generation calls | Tokens reported | "
+        "Tokens per call | Seconds per call |")
+    add("| ----- | ---------: | ---------------: | --------------: | "
+        "--------------: | ---------------: |")
+    for model in models:
+        rows = [r for r in records if r.model == model]
+        tokens, seconds = per_call(rows)
+        add(f"| `{model}` | {len(rows)} | {sum(r.calls for r in rows)} | "
+            f"{sum(r.tokens for r in rows):,} | {tokens} | {seconds} |")
+    add(f"| **both** | {len(records)} | {sum(r.calls for r in records)} | "
+        f"**{sum(r.tokens for r in records):,}** | | |")
+    add("")
+
+    add("### One narration per model and voice")
+    add("")
+    add("The first run of each, as it would be shown and voiced.")
+    add("")
+    seen: set[tuple[str, str]] = set()
+    for record in records:
+        key = (record.model, record.voice)
+        if key in seen:
+            continue
+        seen.add(key)
+        add(f"**`{record.model}`**, {record.voice}, {record.goal} "
+            f"({record.source}, {record.covered}/{record.beats} beats)")
+        add("")
+        shown = record.text or f"(raised: {record.error})"
+        add(f"> {shown}")
+        add("")
+    return lines
+
+
 def report(
     records: Sequence[Record],
     command: str,
@@ -963,6 +1281,7 @@ def report(
     compare_label: str = "",
     compare_note: str = "",
     personas: Sequence[Record] = (),
+    watsonx: Sequence[Record] = (),
 ) -> str:
     """The generated report.
 
@@ -1175,6 +1494,9 @@ def report(
     if personas:
         lines.extend(persona_section(personas))
 
+    if watsonx:
+        lines.extend(watsonx_section(watsonx))
+
     missed_rows = [r for r in records if r.missed and not r.error]
     add("## What was missed")
     add("")
@@ -1271,6 +1593,11 @@ def main(argv: Sequence[str]) -> int:
         help="a records file whose per-persona results are added to the "
              "report as its own section",
     )
+    parser.add_argument(
+        "--watsonx-runs", type=Path,
+        help="a records file from scripts/narration_compare.py, whose paid "
+             "comparison is added to the report as its own section",
+    )
     args = parser.parse_args(argv)
 
     if args.runs < 1:
@@ -1309,6 +1636,7 @@ def main(argv: Sequence[str]) -> int:
     args.out.parent.mkdir(parents=True, exist_ok=True)
     against = read_json(args.compare) if args.compare else ()
     by_persona = read_json(args.persona_runs) if args.persona_runs else ()
+    paid = read_json(args.watsonx_runs) if args.watsonx_runs else ()
     args.out.write_text(
         report(
             records,
@@ -1319,6 +1647,7 @@ def main(argv: Sequence[str]) -> int:
             compare_label=args.compare_label,
             compare_note=args.compare_note,
             personas=by_persona,
+            watsonx=paid,
         ),
         encoding="utf-8",
         newline="\n",

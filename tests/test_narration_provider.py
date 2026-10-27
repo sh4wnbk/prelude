@@ -28,6 +28,7 @@ cannot quietly erode.
 """
 
 import json
+import urllib.error
 from pathlib import Path
 
 import pytest
@@ -35,6 +36,8 @@ import pytest
 from app import narration_config as config
 from app.narration_provider import (
     BACKENDS,
+    COMPARISON_MAX_NEW_TOKENS,
+    DEFAULT_MAX_NEW_TOKENS,
     IAM_GRANT_TYPE,
     IAM_TOKEN_URL,
     MissingCredentials,
@@ -42,6 +45,8 @@ from app.narration_provider import (
     NarrationProvider,
     NarrationProviderError,
     OllamaProvider,
+    WATSONX_CHAT_PATH,
+    WATSONX_GENERATE_PATH,
     WatsonxProvider,
     provider,
 )
@@ -348,3 +353,223 @@ class TestNoNetwork:
     ):
         with pytest.raises(network_call_error):
             OllamaProvider().narrate("anything")
+
+
+class TestTheTokenIsCached:
+    """Task 4b: one IAM exchange for a run, not one per narration."""
+
+    def _answers(self, golden, documented):
+        feed = WatsonxProvider(
+            env=golden["env"],
+            model=documented["request"]["payload"]["model_id"],
+        )
+        return {
+            IAM_TOKEN_URL: golden["iam"]["response"],
+            feed.url: documented["response"],
+        }
+
+    def test_three_narrations_make_one_exchange(self):
+        golden = read_json(WATSONX_GOLDEN)
+        documented = golden["generation"]
+        replay = Replay(self._answers(golden, documented))
+        feed = WatsonxProvider(
+            env=golden["env"],
+            transport=replay,
+            model=documented["request"]["payload"]["model_id"],
+        )
+
+        for _ in range(3):
+            feed.narrate(golden["prompt"])
+
+        exchanges = [c for c in replay.calls if c["url"] == IAM_TOKEN_URL]
+        assert len(exchanges) == 1
+        assert feed.iam_exchanges == 1
+        assert len(replay.calls) == 4
+
+    def test_a_token_with_no_stated_lifetime_is_not_reused(self):
+        """A response without `expires_in` is treated as already expired.
+
+        The cache can only ever shorten a token's life. Reading a missing
+        lifetime as "forever" is the one way a cache can be worse than none.
+        """
+        golden = read_json(WATSONX_GOLDEN)
+        documented = golden["generation"]
+        answers = self._answers(golden, documented)
+        answers[IAM_TOKEN_URL] = {
+            "access_token": golden["iam"]["response"]["access_token"]
+        }
+        feed = WatsonxProvider(
+            env=golden["env"],
+            transport=Replay(answers),
+            model=documented["request"]["payload"]["model_id"],
+        )
+
+        feed.narrate(golden["prompt"])
+        feed.narrate(golden["prompt"])
+
+        assert feed.iam_exchanges == 2
+
+    def test_a_401_drops_the_token_and_tries_once_more(self):
+        """The one expiry a clock cannot predict."""
+        golden = read_json(WATSONX_GOLDEN)
+        documented = golden["generation"]
+        answers = self._answers(golden, documented)
+        generate_url = [u for u in answers if u != IAM_TOKEN_URL][0]
+        refused = {"n": 0}
+
+        class OneUnauthorised(Replay):
+            def __call__(self, url, body, headers):
+                if url == generate_url and refused["n"] == 0:
+                    refused["n"] += 1
+                    self.calls.append(
+                        {"url": url, "body": body, "headers": dict(headers)}
+                    )
+                    raise urllib.error.HTTPError(
+                        url, 401, "Unauthorized", {}, None
+                    )
+                return super().__call__(url, body, headers)
+
+        replay = OneUnauthorised(answers)
+        feed = WatsonxProvider(
+            env=golden["env"],
+            transport=replay,
+            model=documented["request"]["payload"]["model_id"],
+        )
+
+        narration = feed.narrate(golden["prompt"])
+
+        assert narration.text
+        assert feed.iam_exchanges == 2
+        assert [c["url"] for c in replay.calls] == [
+            IAM_TOKEN_URL,
+            generate_url,
+            IAM_TOKEN_URL,
+            generate_url,
+        ]
+
+    def test_a_second_401_is_raised(self):
+        """Two in a row is a real authorisation failure, not an expiry."""
+        golden = read_json(WATSONX_GOLDEN)
+        documented = golden["generation"]
+        answers = self._answers(golden, documented)
+        generate_url = [u for u in answers if u != IAM_TOKEN_URL][0]
+
+        class AlwaysUnauthorised(Replay):
+            def __call__(self, url, body, headers):
+                if url == generate_url:
+                    raise urllib.error.HTTPError(
+                        url, 401, "Unauthorized", {}, None
+                    )
+                return super().__call__(url, body, headers)
+
+        feed = WatsonxProvider(
+            env=golden["env"],
+            transport=AlwaysUnauthorised(answers),
+            model=documented["request"]["payload"]["model_id"],
+        )
+        with pytest.raises(urllib.error.HTTPError):
+            feed.narrate(golden["prompt"])
+
+    def test_another_http_error_is_not_retried(self):
+        """A 400 is a bad request and asking again changes nothing."""
+        golden = read_json(WATSONX_GOLDEN)
+        documented = golden["generation"]
+        answers = self._answers(golden, documented)
+        generate_url = [u for u in answers if u != IAM_TOKEN_URL][0]
+
+        class BadRequest(Replay):
+            def __call__(self, url, body, headers):
+                if url == generate_url:
+                    raise urllib.error.HTTPError(url, 400, "Bad", {}, None)
+                return super().__call__(url, body, headers)
+
+        feed = WatsonxProvider(
+            env=golden["env"],
+            transport=BadRequest(answers),
+            model=documented["request"]["payload"]["model_id"],
+        )
+        with pytest.raises(urllib.error.HTTPError):
+            feed.narrate(golden["prompt"])
+        assert feed.iam_exchanges == 1
+
+
+class TestTheDecodingIsPinned:
+    """Both candidates sample the same way, or the run compares decoding."""
+
+    def test_no_decoding_leaves_the_documented_payload_alone(self):
+        golden = read_json(WATSONX_GOLDEN)
+        documented = golden["generation"]["request"]
+        feed = WatsonxProvider(
+            env=golden["env"], model=documented["payload"]["model_id"]
+        )
+        assert feed.payload(golden["prompt"]) == documented["payload"]
+
+    def test_pinned_decoding_asks_watsonx_to_sample(self):
+        """watsonx decodes greedily by default, and a greedy model returns the
+        same narration three times, which is one run reported as three."""
+        golden = read_json(WATSONX_GOLDEN)
+        feed = WatsonxProvider(
+            env=golden["env"], decoding=config.COMPARISON_DECODING
+        )
+        parameters = feed.payload("a prompt")["parameters"]
+        assert parameters["decoding_method"] == "sample"
+        assert parameters["temperature"] == config.COMPARISON_DECODING.temperature
+        assert parameters["top_p"] == config.COMPARISON_DECODING.top_p
+        assert parameters["top_k"] == config.COMPARISON_DECODING.top_k
+
+    def test_the_cap_the_comparison_sends_is_larger_than_the_default(self):
+        """185 completion tokens was measured locally against a cap of 200."""
+        assert COMPARISON_MAX_NEW_TOKENS > DEFAULT_MAX_NEW_TOKENS
+
+    def test_the_cap_reaches_the_payload(self):
+        golden = read_json(WATSONX_GOLDEN)
+        feed = WatsonxProvider(env=golden["env"])
+        payload = feed.payload("a prompt", COMPARISON_MAX_NEW_TOKENS)
+        assert payload["parameters"]["max_new_tokens"] == COMPARISON_MAX_NEW_TOKENS
+
+
+class TestTheChatEndpoint:
+    """For a model the generation endpoint will not serve."""
+
+    def test_it_posts_to_the_chat_path(self):
+        golden = read_json(WATSONX_GOLDEN)
+        feed = WatsonxProvider(env=golden["env"], chat=True)
+        assert WATSONX_CHAT_PATH in feed.url
+        assert WATSONX_GENERATE_PATH not in feed.url
+
+    def test_the_prompt_goes_in_as_one_user_message(self):
+        golden = read_json(WATSONX_GOLDEN)
+        feed = WatsonxProvider(env=golden["env"], chat=True)
+        body = feed.payload("a prompt", 400)
+        assert body["messages"] == [{"role": "user", "content": "a prompt"}]
+        assert body["max_tokens"] == 400
+        assert "input" not in body
+
+    def test_it_reads_the_text_out_of_a_chat_answer(self):
+        golden = read_json(WATSONX_GOLDEN)
+        url = WatsonxProvider(env=golden["env"], chat=True).url
+        answer = {
+            "model_id": "a/model",
+            "choices": [
+                {"message": {"role": "assistant", "content": "narration"}}
+            ],
+        }
+        replay = Replay({IAM_TOKEN_URL: golden["iam"]["response"], url: answer})
+        feed = WatsonxProvider(env=golden["env"], chat=True, transport=replay)
+
+        narration = feed.narrate("a prompt")
+
+        assert narration.text == "narration"
+        assert narration.model == "a/model"
+        assert narration.provider == "watsonx"
+
+    def test_a_chat_answer_without_content_is_an_error(self):
+        golden = read_json(WATSONX_GOLDEN)
+        url = WatsonxProvider(env=golden["env"], chat=True).url
+        replay = Replay(
+            {IAM_TOKEN_URL: golden["iam"]["response"], url: {"choices": []}}
+        )
+        feed = WatsonxProvider(env=golden["env"], chat=True, transport=replay)
+        with pytest.raises(NarrationProviderError) as raised:
+            feed.narrate("a prompt")
+        assert "content" in str(raised.value)

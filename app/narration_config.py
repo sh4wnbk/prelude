@@ -68,6 +68,31 @@ DEVELOPMENT_MODEL = DevelopmentModel(
     options=MappingProxyType({"num_gpu": 0}),
 )
 
+@dataclass(frozen=True)
+class Decoding:
+    """How a model is asked to sample, pinned so two models are comparable.
+
+    watsonx decodes greedily unless told otherwise, and a greedy model
+    returns the same narration three times, which would make three runs one
+    run and say nothing about how much a model varies. So the paid comparison
+    pins sampling, and pins it identically for both candidates: a difference
+    in the results is then a difference between the models rather than
+    between their decoding.
+
+    The local runs in `docs/narration_eval.md` sent no decoding options at
+    all and so used the Ollama server's own defaults, which this repo does
+    not record. These values are not read back from those runs and are not a
+    claim about them; they are what this comparison pins.
+    """
+
+    temperature: float
+    top_p: float
+    top_k: int
+
+
+#: What the paid comparison pins both candidates to.
+COMPARISON_DECODING = Decoding(temperature=0.8, top_p=0.9, top_k=40)
+
 #: The backend `app.narration_provider.provider()` returns when it is called
 #: with no name. Ollama is local and free, so development runs there and
 #: watsonx is reached only by naming it.

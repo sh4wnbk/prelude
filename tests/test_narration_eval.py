@@ -45,15 +45,21 @@ from scripts.narration_eval import (
     Record,
     Recorder,
     Voice,
+    call_tokens,
     coverage,
+    is_generation,
     goal_moments,
     match_sides,
+    model_coverage,
+    pass_rate,
+    per_call,
     persona_section,
     read_json,
     read_personas,
     sentence_length,
     surname,
     voices,
+    watsonx_section,
 )
 
 MATCH_1986 = 3750191
@@ -537,3 +543,260 @@ class TestSentenceLength:
     def test_no_model_narration_reads_n_a(self):
         template = a_record(source=TEMPLATE, first_attempt_grounded=False)
         assert sentence_length([template]) == "n/a"
+
+
+class TestTheRecorderReadsEveryApi:
+    """Task 4b: three APIs count the same thing under different names."""
+
+    def test_ollamas_own_counters(self):
+        assert call_tokens({"prompt_eval_count": 1883, "eval_count": 59}) == (
+            1883,
+            59,
+        )
+
+    def test_watsonx_text_generation_counts_them_inside_results(self):
+        answer = {
+            "results": [
+                {
+                    "generated_text": "narration",
+                    "input_token_count": 1640,
+                    "generated_token_count": 74,
+                }
+            ]
+        }
+        assert call_tokens(answer) == (1640, 74)
+
+    def test_watsonx_chat_counts_them_in_a_usage_object(self):
+        answer = {
+            "choices": [{"message": {"content": "narration"}}],
+            "usage": {"prompt_tokens": 1640, "completion_tokens": 74},
+        }
+        assert call_tokens(answer) == (1640, 74)
+
+    def test_a_response_with_no_counters_reports_zero(self):
+        """An invented count would be indistinguishable in the report from
+        one the server actually sent."""
+        assert call_tokens({"results": [{"generated_text": "narration"}]}) == (
+            0,
+            0,
+        )
+        assert call_tokens({}) == (0, 0)
+
+    def test_an_iam_exchange_is_not_a_generation(self):
+        assert not is_generation({"access_token": "a-token", "expires_in": 3600})
+        assert is_generation({"results": [{"generated_text": "x"}]})
+        assert is_generation({"response": "x"})
+
+    def test_the_recorder_skips_the_iam_exchange(self):
+        """Counting it would report every watsonx narration as having tried
+        twice as often as it did."""
+        answers = iter(
+            [
+                {"access_token": "a-token", "expires_in": 3600},
+                {
+                    "results": [
+                        {
+                            "generated_text": "narration",
+                            "input_token_count": 1640,
+                            "generated_token_count": 74,
+                        }
+                    ]
+                },
+            ]
+        )
+        recorder = Recorder(inner=lambda url, body, headers: next(answers))
+
+        recorder("https://iam.cloud.ibm.com/identity/token", b"", {})
+        recorder("https://eu-gb.ml.cloud.ibm.com/ml/v1/text/generation", b"", {})
+
+        calls = recorder.take()
+        assert len(calls) == 1
+        assert calls[0].prompt_tokens == 1640
+        assert calls[0].completion_tokens == 74
+
+
+class TestTheModelComparison:
+    """Task 4b: the report section for the two paid candidates."""
+
+    GRANITE = "ibm/granite-4-h-small"
+    GPT_OSS = "openai/gpt-oss-120b"
+
+    def _baseline(self):
+        """Three narrations per model on arm b: one clean, one retried, one
+        fallback for Granite; all three clean for the other."""
+        rows = []
+        for run, (source, first) in enumerate(
+            ((MODEL, True), (MODEL, False), (TEMPLATE, False)), start=1
+        ):
+            rows.append(
+                a_record(
+                    arm="b",
+                    model=self.GRANITE,
+                    run=run,
+                    source=source,
+                    first_attempt_grounded=first,
+                    calls=1 if first else 3,
+                    generation_seconds=1.0 if first else 3.0,
+                )
+            )
+        for run in range(1, 4):
+            rows.append(
+                a_record(
+                    arm="b",
+                    model=self.GPT_OSS,
+                    run=run,
+                    calls=1,
+                    generation_seconds=2.0,
+                )
+            )
+        return rows
+
+    def test_a_fallback_fails_both_rates(self):
+        rows = [r for r in self._baseline() if r.model == self.GRANITE]
+        assert pass_rate(rows, first_only=True) == "1/3"
+        assert pass_rate(rows, first_only=False) == "2/3"
+
+    def test_a_model_that_never_falls_back_passes_everything(self):
+        rows = [r for r in self._baseline() if r.model == self.GPT_OSS]
+        assert pass_rate(rows, first_only=True) == "3/3"
+        assert pass_rate(rows, first_only=False) == "3/3"
+
+    def test_coverage_leaves_the_fallback_out(self):
+        rows = [
+            a_record(model=self.GRANITE, covered=1, beats=5),
+            a_record(
+                model=self.GRANITE,
+                run=2,
+                source=TEMPLATE,
+                first_attempt_grounded=False,
+                covered=5,
+                beats=5,
+            ),
+        ]
+        assert model_coverage(rows) == "20%"
+
+    def test_per_call_divides_by_calls_not_by_narrations(self):
+        """A narration that retried twice cost three calls, and a reader
+        comparing two models wants the price of one answer."""
+        rows = [
+            a_record(
+                prompt_tokens=900,
+                completion_tokens=100,
+                calls=1,
+                generation_seconds=2.0,
+            ),
+            a_record(
+                run=2,
+                prompt_tokens=2700,
+                completion_tokens=300,
+                calls=3,
+                generation_seconds=6.0,
+            ),
+        ]
+        assert per_call(rows) == ("1,000", "2.0s")
+
+    def test_per_call_with_no_calls_reads_n_a(self):
+        assert per_call([a_record(calls=0)]) == ("n/a", "n/a")
+
+    def test_the_section_names_both_models(self):
+        section = "\n".join(watsonx_section(self._baseline()))
+        assert f"`{self.GRANITE}`" in section
+        assert f"`{self.GPT_OSS}`" in section
+        assert "Task 4b" in section
+
+    def test_the_section_is_empty_without_records(self):
+        assert watsonx_section([]) == []
+
+    def test_the_register_spread_is_reported_per_model(self):
+        """A model writing the same sentence length in every voice was given
+        three styles and wrote one."""
+        rows = [
+            a_record(
+                arm="a",
+                model=self.GRANITE,
+                persona="caller",
+                tagged_text="[1] He passed.",
+            ),
+            a_record(
+                arm="a",
+                model=self.GRANITE,
+                persona="storyteller",
+                tagged_text="[1] He passed the ball to a teammate nearby.",
+            ),
+        ]
+        section = "\n".join(watsonx_section(rows))
+        assert "Spread" in section
+        # Two words against eight, so the spread is six.
+        assert "| 2.0 | 8.0 | 6.0 |" in section
+
+    def test_the_beats_block_arm_is_compared_against_the_block_on(self):
+        rows = [
+            a_record(arm="c2", model=self.GRANITE, beats_block=True),
+            a_record(
+                arm="c",
+                model=self.GRANITE,
+                beats_block=False,
+                run=2,
+                covered=1,
+                beats=5,
+            ),
+        ]
+        section = "\n".join(watsonx_section(rows))
+        assert "What the beats block costs" in section
+        assert "with the beats block" in section
+        assert "without it" in section
+
+    def test_the_mate_first_person_count_is_per_model(self):
+        rows = [
+            a_record(
+                arm="a",
+                model=self.GRANITE,
+                persona="mate",
+                side="Argentina",
+                text="[24] We scored through Maradona.",
+            ),
+            a_record(
+                arm="a",
+                model=self.GPT_OSS,
+                persona="mate",
+                side="Argentina",
+                text="[24] Maradona scored for Argentina.",
+            ),
+        ]
+        section = "\n".join(watsonx_section(rows))
+        assert "Mate narrations" in section
+        assert f"| `{self.GRANITE}` | 1 | 1 |" in section
+        assert f"| `{self.GPT_OSS}` | 1 | 0 |" in section
+
+
+class TestTheBeatsBlockComparison:
+    """One candidate ran the no-block arm, so the with-block side is that one."""
+
+    GRANITE = "ibm/granite-4-h-small"
+    GPT_OSS = "openai/gpt-oss-120b"
+
+    def test_the_other_model_is_left_out_of_both_sides(self):
+        """Reading the no-block arm against both models would put the better
+        grounder on one side of a comparison about the prompt."""
+        rows = [
+            # The candidate that ran both prompts.
+            a_record(arm="c2", model=self.GRANITE, beats_block=True),
+            a_record(
+                arm="c",
+                model=self.GRANITE,
+                beats_block=False,
+                run=2,
+                first_attempt_grounded=False,
+                source=TEMPLATE,
+            ),
+            # The one that only ever ran with the block.
+            a_record(arm="b", model=self.GPT_OSS, beats_block=True),
+            a_record(arm="b", model=self.GPT_OSS, beats_block=True, run=2),
+        ]
+        section = "\n".join(watsonx_section(rows))
+        block = section.split("What the beats block costs")[1].split("###")[0]
+        assert f"`{self.GRANITE}`" in block
+        assert f"`{self.GPT_OSS}`" not in block
+        # One narration a side, not three on the with-block side.
+        assert "| with the beats block | 1 |" in block
+        assert "| without it | 1 |" in block

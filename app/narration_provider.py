@@ -26,6 +26,8 @@ Standard library only, like the rest of `app/`.
 """
 
 import json
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
@@ -37,6 +39,7 @@ from app.narration_config import (
     ACTIVE_CANDIDATE,
     DEFAULT_PROVIDER,
     DEVELOPMENT_MODEL,
+    Decoding,
 )
 
 # Ollama's local HTTP API. 127.0.0.1 rather than localhost, so the request does
@@ -48,6 +51,8 @@ OLLAMA_GENERATE_PATH = "/api/generate"
 # taken from IBM's published schema rather than from memory; the citations are
 # in docs/narration.md.
 WATSONX_GENERATE_PATH = "/ml/v1/text/generation"
+#: The chat endpoint, for a model the generation endpoint will not serve.
+WATSONX_CHAT_PATH = "/ml/v1/text/chat"
 WATSONX_API_VERSION = "2025-02-11"
 IAM_TOKEN_URL = "https://iam.cloud.ibm.com/identity/token"
 IAM_GRANT_TYPE = "urn:ibm:params:oauth:grant-type:apikey"
@@ -62,6 +67,24 @@ DEFAULT_TIMEOUT = 300.0
 
 #: Length cap sent to watsonx. Ollama has no equivalent default worth setting.
 DEFAULT_MAX_NEW_TOKENS = 200
+
+#: The length cap the paid comparison sends instead. Two measurements set it.
+#: The longest completion measured locally was 185 tokens a call against a cap
+#: of 200, close enough that a longer narration would be cut off, fail the
+#: ending rule for not reaching the goal, and be recorded as a model failure
+#: that was really a cap. Then a smoke call found that `openai/gpt-oss-120b`
+#: writes its reasoning into the same budget and spent all of 400 on it
+#: without reaching an answer at all. 2000 is where both candidates finish.
+#:
+#: It lives here rather than in `app/narration_config.py` because that file is
+#: held to carrying no variable name that could hide a credential, and this
+#: one is a request parameter in a module that already sends them.
+COMPARISON_MAX_NEW_TOKENS = 2000
+
+#: Seconds before an IAM token's stated expiry that it is treated as expired.
+#: A token that expires while a request is in flight is a 401 that costs a
+#: retry, and a minute of slack is cheaper than finding out.
+IAM_EXPIRY_MARGIN = 60.0
 
 
 class NarrationProviderError(RuntimeError):
@@ -199,10 +222,29 @@ class WatsonxProvider:
     `MissingCredentials` naming whichever is unset, so a missing credential
     fails before any request is sent rather than as a 401 later.
 
-    Each `narrate` is two requests: the IAM exchange that turns the API key
-    into a bearer token, then the generation call. The token is not cached,
-    because nothing here runs long enough for that to matter and a cache would
-    mean holding it somewhere.
+    The first `narrate` is two requests: the IAM exchange that turns the API
+    key into a bearer token, then the generation call. **The token is cached
+    for the life of the provider**, so later narrations are one request each.
+    IBM states the token's lifetime in the exchange, and it is reused until
+    `IAM_EXPIRY_MARGIN` before that, or until a call comes back 401, which is
+    the case a clock cannot predict: a key revoked mid-run answers 401 and the
+    next attempt fetches a fresh token rather than failing the run.
+
+    It held no cache at first, on the grounds that nothing ran long enough to
+    need one. The paid comparison in `scripts/narration_compare.py` runs more
+    than two hundred generations, and one IAM exchange each is both waste and
+    a good way to be rate limited.
+
+    `decoding` pins how the model samples. Left unset the payload carries no
+    decoding fields and watsonx uses its own default, which is greedy: three
+    runs of a greedy model are one run three times. The comparison pins it so
+    that two candidates are decoded identically and a difference between them
+    is a difference between the models.
+
+    `chat` sends the prompt to the chat endpoint rather than the generation
+    one, for a model the generation endpoint will not serve. It is one
+    endpoint for the whole comparison or none: a pass rate measured across two
+    different APIs would be comparing those as much as the models.
     """
 
     name = "watsonx"
@@ -213,6 +255,10 @@ class WatsonxProvider:
         env: Mapping[str, str] | None = None,
         transport: Transport = post,
         api_version: str = WATSONX_API_VERSION,
+        decoding: Decoding | None = None,
+        chat: bool = False,
+        max_new_tokens: int = DEFAULT_MAX_NEW_TOKENS,
+        reasoning_effort: str | None = None,
     ) -> None:
         env = load_credentials() if env is None else env
         missing = [name for name in WATSONX_ENV_VARS if not env.get(name)]
@@ -231,21 +277,67 @@ class WatsonxProvider:
         self._api_key = env["WATSONX_API_KEY"]
         self._project_id = env["WATSONX_PROJECT_ID"]
         self._transport = transport
+        self.decoding = decoding
+        self.chat = chat
+        # Bound to the provider rather than passed to every call, because
+        # `NarrationProvider` is `narrate(prompt)` and `app/narration.py`
+        # calls it that way. A cap the pipeline cannot reach is a cap that
+        # silently stays at its default on the run that needed it raised.
+        self.max_new_tokens = max_new_tokens
+        # Only a reasoning model has this, and only the chat endpoint carries
+        # it. It is the one setting the paid comparison does not hold equal
+        # between the candidates, because it is how one of them would ship:
+        # a model that thinks for a thousand tokens before every narration is
+        # one a fan waits through on every attempt.
+        self.reasoning_effort = reasoning_effort
+        self._token: str | None = None
+        self._token_expires_at = 0.0
+        #: Counted so a paid run can report what it spent on authorisation
+        #: rather than estimate it.
+        self.iam_exchanges = 0
 
     @property
     def url(self) -> str:
+        path = WATSONX_CHAT_PATH if self.chat else WATSONX_GENERATE_PATH
         query = urllib.parse.urlencode({"version": self.api_version})
-        return f"{self.host}{WATSONX_GENERATE_PATH}?{query}"
+        return f"{self.host}{path}?{query}"
 
     def payload(
         self, prompt: str, max_new_tokens: int = DEFAULT_MAX_NEW_TOKENS
     ) -> dict[str, Any]:
-        """The generation request body."""
+        """The request body, for whichever endpoint this provider is using.
+
+        The generation shape is the documented one and is what
+        `tests/test_narration_provider.py` holds to the golden fixture. The
+        chat shape carries the same prompt as a single user message, and its
+        decoding fields sit at the top level rather than under `parameters`,
+        which is the chat API's own shape rather than a choice made here.
+        """
+        if self.chat:
+            body: dict[str, Any] = {
+                "model_id": self.model,
+                "project_id": self._project_id,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": max_new_tokens,
+            }
+            if self.decoding is not None:
+                body["temperature"] = self.decoding.temperature
+                body["top_p"] = self.decoding.top_p
+            if self.reasoning_effort is not None:
+                body["reasoning_effort"] = self.reasoning_effort
+            return body
+
+        parameters: dict[str, Any] = {"max_new_tokens": max_new_tokens}
+        if self.decoding is not None:
+            parameters["decoding_method"] = "sample"
+            parameters["temperature"] = self.decoding.temperature
+            parameters["top_p"] = self.decoding.top_p
+            parameters["top_k"] = self.decoding.top_k
         return {
             "model_id": self.model,
             "input": prompt,
             "project_id": self._project_id,
-            "parameters": {"max_new_tokens": max_new_tokens},
+            "parameters": parameters,
         }
 
     def access_token(self) -> str:
@@ -266,21 +358,66 @@ class WatsonxProvider:
                 "the IAM exchange answered without an 'access_token' field; "
                 f"its keys were {sorted(answer)}"
             )
-        return answer["access_token"]
+        self.iam_exchanges += 1
+        # IBM states the lifetime in the exchange. A response without one is
+        # treated as already expired rather than as lasting forever, so the
+        # cache can only ever shorten the life of a token, never extend it.
+        lifetime = float(answer.get("expires_in") or 0.0)
+        self._token = answer["access_token"]
+        self._token_expires_at = (
+            time.monotonic() + lifetime - IAM_EXPIRY_MARGIN
+            if lifetime
+            else 0.0
+        )
+        return self._token
+
+    def _authorisation(self) -> str:
+        """The cached bearer token, exchanging for a new one if it has aged out."""
+        if self._token is None or time.monotonic() >= self._token_expires_at:
+            return self.access_token()
+        return self._token
 
     def narrate(
-        self, prompt: str, max_new_tokens: int = DEFAULT_MAX_NEW_TOKENS
+        self, prompt: str, max_new_tokens: int | None = None
     ) -> Narration:
-        token = self.access_token()
-        body = self._transport(
-            self.url,
-            json.dumps(self.payload(prompt, max_new_tokens)).encode("utf-8"),
-            {
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-                "Authorization": f"Bearer {token}",
-            },
+        """One generation, authorised with the cached token.
+
+        A 401 is the one expiry a clock cannot predict: a token revoked or
+        invalidated mid-run answers 401 whatever its stated lifetime said. So
+        the token is dropped and fetched once more, and a second 401 is a real
+        authorisation failure and is raised.
+        """
+        body = self._send(
+            prompt,
+            self.max_new_tokens if max_new_tokens is None else max_new_tokens,
         )
+        if self.chat:
+            return self._read_chat(body)
+        return self._read_generation(body)
+
+    def _send(self, prompt: str, max_new_tokens: int) -> Mapping[str, Any]:
+        encoded = json.dumps(self.payload(prompt, max_new_tokens)).encode("utf-8")
+
+        def once() -> Mapping[str, Any]:
+            return self._transport(
+                self.url,
+                encoded,
+                {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "Authorization": f"Bearer {self._authorisation()}",
+                },
+            )
+
+        try:
+            return once()
+        except urllib.error.HTTPError as failure:
+            if failure.code != 401:
+                raise
+        self._token = None
+        return once()
+
+    def _read_generation(self, body: Mapping[str, Any]) -> Narration:
         results = body.get("results") or []
         if not results or "generated_text" not in results[0]:
             raise NarrationProviderError(
@@ -289,6 +426,21 @@ class WatsonxProvider:
             )
         return Narration(
             text=results[0]["generated_text"],
+            provider=self.name,
+            model=body.get("model_id", self.model),
+        )
+
+    def _read_chat(self, body: Mapping[str, Any]) -> Narration:
+        """The chat endpoint's answer, which nests the text one level deeper."""
+        choices = body.get("choices") or []
+        message = (choices[0] or {}).get("message") if choices else None
+        if not message or "content" not in message:
+            raise NarrationProviderError(
+                "watsonx chat answered without choices[0].message.content; "
+                f"its keys were {sorted(body)}"
+            )
+        return Narration(
+            text=message["content"],
             provider=self.name,
             model=body.get("model_id", self.model),
         )

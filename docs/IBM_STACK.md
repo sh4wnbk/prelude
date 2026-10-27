@@ -77,10 +77,21 @@ by accident:
 | an unknown name is an error rather than a silent default | `tests/test_narration_provider.py::TestSelection::test_an_unknown_name_is_an_error_not_a_default` |
 | both backends satisfy the one interface | `tests/test_narration_provider.py::TestSelection::test_both_backends_satisfy_the_interface` |
 
-Each `narrate` is two requests: the IBM Cloud IAM exchange that turns the API
-key into a bearer token, then the generation call. The token is not cached,
-because nothing here runs long enough for that to matter and a cache would mean
-holding it somewhere.
+The first `narrate` is two requests: the IBM Cloud IAM exchange that turns the
+API key into a bearer token, then the generation call. **The token is then
+cached for the life of the provider**, so later narrations are one request
+each. It held no cache at first, on the grounds that nothing ran long enough
+to need one; the paid comparison in `scripts/narration_compare.py` made 155
+generation calls in one run, and one IAM exchange each would have been both
+waste and a way to be rate limited.
+
+IBM states the token's lifetime in the exchange and it is reused until
+`IAM_EXPIRY_MARGIN` before that. A response with no stated lifetime is treated
+as already expired, so the cache can only ever shorten a token's life
+(`tests/test_narration_provider.py::TestTheTokenIsCached::test_a_token_with_no_stated_lifetime_is_not_reused`).
+A 401 is the one expiry a clock cannot predict, so the token is dropped and
+fetched once more and a second 401 is raised
+(`tests/test_narration_provider.py::TestTheTokenIsCached::test_a_401_drops_the_token_and_tries_once_more`).
 
 | What | Value | Test |
 | ---- | ----- | ---- |
@@ -91,13 +102,39 @@ holding it somewhere.
 | the answer is read out of `results[0].generated_text` | | `tests/test_narration_provider.py::TestWatsonxBackend::test_it_reads_the_text_out_of_the_documented_response` |
 | an empty `results` array is an error | | `tests/test_narration_provider.py::TestWatsonxBackend::test_an_empty_results_array_is_an_error` |
 
-**No watsonx call has ever been made from this repo.** The request and response
-shapes come from IBM's published schema rather than from a recording, and
-`tests/golden/watsonx_text_generation.json` says so in its own provenance
-block, with its citations; `tests/test_narration_provider.py::TestWatsonxBackend::test_the_golden_says_it_is_not_a_recording`
+**The tests still make no watsonx call.** The request and response shapes in
+`tests/golden/watsonx_text_generation.json` come from IBM's published schema
+rather than from a recording, and the file says so in its own provenance
+block, with its citations;
+`tests/test_narration_provider.py::TestWatsonxBackend::test_the_golden_says_it_is_not_a_recording`
 holds that claim in place. Recording one would mean a paid call against live
 credentials, which `CLAUDE.md` puts out of reach. `docs/narration.md` records
 where each shape came from.
+
+**Task 4b made the first real calls**, 155 generations across two candidates,
+from `scripts/narration_compare.py` and by hand. It found that the schema the
+tests were written to is correct and that it is the wrong endpoint for this
+job: `/ml/v1/text/generation` applies no chat template, so one candidate
+prefixed its answer with the end of the prompt and the other returned its
+reasoning as the answer. The comparison ran on `/ml/v1/text/chat` instead,
+which `WatsonxProvider` reaches with `chat=True`.
+
+| What | Value | Test |
+| ---- | ----- | ---- |
+| chat path | `/ml/v1/text/chat` | `tests/test_narration_provider.py::TestTheChatEndpoint::test_it_posts_to_the_chat_path` |
+| the prompt goes in as one user message | | `tests/test_narration_provider.py::TestTheChatEndpoint::test_the_prompt_goes_in_as_one_user_message` |
+| the answer is read out of `choices[0].message.content` | | `tests/test_narration_provider.py::TestTheChatEndpoint::test_it_reads_the_text_out_of_a_chat_answer` |
+| a chat answer without content is an error | | `tests/test_narration_provider.py::TestTheChatEndpoint::test_a_chat_answer_without_content_is_an_error` |
+
+The comparison also pins the decoding, because watsonx decodes greedily
+unless told otherwise and three runs of a greedy model are one run reported as
+three
+(`tests/test_narration_provider.py::TestTheDecodingIsPinned::test_pinned_decoding_asks_watsonx_to_sample`).
+`openai/gpt-oss-120b` is sent `reasoning_effort: low`, which is the one
+setting the candidates do not share: at the default effort it spent 1,496
+completion tokens thinking before one narration, against Granite's 60, and a
+fan waits through that on every attempt. `docs/narration_eval.md` holds the
+numbers.
 
 **Credentials are named, never printed.** Building the provider reads
 `WATSONX_API_KEY`, `WATSONX_PROJECT_ID` and `WATSONX_URL` through

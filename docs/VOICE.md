@@ -458,6 +458,37 @@ measured 3 of 3 first attempts grounded with no persona; with a persona, the
 same goal came out 3 of 12. Retries absorb most of it, and the after-retry
 figure is 10 of 12, which is why the report prints both.
 
+### Measured again on the paid models
+
+Task 4b ran both watsonx candidates over the same goals, through the chat
+endpoint, with the decoding pinned the same for each. `docs/narration_eval.md`
+holds it. Three things it settles about this document.
+
+**A bigger model honours the rules.** `openai/gpt-oss-120b` wrote 33
+narrations and `app/grounding.py` accepted every one on the first attempt,
+with no retry and no fallback, at full coverage. Everything above (the
+citations, the past tense, the ending on the goal, the pairing rule) is
+reachable; the thin and refused narrations in the earlier sections are a
+three billion parameter model's limit rather than the prompt asking for the
+impossible.
+
+**The registers still did not separate, on either paid model.** Words per
+sentence spread 2.0 across the voices for `openai/gpt-oss-120b`, against 0.6
+on the development model, and the narrations it wrote for the Caller, the
+Storyteller and the Mate on the 54:18 goal are the same five sentences with
+different punctuation. The styles in `app/personas.py` are read and obeyed as
+rules and not as a voice.
+
+**The Mate did take the first person, and it reads badly.** It used "we",
+"our" or "us" in 9 of its 12 narrations on `openai/gpt-oss-120b`, against none
+on either smaller model, so the permission is reachable too. What it produced
+is "Our Peter Beardsley was dribbled past at 54:08." and "We, Nicolás Hernán
+Otamendi, pressed, 78:11.": the possessive grafted onto a name rather than a
+supporter telling a friend what happened. The grounding check accepts it,
+correctly, because every cited fact is the listener's side. The rule is doing
+its job and the prose is not, and nothing in this repo refuses a narration for
+being stilted.
+
 **The style text is prompt copy and the Profile line is app output.** They are
 checked differently on purpose. The Profile line is read by a fan, so the
 no-nicknames rule applies to it. The style is said to a model, where naming a

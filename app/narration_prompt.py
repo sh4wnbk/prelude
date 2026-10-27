@@ -540,6 +540,7 @@ def build_prompt(
     sentences: int = DEFAULT_SENTENCES,
     persona: Persona | None = None,
     side: str | None = None,
+    beats: bool = True,
 ) -> str:
     """The prompt for one goal.
 
@@ -593,10 +594,15 @@ def build_prompt(
     # for, whichever is larger. A prompt that asked for four sentences and
     # then named five beats to cover would contradict itself, and the model
     # would have to drop one of the two instructions to obey the other.
-    beats = beats_block(facts)
+    block = beats_block(facts) if beats else ""
     voice = persona_block(persona, side)
     person = first_person_rule(persona, side)
-    covered = len([b for b in key_beats(facts) if b.kind != SHOT])
+    # A prompt that names no beats asks for no sentence per beat either, so
+    # the count stays where the caller put it. Raising it for beats the model
+    # was never shown would ask for sentences with nothing to fill them.
+    covered = (
+        len([b for b in key_beats(facts) if b.kind != SHOT]) if beats else 0
+    )
     sentences = max(sentences, covered + 1)
 
     return f"""You are writing the narration for one goal in a football match.
@@ -614,7 +620,7 @@ THE FACTS
 One numbered line per recorded event, in the order it happened. Nothing
 happened that is not here.
 {fact_list(facts)}
-{beats}{voice}
+{block}{voice}
 WRITE IT LIKE THIS
 Write {sentences} lines. Each line starts with the numbers of the facts it is
 about, in square brackets, and then says them in one sentence:

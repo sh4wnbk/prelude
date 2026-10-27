@@ -64,7 +64,7 @@ script to run. So the first command in a new clone is
 
 ## Entry points
 
-Nine scripts, each runnable on its own. None of them is imported by anything.
+Ten scripts, each runnable on its own. None of them is imported by anything.
 
 | Script | What it does | What it writes | What it reaches |
 | ------ | ------------ | -------------- | --------------- |
@@ -77,18 +77,24 @@ Nine scripts, each runnable on its own. None of them is imported by anything.
 | `scripts/record_narration_golden.py` | records one Ollama request and response | `tests/golden/ollama_development_model.json` | a local Ollama server |
 | `scripts/narrate_once.py` | narrates one goal and prints every attempt | nothing | a local Ollama server |
 | `scripts/narration_eval.py` | narrates goals several times in one or more personas and measures the result | `docs/narration_eval.md`, and records with `--json` | a local Ollama server |
+| `scripts/narration_compare.py` | gate on spending: the paid comparison of the two watsonx candidates, with `--plan` printing its cost and making no call | records with `--json` | watsonx.ai, and IBM Cloud IAM |
 
 The three gates exit non-zero on any finding, which is what lets them gate a
 commit; each says so in its own docstring.
 
-**Three scripts call a model, and all three are run by hand.** They are
-`scripts/record_narration_golden.py`, `scripts/narrate_once.py` and
-`scripts/narration_eval.py`, none of which is part of the suite, so no test
-can reach a model through them. The guard that makes that more than a
-convention is in `tests/conftest.py` and is described below. All three reach
-the local Ollama server and none has a watsonx path: Task 4b writes the paid
-comparison separately, which is what keeps a loop of generations away from a
-paid endpoint.
+**Four scripts call a model, and all four are run by hand.** They are
+`scripts/record_narration_golden.py`, `scripts/narrate_once.py`,
+`scripts/narration_eval.py` and `scripts/narration_compare.py`, none of which
+is part of the suite, so no test can reach a model through them. The guard
+that makes that more than a convention is in `tests/conftest.py` and is
+described below.
+
+**Only one of them can spend money.** The first three reach the local Ollama
+server and have no watsonx path at all. `scripts/narration_compare.py` is the
+paid one, and it is built to be hard to run by accident: `--plan` prints the
+narrations, the calls and the estimated tokens and makes no call, `--confirm`
+has to name the same arms as `--arms` before anything runs, and `--max-tokens`
+stops the run between narrations once the servers have reported that many.
 
 `scripts/narrate_once.py` defaults to the 1986 goal at 54:18 and takes a match
 id and a clock for any other:
@@ -114,7 +120,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 363 tests in nine files, and all of them pass, so any failure
+The suite is 393 tests in nine files, and all of them pass, so any failure
 means something is wrong. It is run from the repo root:
 
 ```
