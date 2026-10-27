@@ -15,7 +15,11 @@ from pathlib import Path
 import pytest
 
 from app.grounding import sentences
+from app.personas import THE_CALLER, THE_MATE, THE_STORYTELLER
 from app.narration_prompt import (
+    NoSideForAPartisanVoice,
+    first_person_rule,
+    persona_block,
     EVENT_VERBS,
     cited_line,
     TEMPLATE_MAX_SENTENCES,
@@ -444,3 +448,129 @@ class TestTemplateNarration:
         assert "Foul Won" not in actions
 
         assert "committed a foul" in template_narration(facts)
+
+
+class TestThePersonaInThePrompt:
+    """Task 6b: the persona's style goes in, and the Mate's side with it.
+
+    A persona changes the register and nothing else. Every rule in the prompt
+    is the same in all three voices, because they are the rules
+    `app/grounding.py` enforces afterwards, and the one line that reads
+    differently is the one about person, which reads differently because the
+    check treats the Mate differently.
+    """
+
+    def test_the_style_text_goes_in_whole(self, feed):
+        """Verbatim, because the config is where a register is argued about."""
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        for persona, side in (
+            (THE_CALLER, None),
+            (THE_STORYTELLER, None),
+            (THE_MATE, "Argentina"),
+        ):
+            prompt = build_prompt(facts, persona=persona, side=side)
+            assert "THE VOICE" in prompt
+            # Wrapped into the prompt's own column width, so the words are
+            # what is compared rather than the line breaks.
+            assert " ".join(persona.style.split()) in " ".join(prompt.split())
+
+    def test_no_persona_leaves_the_prompt_as_it_was(self, feed):
+        """The prompt the measured runs in `docs/narration_eval.md` used."""
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        assert "THE VOICE" not in build_prompt(facts)
+        assert "THE LISTENER" not in build_prompt(facts)
+
+    def test_the_mate_is_told_which_side_the_listener_is_on(self, feed):
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        prompt = build_prompt(facts, persona=THE_MATE, side="Argentina")
+        assert "THE LISTENER" in prompt
+        assert "Argentina" in prompt.split("THE LISTENER")[1]
+
+    def test_the_other_two_are_told_no_side_at_all(self, feed):
+        """A voice that may not say "we" is given nothing to say it about.
+
+        The app knows the side for a fan who picked the Storyteller. Printing
+        it anyway would put a fact in the prompt that the voice may not use,
+        which is how a model ends up using it.
+        """
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        for persona in (THE_CALLER, THE_STORYTELLER):
+            prompt = build_prompt(facts, persona=persona, side="Argentina")
+            assert "THE LISTENER" not in prompt
+
+    def test_the_mate_without_a_side_is_refused(self, feed):
+        """A Mate request from a neutral listener. The check raises too."""
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        with pytest.raises(NoSideForAPartisanVoice):
+            build_prompt(facts, persona=THE_MATE)
+        with pytest.raises(NoSideForAPartisanVoice):
+            build_prompt(facts, persona=THE_MATE, side="")
+
+    def test_the_prompt_states_the_first_person_rule_the_check_enforces(
+        self, feed
+    ):
+        """A prompt asking for less than the check enforces sets the model up
+        to fail, and a retry does not help it."""
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+
+        strict = build_prompt(facts, persona=THE_CALLER)
+        assert '"we", "our" and "us" are all' in " ".join(strict.split())
+
+        partisan = " ".join(
+            build_prompt(facts, persona=THE_MATE, side="Argentina").split()
+        )
+        assert '"we", "our" and "us" are accepted' in partisan
+        assert "cited facts are about Argentina" in partisan
+
+    def test_every_voice_is_told_not_to_address_the_listener(self, feed):
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        for persona, side in (
+            (None, None),
+            (THE_CALLER, None),
+            (THE_STORYTELLER, None),
+            (THE_MATE, "Argentina"),
+        ):
+            prompt = " ".join(build_prompt(facts, persona=persona, side=side).split())
+            assert '"you"' in prompt and '"your"' in prompt
+
+    def test_the_rules_are_the_same_in_every_voice(self, feed):
+        """Only the voice block and the person rule may differ.
+
+        Diffing the prompts is what makes that checkable: a rule that drifted
+        between personas would show up here as a line in one and not another.
+        """
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        voices = (
+            (None, None),
+            (THE_CALLER, None),
+            (THE_STORYTELLER, None),
+            (THE_MATE, "Argentina"),
+        )
+
+        rules = set()
+        for persona, side in voices:
+            block = build_prompt(facts, persona=persona, side=side).split(
+                "RULES"
+            )[1]
+            # The person rule out, which is the one line allowed to differ.
+            # What is left has to be the same text in every voice.
+            without = block.replace(first_person_rule(persona, side), "")
+            rules.add(" ".join(without.split()))
+
+        assert len(rules) == 1, rules
+
+    def test_no_persona_prompt_has_an_em_dash(self, feed):
+        for _, _, facts in every_goal(feed):
+            for persona, side in (
+                (THE_CALLER, None),
+                (THE_STORYTELLER, None),
+                (THE_MATE, facts.moment.team),
+            ):
+                assert "—" not in build_prompt(
+                    facts, persona=persona, side=side
+                )
+
+    def test_the_blocks_are_empty_without_a_persona(self, feed):
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        assert persona_block(None, None) == ""
+        assert "you" in first_person_rule(None, None)

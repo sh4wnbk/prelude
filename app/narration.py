@@ -45,6 +45,7 @@ from app.narration_prompt import (
     template_narration,
 )
 from app.narration_provider import NarrationProvider, provider as default_provider
+from app.personas import Persona
 
 #: Regenerations allowed after the first attempt, so three attempts at most.
 MAX_RETRIES = 2
@@ -144,21 +145,37 @@ def narrate(
     narration_provider: NarrationProvider | None = None,
     sentences: int = DEFAULT_SENTENCES,
     max_retries: int = MAX_RETRIES,
+    persona: Persona | None = None,
+    side: str | None = None,
 ) -> Narrated:
     """Narrate `moment`, returning grounded text or raising.
 
     `narration_provider` defaults to the one `app/narration_provider.py`
     chooses, which is Ollama. Pass one in to use a different backend or, in a
     test, to replay a recorded response.
+
+    `persona` is the voice, from `app/personas.py`, and `side` is the team the
+    listener is on. Both go to the prompt and to the check, which is what
+    keeps the two in step: the prompt states the first-person rule the check
+    then enforces, and a partisan persona without a side raises in both.
+    Leaving them out is the prompt and the check as they stood before personas
+    existed.
+
+    **The fallback is in no persona's voice.** It is assembled by code out of
+    the facts in one plain register, so a narration that reaches it is not the
+    voice that was asked for. It is still checked with the persona, because
+    the check is what decides whether anything may be labelled, and
+    `scripts/narration_eval.py` counts a fallback as a failure for that
+    reason rather than as a narration in that voice.
     """
     facts = facts_from_buildup(feed.buildup(match_id, moment))
     chosen = narration_provider or default_provider()
-    prompt = build_prompt(facts, sentences=sentences)
+    prompt = build_prompt(facts, sentences=sentences, persona=persona, side=side)
 
     attempts: list[Attempt] = []
     for number in range(1, max_retries + 2):
         text = chosen.narrate(prompt).text.strip()
-        result = check(text, facts)
+        result = check(text, facts, persona=persona, side=side)
         attempts.append(
             Attempt(
                 number=number,
@@ -172,7 +189,7 @@ def narrate(
             return _narrated(moment, text, MODEL, attempts)
 
     fallback = template_narration(facts)
-    result = check(fallback, facts)
+    result = check(fallback, facts, persona=persona, side=side)
     attempts.append(
         Attempt(
             number=len(attempts) + 1,

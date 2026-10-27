@@ -122,7 +122,8 @@ Everything above it is structure.
 - `app/narration_prompt.py`: turns one buildup into a numbered list of plain
   past-tense facts, one per recorded event, built by code out of the records;
   the prompt that asks a model to narrate from that list in the past tense, cite
-  the facts each sentence used, and stop on the goal; and the fallback
+  the facts each sentence used, and stop on the goal; the persona's style and,
+  for the Mate, the listener's side, printed into that prompt; and the fallback
   narration, one sentence per fact, assembled with no model.
 - `app/grounding.py`: decides whether a narration's claims trace back to the
   data, sentence by sentence, against the facts that sentence cited. Refuses
@@ -132,7 +133,18 @@ Everything above it is structure.
   present-tense verb, in a passage that already happened; a narration that does
   not end on the goal's own shot; a wrong shot type or body part; verdict
   nicknames, editorial epithets, claims about the result, lines addressed to the
-  fan, em dashes; and narration that asserts nothing checkable.
+  fan, em dashes; and narration that asserts nothing checkable. It takes the
+  persona and the listener's side, which change one thing: a partisan persona
+  may say "we", "our" and "us" about that side, in a sentence citing a fact
+  recorded against it, and no other voice may say them at all.
+- `app/personas.py`: the three personas, each with an id, a name, a one-line
+  Profile description, the writing style said to the model, and whether it is
+  offered to fans only. `build_prompt` prints the chosen one's style, and the
+  Mate's listener side with it. The IBM voices are `None` and marked
+  unconfirmed: Phase 5 picks them by ear. No screen offers a choice yet.
+- `tests/test_personas.py`: 21 tests over the config's shape, the ids against
+  `app/orchestrator_contract.py`, the unconfirmed voices and the Profile copy.
+  All 21 pass.
 - `app/narration.py`: narrates one moment. Generates, checks, regenerates up to
   twice, then falls back to the template, and records every attempt with the
   claims that failed. Nothing ungrounded is returned. The citation tags are
@@ -147,12 +159,15 @@ Everything above it is structure.
   fake credentials file into a temporary directory; none reads the real one,
   and `tests/conftest.py` points `PRELUDE_ENV_FILE` at an absent path for the
   whole suite so none can.
-- `tests/test_narration_prompt.py`: 37 tests over the facts, the numbered fact
-  list, the prompt, the key beats of a passage and the fallback narration,
-  which has to reach every one of those beats. All pass.
-- `tests/test_grounding.py`: 77 tests over the grounding check, one per way a
+- `tests/test_narration_prompt.py`: 47 tests over the facts, the numbered fact
+  list, the prompt, the persona's style and the listener's side in it, the key
+  beats of a passage and the fallback narration, which has to reach every one
+  of those beats. All pass.
+- `tests/test_grounding.py`: 88 tests over the grounding check, one per way a
   narration can be wrong or can look wrong and be fine, including the
-  misdescription it refuses by pairing a name with an action. All pass.
+  misdescription it refuses by pairing a name with an action and the first
+  person, which only the Mate may use and only over its own side's facts.
+  All pass.
 - `tests/test_narration.py`: 24 tests over the pipeline, covering the retries,
   the fallback, the citation stripping, the failure log and the first-attempt
   pass rate. All pass, and no test calls a model.
@@ -170,13 +185,6 @@ Everything above it is structure.
   `app/orchestrator_contract.py`. Callable from Python; no screen calls it yet.
 - `tests/test_orchestrator.py`: 48 tests over the orchestrator, covering both
   demo matches and a made-up sixty minute sport. All 48 pass.
-- `app/personas.py`: the three personas, each with an id, a name, a one-line
-  Profile description, the writing style said to the model, and whether it is
-  offered to fans only. The IBM voices are `None` and marked unconfirmed:
-  Phase 5 picks them by ear. Nothing reads the styles yet.
-- `tests/test_personas.py`: 21 tests over the config's shape, the ids against
-  `app/orchestrator_contract.py`, the unconfirmed voices and the Profile copy.
-  All 21 pass.
 - `app/event_feed.py`: the data shapes and the `EventFeed` interface. A
   contract only; `app/statsbomb_event_feed.py` is what implements it.
 - `app/narration_config.py`: the model ids and which one is active. Values

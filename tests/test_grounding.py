@@ -34,7 +34,13 @@ from app.grounding import (
     sentences,
     strip_citations,
 )
-from app.narration_prompt import EVENT_VERBS, facts_from_buildup, template_narration
+from app.narration_prompt import (
+    EVENT_VERBS,
+    NoSideForAPartisanVoice,
+    facts_from_buildup,
+    template_narration,
+)
+from app.personas import THE_CALLER, THE_MATE, THE_STORYTELLER
 from app.statsbomb_event_feed import StatsBombEventFeed
 
 MATCH_1986 = 3750191
@@ -713,6 +719,156 @@ class TestPairingRefusesSomeTrueSentences:
             facts_penalty,
         )
         assert result.grounded, result.summary
+
+
+class TestThePartisanVoice:
+    """The one thing a persona changes: who may say "we".
+
+    `app/personas.py` has the Mate writing as the listener's side, so that
+    voice may call that side "we", "our" or "us". The Caller and the
+    Storyteller are written as nobody, so the same word from them is a loyalty
+    the app has put in its own mouth, and no voice may address the fan as
+    "you".
+
+    The 1986 buildup holds both teams, which is what makes the pair of tests
+    below a pair: the same sentence, cited two ways, is grounded for an
+    Argentina listener over fact 11 and refused over fact 10.
+    """
+
+    def test_our_citing_the_listeners_team_passes(self, facts_1986):
+        """Fact 11 is Maradona's Dribble, recorded against Argentina."""
+        result = check(
+            narration("[11] Our captain dribbled past a defender."),
+            facts_1986,
+            persona=THE_MATE,
+            side="Argentina",
+        )
+        assert result.grounded, result.summary
+
+    def test_the_same_sentence_citing_the_other_team_fails(self, facts_1986):
+        """Fact 10 is Beardsley's Dribbled Past, recorded against England.
+
+        The sentence is one an England listener could be told and an
+        Argentina listener could not, and nothing in the words says which.
+        What decides it is the team on the record it cited.
+        """
+        result = check(
+            narration("[10] Our captain dribbled past a defender."),
+            facts_1986,
+            persona=THE_MATE,
+            side="Argentina",
+        )
+        assert not result.grounded
+        assert "side" in kinds(result)
+        assert "Argentina" in result.summary
+
+    def test_the_same_sentence_passes_for_a_listener_on_that_side(
+        self, facts_1986
+    ):
+        """Fact 10 is England's record, so an England listener may say it."""
+        result = check(
+            narration("[10] Our defender was dribbled past."),
+            facts_1986,
+            persona=THE_MATE,
+            side="England",
+        )
+        assert result.grounded, result.summary
+
+    def test_both_records_of_one_dribble_ground_it(self, facts_1986):
+        """One cited fact is enough, which is how a name claim works too.
+
+        Facts 10 and 11 are the two records of one dribble. A sentence citing
+        both is true for an Argentina listener, and a rule asking every cited
+        fact to be theirs would refuse it.
+        """
+        result = check(
+            narration("[10, 11] We dribbled past Peter Beardsley."),
+            facts_1986,
+            persona=THE_MATE,
+            side="Argentina",
+        )
+        assert result.grounded, result.summary
+
+    def test_our_from_the_caller_fails(self, facts_1986):
+        result = check(
+            narration("[11] Our captain dribbled past a defender."),
+            facts_1986,
+            persona=THE_CALLER,
+        )
+        assert not result.grounded
+        assert "first person" in kinds(result)
+
+    def test_our_from_the_storyteller_fails(self, facts_1986):
+        result = check(
+            narration("[11] Our captain dribbled past a defender."),
+            facts_1986,
+            persona=THE_STORYTELLER,
+        )
+        assert not result.grounded
+        assert "first person" in kinds(result)
+
+    def test_we_and_us_are_refused_with_no_persona_at_all(self, facts_1986):
+        """The default is the stricter one: nobody is partisan by default."""
+        for line in (
+            "[11] We went past a defender.",
+            "[11] Maradona went past a defender for us.",
+            "[11] We're past a defender.",
+        ):
+            result = check(narration(line), facts_1986)
+            assert not result.grounded, line
+            assert "first person" in kinds(result), line
+
+    def test_you_is_refused_from_the_mate_too(self, facts_1986):
+        """The narration is not addressed to the fan in any voice."""
+        result = check(
+            narration("[11] Your captain dribbled past a defender."),
+            facts_1986,
+            persona=THE_MATE,
+            side="Argentina",
+        )
+        assert not result.grounded
+        assert "address to the reader" in kinds(result)
+
+    def test_the_mate_with_a_neutral_listener_is_refused(self, facts_1986):
+        """A voice written as the listener's side needs one to be written as.
+
+        Checking it as though nobody were partisan would be answering a
+        question nobody asked, so both the prompt and the check raise.
+        """
+        with pytest.raises(NoSideForAPartisanVoice):
+            check(narration(GOAL_SENTENCE), facts_1986, persona=THE_MATE)
+
+    def test_a_partisan_narration_is_held_to_every_other_rule(self, facts_1986):
+        """The Mate loosens the first person and nothing else.
+
+        Reid pressured and was never dribbled past, which is the named
+        misdescription in `TestMisdescription`. Saying it as "we" does not
+        make it true.
+        """
+        result = check(
+            narration("[11, 13] We dribbled past Peter Reid."),
+            facts_1986,
+            persona=THE_MATE,
+            side="Argentina",
+        )
+        assert not result.grounded
+        assert "pairing" in kinds(result)
+        assert "Reid" in result.summary
+
+    def test_a_banned_word_is_banned_in_every_voice(self, facts_1986):
+        for persona, side in (
+            (THE_MATE, "Argentina"),
+            (THE_CALLER, None),
+            (THE_STORYTELLER, None),
+        ):
+            result = check(
+                "[24] Maradona scored a decisive goal for Argentina.",
+                facts_1986,
+                persona=persona,
+                side=side,
+            )
+            assert not result.grounded, persona.id
+            assert "editorial epithet" in kinds(result), persona.id
 
 
 class TestSentences:

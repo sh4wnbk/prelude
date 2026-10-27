@@ -16,6 +16,13 @@ Those numbers are what this module checks against. A sentence is read against
 the facts it cited, not against the buildup as a lump, and
 `strip_citations` takes the tags off again before anything is shown or voiced.
 
+**A persona changes the register and not the rules.** `check` takes the
+persona the narration was asked for and the side the listener is on, and the
+one difference they make is the first person: `app/personas.py` has the Mate
+writing as the listener's side, so that voice may say "we" over a fact about
+that side and no voice may say it anywhere else. Everything below reads the
+same narration the same way whoever wrote it.
+
 **It is all past tense, and it ends on the goal.** A buildup is playback of a
 passage that already happened, so the facts are written in the past tense and a
 present-tense verb in a narration is refused rather than grounded. The last
@@ -39,6 +46,8 @@ confirm or refuse:
 | `untagged` | a sentence citing nothing | never; every sentence cites its facts |
 | `citation` | a number that is not a fact | never |
 | `banned` | a nickname, a verdict, an em dash | never; these are refused outright |
+| `first person` | "we", "our", "us" | never, unless the persona is partisan |
+| `side` | a partisan "we" | a cited fact is recorded against the listener's side |
 
 A narration that makes **no** name, number or clock claim is refused too, as
 `unverifiable`. Prose that names nobody and quotes no clock has nothing tracing
@@ -83,7 +92,8 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Mapping, Sequence
 
-from app.narration_prompt import Fact, Facts
+from app.narration_prompt import Fact, Facts, NoSideForAPartisanVoice
+from app.personas import Persona
 
 #: "X passed to Y" is two records: a `Pass` on X's and a `Ball Receipt*` on Y's.
 #: Both ground the word, so naming the player a pass reached is not reported as
@@ -291,9 +301,40 @@ BANNED_PATTERNS: Sequence[tuple[str, str]] = (
     ("en dash", r"–"),
 )
 
+#: The first person plural, which belongs to one persona and no other.
+#:
+#: `app/personas.py` has the Mate writing as the listener's side, so "we" is
+#: what that voice is for. From the Caller or the Storyteller it is a claim
+#: nobody made: neither is written as either team, and a narration that says
+#: "our goal" without a side to mean by it has put a loyalty in the app's
+#: mouth. `check` therefore refuses these from every persona but a partisan
+#: one, and from a partisan one only in a sentence whose cited facts record
+#: the listener's side.
+#:
+#: Patterns rather than words, like `BANNED_PATTERNS` and unlike the name
+#: loop, because an apostrophe is a word boundary: `\bwe\b` catches "we're"
+#: and "we've", which the word loop reads as single words ending in neither a
+#: possessive nor anything else it strips.
+#:
+#: "You", "your" and "yours" are not here. They are refused for every persona
+#: by `BANNED_PATTERNS`, because no narration is addressed to the fan whoever
+#: is telling it.
+FIRST_PERSON: Sequence[str] = (
+    r"\bwe\b",
+    r"\bour\b",
+    r"\bours\b",
+    r"\bus\b",
+)
+
 #: Capitalised words that are ordinary prose rather than a claim about who was
 #: on the pitch. Without this, the first word of every sentence is reported as
 #: an invented player.
+#:
+#: "Our" and "ours" are in here for a different reason from the rest. They are
+#: ordinary prose in the sense that matters to this loop: `FIRST_PERSON` owns
+#: them, and leaving them out would report a partisan "Our" twice, once as the
+#: first person and once as a player nobody has heard of. One failure per
+#: mistake, so the name loop skips them. "We" and "us" were already here.
 #:
 #: This is a list, and a list is never finished. The first live run of the
 #: pipeline failed three model attempts in a row on the word "Finally", which
@@ -316,7 +357,7 @@ NOT_A_NAME = frozenset(
     last late later least left less
     many meanwhile might minute minutes moment moments more most moving much
     near nearly neither never next no none nor not now
-    of off on once one only onto or other others out outside over own
+    of off on once one only onto or other others our ours out outside over own
     past per perhaps
     quickly
     rather right round
@@ -609,14 +650,39 @@ def _cited(cites: Sequence[int]) -> str:
     return "[" + ", ".join(str(number) for number in sorted(set(cites))) + "]"
 
 
-def check(text: str, facts: Facts) -> GroundingResult:
+def check(
+    text: str,
+    facts: Facts,
+    persona: Persona | None = None,
+    side: str | None = None,
+) -> GroundingResult:
     """Decide whether `text` is grounded in `facts`.
 
     Every sentence is read against the facts it cited. Returns every failing
     claim rather than stopping at the first, and counts the claims it looked at
     so a pass means something more than "found no problem in a narration that
     asserted nothing".
+
+    **A persona changes one thing and only one.** `persona` and `side` are the
+    voice the narration was asked for and the team the listener is on, and the
+    single difference they make is the first person: a partisan persona may
+    call `side` "we", "our" or "us", and nothing else may. Every other rule in
+    this module reads a narration the same way whoever wrote it, because a
+    voice that could loosen one would make "Verified from play data" mean
+    something different depending on who was listening.
+
+    A partisan persona with no side raises `NoSideForAPartisanVoice`, as
+    `build_prompt` does, rather than quietly checking the narration as though
+    nobody were partisan.
     """
+    partisan = persona is not None and persona.fans_only
+    if partisan and not side:
+        raise NoSideForAPartisanVoice(
+            f"the {persona.name} writes as the listener's side, so a "
+            "narration in that voice cannot be checked without one"
+        )
+    listener_side = fold(side) if side else None
+
     by_number = {fact.number: fact for fact in facts.facts}
     goal = facts.goal_fact
     known_names = name_parts(facts)
@@ -640,6 +706,24 @@ def check(text: str, facts: Facts) -> GroundingResult:
             for hit in re.findall(pattern, folded):
                 checked += 1
                 failed(label, hit if isinstance(hit, str) else sentence.text)
+
+        # The first person, which is the one thing a persona changes. A voice
+        # that is not partisan has no side to mean by "we", so the word is
+        # refused here and the side check below never runs; a partisan voice
+        # is held to what it cited instead, once the citations are known.
+        said_as_us = [
+            hit
+            for pattern in FIRST_PERSON
+            for hit in re.findall(pattern, folded)
+        ]
+        if said_as_us and not partisan:
+            for word in said_as_us:
+                checked += 1
+                failed(
+                    "first person",
+                    f"{word!r}: this narration is not written as either side, "
+                    "so there is nobody for the first person to be",
+                )
 
         # The tense, before the words are read as claims. A present-tense verb
         # is not a weaker way of saying the past one: it narrates the passage as
@@ -738,6 +822,22 @@ def check(text: str, facts: Facts) -> GroundingResult:
                     "its names, actions and clocks against",
                 )
             continue
+
+        # A partisan "we" has to have the listener's side under it. The
+        # sentence needs one cited fact recorded against that side, which is
+        # the same shape as a name claim: a name is grounded when some cited
+        # fact holds it, not when every cited fact does. Requiring all of them
+        # would refuse "[10, 11] We dribbled past Beardsley", which cites the
+        # two records of one dribble and is true for an Argentina listener.
+        if said_as_us and partisan:
+            checked += 1
+            if not any(fold(fact.beat.team) == listener_side for fact in cited):
+                failed(
+                    "side",
+                    f"{sorted(set(said_as_us))} said over "
+                    f"{_cited(sentence.cites)}, which records nothing for "
+                    f"{side}, so the first person has nothing to stand on",
+                )
 
         # Names and actions are checked for membership first. A claim that
         # failed there is not paired afterwards: one failure per mistake, so a

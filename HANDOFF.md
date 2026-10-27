@@ -868,6 +868,67 @@ whenever that module is open.
 
 `pytest -q` reports `320 passed`, and the four gates pass.
 
+### Phase 4, task 6b
+
+**The persona's style is in the prompt, and the Mate may say "we".**
+`build_prompt` takes a persona and a side, `check` takes the same two, and
+`narrate` passes both through. `persona=None` is the prompt and the check as
+they stood before personas existed, which is what the measured runs in
+`docs/narration_eval.md` were made with.
+
+**A persona changes the register and one rule.** Every other rule is the same
+text in all three voices, which is asserted rather than asserted about:
+`tests/test_narration_prompt.py::TestThePersonaInThePrompt::test_the_rules_are_the_same_in_every_voice`
+takes the RULES block of each prompt, removes the person rule, and requires
+what is left to be identical.
+
+| Voice | "we", "our", "us" | "you", "your" |
+| ----- | ----------------- | ------------- |
+| no persona | refused | refused |
+| the Caller | refused | refused |
+| the Storyteller | refused | refused |
+| the Mate, with a side | allowed over that side's facts | refused |
+| the Mate, with no side | the request itself raises | refused |
+
+**One cited fact, not every cited fact.** A partisan sentence needs one cited
+fact recorded against the listener's side. That is the shape a name claim
+already has, and requiring every cited fact to be theirs would refuse
+"[10, 11] We dribbled past Peter Beardsley", which cites the two records of one
+dribble and is true for an Argentina listener.
+
+**The pair of tests that makes it concrete is one sentence cited two ways.**
+"[11] Our captain dribbled past a defender." is grounded for an Argentina
+listener, because fact 11 is Maradona's `Dribble`; citing fact 10 instead,
+Beardsley's `Dribbled Past`, is refused, because that record is England's.
+Nothing in the words tells them apart, and the team on the cited record is
+what does.
+
+**A Mate request from a neutral listener raises in both places.**
+`NoSideForAPartisanVoice` comes out of `build_prompt` and out of `check`.
+Falling back to a neutral register would return narration in a voice nobody
+asked for, and picking a side would tell a listener they support a team they
+did not choose.
+
+**Two implementation notes worth keeping.** `FIRST_PERSON` holds patterns
+rather than words, because an apostrophe is a word boundary and `we` is
+what catches "we're", which the name loop reads as one word it strips nothing
+from. And "our" and "ours" joined `NOT_A_NAME`, so a partisan "Our" is
+reported once as the first person rather than twice, the second time as a
+player nobody has heard of.
+
+**A live check on `granite4:micro`, one run each over the 1986 54:18 goal,**
+before any measurement: the Caller was grounded on its first attempt, the Mate
+on its second, and the Storyteller fell back to the template after three. One
+run each is not a rate, which is what task 6c is for. Worth noting from it:
+the Mate's grounded narration used no "we" at all. The voice is allowed the
+first person; nothing makes a model take it.
+
+**`persona=None` is still the default everywhere.** No screen and no script
+passes a persona yet, so nothing in the app's behaviour changed with this
+commit.
+
+`pytest -q` reports `341 passed`, and the four gates pass.
+
 ### Phase 4, task 3c
 
 **Four documents, each statement carrying its file and its test.**
@@ -1688,7 +1749,7 @@ Tasks 3d through Phase 7, as agreed with Shawn, copied here so a fresh session
 has the whole arc rather than one task at a time.
 
 **Everything in this section is planned work except where a task is marked
-done.** Tasks 3d, 4a, 4c, 5 and 6a are built, and so is Bob's task 4, the
+done.** Tasks 3d, 4a, 4c, 5, 6a and 6b are built, and so is Bob's task 4, the
 orchestrator; nothing below them exists. Paths a doc names before they are
 written go on `DELIBERATELY_ABSENT` in `scripts/check_docs.py`, so the docs
 gate fails if one appears and this section was not updated with it. The list
@@ -1805,7 +1866,7 @@ narrator), and the Mate (partisan, like a friend in your row; offered only to
 fans). Inspired by styles, never named after real broadcasters. Tests for the
 config's shape. See "Phase 4, task 6a" under What was built.
 
-#### Task 6b: the style into the prompt, and the Mate's partisanship
+#### Task 6b: the style into the prompt, and the Mate's partisanship (done)
 
 Feed the persona's style text into `build_prompt`. The grounding check and the
 banned list apply unchanged to every persona.
@@ -1906,16 +1967,16 @@ speed, per persona; this file records which leads; and Shawn picks the model.
   session (all gates, both matches, a real-phone check).
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Task 6b, the style into the prompt)
+## Next first action (Task 6c, the persona comparison on Ollama)
 
-**Task 6b in the Plan is next,** and it is Claude Code's. Task 6a is built:
-`app/personas.py` holds the three personas, `tests/test_personas.py` holds
-them to their shape, and nothing feeds a style to a model yet.
+**Task 6c in the Plan is next,** and it is Claude Code's. Tasks 6a and 6b are
+built: the config exists, the style goes into the prompt, and the Mate's
+first person is checked against the listener's side.
 
-**One thing is outstanding from Bob's session: its export is not committed
-yet.** `bob_sessions/phase4_task4_orchestrator.md` and its screenshot are on
-disk and untracked. They are Shawn's to commit, scrubbed of credentials like
-the three before them.
+**Bob's task 4 export is committed.** It was scanned first, as
+`bob_sessions/README.md` requires, and nothing was scrubbed: no variable name
+from `.env.example`, no token, no key-shaped string and no URL carrying a
+query string.
 
 Task 4b, the paid watsonx comparison, can run at any point and has one extra
 arm recorded in the Plan: one candidate without the beats block, on the five

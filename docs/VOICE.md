@@ -19,6 +19,7 @@ into two places that have to agree:
 
 | Where | What it does |
 | ----- | ------------ |
+| `app/personas.py` | the three registers the same facts can be said in |
 | `app/narration_prompt.py` | builds the numbered facts, and states the rules to the model in the prompt |
 | `app/grounding.py` | refuses a narration that broke them |
 | `scripts/narrate_once.py` | runs one goal through a real model and prints every attempt |
@@ -315,18 +316,21 @@ the narration, and nothing goes after it.
 
 ## The three personas
 
-**The config exists and nothing reads the styles yet.** `app/personas.py`
-holds the three, `tests/test_personas.py` holds them to their shape, and no
-prompt, screen or script passes a style to a model at this commit. What is
-settled is who they are and what a persona may change.
+**The styles are in the prompt and no screen offers a choice yet.**
+`app/personas.py` holds the three, `build_prompt` prints the chosen one's
+style, `check` in `app/grounding.py` takes the persona and the listener's
+side, and `narrate` passes both through. Nothing on a screen picks a persona:
+that is Task 7.
 
 A persona is a register, not a set of permissions. It changes how the same
-facts are said and nothing about which facts may be said: `app/grounding.py`
-reads a narration against the facts it cited whoever asked for it, and
-`BANNED_PATTERNS` refuses the same nicknames, epithets and outcome claims in
-all three voices. A persona that could loosen the check would make the label
-mean something different depending on who was listening, which is the one
-thing it cannot mean.
+facts are said and nearly nothing about which facts may be said:
+`app/grounding.py` reads a narration against the facts it cited whoever asked
+for it, and `BANNED_PATTERNS` refuses the same nicknames, epithets and outcome
+claims in all three voices. The one difference is the first person, and the
+section below is what keeps it from being a loophole.
+`tests/test_narration_prompt.py::TestThePersonaInThePrompt::test_the_rules_are_the_same_in_every_voice`
+takes the prompts apart and asserts that the rules, with the person rule
+removed, are the same text in all three.
 
 | Persona | Id | What it sounds like | Offered to |
 | ------- | -- | ------------------- | ---------- |
@@ -363,6 +367,69 @@ nothing in this repo has listened to one. A plausible voice id written down now
 would be a guess with the look of a decision, so the pair of fields says "not
 chosen" instead:
 `tests/test_personas.py::TestTheVoicesAreNotChosenYet::test_a_null_voice_is_never_confirmed`.
+
+### The Mate says "we", and nothing else does
+
+The Mate is written as the listener's side, so "we", "our" and "us" are what
+that voice is made of. From the Caller or the Storyteller the same word is a
+loyalty nobody declared: neither is written as either team, and "our goal"
+from a voice with no side is the app claiming one.
+
+So the first person is refused by default and admitted for a partisan persona
+only, and then only where it has something to stand on. `FIRST_PERSON` in
+`app/grounding.py` holds the words, as patterns rather than as a word list,
+because an apostrophe is a word boundary and `we` is what catches
+"we're".
+
+| Voice | "we", "our", "us" | "you", "your" |
+| ----- | ----------------- | ------------- |
+| no persona | refused | refused |
+| the Caller | refused | refused |
+| the Storyteller | refused | refused |
+| the Mate, with a side | allowed over that side's facts | refused |
+| the Mate, with no side | the request itself is refused | refused |
+
+**A partisan sentence has to cite the listener's side.** One cited fact
+recorded against that side is enough, which is the same shape as a name claim:
+a name is grounded when some cited fact holds it, not when every cited fact
+does. Requiring all of them would refuse "[10, 11] We dribbled past Peter
+Beardsley", which cites the two records of one dribble and is true for an
+Argentina listener
+(`tests/test_grounding.py::TestThePartisanVoice::test_both_records_of_one_dribble_ground_it`).
+
+The pair of tests that makes the rule concrete is one sentence cited two ways.
+"[11] Our captain dribbled past a defender." is grounded for an Argentina
+listener, because fact 11 is Maradona's `Dribble`. The same sentence citing
+fact 10, Beardsley's `Dribbled Past`, is refused, because that record is
+England's
+(`tests/test_grounding.py::TestThePartisanVoice::test_our_citing_the_listeners_team_passes`
+and
+`tests/test_grounding.py::TestThePartisanVoice::test_the_same_sentence_citing_the_other_team_fails`).
+Nothing in the words tells the two apart. What decides it is the team on the
+record the sentence cited.
+
+**"You" is refused in every voice, the Mate included.** The narration is not
+addressed to the fan in any register, which is the ending rule above: the
+header goes before the narration and nothing goes after it.
+`tests/test_grounding.py::TestThePartisanVoice::test_you_is_refused_from_the_mate_too`
+holds the partisan voice to it.
+
+**A Mate request from a neutral listener is refused rather than softened.**
+Both `build_prompt` and `check` raise `NoSideForAPartisanVoice`. Falling back
+to a neutral register would hand back narration in a voice nobody asked for,
+and picking a side would tell a listener they support a team they did not
+choose.
+
+**The prompt says what the check enforces, in each voice.** A prompt asking
+for less than the check requires would set the model up to fail and a retry
+would not help it, so `first_person_rule` in `app/narration_prompt.py` writes
+the strict version for two voices and the partisan version, naming the side,
+for the Mate.
+
+**It loosens the first person and nothing else.** "We dribbled past Peter
+Reid" is the misdescription from the section above, said as a supporter, and
+it is refused for the same reason:
+`tests/test_grounding.py::TestThePartisanVoice::test_a_partisan_narration_is_held_to_every_other_rule`.
 
 **The style text is prompt copy and the Profile line is app output.** They are
 checked differently on purpose. The Profile line is read by a fan, so the

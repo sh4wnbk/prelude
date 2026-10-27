@@ -120,11 +120,19 @@ THE_STORYTELLER = Persona(
 )
 
 #: Partisan, and the only persona that needs to know who is listening. The
-#: listener's side is a prompt input for this one alone, and
-#: `app/grounding.py` admits "we", "our" and "us" from it only over facts
-#: about that side. "You" stays refused here as it is everywhere: the
-#: narration is not addressed to the fan, which is what the ending rule in
-#: `docs/VOICE.md` keeps out.
+#: listener's side is a prompt input for this one alone: `persona_block` in
+#: `app/narration_prompt.py` prints it for a `fans_only` persona and for no
+#: other, and `check` in `app/grounding.py` admits "we", "our" and "us" from
+#: one, in a sentence citing at least one fact recorded against that side.
+#:
+#: **One cited fact, not every cited fact.** That is the same shape as a name
+#: claim, which is grounded when some cited fact holds it. Requiring all of
+#: them would refuse "[10, 11] We dribbled past Beardsley", which cites the
+#: two records of one dribble and is true for an Argentina listener.
+#:
+#: "You" stays refused here as it is everywhere: the narration is not
+#: addressed to the fan, which is what the ending rule in `docs/VOICE.md`
+#: keeps out.
 THE_MATE = Persona(
     id=MATE,
     name="The Mate",

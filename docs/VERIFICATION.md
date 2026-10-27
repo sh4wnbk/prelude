@@ -53,6 +53,8 @@ One test per kind of claim, and one per kind of mistake:
 | `ending` | the last sentence does not cite the goal's shot | `tests/test_grounding.py::TestEnding::test_a_last_sentence_that_does_not_cite_the_shot_is_refused` |
 | `untagged` | the sentence cites no fact | `tests/test_grounding.py::TestNotGrounded::test_a_sentence_that_cites_nothing` |
 | `citation` | the cited number is not one of the facts | `tests/test_grounding.py::TestNotGrounded::test_a_citation_that_is_not_one_of_the_facts` |
+| `first person` | "we", "our" or "us" from a voice that is not partisan | `tests/test_grounding.py::TestThePartisanVoice::test_our_from_the_caller_fails` |
+| `side` | a partisan "we" over facts recording the other team | `tests/test_grounding.py::TestThePartisanVoice::test_the_same_sentence_citing_the_other_team_fails` |
 | `unverifiable` | the narration asserts nothing checkable | `tests/test_grounding.py::TestNotGrounded::test_narration_that_asserts_nothing_checkable` |
 | banned | a verdict nickname | `tests/test_grounding.py::TestNotGrounded::test_a_verdict_nickname` |
 | banned | an editorial epithet | `tests/test_grounding.py::TestNotGrounded::test_an_editorial_epithet` |
