@@ -128,7 +128,7 @@ nothing in the repo may open that file to check. The file itself moved out of
 the repo in task 2c, below; at this commit it was still at the repo root.
 
 **The tests make no network calls, and that is enforced.**
-`tests/test_narration_provider.py` is 41 tests, and `tests/conftest.py`
+`tests/test_narration_provider.py` is 50 tests, and `tests/conftest.py`
 replaces `urllib.request.urlopen` and `socket.socket.connect` with functions
 that raise, for every test in the suite. Two tests check the guard itself.
 
@@ -1056,6 +1056,41 @@ development model had shown; the models retried far less than that, which is
 the whole reason it came in under.
 
 `pytest -q` reports `393 passed`, and the four gates pass.
+
+### Phase 4, task 6d, step 1: the model is switched
+
+**Shawn picked `openai/gpt-oss-120b` on the Task 4b results.**
+`ACTIVE_CANDIDATE` in `app/narration_config.py` names it, and
+`tests/test_narration_provider.py::TestTheShippedSettings::test_the_active_candidate_is_gpt_oss`
+records the choice while the tests around it hold the thing that matters:
+whatever is active, the settings it needs are what gets sent.
+
+**The settings travel with the candidate rather than with the call site.**
+`Candidate` gained `chat` and `reasoning_effort`, and `WatsonxProvider` reads
+them. Task 4b found that a model id is not enough to reach a model: on
+`/ml/v1/text/generation` neither candidate refused and both were unusable,
+because that endpoint applies no chat template. A switch that moved the id and
+left the endpoint behind would have shipped a model answering with the tail of
+its own prompt, and nothing in the suite would have noticed.
+
+| Candidate | Endpoint | Reasoning effort |
+| --------- | -------- | ---------------- |
+| `ibm/granite-4-h-small` | chat | not applicable |
+| `openai/gpt-oss-120b` | chat | low |
+
+An explicit argument still wins, which is what `scripts/narration_compare.py`
+and the generation-schema tests use. A model id that is not one of
+`CANDIDATES` inherits nothing, so a one-off model cannot pick up another
+model's endpoint by accident.
+
+**Nine tests were changed rather than added to.** The ones that assert the
+documented `/ml/v1/text/generation` request and response shapes now pass
+`chat=False`, because both candidates ship on chat and those tests are about
+the generation schema. The schema itself is unchanged and
+`tests/golden/watsonx_text_generation.json` still says it came from IBM's
+published documentation rather than from a recording.
+
+`pytest -q` reports `402 passed`, and the four gates pass.
 
 ### Phase 4, task 3c
 

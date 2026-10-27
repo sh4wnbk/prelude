@@ -24,28 +24,60 @@ from typing import Any, Mapping
 
 @dataclass(frozen=True)
 class Candidate:
-    """One watsonx.ai model under comparison for narration.
+    """One watsonx.ai model, and how it has to be asked.
 
     `model_id` is the id watsonx expects in a request body. `label` is for
     reports and commit messages, not for app output.
+
+    **The request settings travel with the model.** `chat` and
+    `reasoning_effort` are not preferences; they are what Task 4b found each
+    candidate needs in order to answer at all, and a model id switched
+    without them is a model that answers with the tail of its own prompt. So
+    they sit on the candidate rather than at a call site, and switching
+    `ACTIVE_CANDIDATE` switches them with it.
+
+    `chat` sends `/ml/v1/text/chat` instead of `/ml/v1/text/generation`. Both
+    candidates need it: the generation endpoint applies no chat template, and
+    on it one candidate prefixed its narration with the end of the prompt and
+    the other returned its reasoning as the answer.
+
+    `reasoning_effort` is for a model that thinks before it writes. At its
+    default effort `openai/gpt-oss-120b` spent most of its output budget
+    reasoning before it wrote anything, about twenty five times what Granite
+    spends on a whole narration, and a fan waits through that on every
+    attempt and every retry. `docs/narration_eval.md` holds the figures.
     """
 
     model_id: str
     label: str
+    chat: bool = False
+    reasoning_effort: str | None = None
 
 
-GRANITE_4_H_SMALL = Candidate("ibm/granite-4-h-small", "Granite 4 H Small")
-GPT_OSS_120B = Candidate("openai/gpt-oss-120b", "GPT OSS 120B")
+GRANITE_4_H_SMALL = Candidate(
+    "ibm/granite-4-h-small", "Granite 4 H Small", chat=True
+)
+GPT_OSS_120B = Candidate(
+    "openai/gpt-oss-120b", "GPT OSS 120B", chat=True, reasoning_effort="low"
+)
 
 #: The two models the comparison is between, in no significant order.
 CANDIDATES: tuple[Candidate, ...] = (GRANITE_4_H_SMALL, GPT_OSS_120B)
 
-#: The candidate a watsonx request uses. Granite starts active because it is
-#: the IBM model and this project runs on IBM's stack; the comparison exists to
-#: test that choice rather than assume it. Switching candidates is this one
-#: line, and `tests/test_narration_provider.py` asserts only that the active
-#: candidate is one of `CANDIDATES`, so flipping it does not break the suite.
-ACTIVE_CANDIDATE = GRANITE_4_H_SMALL
+#: The candidate a watsonx request uses.
+#:
+#: **Shawn picked this on the Task 4b results.** Granite was active first
+#: because it is the IBM model and this project runs on IBM's stack, and the
+#: comparison existed to test that choice rather than assume it. It tested it:
+#: `openai/gpt-oss-120b` wrote 33 of 33 narrations that `app/grounding.py`
+#: accepted on the first attempt, with no retry and no fallback, against
+#: Granite's 16 of 54 with 23 fallbacks. It is also cheaper per narration,
+#: because it does not retry. `docs/narration_eval.md` holds the run and
+#: `HANDOFF.md` records the decision.
+#:
+#: Switching candidates is still this one line, and the settings each one
+#: needs travel with it on `Candidate`.
+ACTIVE_CANDIDATE = GPT_OSS_120B
 
 
 @dataclass(frozen=True)

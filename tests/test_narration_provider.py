@@ -47,6 +47,7 @@ from app.narration_provider import (
     OllamaProvider,
     WATSONX_CHAT_PATH,
     WATSONX_GENERATE_PATH,
+    candidate_for,
     WatsonxProvider,
     provider,
 )
@@ -255,7 +256,9 @@ class TestWatsonxBackend:
         golden = read_json(WATSONX_GOLDEN)
         documented = golden["generation"]["request"]
         feed = WatsonxProvider(
-            env=golden["env"], model=documented["payload"]["model_id"]
+            env=golden["env"],
+            model=documented["payload"]["model_id"],
+            chat=False,
         )
         assert feed.url == documented["url"]
         assert feed.payload(golden["prompt"]) == documented["payload"]
@@ -287,6 +290,7 @@ class TestWatsonxBackend:
             env=golden["env"],
             transport=replay,
             model=documented["request"]["payload"]["model_id"],
+            chat=False,
         )
 
         narration = feed.narrate(golden["prompt"])
@@ -309,6 +313,7 @@ class TestWatsonxBackend:
             env=golden["env"],
             transport=replay,
             model=documented["request"]["payload"]["model_id"],
+            chat=False,
         )
 
         feed.narrate(golden["prompt"])
@@ -331,6 +336,7 @@ class TestWatsonxBackend:
                 }
             ),
             model=documented["request"]["payload"]["model_id"],
+            chat=False,
         )
         with pytest.raises(NarrationProviderError) as raised:
             feed.narrate(golden["prompt"])
@@ -362,6 +368,7 @@ class TestTheTokenIsCached:
         feed = WatsonxProvider(
             env=golden["env"],
             model=documented["request"]["payload"]["model_id"],
+            chat=False,
         )
         return {
             IAM_TOKEN_URL: golden["iam"]["response"],
@@ -376,6 +383,7 @@ class TestTheTokenIsCached:
             env=golden["env"],
             transport=replay,
             model=documented["request"]["payload"]["model_id"],
+            chat=False,
         )
 
         for _ in range(3):
@@ -402,6 +410,7 @@ class TestTheTokenIsCached:
             env=golden["env"],
             transport=Replay(answers),
             model=documented["request"]["payload"]["model_id"],
+            chat=False,
         )
 
         feed.narrate(golden["prompt"])
@@ -434,6 +443,7 @@ class TestTheTokenIsCached:
             env=golden["env"],
             transport=replay,
             model=documented["request"]["payload"]["model_id"],
+            chat=False,
         )
 
         narration = feed.narrate(golden["prompt"])
@@ -466,6 +476,7 @@ class TestTheTokenIsCached:
             env=golden["env"],
             transport=AlwaysUnauthorised(answers),
             model=documented["request"]["payload"]["model_id"],
+            chat=False,
         )
         with pytest.raises(urllib.error.HTTPError):
             feed.narrate(golden["prompt"])
@@ -487,6 +498,7 @@ class TestTheTokenIsCached:
             env=golden["env"],
             transport=BadRequest(answers),
             model=documented["request"]["payload"]["model_id"],
+            chat=False,
         )
         with pytest.raises(urllib.error.HTTPError):
             feed.narrate(golden["prompt"])
@@ -500,7 +512,9 @@ class TestTheDecodingIsPinned:
         golden = read_json(WATSONX_GOLDEN)
         documented = golden["generation"]["request"]
         feed = WatsonxProvider(
-            env=golden["env"], model=documented["payload"]["model_id"]
+            env=golden["env"],
+            model=documented["payload"]["model_id"],
+            chat=False,
         )
         assert feed.payload(golden["prompt"]) == documented["payload"]
 
@@ -509,7 +523,7 @@ class TestTheDecodingIsPinned:
         same narration three times, which is one run reported as three."""
         golden = read_json(WATSONX_GOLDEN)
         feed = WatsonxProvider(
-            env=golden["env"], decoding=config.COMPARISON_DECODING
+            env=golden["env"], decoding=config.COMPARISON_DECODING, chat=False
         )
         parameters = feed.payload("a prompt")["parameters"]
         assert parameters["decoding_method"] == "sample"
@@ -523,7 +537,7 @@ class TestTheDecodingIsPinned:
 
     def test_the_cap_reaches_the_payload(self):
         golden = read_json(WATSONX_GOLDEN)
-        feed = WatsonxProvider(env=golden["env"])
+        feed = WatsonxProvider(env=golden["env"], chat=False)
         payload = feed.payload("a prompt", COMPARISON_MAX_NEW_TOKENS)
         assert payload["parameters"]["max_new_tokens"] == COMPARISON_MAX_NEW_TOKENS
 
@@ -573,3 +587,76 @@ class TestTheChatEndpoint:
         with pytest.raises(NarrationProviderError) as raised:
             feed.narrate("a prompt")
         assert "content" in str(raised.value)
+
+
+class TestTheShippedSettings:
+    """Task 6d: the settings a candidate needs travel with the candidate.
+
+    A model id switched in `app/narration_config.py` without its endpoint is
+    a model that answers with the tail of its own prompt, which is what Task
+    4b found on the generation endpoint. So `chat` and `reasoning_effort` sit
+    on `Candidate` and the provider reads them, rather than every call site
+    being trusted to remember.
+    """
+
+    def test_the_active_candidate_is_gpt_oss(self):
+        """Shawn picked it on the Task 4b results. The test that matters is
+        the one below it: whatever is active, its settings are sent."""
+        assert config.ACTIVE_CANDIDATE is config.GPT_OSS_120B
+
+    def test_every_candidate_names_the_endpoint_it_needs(self):
+        """Both need chat. Neither refused the generation endpoint and both
+        were unusable on it, which a default of False would hide."""
+        assert all(candidate.chat for candidate in config.CANDIDATES)
+
+    def test_the_default_provider_sends_the_active_candidates_settings(self):
+        golden = read_json(WATSONX_GOLDEN)
+        feed = WatsonxProvider(env=golden["env"])
+        assert feed.model == config.ACTIVE_CANDIDATE.model_id
+        assert feed.chat is config.ACTIVE_CANDIDATE.chat
+        assert feed.reasoning_effort == config.ACTIVE_CANDIDATE.reasoning_effort
+
+    def test_a_named_candidate_brings_its_own_settings(self):
+        """Naming the other one does not inherit this one's."""
+        golden = read_json(WATSONX_GOLDEN)
+        feed = WatsonxProvider(
+            env=golden["env"], model=config.GRANITE_4_H_SMALL.model_id
+        )
+        assert feed.chat is True
+        assert feed.reasoning_effort is None
+
+    def test_a_model_that_is_not_a_candidate_inherits_nothing(self):
+        """How a one-off model is tried without picking up another's
+        endpoint by accident."""
+        golden = read_json(WATSONX_GOLDEN)
+        feed = WatsonxProvider(env=golden["env"], model="some/other-model")
+        assert feed.chat is False
+        assert feed.reasoning_effort is None
+
+    def test_an_explicit_argument_beats_the_candidate(self):
+        """The comparison script and the schema tests both rely on this."""
+        golden = read_json(WATSONX_GOLDEN)
+        feed = WatsonxProvider(
+            env=golden["env"], chat=False, reasoning_effort="high"
+        )
+        assert feed.chat is False
+        assert feed.reasoning_effort == "high"
+
+    def test_the_reasoning_effort_reaches_the_payload(self):
+        golden = read_json(WATSONX_GOLDEN)
+        feed = WatsonxProvider(env=golden["env"])
+        assert feed.payload("a prompt")["reasoning_effort"] == "low"
+
+    def test_granite_sends_no_reasoning_effort(self):
+        """A model with no reasoning field should not be sent one."""
+        golden = read_json(WATSONX_GOLDEN)
+        feed = WatsonxProvider(
+            env=golden["env"], model=config.GRANITE_4_H_SMALL.model_id
+        )
+        assert "reasoning_effort" not in feed.payload("a prompt")
+
+    def test_candidate_for_finds_each_one(self):
+        for candidate in config.CANDIDATES:
+            assert candidate_for(candidate.model_id) is candidate
+        assert candidate_for(None) is config.ACTIVE_CANDIDATE
+        assert candidate_for("some/other-model") is None

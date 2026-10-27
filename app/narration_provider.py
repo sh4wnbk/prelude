@@ -37,6 +37,8 @@ from app.credentials import describe
 from app.credentials import load as load_credentials
 from app.narration_config import (
     ACTIVE_CANDIDATE,
+    CANDIDATES,
+    Candidate,
     DEFAULT_PROVIDER,
     DEVELOPMENT_MODEL,
     Decoding,
@@ -214,6 +216,22 @@ class OllamaProvider:
         )
 
 
+def candidate_for(model: str | None) -> "Candidate | None":
+    """The configured candidate a model id belongs to, or None.
+
+    `None` for the model means the active candidate, which is the shipped
+    path. A model id that is not one of `CANDIDATES` has no settings to
+    inherit, which is the right answer: this is how a one-off model is tried
+    without quietly picking up another model's endpoint.
+    """
+    if model is None:
+        return ACTIVE_CANDIDATE
+    for candidate in CANDIDATES:
+        if candidate.model_id == model:
+            return candidate
+    return None
+
+
 class WatsonxProvider:
     """The watsonx.ai backend, reached only by naming it.
 
@@ -256,7 +274,7 @@ class WatsonxProvider:
         transport: Transport = post,
         api_version: str = WATSONX_API_VERSION,
         decoding: Decoding | None = None,
-        chat: bool = False,
+        chat: bool | None = None,
         max_new_tokens: int = DEFAULT_MAX_NEW_TOKENS,
         reasoning_effort: str | None = None,
     ) -> None:
@@ -271,6 +289,11 @@ class WatsonxProvider:
                 + describe().summary
                 + ". .env.example lists the variable names."
             )
+        # The settings a candidate needs travel with it, so a model id
+        # switched in `app/narration_config.py` cannot ship with the endpoint
+        # the other one wanted. An explicit argument still wins, which is
+        # what the comparison script and the schema tests use.
+        candidate = candidate_for(model)
         self.model = model or ACTIVE_CANDIDATE.model_id
         self.host = env["WATSONX_URL"].rstrip("/")
         self.api_version = api_version
@@ -278,7 +301,9 @@ class WatsonxProvider:
         self._project_id = env["WATSONX_PROJECT_ID"]
         self._transport = transport
         self.decoding = decoding
-        self.chat = chat
+        self.chat = (
+            (candidate.chat if candidate else False) if chat is None else chat
+        )
         # Bound to the provider rather than passed to every call, because
         # `NarrationProvider` is `narrate(prompt)` and `app/narration.py`
         # calls it that way. A cap the pipeline cannot reach is a cap that
@@ -289,7 +314,11 @@ class WatsonxProvider:
         # between the candidates, because it is how one of them would ship:
         # a model that thinks for a thousand tokens before every narration is
         # one a fan waits through on every attempt.
-        self.reasoning_effort = reasoning_effort
+        self.reasoning_effort = (
+            (candidate.reasoning_effort if candidate else None)
+            if reasoning_effort is None
+            else reasoning_effort
+        )
         self._token: str | None = None
         self._token_expires_at = 0.0
         #: Counted so a paid run can report what it spent on authorisation

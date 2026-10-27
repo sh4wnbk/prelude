@@ -22,11 +22,19 @@ longer lists a model id.
 | `GPT_OSS_120B` | `openai/gpt-oss-120b` | watsonx.ai | comparison candidate |
 | `DEVELOPMENT_MODEL` | `granite4:micro` | Ollama, local | development |
 
-`ACTIVE_CANDIDATE` names the candidate a watsonx request uses. Granite starts
-active because it is the IBM model and this project runs on IBM's stack; the
-comparison exists to test that choice rather than assume it. Switching
-candidates is one line, and the suite does not pin which one is active, only
-that it is one of the two.
+`ACTIVE_CANDIDATE` names the candidate a watsonx request uses, and it is
+`GPT_OSS_120B`. Granite was active first because it is the IBM model and this
+project runs on IBM's stack; the comparison existed to test that choice rather
+than assume it, and Task 4b did, measuring 33 first-attempt passes out of 33
+against 16 out of 54. `docs/narration_eval.md` holds the run and `HANDOFF.md`
+records the decision.
+
+Switching candidates is one line, and the suite does not pin which one is
+active, only that it is one of the two. What a candidate carries beside its
+id is how it has to be asked: both need the chat endpoint, and
+`openai/gpt-oss-120b` is sent `reasoning_effort: low`, because at its default
+effort it reasons for far longer than it writes and a fan waits through that
+on every attempt.
 
 ### The development model runs on the CPU
 

@@ -154,14 +154,31 @@ is between, and the local model development runs on. A model id is not a
 credential: it records which model produced a line of narration, so it belongs
 in the repo where a reader can see it.
 
-| Candidate | `model_id` | Label |
-| --------- | ---------- | ----- |
-| IBM Granite | `ibm/granite-4-h-small` | Granite 4 H Small |
-| GPT OSS, served on watsonx | `openai/gpt-oss-120b` | GPT OSS 120B |
+| Candidate | `model_id` | Label | Endpoint | Reasoning effort |
+| --------- | ---------- | ----- | -------- | ---------------- |
+| IBM Granite | `ibm/granite-4-h-small` | Granite 4 H Small | chat | not applicable |
+| GPT OSS, served on watsonx | `openai/gpt-oss-120b` | GPT OSS 120B | chat | low |
 
-`ACTIVE_CANDIDATE` is the Granite one. It starts active because it is the IBM
-model and this project runs on IBM's stack, and the comparison exists to test
-that choice rather than assume it. Switching is one line, and
+**`ACTIVE_CANDIDATE` is the GPT OSS one, and Shawn picked it on the Task 4b
+results.** Granite was active first because it is the IBM model and this
+project runs on IBM's stack, and the comparison existed to test that choice
+rather than assume it. It tested it: `openai/gpt-oss-120b` wrote 33 of 33
+narrations that `app/grounding.py` accepted on the first attempt, with no
+retry and no fallback, against Granite's 16 of 54 with 23 fallbacks, and it is
+cheaper per narration because it does not retry. `docs/narration_eval.md` holds
+the run.
+
+**The settings each candidate needs travel with it.** The endpoint and the
+reasoning effort are columns of the table above because they are on
+`Candidate` in `app/narration_config.py`, not arguments at a call site: a
+model id switched without its endpoint is a model that answers with the tail
+of its own prompt, which is what Task 4b found on the generation endpoint.
+`tests/test_narration_provider.py::TestTheShippedSettings::test_the_default_provider_sends_the_active_candidates_settings`
+holds the shipped path to it, and
+`tests/test_narration_provider.py::TestTheShippedSettings::test_a_model_that_is_not_a_candidate_inherits_nothing`
+holds that a model which is not a candidate picks up nobody else's.
+
+Switching is still one line, and
 `tests/test_narration_provider.py::TestConfig::test_exactly_one_candidate_is_active`
 asserts only that the active candidate is one of the two, so flipping it does
 not break the suite.
