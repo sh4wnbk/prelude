@@ -53,6 +53,7 @@ the commit it produced.
 | 3 | 1. Build `StatsBombEventFeed` | [`bob_sessions/phase3_task1_eventfeed.md`](phase3_task1_eventfeed.md) | [`bob_sessions/phase3_task1_eventfeed.png`](phase3_task1_eventfeed.png) | `3ce6bca` | 0.463 |
 | 3 | 2. End event windows at the goal shot | [`bob_sessions/phase3_task2_window_fix.md`](phase3_task2_window_fix.md) | [`bob_sessions/phase3_task2_window_fix.png`](phase3_task2_window_fix.png) | `343c712` | 0.508 |
 | 4 | 3. Add `buildup` | [`bob_sessions/phase4_task3_buildup.md`](phase4_task3_buildup.md) | [`bob_sessions/phase4_task3_buildup.png`](phase4_task3_buildup.png) | `24e1a8d` | 1.22 |
+| 4 | 4. Build the orchestrator | [`bob_sessions/phase4_task4_orchestrator.md`](phase4_task4_orchestrator.md) | [`bob_sessions/phase4_task4_orchestrator.png`](phase4_task4_orchestrator.png) | `1c4063a` | 4.02 |
 
 Task 1 built the module against `docs/bob_brief.md` and took all 14 acceptance
 tests from failing to passing. Task 2 fixed `event_window`, which filtered by
@@ -63,10 +64,20 @@ a penalty is in the run-up, and merged `BuildupFeed` into `EventFeed` as the
 brief asked, leaving `BuildupFeed` behind as an alias so the tests needed no
 change.
 
+Task 4 built `app/orchestrator.py` against the contract and fixed the period
+gap in `buildup`, which turned out to be in the goal's own possession rather
+than in the set-piece reach back the brief had pointed at.
+
 Nothing was scrubbed from the Task 3 export: a scan for the variable names in
 `.env.example`, for bearer tokens, keys, project ids and URLs carrying a query
 string found none. Its two mentions of `.env` are the rule text telling Bob not
 to open it, not a value read out of it.
+
+Nothing was scrubbed from the Task 4 export either. The same scan found none of
+the six variable names, no `.env` mention, no bearer token, no key-shaped
+string and no URL carrying a query string. Its only long opaque strings are a
+file path and two test names. The screenshot shows a task id and a Bobcoin
+figure, which identify the session rather than authorising anything.
 
 The Bobcoin figures are read from each session's task summary, which is what
 the screenshots record.
