@@ -128,11 +128,13 @@
   }
 
   // Append the fan's name to the last sentence of a header, replacing the
-  // final period with ", name.".
+  // final period with ", name.". The name is joined as a plain string and
+  // never passed to replace(): a replacement string reads "$&" and "$1" as
+  // patterns, so a name holding them would come out changed.
   function headerWithName(header, name) {
     if (!name) return header;
     if (!header) return header;
-    return header.replace(/\.$/, ", " + name + ".");
+    return header.replace(/\.$/, "") + ", " + name + ".";
   }
 
   // The seat a fan entered by hand, for this match, in this session. It is the

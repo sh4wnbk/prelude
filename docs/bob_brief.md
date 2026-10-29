@@ -122,10 +122,8 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-15 failed, 460 passed
+476 passed
 ```
-
-The 15 are Task 9 below, waiting to be built.
 
 The total covers far more than this module now. Phase 4 added the narration
 provider, the prompt, the grounding check and the evaluation, each with its
@@ -939,6 +937,16 @@ forgotten:
 
 ## Task 9: the "Who are you with" card
 
+**Status: built, in `c6fc1ad`.** Two things were corrected after it, in the
+follow-up. `headerWithName` passed the name to `replace()` as the replacement
+string, which reads `$&` as the matched text, so a name like "Jo $& Smith" came
+out "Jo . Smith"; the name is now joined as a plain string, and
+`tests/test_listener_card.py::TestTheNameInTheHeader::test_the_name_is_never_a_replacement_string`
+holds it. And four classes in `app/web/listener-card.js` were not ones the app
+already used; `rounded-2xl` became `rounded-xl`, `gap-4` became
+`gap-space-md`, and `max-w-sm` went, since the phone frame already sets the
+width.
+
 Ask the fan, once per match, who they are with and what to call them, keep the
 answer on the phone, and put the name at the end of the moment card's header.
 Also stop the Live screen's clock badge wrapping. That is the whole task.
@@ -1003,8 +1011,9 @@ the phone.
 
 ### The tests to pass
 
-`tests/test_listener_card.py`, 16 tests. Fifteen fail until this is built; the
-sixteenth checks no other screen loads the card.
+`tests/test_listener_card.py`, 17 tests, all passing now. Fifteen of the
+first sixteen failed until this was built; the seventeenth was added in the
+follow-up.
 
 Then the full suite, target 0 failed, and the four gates.
 `check_docs.py` failing on the quoted pytest result in this brief is expected

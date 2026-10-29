@@ -19,7 +19,7 @@
     var greeting = (match.hero && match.hero.opening && match.hero.opening.greeting) || "";
     var home = match.home_team;
     var away = match.away_team;
-    return '<div class="flex flex-col gap-4">' +
+    return '<div class="flex flex-col gap-space-md">' +
              '<p class="font-headline-sm text-headline-sm text-on-surface font-bold">' +
                'Who are you with ' + greeting + '?' +
              '</p>' +
@@ -52,7 +52,7 @@
     overlay.className = "fixed inset-0 z-50 bg-surface flex items-center justify-center px-screen-edge-mobile";
 
     var card = document.createElement("div");
-    card.className = "w-full max-w-sm bg-surface-container rounded-2xl p-card-padding-md flex flex-col gap-4 shadow-lg";
+    card.className = "w-full bg-surface-container rounded-xl p-card-padding-md flex flex-col gap-space-md shadow-lg";
     card.innerHTML = markup(match);
 
     overlay.appendChild(card);

@@ -73,7 +73,6 @@ DOCS = [
 # every path the docs name now exists. Add a path here when a doc names one
 # before it is written.
 DELIBERATELY_ABSENT: set[str] = {
-    "app/web/listener-card.js",                    # Bob, task 9
     "bob_sessions/phase4_task9_listener_card.md",  # Bob's task 9 export
 }
 

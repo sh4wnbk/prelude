@@ -2481,7 +2481,21 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Shawn runs Bob task 9, the "Who are you with" card)
+## Next first action (Shawn checks the card on his phone, then the Profile tab)
+
+**Bob task 9 is built, checked and corrected.** `c6fc1ad` built the card to
+the brief, and in headless Chromium at 390 wide it asked "Who are you with
+tonight?" on both matches, kept Continue disabled until a choice, stored the
+answer and the trimmed name in `sessionStorage`, did not reappear on reload,
+and gave "...Here's how it happened, Olivia." on the moment card. The same
+run caught one bug: a name holding `$&` came out mangled, because it was passed
+to `replace()` as the replacement. The follow-up fixed it and added a test that
+fails on Bob's version, and swapped four classes the app did not already use
+for its own tokens. `pytest -q` reports `476 passed` and all four gates pass.
+The look still needs Shawn's phone, since the headless run had no network for
+Tailwind.
+
+### Bob task 9, as it was briefed
 
 **Bob task 9 in `docs/bob_brief.md` is briefed.** The card asks, once per match
 on the Live screen, who the fan is with and what to call them; both answers stay

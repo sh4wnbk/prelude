@@ -111,6 +111,16 @@ class TestTheNameInTheHeader:
         assert re.search(r'setText\("hero_header",\s*headerWithName\(', renderer())
 
 
+    def test_the_name_is_never_a_replacement_string(self):
+        """`replace()` reads "$&" in its replacement as the matched text, so a
+        fan called "Jo $& Smith" came out "Jo . Smith" when the name went in
+        as the replacement. Bob's Task 9 did that, and a browser run caught
+        it; the name is joined as a plain string now."""
+        body = renderer().split("function headerWithName", 1)[1].split("\n  }", 1)[0]
+        for call in re.findall(r"\.replace\((.*?)\)\s*[+;]", body):
+            assert "name" not in call, call
+
+
 class TestTheBadge:
     def test_the_state_badge_does_not_wrap(self):
         live = LIVE.read_text(encoding="utf-8")
