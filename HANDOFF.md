@@ -2492,8 +2492,14 @@ run caught one bug: a name holding `$&` came out mangled, because it was passed
 to `replace()` as the replacement. The follow-up fixed it and added a test that
 fails on Bob's version, and swapped four classes the app did not already use
 for its own tokens. `pytest -q` reports `476 passed` and all four gates pass.
-The look still needs Shawn's phone, since the headless run had no network for
-Tailwind.
+Once the Tailwind and font hosts were allowed for this workspace, a styled run
+at 390 wide showed two problems with the choices, both fixed: the selected
+choice set light text on amber and was hard to read, and the unselected choices
+had the card's own background, so they read as plain text rather than buttons.
+Selected now uses `text-on-primary-container`, as Continue does, and unselected
+sits on `bg-surface-container-highest`. Two older wraps on the Live screen are
+cosmetic and not changed: "AT VENUE · GPS" breaks inside its pill, and the seat
+line leaves "6" alone on its second line for 2022.
 
 ### Bob task 9, as it was briefed
 

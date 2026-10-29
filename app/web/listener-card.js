@@ -24,13 +24,13 @@
                'Who are you with ' + greeting + '?' +
              '</p>' +
              '<div class="flex flex-col gap-2" id="listener-choices">' +
-               '<button aria-pressed="false" class="w-full py-3 px-4 rounded-xl bg-surface-container ' +
+               '<button aria-pressed="false" class="w-full py-3 px-4 rounded-xl bg-surface-container-highest ' +
                  'text-on-surface font-label-lg text-label-lg text-left transition-colors" ' +
                  'data-value="team_a" type="button">' + home + '</button>' +
-               '<button aria-pressed="false" class="w-full py-3 px-4 rounded-xl bg-surface-container ' +
+               '<button aria-pressed="false" class="w-full py-3 px-4 rounded-xl bg-surface-container-highest ' +
                  'text-on-surface font-label-lg text-label-lg text-left transition-colors" ' +
                  'data-value="team_b" type="button">' + away + '</button>' +
-               '<button aria-pressed="false" class="w-full py-3 px-4 rounded-xl bg-surface-container ' +
+               '<button aria-pressed="false" class="w-full py-3 px-4 rounded-xl bg-surface-container-highest ' +
                  'text-on-surface font-label-lg text-label-lg text-left transition-colors" ' +
                  'data-value="neutral" type="button">Just here for the game</button>' +
              '</div>' +
@@ -68,12 +68,14 @@
       for (var i = 0; i < choices.length; i++) {
         var selected = choices[i] === chosen;
         choices[i].setAttribute("aria-pressed", String(selected));
+        // Selected is amber with the dark text the Continue button uses, so
+        // the name stays readable; unselected sits one step above the card.
         if (selected) {
-          choices[i].classList.remove("bg-surface-container");
-          choices[i].classList.add("bg-primary-container");
+          choices[i].classList.remove("bg-surface-container-highest", "text-on-surface");
+          choices[i].classList.add("bg-primary-container", "text-on-primary-container");
         } else {
-          choices[i].classList.remove("bg-primary-container");
-          choices[i].classList.add("bg-surface-container");
+          choices[i].classList.remove("bg-primary-container", "text-on-primary-container");
+          choices[i].classList.add("bg-surface-container-highest", "text-on-surface");
         }
       }
       continueBtn.disabled = false;
