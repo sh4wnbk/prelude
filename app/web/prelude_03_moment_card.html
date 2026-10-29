@@ -23,9 +23,9 @@
 <div class="absolute -top-16 -right-16 w-52 h-52 rounded-full bg-primary/10 blur-3xl pointer-events-none"></div>
 <!-- Eyebrow & Context -->
 <div class="flex flex-col gap-space-2xs relative z-10">
-<div class="flex items-center gap-space-xs"><span class="font-label-sm text-label-sm tracking-[0.22em] text-primary-container font-semibold uppercase">THE BUILDUP</span><span class="w-1 h-1 rounded-full bg-surface-variant"></span><span class="font-label-sm text-label-sm tracking-widest text-secondary uppercase">YOU STEPPED AWAY</span></div>
+<div class="flex items-center gap-space-xs"><span class="font-label-sm text-label-sm tracking-[0.22em] text-primary-container font-semibold uppercase">THE BUILDUP</span></div>
 <h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface tracking-tight mt-1" data-field="hero_header">
-        Argentina extend the lead. Argentina 2, England 0. Here's the buildup.
+        Argentina extend the lead. Argentina 2, England 0. Here's how it happened.
       </h1>
 <p class="font-label-lg text-label-lg text-on-surface-variant mt-0.5" data-field="hero_caption">2H · 55' · Maradona's solo run from his own half, past four England players</p>
 </div>
@@ -97,7 +97,7 @@
 <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mt-1">REPLAY 10S</span>
 </button>
 <!-- Share Clip -->
-<button class="flex flex-col items-center justify-center h-16 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors active:scale-98 border border-surface-container-highest/20" id="shareAction" type="button" data-share-text="Maradona's solo goal, the buildup you missed.">
+<button class="flex flex-col items-center justify-center h-16 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors active:scale-98 border border-surface-container-highest/20" id="shareAction" type="button" data-share-text="Maradona's solo goal as it happened.">
 <span class="material-symbols-outlined text-on-surface text-[20px]">ios_share</span>
 <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mt-1">SHARE CLIP</span>
 </button>
@@ -145,7 +145,7 @@
     shareAction?.addEventListener('click', () => {
       if (navigator.share) {
         navigator.share({
-          title: 'PRELUDE: The buildup you missed.',
+          title: 'Listen on Prelude.',
           text: shareAction.dataset.shareText || '',
           url: window.location.href
         }).catch(() => {});
