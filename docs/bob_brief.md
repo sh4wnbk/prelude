@@ -122,8 +122,10 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-452 passed
+6 failed, 453 passed
 ```
+
+The 6 are Task 8 below, waiting to be built.
 
 The total covers far more than this module now. Phase 4 added the narration
 provider, the prompt, the grounding check and the evaluation, each with its
@@ -875,3 +877,60 @@ forgotten:
 > Export this session to `bob_sessions/phase4_task7_screen_copy.md` and
 > `.png`, scrub it against the list in `bob_sessions/README.md` before
 > committing, and check the diff rather than the commit.
+
+## Task 8: where the 1986 fan steps away
+
+Move the 1986 step-away to after the first goal. That is the whole task.
+
+### Why it exists
+
+The 1986 fan leaves at 48' with the score 0 to 0 and comes back at 55' to
+2 to 0. Two goals fall in that window, at 50:27 and 54:18, and the moment card
+tells one buildup, so the fan returns to a score the card does not explain.
+Shawn's decision on 2026-10-29: the fan sees the 50:27 goal from their seat
+and leaves at 52' with the score 1 to 0. One goal is missed, the 54:18, and the
+card tells it. 2022 already works this way and does not change.
+
+`scripts/check_match_copy.py` now refuses any match whose window holds more or
+fewer than one goal, so it fails on 1986 until this is built.
+
+### What you change
+
+1. **`app/web/matches.json`, match 3750191, `live_seated.before`.** Set
+   `display_minute` to `52` and `home_goals` to `1`. Leave `away_goals` at `0`,
+   `period` at `2`, `period_label` at `"2H"`, and every other key as it is.
+2. **`app/web/prelude_02_live_seated.html`, the inline 1986 copy.** The
+   `state_badge` text becomes `2H · 52'`, the `half_line` text becomes
+   `SECOND HALF · 52'`, and the `home_goals` text becomes `1`. Change only
+   those three text values.
+
+Write `matches.json` as before: `json.dumps(doc, indent=2,
+ensure_ascii=False) + "\n"` as UTF-8.
+
+### The tests to pass
+
+`tests/test_live_before.py`, 7 tests. Six fail until this is built; the
+seventh checks the period stays the second half.
+
+Then the full suite, target 0 failed, and the four gates, with
+`scripts/check_match_copy.py` now passing. `check_docs.py` failing on the
+quoted pytest result in this brief is expected and is the follow-up's; report
+any other gate failure.
+
+### Stop conditions
+
+**Change only the five values above.** Not the `after` state, not the hero,
+not the Moments list, not 2022, not any script, test or doc.
+
+**If `scripts/check_match_copy.py` still fails after the change, stop and
+report its message.** Do not edit the checker.
+
+### When you are done
+
+**Print this reminder at the end of the session**, so the export is not
+forgotten:
+
+> Export this session to `bob_sessions/phase4_task8_step_away.md` and `.png`,
+> scrub it against the list in `bob_sessions/README.md` before committing, and
+> check the diff rather than the commit.
+

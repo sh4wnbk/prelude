@@ -249,6 +249,18 @@ def check_match(entry, fail, note):
     if entry["live_seated"]["before"]["display_minute"] >= sc["display_minute"]:
         fail(where, "Live before is not earlier than the session clock")
 
+    # One step-away, one goal missed. The moment card tells one buildup, so a
+    # fan who leaves before one goal and returns after another would come back
+    # to a score the card does not explain. Every goal between the two Live
+    # states has to be the hero moment and nothing else.
+    st = entry["live_seated"]["before"]
+    cut = (st["period"], st["display_minute"] - 1, 0)
+    missed = [x for x in goals if cut <= clock(x) <= session]
+    if len(missed) != 1:
+        fail(where, f"{len(missed)} goals fall between Live before "
+                    f"({st['period_label']} {st['display_minute']}') and the session "
+                    "clock; the moment card tells exactly one")
+
     if entry["synced_count"] != len(entry["moments"]):
         fail(where, f"synced_count {entry['synced_count']} but {len(entry['moments'])} moments")
     upto = [x for x in goals if clock(x) <= session]

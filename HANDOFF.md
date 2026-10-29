@@ -1725,7 +1725,7 @@ no screen shows anything after it.
 
 | | Before heading out | After the moment |
 | --- | --- | --- |
-| 1986 | 2H 48', ARG 0-0 ENG | 2H 55', ARG 2-0 ENG |
+| 1986 | 2H 52', ARG 1-0 ENG (was 48', 0-0; Bob's Task 8) | 2H 55', ARG 2-0 ENG |
 | 2022 | 1H 35', ARG 1-0 FRA | 1H 36', ARG 2-0 FRA |
 | Prompt | READY FOR BUILDUP, HEADING OUT | BUILDUP READY, OPEN THE BUILDUP |
 
@@ -2481,7 +2481,22 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Claude Code: browser check, then the "Who are you with" card)
+## Next first action (Shawn runs Bob task 8, where the 1986 fan steps away)
+
+**Shawn found that the 1986 step-away missed two goals.** The fan left at 48'
+at 0 to 0 and came back at 55' to 2 to 0, with goals at 50:27 and 54:18 in the
+window and one buildup on the card. 2022 was already one goal. His decision on
+2026-10-29: the 1986 fan leaves at 52' at 1 to 0. `scripts/check_match_copy.py`
+now refuses any window that holds more or fewer than one goal, so the rule
+outlives this fix, and it fails on 1986 until Bob's Task 8 in
+`docs/bob_brief.md` lands. `pytest -q` reports `6 failed, 453 passed`, all of
+them `tests/test_live_before.py`.
+
+A moment card that tells several missed goals in order is a planned feature,
+not built: real fans can miss more than one, and that card would play each
+buildup with its own header.
+
+### Before Task 8: Bob task 7
 
 **Bob task 7 is built and checked.** `8215108` touched only
 `app/web/matches.json` and the moment card, made the six changes in the brief
