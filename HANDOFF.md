@@ -2486,7 +2486,8 @@ The rules Shawn settled for them, before any of it is built:
 **Bob task 7 is built and checked.** `8215108` touched only
 `app/web/matches.json` and the moment card, made the six changes in the brief
 and reran `scripts/write_headers.py` (`--check` passes). `pytest -q` reports
-`452 passed` and all four gates pass. Its export is still to be committed.
+`452 passed` and all four gates pass. Its export was committed in `76e0d15`
+and scanned for key-shaped strings, with none found.
 
 **Checked in headless Chromium on both matches, at 390 by 844 and 1280 by
 800, after the commit.** The rendered header is each match's line ending
@@ -2497,8 +2498,8 @@ after Heading out and the settled helper before it. That run had no network,
 so the Tailwind and font CDNs did not load and the layout was not judged:
 the look still needs a real-phone check on the live site.
 
-**Next:** Shawn checks the moment card on his phone, the task 7 export is
-committed, and the "Who are you with" card and the name get briefed for Bob.
+**Next:** Shawn checks the moment card on his phone, then the "Who are you
+with" card and the name get briefed for Bob.
 
 ### Bob task 7, as it was briefed
 
