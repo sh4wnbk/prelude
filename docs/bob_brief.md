@@ -122,10 +122,8 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-6 failed, 453 passed
+459 passed
 ```
-
-The 6 are Task 8 below, waiting to be built.
 
 The total covers far more than this module now. Phase 4 added the narration
 provider, the prompt, the grounding check and the evaluation, each with its
@@ -880,6 +878,9 @@ forgotten:
 
 ## Task 8: where the 1986 fan steps away
 
+**Status: built, in `30116a2`.** The 1986 fan leaves at 52' with the score
+1 to 0, and `scripts/check_match_copy.py` passes.
+
 Move the 1986 step-away to after the first goal. That is the whole task.
 
 ### Why it exists
@@ -909,8 +910,8 @@ ensure_ascii=False) + "\n"` as UTF-8.
 
 ### The tests to pass
 
-`tests/test_live_before.py`, 7 tests. Six fail until this is built; the
-seventh checks the period stays the second half.
+`tests/test_live_before.py`, 7 tests, all passing now. Six failed until this
+was built; the seventh checks the period stays the second half.
 
 Then the full suite, target 0 failed, and the four gates, with
 `scripts/check_match_copy.py` now passing. `check_docs.py` failing on the

@@ -2481,7 +2481,14 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Shawn runs Bob task 8, where the 1986 fan steps away)
+## Next first action (phone check, then the "Who are you with" card for Bob)
+
+**Bob task 8 is built and checked.** `30116a2` changed exactly the five values
+in the brief. `pytest -q` reports `459 passed`, all four gates pass, and
+`scripts/check_match_copy.py` now holds every match to one missed goal. Its
+export is still to be committed.
+
+### Bob task 8, as it was briefed
 
 **Shawn found that the 1986 step-away missed two goals.** The fan left at 48'
 at 0 to 0 and came back at 55' to 2 to 0, with goals at 50:27 and 54:18 in the
@@ -2489,8 +2496,8 @@ window and one buildup on the card. 2022 was already one goal. His decision on
 2026-10-29: the 1986 fan leaves at 52' at 1 to 0. `scripts/check_match_copy.py`
 now refuses any window that holds more or fewer than one goal, so the rule
 outlives this fix, and it fails on 1986 until Bob's Task 8 in
-`docs/bob_brief.md` lands. `pytest -q` reports `6 failed, 453 passed`, all of
-them `tests/test_live_before.py`.
+`docs/bob_brief.md` landed, with 6 failures in `tests/test_live_before.py`
+while it was briefed.
 
 A moment card that tells several missed goals in order is a planned feature,
 not built: real fans can miss more than one, and that card would play each
