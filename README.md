@@ -193,12 +193,15 @@ Everything above it is structure.
 **Exists but does nothing yet:**
 
 - `app/orchestrator.py`: picks the line said before the narration starts:
-  "today" or "tonight" from the kickoff time, a header from the listener's
-  side, whether it scored or conceded, and how far into regulation time the
-  goal came, and a default persona. The shapes and the header wording live in
+  "today" or "tonight" from the kickoff time, a header, and a default persona
+  from the listener's side. The shapes and the wording live in
   `app/orchestrator_contract.py`. Callable from Python; no screen calls it yet.
-- `tests/test_orchestrator.py`: 48 tests over the orchestrator, covering both
-  demo matches and a made-up sixty minute sport. All 48 pass.
+  The header it builds is the old one, a prefix by outcome and phase; the game
+  focused header that replaces it is declared in the contract and unbuilt.
+- `tests/test_orchestrator.py`: 72 tests over the orchestrator, covering every
+  goal in both demo matches and a made-up sixty minute sport whose scores move
+  three at a time. 46 pass. The other 26 are the game focused header, and they
+  are red until Bob's Task 5 in `docs/bob_brief.md` builds it.
 - `app/event_feed.py`: the data shapes and the `EventFeed` interface. A
   contract only; `app/statsbomb_event_feed.py` is what implements it.
 - `app/narration_config.py`: the model ids and which one is active. Values

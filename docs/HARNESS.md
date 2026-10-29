@@ -122,8 +122,11 @@ generating anything:
 
 ## The test harness
 
-The suite is 408 tests in nine files, and all of them pass, so any failure
-means something is wrong. It is run from the repo root:
+The suite is 432 tests in nine files. 406 pass and 26 fail, and the 26 are
+the game focused header: they are written against `transition` and `header` in
+`app/orchestrator.py`, which is Task 5 in `docs/bob_brief.md` and is IBM
+Bob's to build. Every other failure means something is wrong. It is run from
+the repo root:
 
 ```
 .\.venv-prelude\Scripts\python.exe -m pytest
@@ -141,7 +144,7 @@ No path setting is needed: `pyproject.toml` sets `pythonpath = ["."]` and
 | `tests/test_narration_provider.py` | the model config and both backends |
 | `tests/test_credentials.py` | where the credentials file lives, and what is refused |
 | `tests/test_narration_eval.py` | the key beats, the coverage measure, the token recorder and the voices a run is split into |
-| `tests/test_orchestrator.py` | the greeting, the phase, the score state, the header table, the default persona and `opening`, against `app/orchestrator.py` |
+| `tests/test_orchestrator.py` | the greeting, the phase, the score state, the transition, the game focused header, the default persona and `opening`, against `app/orchestrator.py`; the 26 header tests are red until Bob's Task 5 |
 | `tests/test_personas.py` | the persona config: the three ids, the fields, the unconfirmed voice and prosody and the Profile copy |
 
 ### Two guards, on every test

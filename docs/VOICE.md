@@ -247,72 +247,87 @@ asks for one action per sentence, and why the voice above is short sentences.
 The trade is deliberate: a refused true sentence costs a regeneration, and an
 accepted false one would be labelled "Verified from play data".
 
-## It opens on one line, and that line is a placeholder
+## It opens on one line, and that line says what the goal did to the score
 
-One line comes before the narration, and for now it is:
+One line comes before the narration, and every listener gets the same one. It
+is not narration and it is not generated: it asserts nothing about the match
+that the grounding check reads, and it carries no claim the "Verified from play
+data" label is about.
 
-> Here's the buildup.
+### The header
 
-It is not narration and it is not generated. It asserts nothing about the
-match, so there is nothing in it for the grounding check to read and it carries
-no claim the "Verified from play data" label is about. **No code produces it
-yet.** It is recorded here because the wording is settled, not because a screen
-or a script says it.
+**The header is game focused, and it is the same line for everybody.** It says
+what the goal did to the score rather than how the fan should feel about it.
 
-It is a placeholder in the exact sense that it is the neutral case of
-something larger. An orchestrator picks the opening line from the listener's
-allegiance, whether their side scored or conceded, and how far into the match
-the moment was, and "Here's the buildup." is what a neutral listener gets. A
-fan gets a header in front of it instead.
+The header before this one was a prefix picked from the listener's side,
+whether that side scored or conceded, and how far into the match the moment
+came: "Great start.", "Good news.", "Still early.". Shawn's decision after
+Phase 4 is that the app does not guess at a mood. A fan with a side and a
+listener with none are looking at the same scoreboard, and the mood was the
+part of that line the app had not earned. Allegiance no longer reaches the
+header at all; what it picks is the persona, which Phase 5 turns into a voice.
 
-### The header table
+Three sentences, joined by single spaces: what the moment did to the score,
+then the score, then the tail.
 
-**The module is built and no screen calls it yet.**
-`app/orchestrator_contract.py` declares the table below, IBM Bob built
-`app/orchestrator.py` against it, and `tests/test_orchestrator.py` asserts it,
-all passing. No screen shows a header yet; Task 7 puts it on the moment
-card.
+The first sentence is read out of the score before the moment and the score
+after it, from the scoring side's point of view, and out of nothing else:
 
-| | early | middle | late |
-| --- | --- | --- | --- |
-| your side scored | Great start. | Good news. | Late one for your side. |
-| your side conceded | Still early. | There's still time. | no prefix |
-| neutral | no prefix | no prefix | no prefix |
+| The scoring side went | The sentence |
+| --------------------- | ------------ |
+| level to ahead | `{scorer} take the lead.` |
+| behind to ahead | `{scorer} take the lead.` |
+| ahead to further ahead | `{scorer} extend the lead.` |
+| behind to still behind | `{scorer} close the gap.` |
+| behind to level | `{scorer} draw level.` |
 
-A fan's prefix is followed by "Here's how it happened." A neutral listener
-gets "Here's the buildup." and no prefix.
+The second is `{team_a} {score_a}, {team_b} {score_b}.`, both teams in the
+order the fixture names them, so a listener with no side reads it the same way
+as a listener with one. The third is "Here's the buildup.", which every header
+ends on. England's goal in 1986, at 80:37, is the whole line:
+
+> England close the gap. Argentina 2, England 1. Here's the buildup.
 
 **This is the starting wording and Shawn writes the final wording.** What is
-settled is the shape: a fixed table, looked up by allegiance, outcome and
-phase, with nothing generated and nothing a model chooses. Changing a word is
-a one line edit to `HEADER_PREFIXES` in the contract, which is why the
-implementation is told to read the prefixes out of the table rather than
-writing any of them down.
+settled is the shape: fixed sentences, looked up, with nothing generated and
+nothing a model chooses. Changing a word is a one line edit to `HEADER_WORDING`
+in the contract, which is why the implementation is told to read every sentence
+out of the contract rather than writing any of them down.
 
-**The late scored cell says nothing about earlier goals.** It first read "Your
-side again.", which was false for England's only goal in 1986, at 80:37: the
-header is built from the kickoff time, the score after the moment and the
-listener's side, and none of those says whether this side scored before.
-`tests/test_orchestrator.py::TestTheHeader::test_a_late_first_goal_gets_no_again`
-holds it to that.
+**Taking the lead and overtaking share a sentence.** "Take the lead" is true of
+both, and the difference between them is history the listener already has. They
+stay two separate cases anyway, so a later wording that tells them apart does
+not need the rule rewritten.
 
-**The late conceded cell is empty on purpose.** "There's still time" is a
-kindness early and a lie late, and a phone telling somebody there is still
-time when there is not is worse than a phone saying nothing. It is the one
-cell with a test of its own in both directions.
+**The header says nothing about earlier goals.** No "again", no "back in front",
+no "another". The two scores it is built from do not record whether this side
+has led before, so nothing in the line may imply it. This is the mistake the old
+table made: its late scored cell first read "Your side again.", which was false
+for England's only goal in 1986.
+`tests/test_orchestrator.py::TestTheHeader::test_no_header_claims_a_goal_before_this_one`
+holds every goal in both demo matches to it.
 
-**The phase is a share of regulation time, not a count of minutes.** Early is
-the first third and late is the final quarter, so a sixty minute game is read
-the same way as a ninety minute one without changing anything.
-`tests/test_orchestrator.py::TestAnotherSport` is a sport that does not exist,
-and it is what fails if a 90 is ever written into the rule.
+**The score before the moment is given, never derived.** Subtracting one from
+the scoring side would be reading football into a line meant to outlive it: a
+score can move by any number of points.
+`tests/test_orchestrator.py::TestAnotherSport` is a sixty minute sport that does
+not exist, whose scores move three at a time, and it holds the behind-to-ahead
+case that neither demo match contains.
 
 **None of this is narration and none of it carries the label.** The header is
-built from the kickoff time, the score and the listener's own answer, not from
-the event data, so "Verified from play data" has nothing to say about it. It
-is also the one line in the app addressed to the fan, which is what the
-ending rule above keeps out of the narration itself: the header goes before
-the narration, and nothing goes after it.
+built from the fixture and the two scores, not from the event data, so "Verified
+from play data" has nothing to say about it. It is also the one line in the app
+addressed to the fan, which is what the ending rule above keeps out of the
+narration itself: the header goes before the narration, and nothing goes after
+it.
+
+**What is built, and what is not.** `app/orchestrator_contract.py` declares the
+wording above, along with `transition` and `header`, and both of those raise
+there. **Neither is implemented: they are Task 5 in `docs/bob_brief.md` and IBM
+Bob builds them.** `app/orchestrator.py` still produces the old prefix header,
+and the 26 tests in `tests/test_orchestrator.py` written against the wording
+above are red until that task lands. No screen shows a header either way; Task
+7 puts it on the moment card.
 
 ## The three personas, and the one style
 

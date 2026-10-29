@@ -803,10 +803,13 @@ gates pass.
 
 **The late scored header changed after Bob's session.** It read "Your side
 again.", which was false for England's only goal in 1986, at 80:37, since
-nothing the header is built from records an earlier goal. It now reads "Late
-one for your side.", and
-`tests/test_orchestrator.py::TestTheHeader::test_a_late_first_goal_gets_no_again`
-covers that goal.
+nothing the header is built from records an earlier goal. It became "Late one
+for your side.", and a test in `TestTheHeader` covered that goal.
+
+That test is gone: task 2 after 6d replaced the prefix table, and the rule it
+held is now
+`tests/test_orchestrator.py::TestTheHeader::test_no_header_claims_a_goal_before_this_one`,
+which holds all nine goals to it rather than the one.
 
 At `11d0f8f`, `pytest -q` reported `299 passed`.
 
@@ -1221,6 +1224,78 @@ model its first attempt is a finding Task 6c already reported, and no watsonx
 call was made for this task.
 
 `pytest -q` reports `408 passed`, and the four gates pass.
+
+### Phase 4, task 2 after 6d: the game-focused header, contract and failing tests
+
+**The header now says what the goal did to the score, and nothing is built
+yet.** This task is a handover: the shapes, the wording and the tests, with the
+two functions declared and raising, for IBM Bob to implement as Task 5. The
+suite is deliberately red, which is the first time in this repo it has been.
+
+**`ScoringMoment` carries the score before the moment as well as the score
+after it.** `score_before_a` and `score_before_b` are passed by the caller and
+never derived: subtracting one from the scoring side would read football into a
+shape meant to outlive it, since a score can move by any number of points.
+`__post_init__` refuses a pair that one side scoring cannot explain, which is
+the only code in the contract: the scoring side's score has to have risen and
+the other side's has to be the number it was. That catches a before and an
+after swapped and a before copied from another moment, where they are made.
+
+**A transition is read out of those two scores and out of nothing else.** Five
+of them, from the scoring side's point of view, and they are exhaustive over a
+score that rose for one side only: `TAKE_LEAD`, `OVERTAKE`, `EXTEND`,
+`CLOSE_GAP` and `DRAW_LEVEL`. No transition depends on anything earlier in the
+match, because nothing it is given records one. `HEADER_WORDING` is keyed by
+transition, `SCORE_LINE` is the score, `HEADER_TAIL` is the sentence every
+header ends on, and `docs/VOICE.md` carries all three.
+
+**`header` lost its listener argument.** It takes the event and the moment, and
+one moment gives one line to a fan of either side and to a listener with none.
+Allegiance picks the persona, through `default_persona`, and nothing else.
+
+**The old table is still in the contract and still what runs.**
+`HEADER_PREFIXES` and `FAN_TAIL` stay because `header` in `app/orchestrator.py`
+reads them, and that module is Bob's. The Task 5 brief tells him not to remove
+them either: the contract is the handover, and a contract edited in the session
+that implements against it stopped being one. Claude Code takes them out in the
+follow-up after his session, with anything else left reading them.
+
+**`tests/test_orchestrator.py` is 72 tests now, up from 48.** Every goal in
+both demo matches is read
+out of the feed, with the score before and after counted from the goals
+themselves and reconciled against the match index, which is a separate file.
+Only the nine header lines are written down. `TestAnotherSport` gained a score
+that moves three at a time, which is how `OVERTAKE` is reachable at all: a goal
+is worth one, so a side that was behind is level or still behind afterwards, and
+neither demo match contains that transition. A `built()` helper looks each
+unimplemented function up by name at call time, so an absent `transition` is one
+failing test naming it and the brief, rather than an ImportError that collects
+nothing.
+
+The header tests handed over with Bob's task 4 are gone, along with the contract
+tests about `HEADER_PREFIXES`. Two header tables, both tested, would have left
+it unclear which one the app is meant to say.
+
+**The 26 failures are the header and nothing else.** They are
+`TestTheTransition` (6), `TestTheHeader` (10), `TestTheOpening` (3) and
+`TestAnotherSport` (7). The three in `TestTheOpening` call `opening` and differ
+on the header attribute alone: the greeting and the persona match.
+
+```
+.\.venv-prelude\Scripts\python.exe -m pytest -q
+
+26 failed, 406 passed
+
+.\.venv-prelude\Scripts\python.exe -m pytest tests/test_orchestrator.py -q
+
+26 failed, 46 passed
+```
+
+**`scripts/check_docs.py` accounts for the red.** `docs/HARNESS.md`,
+`README.md` and `docs/bob_brief.md` carry the split rather than a passing
+total, the quoted pytest result in the brief is checked against live output, and
+`bob_sessions/phase4_task5_header.md` is on `DELIBERATELY_ABSENT` because the
+Task 5 brief names the export before the session has been run.
 
 ### Phase 4, task 3c
 
@@ -2045,9 +2120,9 @@ has the whole arc rather than one task at a time.
 done.** Tasks 3d, 4a, 4b, 4c, 5, 6a, 6b and 6c are built, and so is Bob's task 4, the
 orchestrator; nothing below them exists. Paths a doc names before they are
 written go on `DELIBERATELY_ABSENT` in `scripts/check_docs.py`, so the docs
-gate fails if one appears and this section was not updated with it. The list
-is empty now: `app/orchestrator.py` was the last entry, and came off when Bob
-built it.
+gate fails if one appears and this section was not updated with it. One path is
+on it: `bob_sessions/phase4_task5_header.md`, the export of the Bob session that
+has not been run.
 
 Shawn is asked whether to continue at the end of each task, after the exit
 commands have run, because an adjustment may be wanted before the next one
@@ -2197,7 +2272,7 @@ in `docs/narration_eval.md`, labelled as runs of code since removed.
 Exit when: tests and all four gates pass, and the work is pushed. See "Phase
 4, after task 6d" under What was built.
 
-### Task 2 after 6d: the game-focused header, contract and failing tests
+### Task 2 after 6d: the game-focused header, contract and failing tests (done)
 
 For Bob's task 5. `ScoringMoment` gains the score before the moment,
 explicitly rather than by subtracting one, because a score can move by any
@@ -2210,6 +2285,48 @@ instead of changing the header.
 
 Exit when: the new tests fail only because Bob has not built them, everything
 else passes, the docs gate accounts for the red tests, and the work is pushed.
+See "Phase 4, task 2 after 6d" under What was built.
+
+### Bob task 5: the game-focused header
+
+Shawn runs Bob against the Task 5 brief in `docs/bob_brief.md`. Bob implements
+`transition` and `header` in `app/orchestrator.py` and points
+`PreludeOrchestrator.opening` at the new `header`. He does not edit
+`app/orchestrator_contract.py`, and he does not remove `HEADER_PREFIXES` or
+`FAN_TAIL` even once nothing reads them; the brief asks him to report that
+nothing does.
+
+Exit when: all 72 tests in `tests/test_orchestrator.py` pass, the suite is
+green, and the session is exported to `bob_sessions/phase4_task5_header.md`,
+scrubbed against the list in `bob_sessions/README.md`.
+
+### The follow-up after Bob task 5: the old header comes out
+
+**Claude Code's task, not Bob's**, the same way the follow-up after Bob task 4
+was: that one moved the tests' imports off the contract and added
+`TestTheOpening`, and this one removes the header the new one replaced. Both
+are repo-wide edits across a contract and a test file, which is what the
+handover rules keep out of Bob's session.
+
+Remove `HEADER_PREFIXES` and `FAN_TAIL` from `app/orchestrator_contract.py`,
+with the comments that explain why they were still there, and take
+`bob_sessions/phase4_task5_header.md` off `DELIBERATELY_ABSENT` in
+`scripts/check_docs.py` in the same commit.
+
+Then what is left with no reader. As the repo stands, the old `header` at
+`app/orchestrator.py:98` is the only thing that reads the table, and it reads
+`outcome` and `phase` to do it. `phase` keeps a caller either way, because the
+new header does not use it but nothing says it goes. `outcome` loses its only
+caller, and `score_state` has none now: both are declared in the contract and
+tested directly, which is why the suite does not notice. `NEUTRAL_TAIL` is the
+same sentence as `HEADER_TAIL` and duplicates it once there is one header.
+**Read Bob's `header` before deciding on any of them** rather than assuming
+what it calls. The tests for anything removed go with it, and `docs/VOICE.md`,
+`docs/HARNESS.md`, `README.md` and `docs/bob_brief.md` are updated in the same
+commit.
+
+Exit when: nothing in the repo reads the old table, `pytest -q` is green with
+no red tests left anywhere, all four gates pass, and the work is pushed.
 
 ### Task 7: the card, the name and the Profile screen
 
@@ -2310,17 +2427,25 @@ The rules Shawn settled for them, before any of it is built:
   session (all gates, both matches, a real-phone check).
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Task 2: the game-focused header)
+## Next first action (Bob task 5: the game-focused header)
 
-**Task 1 after 6d is done and Task 2 is next.** The narration text is one
-style, the personas are five empty Phase 5 fields each, and the three measured
-runs that led there are labelled in `docs/narration_eval.md` as runs of code
-since removed.
+**Task 2 after 6d is done and the suite is red on purpose.** The game-focused
+header is in `app/orchestrator_contract.py`, declared and raising, and the 72
+tests in `tests/test_orchestrator.py` are written against it. 46 pass and 26
+fail. The 26 are `transition` and `header`, and nothing else in the repo fails.
 
-Task 2 writes the game-focused header into `app/orchestrator_contract.py` and
-the failing tests into `tests/test_orchestrator.py`, for Bob's task 5. Nothing
-in `app/orchestrator.py` is touched: it is Bob's module, and the point of the
-task is to hand him red tests.
+**Stop here.** Shawn runs Bob against the Task 5 brief in `docs/bob_brief.md`.
+Nothing in `app/orchestrator.py` was touched by task 2: it is Bob's module, and
+the point of the task was to hand him red tests.
+
+**Then the follow-up, and it is Claude Code's.** `HEADER_PREFIXES` and
+`FAN_TAIL` are still in the contract because the old `header` still reads them,
+and Bob is told to leave them alone rather than remove them: the contract is
+the handover, and one edited in the session that implements against it stopped
+being one. After his session, Claude Code removes them and whatever else is
+left with no reader, the same way the follow-up after Bob task 4 moved the
+tests' imports off the contract. "The follow-up after Bob task 5" in the Plan
+is that task, and it says what to read before deciding what goes.
 
 ### Settled after task 6d
 
