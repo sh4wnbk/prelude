@@ -2481,7 +2481,21 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Shawn checks the card on his phone, then the Profile tab)
+## Next first action (Shawn runs Bob task 10, the Profile screen)
+
+**Shawn found the answer could not be changed.** It lasts the tab's session and
+a refresh keeps it, so a fan who typed a name was stuck with it. Bob task 10 in
+`docs/bob_brief.md` adds a Profile screen with the name, the side for the
+match and a Change button that reopens the card on Live, and makes the person
+icon and the Profile tab lead to it. The persona cards wait for Phase 5, when
+there are voices to choose. A dry run of the brief, driven in Chromium, showed
+"Shawn | Argentina", reopened the card with Argentina pressed and the name
+filled, saved the new answer without reopening on reload, and showed "Olivia |
+Just here for the game"; it was reverted. `pytest -q` reports
+`24 failed, 476 passed`, all of them `tests/test_profile.py`. Bob's task 9
+export is committed.
+
+### Bob task 9, its follow-up
 
 **Bob task 9 is built, checked and corrected.** `c6fc1ad` built the card to
 the brief, and in headless Chromium at 390 wide it asked "Who are you with

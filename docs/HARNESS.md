@@ -122,8 +122,10 @@ generating anything:
 
 ## The test harness
 
-The suite is 476 tests in thirteen files, and all 476 pass, so any failure
-means something is wrong. It is run from the repo root:
+The suite is 500 tests in fourteen files. 476 pass and 24 fail.
+
+The failures are all of `tests/test_profile.py`, written before Bob's Task 10 in
+`docs/bob_brief.md`. A failure anywhere else means something is wrong. It is run from the repo root:
 
 ```
 .\.venv-prelude\Scripts\python.exe -m pytest
@@ -144,6 +146,7 @@ No path setting is needed: `pyproject.toml` sets `pythonpath = ["."]` and
 | `tests/test_listener_card.py` | the "Who are you with" card: its copy, where it loads, the storage keys and values, that it sends nothing, the name at the end of the header, and the Live badge not wrapping, built by Bob in Task 9 |
 | `tests/test_live_before.py` | where the 1986 fan steps away: 52' at 1 to 0, in `app/web/matches.json` and inline on the Live screen, built by Bob in Task 8 |
 | `tests/test_moment_card_header.py` | the header on the moment card: `hero.opening` in `app/web/matches.json`, the script that writes and checks it, the card's field and the renderer, built by Bob in Task 6 |
+| `tests/test_profile.py` | the Profile screen, the Profile tab and person icon leading to it, and the card reopening from it; failing until Bob's Task 10 |
 | `tests/test_screen_copy.py` | the copy Shawn settled on 2026-10-29: the card's label, the Live helper after Heading out, the share title and texts, built by Bob in Task 7 |
 | `tests/test_orchestrator.py` | the greeting, the phase, the score state, the transition, the game focused header, the default persona and `opening`, against `app/orchestrator.py` |
 | `tests/test_personas.py` | the persona config: the three ids, the fields, the unconfirmed voice and prosody and the Profile copy |

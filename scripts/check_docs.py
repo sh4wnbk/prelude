@@ -73,7 +73,8 @@ DOCS = [
 # every path the docs name now exists. Add a path here when a doc names one
 # before it is written.
 DELIBERATELY_ABSENT: set[str] = {
-    "bob_sessions/phase4_task9_listener_card.md",  # Bob's task 9 export
+    "app/web/prelude_07_profile.html",       # Bob, task 10
+    "bob_sessions/phase4_task10_profile.md",  # Bob's task 10 export
 }
 
 PATH_IN_BACKTICKS = re.compile(

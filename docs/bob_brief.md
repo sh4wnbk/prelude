@@ -122,8 +122,10 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-476 passed
+24 failed, 476 passed
 ```
+
+The 24 are Task 10 below, waiting to be built.
 
 The total covers far more than this module now. Phase 4 added the narration
 provider, the prompt, the grounding check and the evaluation, each with its
@@ -1042,4 +1044,100 @@ forgotten:
 > Export this session to `bob_sessions/phase4_task9_listener_card.md` and
 > `.png`, scrub it against the list in `bob_sessions/README.md` before
 > committing, and check the diff rather than the commit.
+
+## Task 10: the Profile screen
+
+Add a Profile screen that shows the fan's name and side for the match, with a
+Change button that reopens the "Who are you with" card, and make the person
+icon and the Profile tab lead to it. That is the whole task.
+
+### Why it exists
+
+Shawn found on 2026-10-29 that once the card is answered nothing lets the fan
+change it: the answer lasts the tab's session and a refresh keeps it. The
+person icon in every header is decorative and the Profile tab is disabled, so
+both now lead here.
+
+The persona cards are not part of this task. A persona is a voice, no voice is
+chosen until Phase 5, and a picker today would offer a choice that changes
+nothing.
+
+### What you build
+
+1. **`app/web/prelude_07_profile.html`, new.** Take `prelude_04_moments.html`.
+   Keep everything before its `<main` unchanged. Replace its whole `<main>`
+   element with exactly this:
+
+   ```
+   <main class="flex flex-col relative w-full pt-16 pb-24 bg-surface min-h-screen"><div class="flex flex-col w-full px-screen-edge-mobile py-space-sm gap-space-md">
+   <span class="font-label-sm text-label-sm tracking-[0.22em] text-primary-container font-semibold uppercase">PROFILE</span>
+   <div class="w-full rounded-xl bg-surface-container p-card-padding-md flex flex-col gap-space-md border border-surface-container-highest/30">
+   <div class="flex flex-col gap-space-2xs"><span class="font-label-sm text-label-sm text-outline uppercase">Name</span><span class="font-body-lg text-body-lg text-on-surface" data-field="profile_name">Not set</span></div>
+   <div class="flex flex-col gap-space-2xs"><span class="font-label-sm text-label-sm text-outline uppercase">With</span><span class="font-body-lg text-body-lg text-on-surface" data-field="profile_with">Not set</span></div>
+   <button class="mt-1 w-full h-touch-target-min rounded-full bg-primary-container text-on-primary-container font-label-lg text-label-lg font-bold tracking-wider uppercase flex items-center justify-center" id="profileChange" type="button">Change</button>
+   </div>
+   </div>
+   <script>
+     document.getElementById('profileChange').addEventListener('click', function () {
+       window.location.href = Prelude.url('prelude_02_live_seated.html') + '&ask=1';
+     });
+   </script>
+   </main>
+   ```
+
+   Keep the bottom nav after it, with two changes: the Moments item loses
+   `aria-current="page"` and takes the inactive classes the Live item has
+   (`text-on-surface-variant hover:text-on-surface transition-colors` in place
+   of `transition-colors text-primary-container`), and the Profile item becomes
+   the current one: `aria-current="page"`, the active classes the Moments item
+   had, and `href="prelude_07_profile.html?v=__V__"`.
+2. **The Profile tab on screens 01 to 04.** On the nav's `data-path="profile"`
+   item, remove `aria-disabled="true"`, `tabindex="-1"`, and the classes
+   `opacity-40` and `pointer-events-none`, and add
+   `href="prelude_07_profile.html?v=__V__"`. Nothing else in the nav changes.
+3. **The person icon on screens 01 to 06 and on the new screen.** Replace
+   `<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div>`
+   with
+   `<a aria-label="Profile" class="w-8 h-8 rounded-full bg-primary flex items-center justify-center" href="prelude_07_profile.html?v=__V__"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></a>`.
+4. **`app/web/match-content.js`, `renderProfile(match)`.** If there is no
+   `profile_name` field, return. Otherwise set `profile_name` to `nameFor()`
+   or `"Not set"`, and `profile_with` to `match.home_team` for `"team_a"`,
+   `match.away_team` for `"team_b"`, `"Just here for the game"` for
+   `"neutral"`, and `"Not set"` when `listenerFor(match.match_id)` is `null`.
+   Use `setText` for both. Call it from `render`, after `renderMoments`.
+5. **`app/web/listener-card.js`, reopening.** Add `function asked()`, true when
+   the URL's query has `ask=1`; it must contain the string `"ask"`. When the
+   matches arrive, show the card if `Prelude.listenerFor(Prelude.matchId)` is
+   `null` **or** `asked()` is true. When it is reopened with an answer stored,
+   press that answer's button (so Continue is enabled) and keep the name in the
+   field. After Continue, if `asked()`, call
+   `window.history.replaceState(null, "", Prelude.url("prelude_02_live_seated.html"))`
+   so a reload does not reopen it.
+
+### The tests to pass
+
+`tests/test_profile.py`, 24 tests, all failing until this is built. Then the
+full suite, target 0 failed, and the four gates. `check_docs.py` failing on the
+quoted pytest result in this brief, and on `app/web/prelude_07_profile.html`
+being listed as absent, is expected and is the follow-up's; report any other
+gate failure.
+
+### Stop conditions
+
+**Build only the five changes above.** No persona cards, no other copy, no new
+classes, no tests, no docs, no Python.
+
+**Do not load `listener-card.js` on the Profile screen.** Change sends the fan
+to Live, where the card already lives.
+
+**The name is set with `setText` only**, never with `innerHTML`.
+
+### When you are done
+
+**Print this reminder at the end of the session**, so the export is not
+forgotten:
+
+> Export this session to `bob_sessions/phase4_task10_profile.md` and `.png`,
+> scrub it against the list in `bob_sessions/README.md` before committing, and
+> check the diff rather than the commit.
 
