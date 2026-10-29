@@ -67,11 +67,10 @@ DOCS = [
 # `bob_sessions/phase4_task5_header.md` came off it when Bob's Task 5 session
 # was run and the export was committed.
 #
-# `scripts/write_headers.py` came off it when Bob built Task 6. What is on it
-# now is the export of that session, which comes off when it is committed, and
-# the export of Task 7, which is briefed and not yet run.
+# `scripts/write_headers.py` came off it when Bob built Task 6, and that
+# session's export when it was committed in `95341d1`. What is on it now is the
+# export of Task 7, which is briefed and not yet run.
 DELIBERATELY_ABSENT: set[str] = {
-    "bob_sessions/phase4_task6_card_header.md",  # Bob's task 6 export
     "bob_sessions/phase4_task7_screen_copy.md",  # Bob's task 7 export
 }
 

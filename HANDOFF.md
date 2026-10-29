@@ -2488,8 +2488,8 @@ The rules Shawn settled for them, before any of it is built:
 writes `hero.opening` into `app/web/matches.json`, and the moment card's
 heading now shows it. Its diff touched only the three files the brief allowed
 plus the script's output, the script holds no header text of its own, and
-`--check` passed. Its session export is not committed yet, so it stays on
-`DELIBERATELY_ABSENT`.
+`--check` passed. Its session export was committed in `95341d1` and scanned
+for key-shaped strings, with none found.
 
 **Task 7 is split into Bob tasks, and the second is briefed.** Bob builds in
 tight sessions; this chat writes each brief with failing tests and checks his
@@ -2510,8 +2510,8 @@ say the times are chosen for the rule, and that the match index records 19:00
 and 17:00. The stale `_note` in `app/web/matches.json` is item 6 of Bob's
 task.
 
-**Still owed to Claude Code:** commit Bob's task 6 and 7 exports once Shawn has
-saved them, take them off `DELIBERATELY_ABSENT`, and check the moment card and
+**Still owed to Claude Code:** commit Bob's task 7 export once Shawn has
+saved it, take it off `DELIBERATELY_ABSENT`, and check the moment card and
 the Live screen in a real browser on both matches at 390px and on desktop. The three things to hold on to through all of Task 7:
 
 - **The header does not change by listener.** One moment gives one line to a
