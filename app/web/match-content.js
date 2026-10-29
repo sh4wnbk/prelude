@@ -79,6 +79,62 @@
     }
   }
 
+  // Who the fan is with, per match. The value is "team_a", "team_b" or
+  // "neutral"; anything else is treated as if nothing was stored.
+  function listenerKey(matchId) {
+    return "prelude.listener." + matchId;
+  }
+
+  function listenerFor(matchId) {
+    try {
+      var raw = window.sessionStorage.getItem(listenerKey(matchId));
+      if (raw === "team_a" || raw === "team_b" || raw === "neutral") return raw;
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function setListener(matchId, allegiance) {
+    try {
+      window.sessionStorage.setItem(listenerKey(matchId), allegiance);
+    } catch (e) {
+      /* nothing to do */
+    }
+  }
+
+  // The name the fan wants to be called, shared across all matches in the
+  // session. Trimmed, collapsed, capped at 40 characters; key removed when
+  // the result is empty.
+  function nameFor() {
+    try {
+      return window.sessionStorage.getItem("prelude.name") || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function setName(name) {
+    try {
+      var trimmed = (name || "").trim().replace(/\s+/g, " ").slice(0, 40);
+      if (trimmed) {
+        window.sessionStorage.setItem("prelude.name", trimmed);
+      } else {
+        window.sessionStorage.removeItem("prelude.name");
+      }
+    } catch (e) {
+      /* nothing to do */
+    }
+  }
+
+  // Append the fan's name to the last sentence of a header, replacing the
+  // final period with ", name.".
+  function headerWithName(header, name) {
+    if (!name) return header;
+    if (!header) return header;
+    return header.replace(/\.$/, ", " + name + ".");
+  }
+
   // The seat a fan entered by hand, for this match, in this session. It is the
   // fan's own ticket rather than anything read from the feed, so it overrides
   // the seat in matches.json when it is there and changes nothing else.
@@ -134,7 +190,9 @@
     matchId: MATCH_ID, url: url, defaultMatch: DEFAULT_MATCH,
     momentSeen: momentSeen, markMomentSeen: markMomentSeen,
     resetMoment: resetMoment, ticketFor: ticketFor, setTicket: setTicket,
-    ticketLine: ticketLine, whenMatches: whenMatches, matches: null
+    ticketLine: ticketLine, whenMatches: whenMatches, matches: null,
+    listenerFor: listenerFor, setListener: setListener,
+    nameFor: nameFor, setName: setName, headerWithName: headerWithName
   };
 
   function field(name, root) {
@@ -207,7 +265,7 @@
     if (!field("hero_caption")) return;
     setText("hero_caption", match.hero.caption);
     if (match.hero.opening) {
-      setText("hero_header", match.hero.opening.header);
+      setText("hero_header", headerWithName(match.hero.opening.header, nameFor()));
     }
     setText("hero_quote", match.hero.quote);
     // The share sheet must describe this match, not the one in the markup.
