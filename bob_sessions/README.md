@@ -54,6 +54,7 @@ the commit it produced.
 | 3 | 2. End event windows at the goal shot | [`bob_sessions/phase3_task2_window_fix.md`](phase3_task2_window_fix.md) | [`bob_sessions/phase3_task2_window_fix.png`](phase3_task2_window_fix.png) | `343c712` | 0.508 |
 | 4 | 3. Add `buildup` | [`bob_sessions/phase4_task3_buildup.md`](phase4_task3_buildup.md) | [`bob_sessions/phase4_task3_buildup.png`](phase4_task3_buildup.png) | `24e1a8d` | 1.22 |
 | 4 | 4. Build the orchestrator | [`bob_sessions/phase4_task4_orchestrator.md`](phase4_task4_orchestrator.md) | [`bob_sessions/phase4_task4_orchestrator.png`](phase4_task4_orchestrator.png) | `1c4063a` | 4.02 |
+| 4 | 5. The game-focused header | [`bob_sessions/phase4_task5_header.md`](phase4_task5_header.md) | [`bob_sessions/phase4_task5_header.png`](phase4_task5_header.png) | `7f1b21e` | 3.16 |
 
 Task 1 built the module against `docs/bob_brief.md` and took all 14 acceptance
 tests from failing to passing. Task 2 fixed `event_window`, which filtered by
@@ -68,10 +69,21 @@ Task 4 built `app/orchestrator.py` against the contract and fixed the period
 gap in `buildup`, which turned out to be in the goal's own possession rather
 than in the set-piece reach back the brief had pointed at.
 
+Task 5 built `transition` and `header` in `app/orchestrator.py` and pointed
+`PreludeOrchestrator.opening` at the new header. It also found two tests in
+`TestAnotherSport` built with the wrong scoring side; Shawn approved the fix
+and only `side=TEAM_B` was added, with every expectation left as written.
+
 Nothing was scrubbed from the Task 3 export: a scan for the variable names in
 `.env.example`, for bearer tokens, keys, project ids and URLs carrying a query
 string found none. Its two mentions of `.env` are the rule text telling Bob not
 to open it, not a value read out of it.
+
+Nothing was scrubbed from the Task 5 export. The same scan found none of the
+six variable names, no `.env` mention, no bearer token, no key-shaped string
+and no URL of any kind. Its only long opaque strings are a module name and six
+test names. The screenshot shows the workspace, a context gauge and a Bobcoin
+figure, none of which authorises anything.
 
 Nothing was scrubbed from the Task 4 export either. The same scan found none of
 the six variable names, no `.env` mention, no bearer token, no key-shaped

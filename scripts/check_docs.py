@@ -64,13 +64,10 @@ DOCS = [
 # wrote them, and `app/orchestrator.py` when Bob built it in Task 4. Add a path
 # here when a doc names one before it is written.
 #
-# `bob_sessions/phase4_task5_header.md` is the export of the session that has
-# not been run: the Task 5 brief in `docs/bob_brief.md` names it as the file
-# Bob is told to export to at the end. It comes off this list when that
-# session is run and the export is committed.
-DELIBERATELY_ABSENT: set[str] = {
-    "bob_sessions/phase4_task5_header.md",
-}
+# `bob_sessions/phase4_task5_header.md` came off it when Bob's Task 5 session
+# was run and the export was committed. The list is empty: every path the docs
+# name now exists.
+DELIBERATELY_ABSENT: set[str] = set()
 
 PATH_IN_BACKTICKS = re.compile(
     r"`((?:app|docs|scripts|tests|bob_sessions)/[A-Za-z0-9_./-]+)`"
