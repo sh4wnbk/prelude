@@ -72,7 +72,8 @@ LEVEL = "level"
 BEHIND = "behind"
 
 #: What the moment was, from the listener's point of view. A neutral listener
-#: has neither, which is why the header table has a row of its own for them.
+#: has neither, so `outcome` raises for one rather than inventing an answer.
+#: The header does not read these: it is the same line for every listener.
 SCORED = "scored"
 CONCEDED = "conceded"
 
@@ -86,14 +87,6 @@ TONIGHT = "tonight"
 CALLER = "caller"
 STORYTELLER = "storyteller"
 MATE = "mate"
-
-#: What a fan's header ended with, from `HEADER_PREFIXES` below, and what a
-#: neutral listener's header was. `FAN_TAIL` comes out with that table in the
-#: follow-up after Bob's Task 5, not in Task 5 itself. `NEUTRAL_TAIL` is the
-#: same sentence as `HEADER_TAIL`, which every header now ends on, whoever is
-#: listening.
-FAN_TAIL = "Here's how it happened."
-NEUTRAL_TAIL = "Here's the buildup."
 
 #: What the moment did to the score, **from the scoring side's point of
 #: view**, read out of the score before it and the score after it and nothing
@@ -150,35 +143,9 @@ HEADER_WORDING: Mapping[str, str] = {
 #: as a listener with one.
 SCORE_LINE = "{team_a} {score_a}, {team_b} {score_b}."
 
-#: What every header ends on, whoever is listening. The same sentence
-#: `NEUTRAL_TAIL` holds, and it is spelled here because it is no longer the
-#: neutral case of anything: there is one header.
+#: What every header ends on, whoever is listening. It is not the neutral case
+#: of anything: there is one header, and this is the sentence it ends on.
 HEADER_TAIL = "Here's the buildup."
-
-#: The prefix for a fan's header, by what the moment was and the phase it
-#: happened in.
-#:
-#: **This is the old header and it is on its way out.** The header is game
-#: focused now and the same for every listener: `HEADER_WORDING` above is what
-#: replaces this table, and `tests/test_orchestrator.py` is written against
-#: that one. This table stays only because `header` in `app/orchestrator.py`
-#: still reads it, and that function is IBM Bob's to rewrite in Task 5.
-#:
-#: **Bob does not remove it; Claude Code does, in the follow-up after Task 5.**
-#: Bob's task is the new header and nothing else, and a contract edited in the
-#: same session that implements against it is a contract that stopped being
-#: the handover. Once Bob's `header` no longer reads this table, `FAN_TAIL`,
-#: `HEADER_PREFIXES` and whatever else is left reading them come out
-#: together: a wording table nothing reads is a wording somebody will edit and
-#: wonder why nothing changed.
-HEADER_PREFIXES: Mapping[tuple[str, str], str] = {
-    (SCORED, EARLY): "Great start.",
-    (SCORED, MIDDLE): "Good news.",
-    (SCORED, LATE): "Late one for your side.",
-    (CONCEDED, EARLY): "Still early.",
-    (CONCEDED, MIDDLE): "There's still time.",
-    (CONCEDED, LATE): "",
-}
 
 
 @dataclass(frozen=True)

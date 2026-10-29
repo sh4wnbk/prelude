@@ -122,7 +122,7 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-26 failed, 406 passed
+432 passed
 ```
 
 The total covers far more than this module now. Phase 4 added the narration
@@ -130,12 +130,7 @@ provider, the prompt, the grounding check and the evaluation, each with its
 own tests; run `pytest tests/test_event_feed.py` to see this module's tests
 alone.
 
-**The 26 failures are Task 5 below and nothing else.** They are the game
-focused header: `tests/test_orchestrator.py` is written against `transition`
-and `header` in `app/orchestrator.py`, which are declared in
-`app/orchestrator_contract.py` and not built. Each one fails on its own with a
-message naming the function and this brief. Every other test passes, so any
-other failure means something is actually wrong.
+**The suite is green, so any failure means something is actually wrong.**
 
 The suite still guards the import, and three messages mean three different
 things if that changes. In `tests/test_event_feed.py`, every test that builds
@@ -478,19 +473,11 @@ they listen. Conceding does not mean behind: Argentina conceded at 80:37 in
 neutral listener did neither, and `score_state` and `outcome` both raise
 `ValueError` for one rather than inventing an answer.
 
-**The header.** A prefix looked up in `HEADER_PREFIXES` by outcome and phase,
-then a single space, then `FAN_TAIL`. A neutral listener gets `NEUTRAL_TAIL`
-and no prefix. The late conceded cell is empty, and an empty prefix must not
-leave a leading space or a double space.
-
-The wording in the table is the starting wording, not the final wording.
-Shawn writes that and `docs/VOICE.md` carries it, so read the prefixes out of
-the table rather than writing any of them into your code: changing a word
-should be a one line edit to the contract.
-
-**"There's still time" never appears late.** It is a kindness early and a lie
-late. The table already puts it in the middle row only, so this holds as long
-as nothing reaches past the table.
+**The header.** A prefix looked up by outcome and phase, then a single space,
+then a fan tail; a neutral listener got a tail and no prefix. **That header is
+gone.** Task 5 below replaced it with the game focused one, and the follow-up
+after that task removed its table and both tails from the contract. The rules
+it was built to are kept here only as the record of what this task built.
 
 **The default persona.** `MATE` for a fan, `STORYTELLER` for a neutral
 listener. The personas themselves are Task 6; the contract declares their ids
@@ -550,6 +537,10 @@ No goal in either demo match triggers it.
 
 
 ## Task 5: the game-focused header
+
+**Status: built, in `7f1b21e`.** `transition` and `header` are in
+`app/orchestrator.py` and `PreludeOrchestrator.opening` says the new line. The
+brief below is the record of what the task asked for.
 
 Build the header that says what the goal did to the score.
 
@@ -639,10 +630,17 @@ over one moment get one line.
 
 ### The tests to pass
 
-`tests/test_orchestrator.py`, 72 tests. 46 pass now and 26 fail, and the 26
-are this task. They cover every goal in both demo matches, with the clock and
-both scores read out of `data/raw/` rather than written down, and the header
-each one has to produce written out beside it.
+`tests/test_orchestrator.py`, 72 tests, all passing. They cover every goal in
+both demo matches, with the clock and both scores read out of `data/raw/`
+rather than written down, and the header each one has to produce written out
+beside it.
+
+Two of them were built with the wrong scoring side and Bob found it:
+`test_three_points_from_far_behind_closes_the_gap` and
+`test_three_points_can_draw_it_level` in `TestAnotherSport` both used the
+default `side=TEAM_A` for a scenario that needs `side=TEAM_B`. The defect was
+in the tests, not the implementation. Shawn approved the fix in the session,
+only `side=TEAM_B` was added, and no expected value changed.
 
 `TestAnotherSport` is the sixty minute game whose scores move three at a time.
 It holds the `OVERTAKE` transition, which neither demo match contains: a goal
@@ -650,12 +648,11 @@ is worth one, so a side that was behind is level or still behind afterwards. A
 rule that recovered the before by subtracting one would call that overtake a
 draw level, and that is the test which says so.
 
-`TestTheContractItself` reads the wording table. It passes now and must keep
-passing: it is what makes a change to the wording a deliberate edit rather
-than something that slips through.
+`TestTheContractItself` reads the wording table. It is what makes a change to
+the wording a deliberate edit rather than something that slips through.
 
 The expected values are literals written beside each test. A test that
-computed its expectation the way the implementation will would agree with any
+computed its expectation the way the implementation does would agree with any
 implementation that made the same mistake.
 
 ### Stop conditions
@@ -674,15 +671,6 @@ else out of `data/raw/`, **stop and report it**: the three real inputs in
 function and the new rules replace the old ones. There is no fallback to the
 prefixes, no flag that picks between the two headers, and no second function
 that still builds the old line.
-
-**Do not remove `HEADER_PREFIXES` or `FAN_TAIL` either.** They are still in
-`app/orchestrator_contract.py`, and after this task nothing will read them,
-which normally means they should go. They are not yours to take out: the
-contract is the handover and editing it in the session that implements against
-it is how a handover stops being one. Leave both where they are, stop reading
-them, and **say in your report that nothing reads them any more.** Claude Code
-removes them, and anything else left reading them, in the follow-up after this
-task.
 
 **Do not invent the personas.** The contract names three ids and
 `app/personas.py` holds the three. They are separated by voice in Phase 5, and

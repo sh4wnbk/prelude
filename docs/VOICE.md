@@ -261,7 +261,8 @@ what the goal did to the score rather than how the fan should feel about it.
 
 The header before this one was a prefix picked from the listener's side,
 whether that side scored or conceded, and how far into the match the moment
-came: "Great start.", "Good news.", "Still early.". Shawn's decision after
+came: "Great start.", "Good news.", "Still early.". It is gone, and so is the
+table it was looked up in. Shawn's decision after
 Phase 4 is that the app does not guess at a mood. A fan with a side and a
 listener with none are looking at the same scoreboard, and the mood was the
 part of that line the app had not earned. Allegiance no longer reaches the
@@ -321,13 +322,13 @@ addressed to the fan, which is what the ending rule above keeps out of the
 narration itself: the header goes before the narration, and nothing goes after
 it.
 
-**What is built, and what is not.** `app/orchestrator_contract.py` declares the
-wording above, along with `transition` and `header`, and both of those raise
-there. **Neither is implemented: they are Task 5 in `docs/bob_brief.md` and IBM
-Bob builds them.** `app/orchestrator.py` still produces the old prefix header,
-and the 26 tests in `tests/test_orchestrator.py` written against the wording
-above are red until that task lands. No screen shows a header either way; Task
-7 puts it on the moment card.
+**What is built.** `app/orchestrator_contract.py` declares the wording above
+along with `transition` and `header`, and both raise there. **IBM Bob built
+both in `app/orchestrator.py` as Task 5 in `docs/bob_brief.md`, in `7f1b21e`**,
+and `PreludeOrchestrator.opening` says the new line. The 72 tests in
+`tests/test_orchestrator.py` all pass. The prefix table the old header read is
+gone from the contract. No screen shows a header yet; Task 7 puts it on the
+moment card.
 
 ## The three personas, and the one style
 

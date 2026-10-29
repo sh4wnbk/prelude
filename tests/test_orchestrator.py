@@ -6,14 +6,13 @@ functions, and every function in it raises. IBM Bob built
 tests call that module. The constants and shapes are still read from the
 contract, because the contract is what the wording is edited in.
 
-**The header tests in here are red on purpose.** The header is game focused
-now: it says what the goal did to the score rather than how the fan should
-feel, it is the same line for every listener, and allegiance picks the persona
-instead. `transition` and the new `header` are declared in the contract and
-are Task 5 in `docs/bob_brief.md`. The old outcome-by-phase header tests were
-removed in the same commit that added these, along with the contract tests
-about `HEADER_PREFIXES`: two header tables, both tested, would have left it
-unclear which one the app is meant to say.
+**The header is game focused**: it says what the goal did to the score rather
+than how the fan should feel, it is the same line for every listener, and
+allegiance picks the persona instead. `transition` and `header` are declared
+in the contract and Bob built them as Task 5 in `docs/bob_brief.md`. The old
+outcome-by-phase header tests were removed in the commit that added these, and
+the table they covered is gone from the contract: two header tables, both
+tested, would have left it unclear which one the app is meant to say.
 
 **Nothing new is imported from `app/orchestrator.py` at the top of this
 file.** A missing function imported there would be an ImportError that
