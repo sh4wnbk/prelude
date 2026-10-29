@@ -122,12 +122,16 @@ generating anything:
 
 ## The test harness
 
-The suite is 442 tests in ten files. 432 pass and 10 fail.
+The suite is 452 tests in eleven files. 439 pass and 13 fail.
 
-The failures are all of `tests/test_moment_card_header.py`, written before Bob's Task 6 in
-`docs/bob_brief.md`: each fails because `scripts/write_headers.py`, the
-`hero.opening` field or the card's header field is not built yet. A failure
-anywhere else means something is wrong. It is run from the repo root:
+The failures are all Bob's Task 7 in `docs/bob_brief.md`, waiting to be built.
+Nine are in `tests/test_screen_copy.py`, the copy that has not changed yet.
+
+The other four are in `tests/test_moment_card_header.py`, which Task 6 turned
+green: the header's last sentence changed in the contract for Task 7, and
+`app/web/matches.json` and the card's inline heading still carry the old one
+until `scripts/write_headers.py` is run again. A failure anywhere else means
+something is wrong. It is run from the repo root:
 
 ```
 .\.venv-prelude\Scripts\python.exe -m pytest
@@ -145,7 +149,8 @@ No path setting is needed: `pyproject.toml` sets `pythonpath = ["."]` and
 | `tests/test_narration_provider.py` | the model config and both backends |
 | `tests/test_credentials.py` | where the credentials file lives, and what is refused |
 | `tests/test_narration_eval.py` | the key beats, the coverage measure, the token recorder and the voices a run is split into |
-| `tests/test_moment_card_header.py` | the header on the moment card: `hero.opening` in `app/web/matches.json`, the script that writes and checks it, the card's field and the renderer, all failing until Bob's Task 6 |
+| `tests/test_moment_card_header.py` | the header on the moment card: `hero.opening` in `app/web/matches.json`, the script that writes and checks it, the card's field and the renderer, built by Bob in Task 6 |
+| `tests/test_screen_copy.py` | the copy Shawn settled on 2026-10-29: the card's label, the Live helper after Heading out, the share title and texts, failing until Bob's Task 7 |
 | `tests/test_orchestrator.py` | the greeting, the phase, the score state, the transition, the game focused header, the default persona and `opening`, against `app/orchestrator.py` |
 | `tests/test_personas.py` | the persona config: the three ids, the fields, the unconfirmed voice and prosody and the Profile copy |
 

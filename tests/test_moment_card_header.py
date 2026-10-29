@@ -7,12 +7,14 @@ the listener, it does not need to: `scripts/write_headers.py` computes it once
 per match and writes it into `app/web/matches.json`, and the moment card reads
 it from there. `docs/bob_brief.md` carries the brief as Task 6.
 
-**They fail, one at a time, until Task 6 is built.** Nothing here fails on an
-import: the script is looked up by path at call time, so a missing script is
-one named failure per test that needs it, and the rest of the suite runs.
+**Bob built Task 6 in `aab7093`.** The script is still looked up by path at
+call time, so if it ever goes missing that is one named failure per test that
+needs it, and the rest of the suite runs.
 
 The expected headers are literals. They were produced by running the built
-orchestrator over `data/raw/` on 2026-10-29, and they are written out so that a
+orchestrator over `data/raw/` on 2026-10-29, and their last sentence changed
+from "Here's the buildup." to "Here's how it happened." for Task 7, when
+`HEADER_TAIL` did. They are written out so that a
 wrong script and a wrong orchestrator cannot agree with each other in silence.
 The greeting is "tonight" for both matches because the kickoff in
 `app/web/matches.json`, which `scripts/check_match_copy.py` checks against the
@@ -41,12 +43,12 @@ EXPECTED = {
     3750191: {
         "greeting": "tonight",
         "header": "Argentina extend the lead. Argentina 2, England 0. "
-                  "Here's the buildup.",
+                  "Here's how it happened.",
     },
     3869685: {
         "greeting": "tonight",
         "header": "Argentina extend the lead. Argentina 2, France 0. "
-                  "Here's the buildup.",
+                  "Here's how it happened.",
     },
 }
 

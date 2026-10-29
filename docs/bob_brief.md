@@ -122,10 +122,10 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-10 failed, 432 passed
+13 failed, 439 passed
 ```
 
-The 10 are `tests/test_moment_card_header.py`, Task 6 below.
+The 13 are Task 7 below, waiting to be built.
 
 The total covers far more than this module now. Phase 4 added the narration
 provider, the prompt, the grounding check and the evaluation, each with its
@@ -689,6 +689,9 @@ forgotten:
 
 ## Task 6: the header on the moment card
 
+**Status: built, in `aab7093`.** `scripts/write_headers.py` writes
+`hero.opening` into `app/web/matches.json` and the moment card shows it.
+
 Put the orchestrator's header on the moment card, in place of the heading the
 card carries today. That is the whole task.
 
@@ -777,5 +780,97 @@ is not narration.
 forgotten:
 
 > Export this session to `bob_sessions/phase4_task6_card_header.md` and
+> `.png`, scrub it against the list in `bob_sessions/README.md` before
+> committing, and check the diff rather than the commit.
+
+## Task 7: the screen copy
+
+Change six pieces of copy to the wording Shawn settled on 2026-10-29, and run
+`scripts/write_headers.py` once. That is the whole task.
+
+### Why it exists
+
+Some copy still tells the fan they were away after they came back, which the
+opener rule in `docs/VOICE.md` keeps out, and some repeats "buildup" on screens
+that already say it. The header's last sentence has already been changed in
+the contract, from "Here's the buildup." to "Here's how it happened.", and its
+tests updated, so the header is handled by rerunning the script.
+
+### What you change
+
+Every new line is given exactly. Copy it character for character.
+
+1. **`app/web/prelude_03_moment_card.html`, the label above the heading.**
+   Remove the separator dot and the "YOU STEPPED AWAY" span after "THE
+   BUILDUP": the two elements
+   `<span class="w-1 h-1 rounded-full bg-surface-variant"></span>` and the
+   `<span ...>YOU STEPPED AWAY</span>` that follows it. Leave "THE BUILDUP"
+   and its wrapper as they are.
+2. **The same file, the share sheet title.** In the script near the end,
+   `title: 'PRELUDE: The buildup you missed.',` becomes
+   `title: 'Listen on Prelude.',`.
+3. **`app/web/matches.json`, `hero.share_text`.** For 3750191:
+   `Maradona's solo goal as it happened.` For 3869685:
+   `Di María's counter goal as it happened.`
+4. **The moment card's inline share text.** The `data-share-text` attribute on
+   `#shareAction` becomes the 1986 line from item 3.
+5. **`app/web/matches.json`, `live_seated.after.help`, both matches.**
+   `Ready when you are.`
+6. **`app/web/matches.json`, `_note`.** It says the values are not generated
+   and that nothing in `app/web` reads the file, and both are now false.
+   Replace the two sentences "These values are fixed content, not generated:
+   scripts/check_match_copy.py verifies every name, minute, score and count
+   against data/raw and exits 1 on a mismatch." and "Nothing in app/web reads
+   this yet; the screens still carry their copy inline, and wiring them to it
+   is Phase 5." with these two, and leave the rest of `_note` as it is:
+   "These values are fixed content, except hero.opening, which
+   scripts/write_headers.py generates from the orchestrator: run it again
+   rather than editing it by hand. scripts/check_match_copy.py verifies every
+   name, minute, score and count against data/raw and exits 1 on a mismatch."
+   and "app/web/match-content.js renders the screens from this file; the
+   screens also carry the default match's copy inline, for when it cannot be
+   fetched."
+
+Then run `scripts/write_headers.py` (no flags) to rewrite both
+`hero.opening` headers, and change the moment card's inline `<h1>` text to the
+new 1986 header exactly as the script wrote it.
+
+Write `matches.json` the way the script does:
+`json.dumps(doc, indent=2, ensure_ascii=False) + "\n"` as UTF-8, so the diff
+shows only the lines that changed.
+
+### The tests to pass
+
+`tests/test_screen_copy.py`, 10 tests. Nine fail until this is built; the
+tenth checks that "THE BUILDUP" stays, and passes now.
+
+Four in `tests/test_moment_card_header.py` also fail until the script is
+rerun and the inline heading updated.
+
+Then the full suite, target 0 failed, and the four
+gates. `check_docs.py` failing on the quoted pytest result in this brief is
+expected and is Claude Code's follow-up; report any other gate failure.
+
+### Stop conditions
+
+**Change only the six items above, the rerun, and the inline heading.** No
+other copy, no restyling, no new elements, no Python other than running the
+script, no tests, no docs.
+
+**Keep these exactly as they are**, even though they mention being away:
+"Tap as you leave your seat. Prelude keeps track while you’re away.", the
+"STEPPED AWAY · TAP TO RETURN" label on the Live screen, "Step away" on the
+ticket screen, and "The moment you missed deserves an encore!" in the Moments
+footer. Shawn chose to keep them.
+
+**If a gate refuses one of the new lines, stop and report the gate's
+message.** Do not reword a line to get past a check.
+
+### When you are done
+
+**Print this reminder at the end of the session**, so the export is not
+forgotten:
+
+> Export this session to `bob_sessions/phase4_task7_screen_copy.md` and
 > `.png`, scrub it against the list in `bob_sessions/README.md` before
 > committing, and check the diff rather than the commit.

@@ -145,7 +145,7 @@ SCORE_LINE = "{team_a} {score_a}, {team_b} {score_b}."
 
 #: What every header ends on, whoever is listening. It is not the neutral case
 #: of anything: there is one header, and this is the sentence it ends on.
-HEADER_TAIL = "Here's the buildup."
+HEADER_TAIL = "Here's how it happened."
 
 
 @dataclass(frozen=True)

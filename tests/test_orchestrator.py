@@ -128,8 +128,10 @@ def built(name: str, **arguments):
     return function(**arguments)
 
 
-#: 1986, Argentina vs England. A 16:00 kickoff in Mexico City, so it is a
-#: "today" match: the one of the two demo matches that is. The team names are
+#: 1986, Argentina vs England, given an afternoon kickoff so that one fixture
+#: is a "today" match. The kickoff is an input chosen for the rule, not the
+#: recorded one: `app/web/matches.json` carries 19:00 off the match index,
+#: which `scripts/check_match_copy.py` checks. The team names are
 #: checked against `data/raw/` by `TestTheMomentsComeFromTheData`, and the
 #: kickoff is written here because the greeting is about the listener's
 #: evening rather than about anything in the event data.
@@ -140,7 +142,9 @@ MEXICO_86 = Event(
     sport="football",
 )
 
-#: 2022, Argentina vs France. An 18:00 kickoff in Lusail, so "tonight".
+#: 2022, Argentina vs France, given an evening kickoff so that one fixture is
+#: "tonight". Like the 1986 one it is chosen for the rule; the match index
+#: records 17:00.
 QATAR_22 = Event(
     kickoff=datetime(2022, 12, 18, 18, 0),
     team_a="Argentina",
@@ -161,39 +165,39 @@ REGULATION = 90
 EXPECTED = {
     (MATCH_1986, 50, 27): (
         TAKE_LEAD,
-        "Argentina take the lead. Argentina 1, England 0. Here's the buildup.",
+        "Argentina take the lead. Argentina 1, England 0. Here's how it happened.",
     ),
     (MATCH_1986, 54, 18): (
         EXTEND,
-        "Argentina extend the lead. Argentina 2, England 0. Here's the buildup.",
+        "Argentina extend the lead. Argentina 2, England 0. Here's how it happened.",
     ),
     (MATCH_1986, 80, 37): (
         CLOSE_GAP,
-        "England close the gap. Argentina 2, England 1. Here's the buildup.",
+        "England close the gap. Argentina 2, England 1. Here's how it happened.",
     ),
     (MATCH_2022, 22, 24): (
         TAKE_LEAD,
-        "Argentina take the lead. Argentina 1, France 0. Here's the buildup.",
+        "Argentina take the lead. Argentina 1, France 0. Here's how it happened.",
     ),
     (MATCH_2022, 35, 22): (
         EXTEND,
-        "Argentina extend the lead. Argentina 2, France 0. Here's the buildup.",
+        "Argentina extend the lead. Argentina 2, France 0. Here's how it happened.",
     ),
     (MATCH_2022, 79, 24): (
         CLOSE_GAP,
-        "France close the gap. Argentina 2, France 1. Here's the buildup.",
+        "France close the gap. Argentina 2, France 1. Here's how it happened.",
     ),
     (MATCH_2022, 80, 59): (
         DRAW_LEVEL,
-        "France draw level. Argentina 2, France 2. Here's the buildup.",
+        "France draw level. Argentina 2, France 2. Here's how it happened.",
     ),
     (MATCH_2022, 107, 58): (
         TAKE_LEAD,
-        "Argentina take the lead. Argentina 3, France 2. Here's the buildup.",
+        "Argentina take the lead. Argentina 3, France 2. Here's how it happened.",
     ),
     (MATCH_2022, 117, 5): (
         DRAW_LEVEL,
-        "France draw level. Argentina 3, France 3. Here's the buildup.",
+        "France draw level. Argentina 3, France 3. Here's how it happened.",
     ),
 }
 
@@ -738,14 +742,14 @@ class TestTheOpening:
     def test_argentina_fan_on_the_1986_54_18_goal(self):
         assert PreludeOrchestrator().opening(MEXICO_86, GOAL_54_18, ARGENTINA) == Opening(
             greeting="today",
-            header="Argentina extend the lead. Argentina 2, England 0. Here's the buildup.",
+            header="Argentina extend the lead. Argentina 2, England 0. Here's how it happened.",
             persona="mate",
         )
 
     def test_neutral_listener_on_the_2022_22_24_penalty(self):
         assert PreludeOrchestrator().opening(QATAR_22, GOAL_22_24, ANYONE) == Opening(
             greeting="tonight",
-            header="Argentina take the lead. Argentina 1, France 0. Here's the buildup.",
+            header="Argentina take the lead. Argentina 1, France 0. Here's how it happened.",
             persona="storyteller",
         )
 
@@ -757,7 +761,7 @@ class TestTheOpening:
         ]
         assert len({o.header for o in openings}) == 1
         assert openings[0].header == (
-            "England close the gap. Argentina 2, England 1. Here's the buildup."
+            "England close the gap. Argentina 2, England 1. Here's how it happened."
         )
         assert {o.persona for o in openings} == {"mate", "storyteller"}
 
@@ -845,14 +849,14 @@ class TestAnotherSport:
         overtake = self.moment(30, before=(4, 5))
         assert built("header", event=self.GAME, moment=overtake) == (
             "Tharsis Reds take the lead. Tharsis Reds 7, Elysium Blue 5. "
-            "Here's the buildup."
+            "Here's how it happened."
         )
 
     def test_the_header_reads_the_same_table_whatever_the_sport(self):
         drew = self.moment(55, before=(9, 6), side=TEAM_B)
         assert built("header", event=self.GAME, moment=drew) == (
             "Elysium Blue draw level. Tharsis Reds 9, Elysium Blue 9. "
-            "Here's the buildup."
+            "Here's how it happened."
         )
 
     def test_the_default_persona_does_not_depend_on_the_sport(self):
@@ -898,7 +902,7 @@ class TestTheContractItself:
         ) == "A 1, B 2."
 
     def test_the_tail_is_one_sentence_for_everybody(self):
-        assert HEADER_TAIL == "Here's the buildup."
+        assert HEADER_TAIL == "Here's how it happened."
 
     def test_no_wording_claims_a_goal_before_this_one(self):
         """The rule the transitions are built to: no history in the header."""

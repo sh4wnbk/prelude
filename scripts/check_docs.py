@@ -67,11 +67,12 @@ DOCS = [
 # `bob_sessions/phase4_task5_header.md` came off it when Bob's Task 5 session
 # was run and the export was committed.
 #
-# What is on it now is Bob's Task 6 in `docs/bob_brief.md`: the script he
-# writes and the export of his session. Both come off when that task lands.
+# `scripts/write_headers.py` came off it when Bob built Task 6. What is on it
+# now is the export of that session, which comes off when it is committed, and
+# the export of Task 7, which is briefed and not yet run.
 DELIBERATELY_ABSENT: set[str] = {
-    "scripts/write_headers.py",                 # Bob, task 6
     "bob_sessions/phase4_task6_card_header.md",  # Bob's task 6 export
+    "bob_sessions/phase4_task7_screen_copy.md",  # Bob's task 7 export
 }
 
 PATH_IN_BACKTICKS = re.compile(

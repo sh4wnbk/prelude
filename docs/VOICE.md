@@ -284,10 +284,11 @@ after it, from the scoring side's point of view, and out of nothing else:
 
 The second is `{team_a} {score_a}, {team_b} {score_b}.`, both teams in the
 order the fixture names them, so a listener with no side reads it the same way
-as a listener with one. The third is "Here's the buildup.", which every header
-ends on. England's goal in 1986, at 80:37, is the whole line:
+as a listener with one. The third is "Here's how it happened.", which every header
+ends on. It was "Here's the buildup." until the card's label above it came to
+say "THE BUILDUP", and the word twice in two lines read as repetition. England's goal in 1986, at 80:37, is the whole line:
 
-> England close the gap. Argentina 2, England 1. Here's the buildup.
+> England close the gap. Argentina 2, England 1. Here's how it happened.
 
 **This is the starting wording and Shawn writes the final wording.** What is
 settled is the shape: fixed sentences, looked up, with nothing generated and
