@@ -2486,7 +2486,7 @@ The rules Shawn settled for them, before any of it is built:
 **Bob task 8 is built and checked.** `30116a2` changed exactly the five values
 in the brief. `pytest -q` reports `459 passed`, all four gates pass, and
 `scripts/check_match_copy.py` now holds every match to one missed goal. Its
-export is still to be committed.
+export is committed and was scanned for key-shaped strings, with none found.
 
 ### Bob task 8, as it was briefed
 
