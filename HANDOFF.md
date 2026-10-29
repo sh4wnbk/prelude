@@ -2481,7 +2481,26 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Shawn runs Bob task 7, the screen copy)
+## Next first action (Claude Code: browser check, then the "Who are you with" card)
+
+**Bob task 7 is built and checked.** `8215108` touched only
+`app/web/matches.json` and the moment card, made the six changes in the brief
+and reran `scripts/write_headers.py` (`--check` passes). `pytest -q` reports
+`452 passed` and all four gates pass. Its export is still to be committed.
+
+**Checked in headless Chromium on both matches, at 390 by 844 and 1280 by
+800, after the commit.** The rendered header is each match's line ending
+"Here's how it happened.", the share button carries "Maradona's solo goal as
+it happened." and "Di María's counter goal as it happened.", "STEPPED AWAY"
+appears nowhere on the card, and the Live screen shows "Ready when you are."
+after Heading out and the settled helper before it. That run had no network,
+so the Tailwind and font CDNs did not load and the layout was not judged:
+the look still needs a real-phone check on the live site.
+
+**Next:** Shawn checks the moment card on his phone, the task 7 export is
+committed, and the "Who are you with" card and the name get briefed for Bob.
+
+### Bob task 7, as it was briefed
 
 **Bob task 6 is built and checked.** `aab7093` added
 `scripts/write_headers.py`, which runs the orchestrator over the data and
@@ -2501,8 +2520,8 @@ the header ending "Here's how it happened." The tail is already changed in
 `app/orchestrator_contract.py` and the tests, so Bob reruns the script. After
 it: the "Who are you with" card and the name, then the Profile tab.
 
-**The suite is red on purpose.** `pytest -q` reports `13 failed, 439 passed`,
-all of it Bob's Task 7. `scripts/check_docs.py` passes.
+**The suite was red on purpose while it was briefed**, with 13 failures, all
+of them Bob's Task 7.
 
 **Fixed while briefing it:** the kickoff comments in
 `tests/test_orchestrator.py` called 16:00 and 18:00 the real kickoffs. They now

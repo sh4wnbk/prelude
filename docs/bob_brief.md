@@ -122,10 +122,8 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-13 failed, 439 passed
+452 passed
 ```
-
-The 13 are Task 7 below, waiting to be built.
 
 The total covers far more than this module now. Phase 4 added the narration
 provider, the prompt, the grounding check and the evaluation, each with its
@@ -785,6 +783,9 @@ forgotten:
 
 ## Task 7: the screen copy
 
+**Status: built, in `8215108`.** The six copy changes are in, and the script
+was rerun so both headers end "Here's how it happened."
+
 Change six pieces of copy to the wording Shawn settled on 2026-10-29, and run
 `scripts/write_headers.py` once. That is the whole task.
 
@@ -841,10 +842,10 @@ shows only the lines that changed.
 
 ### The tests to pass
 
-`tests/test_screen_copy.py`, 10 tests. Nine fail until this is built; the
-tenth checks that "THE BUILDUP" stays, and passes now.
+`tests/test_screen_copy.py`, 10 tests, all passing now. Nine failed until
+this was built; the tenth checks that "THE BUILDUP" stays.
 
-Four in `tests/test_moment_card_header.py` also fail until the script is
+Four in `tests/test_moment_card_header.py` also failed until the script was
 rerun and the inline heading updated.
 
 Then the full suite, target 0 failed, and the four
