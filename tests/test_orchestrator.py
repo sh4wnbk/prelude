@@ -834,12 +834,12 @@ class TestAnotherSport:
 
     def test_three_points_from_far_behind_closes_the_gap(self):
         assert built(
-            "transition", moment=self.moment(50, before=(12, 3))
+            "transition", moment=self.moment(50, before=(12, 3), side=TEAM_B)
         ) == CLOSE_GAP
 
     def test_three_points_can_draw_it_level(self):
         assert built(
-            "transition", moment=self.moment(55, before=(9, 6))
+            "transition", moment=self.moment(55, before=(9, 6), side=TEAM_B)
         ) == DRAW_LEVEL
 
     def test_the_header_says_the_overtake_and_the_points(self):

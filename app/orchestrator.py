@@ -8,21 +8,26 @@ happened, and which side the listener is on. Standard library only.
 from app.orchestrator_contract import (
     AHEAD,
     BEHIND,
+    CLOSE_GAP,
     CONCEDED,
+    DRAW_LEVEL,
     EARLY,
     EARLY_UNTIL,
     EVENING_CUTOFF,
-    FAN_TAIL,
-    HEADER_PREFIXES,
+    EXTEND,
+    HEADER_TAIL,
+    HEADER_WORDING,
     LATE,
     LATE_FROM,
     LEVEL,
     MATE,
     MIDDLE,
     NEUTRAL,
-    NEUTRAL_TAIL,
+    OVERTAKE,
+    SCORE_LINE,
     SCORED,
     STORYTELLER,
+    TAKE_LEAD,
     TEAM_A,
     TEAM_B,
     TODAY,
@@ -94,19 +99,51 @@ def outcome(moment: ScoringMoment, listener: Listener) -> str:
     return CONCEDED
 
 
-def header(moment: ScoringMoment, listener: Listener) -> str:
-    """The header line: a prefix from `HEADER_PREFIXES`, then the tail.
+def transition(moment: ScoringMoment) -> str:
+    """What the moment did to the score, from the scoring side's point of view.
 
-    A neutral listener gets `NEUTRAL_TAIL` and no prefix. A fan gets the
-    prefix for their outcome and phase, then `FAN_TAIL`, with the two joined
-    by a single space and no leading space when the prefix is empty.
+    One of `TRANSITIONS`, read out of the score before and after and nothing
+    else. The scoring side was level, behind or ahead before, and the five
+    cases are exhaustive.
     """
-    if listener.allegiance == NEUTRAL:
-        return NEUTRAL_TAIL
-    prefix = HEADER_PREFIXES[(outcome(moment, listener), phase(moment))]
-    if prefix:
-        return f"{prefix} {FAN_TAIL}"
-    return FAN_TAIL
+    if moment.scoring_side == TEAM_A:
+        before_scorer = moment.score_before_a
+        after_scorer = moment.score_a
+        before_other = moment.score_before_b
+        after_other = moment.score_b
+    else:
+        before_scorer = moment.score_before_b
+        after_scorer = moment.score_b
+        before_other = moment.score_before_a
+        after_other = moment.score_a
+    if before_scorer > before_other:
+        return EXTEND
+    if before_scorer == before_other:
+        return TAKE_LEAD
+    # scoring side was behind
+    if after_scorer > after_other:
+        return OVERTAKE
+    if after_scorer == after_other:
+        return DRAW_LEVEL
+    return CLOSE_GAP
+
+
+def header(event: Event, moment: ScoringMoment) -> str:
+    """The header line: the transition's wording, the score, then the tail.
+
+    `HEADER_WORDING[transition(moment)]` with `{scorer}` filled in from the
+    team that scored, then `SCORE_LINE` with both teams and the score after
+    the moment, then `HEADER_TAIL`, joined by single spaces.
+    """
+    scorer = event.team_a if moment.scoring_side == TEAM_A else event.team_b
+    wording = HEADER_WORDING[transition(moment)].format(scorer=scorer)
+    score = SCORE_LINE.format(
+        team_a=event.team_a,
+        score_a=moment.score_a,
+        team_b=event.team_b,
+        score_b=moment.score_b,
+    )
+    return f"{wording} {score} {HEADER_TAIL}"
 
 
 def default_persona(listener: Listener) -> str:
@@ -125,7 +162,7 @@ class PreludeOrchestrator:
         """The greeting word, the header line and the default persona."""
         return Opening(
             greeting=greeting_word(event),
-            header=header(moment, listener),
+            header=header(event, moment),
             persona=default_persona(listener),
         )
 
