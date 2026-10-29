@@ -65,9 +65,14 @@ DOCS = [
 # here when a doc names one before it is written.
 #
 # `bob_sessions/phase4_task5_header.md` came off it when Bob's Task 5 session
-# was run and the export was committed. The list is empty: every path the docs
-# name now exists.
-DELIBERATELY_ABSENT: set[str] = set()
+# was run and the export was committed.
+#
+# What is on it now is Bob's Task 6 in `docs/bob_brief.md`: the script he
+# writes and the export of his session. Both come off when that task lands.
+DELIBERATELY_ABSENT: set[str] = {
+    "scripts/write_headers.py",                 # Bob, task 6
+    "bob_sessions/phase4_task6_card_header.md",  # Bob's task 6 export
+}
 
 PATH_IN_BACKTICKS = re.compile(
     r"`((?:app|docs|scripts|tests|bob_sessions)/[A-Za-z0-9_./-]+)`"

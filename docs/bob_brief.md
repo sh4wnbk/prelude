@@ -122,8 +122,10 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-432 passed
+10 failed, 432 passed
 ```
+
+The 10 are `tests/test_moment_card_header.py`, Task 6 below.
 
 The total covers far more than this module now. Phase 4 added the narration
 provider, the prompt, the grounding check and the evaluation, each with its
@@ -684,3 +686,96 @@ forgotten:
 > Export this session to `bob_sessions/phase4_task5_header.md`, scrub it
 > against the list in `bob_sessions/README.md` before committing, and check
 > the diff rather than the commit.
+
+## Task 6: the header on the moment card
+
+Put the orchestrator's header on the moment card, in place of the heading the
+card carries today. That is the whole task.
+
+### Why it exists
+
+The moment card opens on "You stepped away. Here’s the buildup you missed."
+That line tells the fan they were absent, which the opener rule in
+`docs/VOICE.md` keeps out, and the orchestrator now has the line that replaces
+it: what the goal did to the score, the same for every listener.
+
+The app is a static site, so nothing in the browser can run
+`app/orchestrator.py`. It does not need to. The header does not depend on the
+listener, so it can be computed once per match ahead of time and stored in
+`app/web/matches.json`, which the screens already read.
+
+### What you build
+
+Three changes, and nothing else.
+
+1. **`scripts/write_headers.py`, new.** For each match in
+   `app/web/matches.json`, it finds the hero goal (`hero.event`) among
+   `StatsBombEventFeed().defining_moments(match_id)`, works out the score
+   before and after it by counting the goals before it in that list, and
+   builds the `Event` and `ScoringMoment` the orchestrator takes: teams are
+   `home_team` as team A and `away_team` as team B, the kickoff is
+   `picker.kickoff`, the sport is `"football"`, regulation is 90 minutes. It
+   calls `greeting_word` and `header` from `app/orchestrator.py` and writes
+   `hero.opening = {"greeting": ..., "header": ...}` into the file.
+   - It exposes `openings()`, returning `{match_id: {"greeting", "header"}}`
+     computed from the data without writing anything.
+   - `--check` writes nothing and exits 1 if the file's `hero.opening`
+     differs from `openings()` for any match, 0 if they agree.
+   - `--path PATH` points it at another copy of `matches.json`; the default is
+     `app/web/matches.json`.
+   - When writing, it changes `hero.opening` and nothing else in the file, and
+     keeps the file's existing formatting. The file round-trips exactly through
+     `json.dumps(doc, indent=2, ensure_ascii=False) + "\n"` written as UTF-8,
+     so write it that way. Do not touch `_note`.
+2. **`app/web/prelude_03_moment_card.html`.** The `<h1>` that holds "You
+   stepped away. Here’s the buildup you missed." gets `data-field="hero_header"`,
+   and its inline text becomes the 1986 header exactly as the script writes it.
+   Keep the element, its classes and everything around it. The eyebrow above
+   it is out of scope; leave it as it is.
+3. **`app/web/match-content.js`.** In `renderHero`, set `hero_header` from
+   `match.hero.opening.header`, the same way `hero_caption` is set. If
+   `opening` is missing, leave the inline text alone.
+
+Run the script once to write the two openings, and commit the result.
+
+### The tests to pass
+
+`tests/test_moment_card_header.py`, 10 tests, all failing until this is
+built. The expected headers are literals, produced by running the
+orchestrator over `data/raw/`; if the script disagrees with one, the script is
+wrong. Run them with:
+
+```
+.\.venv-prelude\Scripts\python.exe -m pytest tests/test_moment_card_header.py -q
+```
+
+Then run the full suite and the four gates (`scripts/data_check.py`,
+`scripts/scan_copy.py`, `scripts/check_match_copy.py`,
+`scripts/check_docs.py`). `check_docs.py` will fail on this brief naming
+`scripts/write_headers.py` as unbuilt and on test counts; that is expected and
+is Claude Code's follow-up. Any other gate failure is yours to report.
+
+### Stop conditions
+
+**Do not change `app/orchestrator.py`, `app/orchestrator_contract.py`,
+`app/statsbomb_event_feed.py` or any test.** If the script cannot produce an
+expected header, stop and report what it produced.
+
+**Do not edit any other screen, any other field, or any doc.** No restyling,
+no new elements, no Profile tab, no "Who are you with" card, no name. Those
+are later tasks.
+
+**Do not write the header by hand into `matches.json`.** It comes from the
+script, so that `--check` can prove it.
+
+**Do not add the "Verified from play data" label near the header.** The header
+is not narration.
+
+### When you are done
+
+**Print this reminder at the end of the session**, so the export is not
+forgotten:
+
+> Export this session to `bob_sessions/phase4_task6_card_header.md` and
+> `.png`, scrub it against the list in `bob_sessions/README.md` before
+> committing, and check the diff rather than the commit.

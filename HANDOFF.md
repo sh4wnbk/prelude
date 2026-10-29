@@ -2481,16 +2481,44 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Task 7: the card, the name and the Profile screen)
+## Next first action (Shawn runs Bob task 6, the header on the moment card)
 
-**Bob task 5 and the follow-up after it are both done, and the suite is green
-again.** `pytest -q` reports `432 passed` and all four gates pass. The header
-is the game-focused line, built in `app/orchestrator.py`, and the prefix table
-it replaced is out of the contract. Nothing in the repo is red and nothing is
-waiting on Bob.
+**Task 7 is split into three Bob tasks, and the first is briefed.** Shawn's
+decision on 2026-10-29: Bob builds Task 7 in three tight sessions and Claude
+Code verifies each in a real browser and updates the docs afterwards. The
+three are the header on the moment card (Bob task 6 in `docs/bob_brief.md`),
+then the "Who are you with" card and the name, then the Profile tab. Only the
+first is briefed; each of the others is written after the one before it lands.
 
-**Task 7 is next and it is Claude Code's.** The Plan entry has it in full. The
-three things to hold on to while building it:
+**The header is computed ahead of time, not in the browser.** The app is a
+static site and the orchestrator is Python, and the header does not depend on
+the listener, so `scripts/write_headers.py` writes it into
+`app/web/matches.json` and the card reads it. Both heroes come out as "extend
+the lead", and both greetings as "tonight", because the kickoffs in
+`app/web/matches.json` (19:00 and 17:00, checked against the match index) are
+at or after the cutoff.
+
+**The suite is red on purpose.** `pytest -q` reports `10 failed, 432 passed`,
+and the 10 are `tests/test_moment_card_header.py`, one failure per missing
+piece. `scripts/check_docs.py` passes.
+
+**One discrepancy to fix in the follow-up.** The fixtures in
+`tests/test_orchestrator.py` give the two matches kickoffs of 16:00 and 18:00,
+and a comment calls 16:00 the Mexico City kickoff. The data says 19:00 and
+17:00. The fixtures are inputs to rule tests and can be any time, but the
+comment states a fact the data contradicts, so it should say what it is: an
+arbitrary afternoon kickoff, not the real one.
+
+**`_note` in `app/web/matches.json` goes stale with this task.** It says the
+file's values are fixed content, not generated, and that nothing in
+`app/web` reads it. `hero.opening` is generated, and `match-content.js` has
+read the file since Phase 2. Bob is told not to touch it; the follow-up
+rewrites it.
+
+**After Bob task 6:** Claude Code scans and commits the export, takes
+`scripts/write_headers.py` and the export off `DELIBERATELY_ABSENT`, updates
+the counts, and checks the card in a real browser on both matches at 390px and
+on desktop. The three things to hold on to through all of Task 7:
 
 - **The header does not change by listener.** One moment gives one line to a
   fan of either side and to a listener with none. The "Who are you with"
