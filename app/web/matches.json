@@ -68,7 +68,11 @@
           "Fenwick",
           "Shilton"
         ],
-        "share_text": "Maradona's solo goal, the buildup you missed."
+        "share_text": "Maradona's solo goal, the buildup you missed.",
+        "opening": {
+          "greeting": "tonight",
+          "header": "Argentina extend the lead. Argentina 2, England 0. Here's the buildup."
+        }
       },
       "moments_subtitle": "ARGENTINA vs ENGLAND · TONIGHT SO FAR",
       "synced_count": 2,
@@ -179,7 +183,11 @@
           "Álvarez",
           "Di María"
         ],
-        "share_text": "Di María's goal on the counter, the buildup you missed."
+        "share_text": "Di María's goal on the counter, the buildup you missed.",
+        "opening": {
+          "greeting": "tonight",
+          "header": "Argentina extend the lead. Argentina 2, France 0. Here's the buildup."
+        }
       },
       "moments_subtitle": "ARGENTINA vs FRANCE · TONIGHT SO FAR",
       "synced_count": 2,

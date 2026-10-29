@@ -206,6 +206,9 @@
   function renderHero(match) {
     if (!field("hero_caption")) return;
     setText("hero_caption", match.hero.caption);
+    if (match.hero.opening) {
+      setText("hero_header", match.hero.opening.header);
+    }
     setText("hero_quote", match.hero.quote);
     // The share sheet must describe this match, not the one in the markup.
     var share = document.getElementById("shareAction");
