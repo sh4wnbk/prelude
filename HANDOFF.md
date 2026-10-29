@@ -2481,7 +2481,19 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (phone check, then the "Who are you with" card for Bob)
+## Next first action (Shawn runs Bob task 9, the "Who are you with" card)
+
+**Bob task 9 in `docs/bob_brief.md` is briefed.** The card asks, once per match
+on the Live screen, who the fan is with and what to call them; both answers stay
+in `sessionStorage`. The name goes on the header's last sentence ("...Here's
+how it happened, Olivia."), Shawn's call on 2026-10-29. The Live badge stops
+wrapping, the one cosmetic finding from the visual check at `c0568a8`, which
+otherwise passed on both matches, locally and live, at 390 and 1280 wide.
+`pytest -q` reports `15 failed, 460 passed`, all of them
+`tests/test_listener_card.py`. After Bob: a browser check of the card's
+behaviour, then the Profile tab.
+
+### Before Task 9
 
 **Bob task 8 is built and checked.** `30116a2` changed exactly the five values
 in the brief. `pytest -q` reports `459 passed`, all four gates pass, and

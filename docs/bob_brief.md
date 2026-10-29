@@ -122,8 +122,10 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-459 passed
+15 failed, 460 passed
 ```
+
+The 15 are Task 9 below, waiting to be built.
 
 The total covers far more than this module now. Phase 4 added the narration
 provider, the prompt, the grounding check and the evaluation, each with its
@@ -934,4 +936,101 @@ forgotten:
 > Export this session to `bob_sessions/phase4_task8_step_away.md` and `.png`,
 > scrub it against the list in `bob_sessions/README.md` before committing, and
 > check the diff rather than the commit.
+
+## Task 9: the "Who are you with" card
+
+Ask the fan, once per match, who they are with and what to call them, keep the
+answer on the phone, and put the name at the end of the moment card's header.
+Also stop the Live screen's clock badge wrapping. That is the whole task.
+
+### Why it exists
+
+The orchestrator already knows what to do with a listener's side: it picks the
+persona. Nothing in the app asks for it yet. Shawn settled the wording on
+2026-10-26 and the name's place on 2026-10-29: the name goes on the header's
+last sentence, "Argentina extend the lead. Argentina 2, England 0. Here's how
+it happened, Olivia." The name is the fan's own, typed by them; it never leaves
+the phone.
+
+### What you build
+
+1. **`app/web/match-content.js`, storage and the name join.** Beside the
+   existing `sessionStorage` helpers, and in their style (every read and write
+   in `try`/`catch`, a failure degrading quietly):
+   - `listenerFor(matchId)` and `setListener(matchId, allegiance)`, under the
+     key `"prelude.listener." + matchId`. The value is exactly `"team_a"`,
+     `"team_b"` or `"neutral"`; anything else reads as `null`.
+   - `nameFor()` and `setName(name)`, under the one key `"prelude.name"`.
+     `setName` trims the name and collapses inner whitespace to single spaces,
+     cuts it to 40 characters, and removes the key when the result is empty.
+   - `headerWithName(header, name)`: with no name, the header unchanged. With
+     a name, the header with its final `.` replaced by `, ` + name + `.`.
+   - In `renderHero`, set `hero_header` to
+     `headerWithName(match.hero.opening.header, nameFor())`, as
+     `setText("hero_header", headerWithName(...))`.
+   - Add all five to `window.Prelude`.
+2. **`app/web/listener-card.js`, new.** It waits for the match with
+   `Prelude.whenMatches`, finds the one whose `match_id` is `Prelude.matchId`,
+   and does nothing if there is none or the fetch failed. If
+   `Prelude.listenerFor(Prelude.matchId)` is `null`, it shows a full-screen
+   overlay holding one card:
+   - the question `"Who are you with " + match.hero.opening.greeting + "?"`;
+   - three choice buttons, in this order: `match.home_team` (value
+     `"team_a"`), `match.away_team` (value `"team_b"`), and `Just here for the
+     game` (value `"neutral"`). Choosing one marks it with
+     `aria-pressed="true"` and clears the others;
+   - a text field labelled `What should we call you?`, with
+     `placeholder="Optional"`, prefilled with `.value = Prelude.nameFor() ||
+     ""`;
+   - a `Continue` button, disabled until a choice is made. It calls
+     `setListener` and `setName` with the field's value, then removes the
+     overlay.
+   Build the markup the way `app/web/manual-entry.js` does: a string assigned
+   once with `innerHTML`, using its `FIELD` and `LABEL` class strings for the
+   field and its Continue button classes for Continue. Use only classes already
+   used in `app/web/`. The choice buttons use the existing
+   `bg-surface-container` and `bg-primary-container` pair for unselected and
+   selected. The fan's name never goes into an `innerHTML` string: it is set
+   with `.value` and read with `.value`. Keep every line that assigns
+   `innerHTML` free of the word "name" in any form, including ids and
+   variables, because `tests/test_listener_card.py` checks exactly that: call
+   the field `listener-call` or similar, and assign with a single
+   `container.innerHTML = markup(match);`.
+3. **`app/web/prelude_02_live_seated.html`.** Load the card after
+   `match-content.js`, exactly as
+   `<script src="listener-card.js?v=__V__"></script>`. On the `state_badge`
+   span, add the class `whitespace-nowrap` and change nothing else.
+
+### The tests to pass
+
+`tests/test_listener_card.py`, 16 tests. Fifteen fail until this is built; the
+sixteenth checks no other screen loads the card.
+
+Then the full suite, target 0 failed, and the four gates.
+`check_docs.py` failing on the quoted pytest result in this brief is expected
+and is the follow-up's; report any other gate failure.
+
+### Stop conditions
+
+**Build only the three changes above.** No persona choice, no Profile tab, no
+change to the moment card's markup, no change to any other screen, no tests,
+no docs, no Python.
+
+**The card sends nothing anywhere.** No `fetch`, no `XMLHttpRequest`, no
+analytics, nothing in the URL. The answer lives in `sessionStorage` only.
+
+**Do not change any copy.** The question, the three choices, the label, the
+placeholder and the button are given above exactly.
+
+**If the overlay cannot be made to work with the existing classes, stop and
+report what is missing.** Do not add a stylesheet or new Tailwind config.
+
+### When you are done
+
+**Print this reminder at the end of the session**, so the export is not
+forgotten:
+
+> Export this session to `bob_sessions/phase4_task9_listener_card.md` and
+> `.png`, scrub it against the list in `bob_sessions/README.md` before
+> committing, and check the diff rather than the commit.
 

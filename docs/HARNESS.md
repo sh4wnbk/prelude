@@ -122,8 +122,10 @@ generating anything:
 
 ## The test harness
 
-The suite is 459 tests in twelve files, and all 459 pass, so any failure
-means something is wrong. It is run from the repo root:
+The suite is 475 tests in thirteen files. 460 pass and 15 fail.
+
+The failures are all in `tests/test_listener_card.py`, written before Bob's Task 9 in
+`docs/bob_brief.md`. A failure anywhere else means something is wrong. It is run from the repo root:
 
 ```
 .\.venv-prelude\Scripts\python.exe -m pytest
@@ -141,6 +143,7 @@ No path setting is needed: `pyproject.toml` sets `pythonpath = ["."]` and
 | `tests/test_narration_provider.py` | the model config and both backends |
 | `tests/test_credentials.py` | where the credentials file lives, and what is refused |
 | `tests/test_narration_eval.py` | the key beats, the coverage measure, the token recorder and the voices a run is split into |
+| `tests/test_listener_card.py` | the "Who are you with" card: its copy, where it loads, the storage keys and values, that it sends nothing, the name at the end of the header, and the Live badge not wrapping; failing until Bob's Task 9 |
 | `tests/test_live_before.py` | where the 1986 fan steps away: 52' at 1 to 0, in `app/web/matches.json` and inline on the Live screen, built by Bob in Task 8 |
 | `tests/test_moment_card_header.py` | the header on the moment card: `hero.opening` in `app/web/matches.json`, the script that writes and checks it, the card's field and the renderer, built by Bob in Task 6 |
 | `tests/test_screen_copy.py` | the copy Shawn settled on 2026-10-29: the card's label, the Live helper after Heading out, the share title and texts, built by Bob in Task 7 |
