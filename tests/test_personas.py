@@ -189,13 +189,14 @@ class TestTheVoices:
         ] == []
 
 
-class TestTheProsodyIsNotSetYet:
-    """The delivery is not set, and the flag that says so lives here.
+class TestTheProsodyIsSet:
+    """The delivery is set, and the flag that says so lives here.
 
     The numbers themselves are in `app/delivery.py`, one row per persona per
     situation, and `tests/test_delivery.py` holds them. What this file holds
     is the claim a persona makes about its own delivery, which is
-    `prosody_confirmed`, and the fact that it still says "not chosen".
+    `prosody_confirmed`, and it now says "chosen": Shawn set the values by
+    ear.
     """
 
     def test_no_persona_carries_delivery_numbers(self):
@@ -211,8 +212,8 @@ class TestTheProsodyIsNotSetYet:
             {"rate", "pitch", "sentence_break", "goal_break"}
         )
 
-    def test_every_persona_is_marked_unconfirmed(self):
-        assert [p.id for p in PERSONAS if p.prosody_confirmed] == []
+    def test_every_persona_is_marked_confirmed(self):
+        assert [p.id for p in PERSONAS if not p.prosody_confirmed] == []
 
 
 class TestWhichVoicesCanPause:

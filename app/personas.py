@@ -134,6 +134,7 @@ THE_CALLER = Persona(
     voice="en-AU_HeidiNatural",
     breaks_work=True,
     voice_confirmed=True,
+    prosody_confirmed=True,
 )
 
 #: The plainest of the three, and the closest to the voice `docs/VOICE.md`
@@ -147,6 +148,7 @@ THE_STORYTELLER = Persona(
     fans_only=False,
     voice="en-US_EmmaNatural",
     voice_confirmed=True,
+    prosody_confirmed=True,
 )
 
 #: The only persona that needs to know who is listening. It is the fans'
@@ -162,6 +164,7 @@ THE_MATE = Persona(
     fans_only=True,
     voice="en-US_EthanNatural",
     voice_confirmed=True,
+    prosody_confirmed=True,
 )
 
 #: The three, in the order the Profile screen lists them.

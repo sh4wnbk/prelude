@@ -42,11 +42,18 @@ the text, which is why they cost no billable characters and also why one
 narration gets one rate and one pitch. A rate that changed at the goal would
 be two requests and two files.
 
-**Every value is a placeholder.** All four fields are `None` in all eight
-rows, and `prosody_confirmed` is false on all three personas. Shawn sets them
-by ear. What is built here is the shape, the rules the numbers have to obey,
-and the tests that enforce them, so that filling the table in is an edit to
-this file and a run of the suite.
+**The values are Shawn's, set by ear**, and `prosody_confirmed` is true on all
+three personas. The shape, the rules and the tests were written first and the
+numbers went in afterwards, which is what made filling the table in an edit to
+this file and a run of the suite: every bound below was already enforced, so a
+value the service would ignore could not have been written down.
+
+What the numbers say, in a sentence each. The Caller is quicker except when
+the other side scored, because hurrying a fan through a goal against them is
+its version of being cheerful about it. The Storyteller is the voice's own
+rate in all three situations, which is what makes it the one the other two are
+set against. The Mate lifts for your goal and comes back down for theirs,
+going up rather than down because down is not available.
 
 **Eight rows and not nine.** The Mate is `fans_only`: a partisan voice told to
 a listener with no side would be telling them they support a team they did not
@@ -186,23 +193,44 @@ class Delivery:
 #: it in is reading the intent beside the numbers rather than in another file.
 DELIVERY: Mapping[tuple[str, str], Delivery] = {
     # Quick, and quick is the one thing it may not be too much of: a rate far
-    # above the Storyteller's costs the listener the names and the clock.
-    (CALLER, SCORED): Delivery(),
-    (CALLER, CONCEDED): Delivery(),
-    (CALLER, NEUTRAL): Delivery(),
-    # The plainest of the three and the one the others are set against. Its
+    # above the Storyteller's costs the listener the names and the clock. +10
+    # is what that came to by ear, and it drops to the voice's own rate when
+    # the other side scored: hurrying a fan through a goal against them is the
+    # Caller's version of being cheerful about it.
+    #
+    # It is the only persona with pauses, because `<break>` moves its voice
+    # and neither of the other two. They are short on purpose. The probe
+    # measured a requested 600 ms arriving as 1.36s on this voice, so a
+    # request lands at roughly twice what it asks for, and 200 and 400 are
+    # about 450 ms between sentences and 900 ms before the goal.
+    (CALLER, SCORED): Delivery(rate=10, sentence_break=200, goal_break=400),
+    (CALLER, CONCEDED): Delivery(rate=0, sentence_break=200, goal_break=400),
+    (CALLER, NEUTRAL): Delivery(rate=10, sentence_break=200, goal_break=400),
+    # The plainest of the three and the one the others are set against, so its
+    # rate is the voice's own in every situation and nothing else is set. Its
     # neutral row is the default a listener with no side hears, because
     # `default_persona` in `app/orchestrator.py` returns the Storyteller.
-    (STORYTELLER, SCORED): Delivery(),
-    (STORYTELLER, CONCEDED): Delivery(),
-    (STORYTELLER, NEUTRAL): Delivery(),
+    #
+    # Three rows holding the same values is not a table that wants collapsing.
+    # The Storyteller sounding the same whoever scored is a decision about
+    # this persona, and a row per situation is what lets that decision change
+    # for one situation later without the shape changing.
+    (STORYTELLER, SCORED): Delivery(rate=0),
+    (STORYTELLER, CONCEDED): Delivery(rate=0),
+    (STORYTELLER, NEUTRAL): Delivery(rate=0),
     # Warm, from the next seat, and **never cheerful when the other side
     # scored**: a voice that brightens over a goal against your team is a
-    # voice that was not listening with you. `validate` holds the conceded row
-    # to no more pitch and no more speed than the scored one, so the rule
-    # survives somebody filling the table in by ear in one sitting.
-    (MATE, SCORED): Delivery(),
-    (MATE, CONCEDED): Delivery(),
+    # voice that was not listening with you. Up and quicker for your goal,
+    # slower and back to its own pitch for theirs, which is the rule
+    # `_validate_the_mate_is_never_cheerful` enforces rather than describes:
+    # the conceded row carries less of both.
+    #
+    # The pitch goes up for the goal rather than down for the concession
+    # because down is not available. `pitch_percentage` below zero is ignored
+    # by the service, so 0 is the floor and the only way to be lower than
+    # something is to let the other row rise.
+    (MATE, SCORED): Delivery(rate=10, pitch=10),
+    (MATE, CONCEDED): Delivery(rate=-10, pitch=0),
     # No (MATE, NEUTRAL): the Mate is fans only.
 }
 
@@ -281,10 +309,16 @@ def _validate_the_mate_is_never_cheerful(
     above it either.
 
     It is compared against the Mate's own scored row rather than against a
-    fixed number, because the whole table is placeholders and the only thing
-    that can be said now is the relation between two rows. With both rows
-    unset there is nothing to compare and nothing to refuse, which is correct:
-    an unset row has not been made cheerful.
+    fixed number. That was the only thing sayable while the table was empty,
+    and it is still the right shape now that it is not: the rule is about one
+    row relative to the other, so it holds for whatever pair of numbers gets
+    picked next. The shipped rows pass it because the conceded one is slower
+    and no brighter, which is the reason it was written rather than for want
+    of values to compare
+    (`tests/test_delivery.py::TestTheValuesAreShawnsAndTheTableSaysSo::test_the_shipped_table_satisfies_the_mate_rule`).
+
+    A row with nothing set is not refused. An unset row has not been made
+    cheerful, so there is nothing to compare and nothing to object to.
     """
     scored = table.get((MATE, SCORED))
     conceded = table.get((MATE, CONCEDED))

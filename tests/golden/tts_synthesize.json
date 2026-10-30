@@ -1,7 +1,7 @@
 {
   "provenance": {
     "what": "a real exchange with IBM Watson Text to Speech, recorded by scripts/record_tts_golden.py",
-    "recorded": "2026-10-29",
+    "recorded": "2026-10-30",
     "is_a_recording": true,
     "response_body_is": "the first 128 bytes of the response, which is the RIFF header and the start of the audio",
     "response_is_not": "the whole response. app/tts.py returns the bytes the service sent without examining them, so what a replay asserts is that it returns exactly what it was handed, and the audio itself would add nothing a test could check",
@@ -13,7 +13,7 @@
   },
   "request": {
     "path": "/v1/synthesize",
-    "query": "voice=en-US_EmmaNatural",
+    "query": "voice=en-US_EmmaNatural&rate_percentage=0",
     "text": "Argentina take the <phoneme alphabet=\"ipa\" ph=\"liːd\">lead</phoneme>. Maradona shot.",
     "headers": {
       "Content-Type": "application/json",

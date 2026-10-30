@@ -197,15 +197,35 @@ class TestTheRequestShape:
             )
             assert "voice=" + persona(persona_id).voice in request.query
 
-    def test_an_unset_rate_or_pitch_is_not_sent(self):
-        """The shipped table is placeholders, so neither parameter is sent.
-
-        Sending `rate_percentage=0` would be a decision to use the voice's own
-        rate, which is a different statement from not having decided.
+    def test_an_unset_parameter_is_not_sent_and_a_zero_one_is(self):
+        """`None` is the parameter not being sent; zero is sending it at the
+        voice's own value. They are different requests, and the Storyteller's
+        shipped row is one of each: rate 0, pitch unset.
         """
+        request = backend().request_for(HEADER, NARRATION, STORYTELLER, NEUTRAL)
+        assert "rate_percentage=0" in request.query
+        assert "pitch_percentage" not in request.query
+
+    def test_a_row_with_nothing_set_sends_neither(self, monkeypatch):
+        monkeypatch.setitem(DELIVERY, (STORYTELLER, NEUTRAL), Delivery())
         request = backend().request_for(HEADER, NARRATION, STORYTELLER, NEUTRAL)
         assert "rate_percentage" not in request.query
         assert "pitch_percentage" not in request.query
+
+    def test_the_callers_pauses_reach_the_shipped_request(self):
+        """The shipped table gives the Caller pauses, so the shipped request
+        carries them: this is the one persona whose voice honours `<break>`.
+        """
+        request = backend().request_for(HEADER, NARRATION, CALLER, NEUTRAL)
+        assert '<break time="200ms"/>' in request.text
+        assert '<break time="400ms"/>' in request.text
+
+    def test_the_mate_sends_a_different_request_for_each_side(self):
+        """Now that the table is filled in, the two sides really do differ."""
+        built = backend()
+        assert built.request_for(
+            HEADER, NARRATION, MATE, SCORED
+        ).query != built.request_for(HEADER, NARRATION, MATE, CONCEDED).query
 
     def test_a_set_rate_and_pitch_are_sent(self, monkeypatch):
         monkeypatch.setitem(

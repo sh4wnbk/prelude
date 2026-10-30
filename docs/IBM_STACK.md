@@ -222,7 +222,7 @@ repo.
 | it returns the bytes the service sent, unmodified | `tests/test_tts.py::TestTheReplaySendsWhatWasRecorded::test_it_returns_exactly_the_bytes_the_service_sent` |
 | one request, since the key goes in directly and there is no token to exchange | `tests/test_tts.py::TestTheReplaySendsWhatWasRecorded::test_it_sends_one_request` |
 | a narration still carrying its citation tags is refused | `tests/test_tts.py::TestItRefusesTaggedText` |
-| the rate and pitch are sent only once decided | `tests/test_tts.py::TestTheRequestShape::test_an_unset_rate_or_pitch_is_not_sent` |
+| the rate and pitch are sent only once decided | `tests/test_tts.py::TestTheRequestShape::test_an_unset_parameter_is_not_sent_and_a_zero_one_is` |
 | pauses reach the Caller's voice and no other | `tests/test_tts.py::TestOnlyTheCallerGetsPauses` |
 | no request object holds the host or the token | `tests/test_tts.py::TestNothingSecretIsInTheRequest` |
 | a missing credential is named and nothing is sent | `tests/test_tts.py::TestCredentials::test_a_missing_credential_is_named_and_nothing_is_sent` |

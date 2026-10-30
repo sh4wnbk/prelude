@@ -381,7 +381,7 @@ audio, and the measured ceiling goes into config.
 carries `rate`, `pitch`, `sentence_break` and `goal_break`, every one of them
 `None`, with `prosody_confirmed` false beside them. Nobody has set them by ear
 yet, and a plausible value written down now would be a guess with the look of a
-decision: `tests/test_personas.py::TestTheProsodyIsNotSetYet`. The two breaks
+decision: `tests/test_personas.py::TestTheProsodyIsSet`. The two breaks
 are milliseconds so the one before the goal can be read against the one
 between sentences; the rate and the pitch are percentages written as the
 strings the request carries, and they are request parameters rather than SSML,
@@ -643,9 +643,9 @@ on that fixed sentence, and that is all it is measured on.
 ## The delivery table: persona by situation
 
 `app/delivery.py` is the table. Eight rows, keyed by persona and situation,
-and every value in every row is a placeholder: Shawn sets them by ear. What is
-built is the shape, the rules the numbers have to obey, and the tests that
-enforce them, so filling it in is an edit to one file and a run of the suite.
+and the values are Shawn's, set by ear. The shape and the rules were built
+first and the numbers went in afterwards, which is what made filling it in an
+edit to one file and a run of the suite.
 
 **The situation is read off the moment and the listener, never from a model.**
 `situation` in `app/delivery.py` takes a `ScoringMoment` and a `Listener` and
@@ -671,14 +671,46 @@ are not a plan; they are what the three voices honour.
 
 | Persona | Situation | `rate` | `pitch` | `sentence_break` | `goal_break` |
 | ------- | --------- | -----: | ------: | ---------------: | -----------: |
-| The Caller | scored | | | | |
-| The Caller | conceded | | | | |
-| The Caller | neutral | | | | |
-| The Storyteller | scored | | | not available | not available |
-| The Storyteller | conceded | | | not available | not available |
-| The Storyteller | neutral | | | not available | not available |
-| The Mate | scored | | | not available | not available |
-| The Mate | conceded | | | not available | not available |
+| The Caller | scored | +10 | | 200 | 400 |
+| The Caller | conceded | 0 | | 200 | 400 |
+| The Caller | neutral | +10 | | 200 | 400 |
+| The Storyteller | scored | 0 | | not available | not available |
+| The Storyteller | conceded | 0 | | not available | not available |
+| The Storyteller | neutral | 0 | | not available | not available |
+| The Mate | scored | +10 | +10 | not available | not available |
+| The Mate | conceded | -10 | 0 | not available | not available |
+
+An empty pitch cell is `None`, the parameter not sent at all. `0` is the
+parameter sent at the voice's own value, which the re-recorded golden shows
+produces byte-identical audio: `rate_percentage=0` and no `rate_percentage`
+sound the same. They are still different requests, and the table keeps the
+difference because "this was decided and it is zero" and "this was not
+decided" are different statements.
+
+Three things in that table are decisions worth reading twice.
+
+**The Caller slows to the voice's own rate when the other side scored.**
+Hurrying a fan through a goal against them is the Caller's version of being
+cheerful about it. Its pauses do not change with the situation, because a
+pause is about letting a sentence land and that does not depend on who scored
+(`tests/test_delivery.py::TestTheValuesAreShawnsAndTheTableSaysSo::test_the_caller_pauses_the_same_way_in_every_situation`).
+
+**The Storyteller is the same in all three situations**, which is what makes
+it the one the other two are set against. Three identical rows are not a table
+that wants collapsing: the Storyteller sounding the same whoever scored is a
+decision about this persona, and a row per situation is what lets that change
+for one situation later without the shape changing.
+
+**The Mate lifts for your goal rather than dropping for theirs.** +10 rate and
++10 pitch when your side scored, -10 rate and pitch back to 0 when the other
+side did. It goes up rather than down because down is not available: a
+`pitch_percentage` below zero is ignored by the service, so 0 is the floor and
+the only way for one row to sit under another is to let the other rise.
+
+**The pauses are short, and short was measured rather than guessed.** The
+probe found a requested 600 ms arriving as 1.36s on the Caller's voice, so a
+request lands at roughly twice what it asks for: 200 and 400 are about 450 ms
+between sentences and 900 ms before the goal.
 
 **Eight rows and not nine.** The Mate is `fans_only`, so there is no neutral
 Mate row to write: a partisan voice told to a listener with no side would be
@@ -708,7 +740,7 @@ tighter ceiling than that, because comprehension comes first, and the number
 is owed rather than invented: it is words per minute measured off real audio,
 nothing has measured it, and `CALLER_RATE_CEILING` is `None` until something
 does
-(`tests/test_delivery.py::TestEveryValueIsStillAPlaceholder::test_the_callers_rate_ceiling_is_not_measured_yet`).
+(`tests/test_delivery.py::TestTheValuesAreShawnsAndTheTableSaysSo::test_the_callers_rate_ceiling_is_not_measured_yet`).
 
 **`None` is not zero.** `None` is the parameter not being sent; zero is
 sending it at its neutral value. They are different requests, so they are

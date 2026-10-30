@@ -169,8 +169,8 @@ Everything above it is structure.
   carries its citation tags, applies the pronunciation table, and puts the
   pauses in only for a voice whose breaks work. Credentials come through
   `app/credentials.py` and a missing one is named before any request.
-- `tests/test_tts.py`: 48 tests over the backend, replaying a real recorded
-  exchange from `tests/golden/tts_synthesize.json`. All 48 pass, and none of
+- `tests/test_tts.py`: 51 tests over the backend, replaying a real recorded
+  exchange from `tests/golden/tts_synthesize.json`. All 51 pass, and none of
   them reaches the service.
 - `scripts/record_tts_golden.py`: records one real speech exchange for that
   replay. `--plan` prints the request and its character count and makes no
@@ -181,13 +181,13 @@ Everything above it is structure.
   `--plan` prints the character count and makes no call, `--budget` refuses a
   run above a character count, and `--confirm` sends it.
 - `app/delivery.py`: the delivery table, one row per persona per situation,
-  holding the rate, the pitch and the two pauses. Every value is a placeholder
-  for Shawn to set by ear; what runs is the shape and the rules, which refuse
-  a lowered pitch, a pause on a voice whose breaks do nothing, a rate outside
-  IBM's bounds, and a Mate that is cheerful when the other side scored. The
-  situation comes from the moment and the listener, never from a model.
-- `tests/test_delivery.py`: 40 tests over the situations, the eight rows, the
-  bounds and the Mate rule. All 40 pass.
+  holding the rate, the pitch and the two pauses. The values are Shawn's, set
+  by ear, with the rules enforced around them: no lowered pitch, no pause on a
+  voice whose breaks do nothing, no rate outside IBM's bounds, and no Mate
+  that is cheerful when the other side scored. The situation comes from the
+  moment and the listener, never from a model.
+- `tests/test_delivery.py`: 47 tests over the situations, the eight rows, the
+  values in them, the bounds and the Mate rule. All 47 pass.
 - `app/pronunciation.py`: the pronunciation table, word to IPA, with `lead` to
   `liːd` as its one entry, which is needed: Shawn heard "extend the lead"
   read as "led" without it and "leed" with it. `for_speech` marks the listed words up as

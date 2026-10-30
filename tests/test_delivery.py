@@ -143,21 +143,87 @@ class TestTheTableHasEveryRowAndNoOthers:
         assert "cannot exist" in str(failure.value)
 
 
-class TestEveryValueIsStillAPlaceholder:
-    """Shawn sets them by ear. Nothing here has heard a voice."""
+class TestTheValuesAreShawnsAndTheTableSaysSo:
+    """The table is filled in, by ear, and every row carries a decision.
 
-    def test_no_row_is_set(self):
-        assert [key for key, row in DELIVERY.items() if row.is_set] == []
+    These assert the values themselves, which is unusual for a config test
+    and is the point: the numbers are a judgement nothing in this repo can
+    re-derive, so the only thing that can hold them is a test saying what was
+    decided. A row that drifts fails here rather than in somebody's ear six
+    weeks later.
+    """
 
-    def test_no_persona_claims_its_delivery_is_confirmed(self):
-        assert [p.id for p in PERSONAS if p.prosody_confirmed] == []
+    def test_every_row_is_set(self):
+        assert [key for key, row in DELIVERY.items() if not row.is_set] == []
+
+    def test_every_persona_claims_its_delivery_is_confirmed(self):
+        assert [p.id for p in PERSONAS if not p.prosody_confirmed] == []
+
+    def test_the_caller_is_quicker_except_when_the_other_side_scored(self):
+        """Hurrying a fan through a goal against them is the Caller's version
+        of being cheerful about it, so that row drops to the voice's own rate.
+        """
+        assert delivery(CALLER, SCORED).rate == 10
+        assert delivery(CALLER, NEUTRAL).rate == 10
+        assert delivery(CALLER, CONCEDED).rate == 0
+
+    def test_the_caller_pauses_the_same_way_in_every_situation(self):
+        """The pauses are about letting a sentence land, which does not change
+        with who scored. What changes with who scored is the rate.
+        """
+        for where in SITUATIONS:
+            row = delivery(CALLER, where)
+            assert (row.sentence_break, row.goal_break) == (200, 400)
+
+    def test_only_the_caller_carries_pauses(self):
+        assert [
+            key
+            for key, row in DELIVERY.items()
+            if key[0] != CALLER
+            and (row.sentence_break is not None or row.goal_break is not None)
+        ] == []
+
+    def test_the_storyteller_is_even_in_every_situation(self):
+        """It is the one the other two are set against, so it is the voice's
+        own rate throughout and nothing else is set.
+        """
+        for where in SITUATIONS:
+            row = delivery(STORYTELLER, where)
+            assert (row.rate, row.pitch) == (0, None)
+
+    def test_the_mate_lifts_for_your_goal_and_not_for_theirs(self):
+        assert (delivery(MATE, SCORED).rate, delivery(MATE, SCORED).pitch) == (
+            10, 10,
+        )
+        assert (
+            delivery(MATE, CONCEDED).rate, delivery(MATE, CONCEDED).pitch
+        ) == (-10, 0)
+
+    def test_the_mate_is_the_only_persona_that_moves_its_pitch(self):
+        """Pitch is what cheerful is mostly made of, and the Mate is the only
+        voice with a side to be cheerful about.
+        """
+        assert {
+            key[0] for key, row in DELIVERY.items() if row.pitch
+        } == {MATE}
+
+    def test_the_shipped_table_satisfies_the_mate_rule(self):
+        """The rule that was written while the table was empty, now that it is
+        not. The conceded row is slower and no brighter, so it passes for the
+        reason it was meant to rather than for want of values to compare.
+        """
+        validate(DELIVERY)
+        assert delivery(MATE, CONCEDED).rate < delivery(MATE, SCORED).rate
+        assert delivery(MATE, CONCEDED).pitch < delivery(MATE, SCORED).pitch
 
     def test_the_callers_rate_ceiling_is_not_measured_yet(self):
         """It is words per minute off real audio, and nothing has measured it.
 
         A plausible ceiling written down now would be a guess with the look of
         a decision, and `validate` skips the check while it is `None` rather
-        than enforcing an invented number.
+        than enforcing an invented number. The Caller's rate being set does
+        not settle this: +10 is a value somebody chose, and the ceiling is the
+        number that says how high anybody may choose.
         """
         assert CALLER_RATE_CEILING is None
 
