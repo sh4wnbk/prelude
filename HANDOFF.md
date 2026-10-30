@@ -2481,7 +2481,18 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Shawn runs Bob task 10, the Profile screen)
+## Next first action (Task 7 is done; Phase 5, voice and audio, is next)
+
+**Bob task 10 is built and checked, and with it the Task 7 work.** `4ef3aa0`
+built the Profile screen to the brief. Driven in Chromium it showed "Shawn |
+Argentina", Change reopened the card on Live with Argentina pressed and the
+name filled, the new answer held without reopening on reload, and Profile then
+showed "Olivia | Just here for the game". One correction: `asked()` matched
+"ask" anywhere in the query, and now reads `ask=1` as a parameter. `pytest -q`
+reports `500 passed` and all four gates pass. The Task 7 plan's persona cards
+on Profile move to Phase 5, once there are voices to pick.
+
+### Bob task 10, as it was briefed
 
 **Shawn found the answer could not be changed.** It lasts the tab's session and
 a refresh keeps it, so a fan who typed a name was stuck with it. Bob task 10 in

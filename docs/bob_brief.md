@@ -122,10 +122,8 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-24 failed, 476 passed
+500 passed
 ```
-
-The 24 are Task 10 below, waiting to be built.
 
 The total covers far more than this module now. Phase 4 added the narration
 provider, the prompt, the grounding check and the evaluation, each with its
@@ -1047,6 +1045,10 @@ forgotten:
 
 ## Task 10: the Profile screen
 
+**Status: built, in `4ef3aa0`.** One correction in the follow-up: `asked()`
+matched the letters "ask" anywhere in the query, so `?task=1` would also have
+reopened the card; it now reads `ask=1` as a whole parameter.
+
 Add a Profile screen that shows the fan's name and side for the match, with a
 Change button that reopens the "Who are you with" card, and make the person
 icon and the Profile tab lead to it. That is the whole task.
@@ -1116,7 +1118,8 @@ nothing.
 
 ### The tests to pass
 
-`tests/test_profile.py`, 24 tests, all failing until this is built. Then the
+`tests/test_profile.py`, 24 tests, all passing now; all 24 failed until this
+was built. Then the
 full suite, target 0 failed, and the four gates. `check_docs.py` failing on the
 quoted pytest result in this brief, and on `app/web/prelude_07_profile.html`
 being listed as absent, is expected and is the follow-up's; report any other

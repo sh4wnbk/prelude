@@ -10,8 +10,11 @@
 (function () {
   "use strict";
 
+  // Only the parameter ask=1 reopens the card. Matching the letters "ask"
+  // anywhere would also match a query such as "?task=", so the name is read
+  // as a whole parameter.
   function asked() {
-    return window.location.search.indexOf("ask") >= 0;
+    return /[?&]ask=1(&|$)/.test(window.location.search);
   }
 
   // One unbroken literal on purpose. docs/DESIGN.md quotes this class string
