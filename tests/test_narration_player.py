@@ -33,14 +33,14 @@ SCRIPT = ROOT / "scripts" / "write_headers.py"
 CARD = WEB / "prelude_03_moment_card.html"
 PLAYER = WEB / "narration-player.js"
 
-#: For both heroes Argentina scored, so a fan of Argentina hears the Mate
-#: delivering a goal for their side, a fan of the other team hears the Mate
+#: For both heroes Argentina scored, so a fan of Argentina hears the Buddy
+#: delivering a goal for their side, a fan of the other team hears the Buddy
 #: delivering one against it, and a listener with no side hears the
 #: Storyteller. Literals, produced by the orchestrator's own rules.
 EXPECTED = {
-    3750191: {"team_a": "mate_scored", "team_b": "mate_conceded",
+    3750191: {"team_a": "buddy_scored", "team_b": "buddy_conceded",
               "neutral": "storyteller_neutral"},
-    3869685: {"team_a": "mate_scored", "team_b": "mate_conceded",
+    3869685: {"team_a": "buddy_scored", "team_b": "buddy_conceded",
               "neutral": "storyteller_neutral"},
 }
 

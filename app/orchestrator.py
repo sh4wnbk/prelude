@@ -20,7 +20,7 @@ from app.orchestrator_contract import (
     LATE,
     LATE_FROM,
     LEVEL,
-    MATE,
+    BUDDY,
     MIDDLE,
     NEUTRAL,
     OVERTAKE,
@@ -147,10 +147,10 @@ def header(event: Event, moment: ScoringMoment) -> str:
 
 
 def default_persona(listener: Listener) -> str:
-    """`MATE` for a fan, `STORYTELLER` for a neutral listener."""
+    """`BUDDY` for a fan, `STORYTELLER` for a neutral listener."""
     if listener.allegiance == NEUTRAL:
         return STORYTELLER
-    return MATE
+    return BUDDY
 
 
 class PreludeOrchestrator:

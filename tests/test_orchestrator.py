@@ -54,7 +54,7 @@ from app.orchestrator_contract import (
     HEADER_WORDING,
     LATE,
     LEVEL,
-    MATE,
+    BUDDY,
     MIDDLE,
     NEUTRAL,
     OVERTAKE,
@@ -725,9 +725,9 @@ class TestTheHeader:
 
 
 class TestTheDefaultPersona:
-    def test_a_fan_gets_the_mate(self):
-        assert default_persona(ARGENTINA) == MATE
-        assert default_persona(ENGLAND) == MATE
+    def test_a_fan_gets_the_buddy(self):
+        assert default_persona(ARGENTINA) == BUDDY
+        assert default_persona(ENGLAND) == BUDDY
 
     def test_a_neutral_listener_gets_the_storyteller(self):
         assert default_persona(ANYONE) == STORYTELLER
@@ -743,7 +743,7 @@ class TestTheOpening:
         assert PreludeOrchestrator().opening(MEXICO_86, GOAL_54_18, ARGENTINA) == Opening(
             greeting="today",
             header="Argentina extend the lead. Argentina 2, England 0. Here's how it happened.",
-            persona="mate",
+            persona="buddy",
         )
 
     def test_neutral_listener_on_the_2022_22_24_penalty(self):
@@ -763,7 +763,7 @@ class TestTheOpening:
         assert openings[0].header == (
             "England close the gap. Argentina 2, England 1. Here's how it happened."
         )
-        assert {o.persona for o in openings} == {"mate", "storyteller"}
+        assert {o.persona for o in openings} == {"buddy", "storyteller"}
 
 
 class TestAnotherSport:
@@ -860,7 +860,7 @@ class TestAnotherSport:
         )
 
     def test_the_default_persona_does_not_depend_on_the_sport(self):
-        assert default_persona(Listener(allegiance=TEAM_B)) == MATE
+        assert default_persona(Listener(allegiance=TEAM_B)) == BUDDY
         assert default_persona(Listener(allegiance=NEUTRAL)) == STORYTELLER
 
 

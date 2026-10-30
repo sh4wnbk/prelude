@@ -1,11 +1,10 @@
 """Acceptance tests for "Your narrator" on Profile, written before it exists.
 
 The three personas become visible to the fan as narrators. Shawn's decisions on
-2026-10-30: the heading is "Your narrator", the partisan persona is shown as
-"The Buddy" (the internal id stays `mate`), and choosing a narrator is not live
-yet. Profile shows the three, marks the one the fan's answer picked, and
-tapping another shows that it is coming soon. `docs/bob_brief.md` carries the
-brief as Task 12.
+2026-10-30: the heading is "Your narrator", the partisan persona is "The Buddy"
+with id `buddy`, and choosing a narrator is not live yet. Profile shows the
+three, marks the one the fan's answer picked, and tapping another shows that it
+is coming soon. `docs/bob_brief.md` carries the brief as Task 12.
 
 The list the browser shows is written from `app/personas.py` by a script, as
 the header and `voice_for` are written by `scripts/write_headers.py`, so the
@@ -35,7 +34,7 @@ EXPECTED = [
      "profile": "Quick play-by-play, keeping up with the move."},
     {"id": "storyteller", "name": "The Storyteller",
      "profile": "Calm documentary, unhurried and even."},
-    {"id": "mate", "name": "The Buddy",
+    {"id": "buddy", "name": "The Buddy",
      "profile": "Warm, from the next seat."},
 ]
 
@@ -65,10 +64,10 @@ def run(*arguments):
 
 class TestTheName:
     def test_the_partisan_narrator_is_the_buddy(self):
-        assert persona("mate").name == "The Buddy"
+        assert persona("buddy").name == "The Buddy"
 
-    def test_the_id_is_unchanged(self):
-        assert [p.id for p in PERSONAS] == ["caller", "storyteller", "mate"]
+    def test_the_id_is_buddy(self):
+        assert [p.id for p in PERSONAS] == ["caller", "storyteller", "buddy"]
 
 
 class TestTheList:

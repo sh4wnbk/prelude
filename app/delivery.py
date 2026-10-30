@@ -52,12 +52,12 @@ What the numbers say, in a sentence each. The Caller is quicker except when
 the other side scored, because hurrying a fan through a goal against them is
 its version of being cheerful about it. The Storyteller is the voice's own
 rate in all three situations, which is what makes it the one the other two are
-set against. The Mate lifts for your goal and comes back down for theirs,
+set against. The Buddy lifts for your goal and comes back down for theirs,
 going up rather than down because down is not available.
 
-**Eight rows and not nine.** The Mate is `fans_only`: a partisan voice told to
+**Eight rows and not nine.** The Buddy is `fans_only`: a partisan voice told to
 a listener with no side would be telling them they support a team they did not
-choose, so there is no neutral Mate row to write. `validate` requires exactly
+choose, so there is no neutral Buddy row to write. `validate` requires exactly
 the rows that can exist.
 
 Standard library only, like the rest of `app/`.
@@ -70,7 +70,7 @@ from app.orchestrator import outcome
 from app.orchestrator_contract import (
     CALLER,
     CONCEDED,
-    MATE,
+    BUDDY,
     NEUTRAL,
     SCORED,
     STORYTELLER,
@@ -222,16 +222,16 @@ DELIVERY: Mapping[tuple[str, str], Delivery] = {
     # scored**: a voice that brightens over a goal against your team is a
     # voice that was not listening with you. Up and quicker for your goal,
     # slower and back to its own pitch for theirs, which is the rule
-    # `_validate_the_mate_is_never_cheerful` enforces rather than describes:
+    # `_validate_the_buddy_is_never_cheerful` enforces rather than describes:
     # the conceded row carries less of both.
     #
     # The pitch goes up for the goal rather than down for the concession
     # because down is not available. `pitch_percentage` below zero is ignored
     # by the service, so 0 is the floor and the only way to be lower than
     # something is to let the other row rise.
-    (MATE, SCORED): Delivery(rate=10, pitch=10),
-    (MATE, CONCEDED): Delivery(rate=-10, pitch=0),
-    # No (MATE, NEUTRAL): the Mate is fans only.
+    (BUDDY, SCORED): Delivery(rate=10, pitch=10),
+    (BUDDY, CONCEDED): Delivery(rate=-10, pitch=0),
+    # No (BUDDY, NEUTRAL): the Buddy is fans only.
 }
 
 
@@ -295,33 +295,33 @@ def validate(table: Mapping[tuple[str, str], Delivery]) -> None:
                 )
             )
 
-    _validate_the_mate_is_never_cheerful(table)
+    _validate_the_buddy_is_never_cheerful(table)
 
 
-def _validate_the_mate_is_never_cheerful(
+def _validate_the_buddy_is_never_cheerful(
     table: Mapping[tuple[str, str], Delivery]
 ) -> None:
-    """The Mate's conceded delivery is no brighter and no quicker than its own.
+    """The Buddy's conceded delivery is no brighter and no quicker than its own.
 
     Brighter and quicker is what cheerful is made of in the only two controls
     there are, so the rule is readable as a comparison: the conceded row may
     not raise the pitch above the scored row's, and may not raise the rate
     above it either.
 
-    It is compared against the Mate's own scored row rather than against a
+    It is compared against the Buddy's own scored row rather than against a
     fixed number. That was the only thing sayable while the table was empty,
     and it is still the right shape now that it is not: the rule is about one
     row relative to the other, so it holds for whatever pair of numbers gets
     picked next. The shipped rows pass it because the conceded one is slower
     and no brighter, which is the reason it was written rather than for want
     of values to compare
-    (`tests/test_delivery.py::TestTheValuesAreShawnsAndTheTableSaysSo::test_the_shipped_table_satisfies_the_mate_rule`).
+    (`tests/test_delivery.py::TestTheValuesAreShawnsAndTheTableSaysSo::test_the_shipped_table_satisfies_the_buddy_rule`).
 
     A row with nothing set is not refused. An unset row has not been made
     cheerful, so there is nothing to compare and nothing to object to.
     """
-    scored = table.get((MATE, SCORED))
-    conceded = table.get((MATE, CONCEDED))
+    scored = table.get((BUDDY, SCORED))
+    conceded = table.get((BUDDY, CONCEDED))
     if scored is None or conceded is None:
         return
     for field, label in (("pitch", "brighter"), ("rate", "quicker")):
@@ -333,7 +333,7 @@ def _validate_the_mate_is_never_cheerful(
             and over_the_top > when_scoring
         ):
             raise DeliveryError(
-                "the Mate's {} is {} when the other side scored and {} when "
+                "the Buddy's {} is {} when the other side scored and {} when "
                 "its own side did, which is {} over a goal against the "
                 "listener's team".format(
                     field, over_the_top, when_scoring, label

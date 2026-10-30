@@ -31,9 +31,9 @@ import pytest
 
 from app.delivery import DELIVERY, Delivery
 from app.orchestrator_contract import (
+    BUDDY,
     CALLER,
     CONCEDED,
-    MATE,
     NEUTRAL,
     SCORED,
     STORYTELLER,
@@ -244,12 +244,12 @@ class TestTheRequestShape:
         assert '<break time="200ms"/>' in request.text
         assert '<break time="400ms"/>' in request.text
 
-    def test_the_mate_sends_a_different_request_for_each_side(self):
+    def test_the_buddy_sends_a_different_request_for_each_side(self):
         """Now that the table is filled in, the two sides really do differ."""
         built = backend()
         assert built.request_for(
-            HEADER, NARRATION, MATE, SCORED
-        ).query != built.request_for(HEADER, NARRATION, MATE, CONCEDED).query
+            HEADER, NARRATION, BUDDY, SCORED
+        ).query != built.request_for(HEADER, NARRATION, BUDDY, CONCEDED).query
 
     def test_a_set_rate_and_pitch_are_sent(self, monkeypatch):
         monkeypatch.setitem(
@@ -261,12 +261,12 @@ class TestTheRequestShape:
 
     def test_the_two_situations_can_differ(self, monkeypatch):
         """One voice, two deliveries, which is what the table is keyed for."""
-        monkeypatch.setitem(DELIVERY, (MATE, SCORED), Delivery(rate=10))
-        monkeypatch.setitem(DELIVERY, (MATE, CONCEDED), Delivery(rate=-10))
+        monkeypatch.setitem(DELIVERY, (BUDDY, SCORED), Delivery(rate=10))
+        monkeypatch.setitem(DELIVERY, (BUDDY, CONCEDED), Delivery(rate=-10))
         built = backend()
         assert built.request_for(
-            HEADER, NARRATION, MATE, SCORED
-        ).query != built.request_for(HEADER, NARRATION, MATE, CONCEDED).query
+            HEADER, NARRATION, BUDDY, SCORED
+        ).query != built.request_for(HEADER, NARRATION, BUDDY, CONCEDED).query
 
     def test_the_body_is_the_documented_json(self):
         request = backend().request_for(HEADER, NARRATION, STORYTELLER, NEUTRAL)
@@ -274,9 +274,9 @@ class TestTheRequestShape:
             "text": request.text
         }
 
-    def test_the_mates_neutral_row_cannot_be_asked_for(self):
+    def test_the_buddys_neutral_row_cannot_be_asked_for(self):
         with pytest.raises(KeyError):
-            backend().request_for(HEADER, NARRATION, MATE, NEUTRAL)
+            backend().request_for(HEADER, NARRATION, BUDDY, NEUTRAL)
 
     def test_an_unknown_persona_is_refused(self):
         with pytest.raises(KeyError):

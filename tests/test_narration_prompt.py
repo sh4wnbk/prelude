@@ -496,7 +496,7 @@ class TestTheOneNarrationStyle:
     def test_the_prompt_refuses_the_first_person_in_the_one_voice_it_has(
         self, feed
     ):
-        """Including the Mate's, which the prompt asked for until now.
+        """Including the Buddy's, which the prompt asked for until now.
 
         `app/grounding.py` still admits "we" from a partisan voice over that
         side's facts. A prompt asking for less than the check enforces sets

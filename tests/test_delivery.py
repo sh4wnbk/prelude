@@ -14,7 +14,7 @@ Each bound traces back to something measured or published, not to taste:
 | only the Caller may carry a pause | the same probe: `<break>` moves one voice of the three |
 | rate runs -50 to 100 | IBM's published guidance on `rate_percentage` |
 | the goal pause is the longer one | `docs/VOICE.md`: the pause before the goal lets it land |
-| the Mate is never cheerful when the other side scored | the brief, and it is the one rule here that is about taste |
+| the Buddy is never cheerful when the other side scored | the brief, and it is the one rule here that is about taste |
 
 Nothing here calls the speech service or a model. The situation is read off a
 moment and a listener, which is the other thing worth holding: a delivery
@@ -40,9 +40,9 @@ from app.delivery import (
     validate,
 )
 from app.orchestrator_contract import (
+    BUDDY,
     CALLER,
     CONCEDED,
-    MATE,
     NEUTRAL,
     SCORED,
     STORYTELLER,
@@ -111,7 +111,7 @@ class TestTheSituations:
 
 class TestTheTableHasEveryRowAndNoOthers:
     def test_eight_rows(self):
-        """Three personas by three situations is nine, less the Mate's neutral
+        """Three personas by three situations is nine, less the Buddy's neutral
         row, which cannot exist: a partisan voice told to a listener with no
         side would be telling them they support a team they did not choose.
         """
@@ -120,8 +120,8 @@ class TestTheTableHasEveryRowAndNoOthers:
     def test_the_rows_are_the_rows_that_should_exist(self):
         assert set(DELIVERY) == set(rows_that_should_exist())
 
-    def test_the_mate_has_no_neutral_row(self):
-        assert (MATE, NEUTRAL) not in DELIVERY
+    def test_the_buddy_has_no_neutral_row(self):
+        assert (BUDDY, NEUTRAL) not in DELIVERY
 
     def test_every_other_persona_has_all_three(self):
         for persona_id in (CALLER, STORYTELLER):
@@ -139,7 +139,7 @@ class TestTheTableHasEveryRowAndNoOthers:
 
     def test_a_row_that_cannot_exist_is_refused(self):
         with pytest.raises(DeliveryError) as failure:
-            validate(changed({(MATE, NEUTRAL): Delivery()}))
+            validate(changed({(BUDDY, NEUTRAL): Delivery()}))
         assert "cannot exist" in str(failure.value)
 
 
@@ -191,30 +191,30 @@ class TestTheValuesAreShawnsAndTheTableSaysSo:
             row = delivery(STORYTELLER, where)
             assert (row.rate, row.pitch) == (0, None)
 
-    def test_the_mate_lifts_for_your_goal_and_not_for_theirs(self):
-        assert (delivery(MATE, SCORED).rate, delivery(MATE, SCORED).pitch) == (
+    def test_the_buddy_lifts_for_your_goal_and_not_for_theirs(self):
+        assert (delivery(BUDDY, SCORED).rate, delivery(BUDDY, SCORED).pitch) == (
             10, 10,
         )
         assert (
-            delivery(MATE, CONCEDED).rate, delivery(MATE, CONCEDED).pitch
+            delivery(BUDDY, CONCEDED).rate, delivery(BUDDY, CONCEDED).pitch
         ) == (-10, 0)
 
-    def test_the_mate_is_the_only_persona_that_moves_its_pitch(self):
-        """Pitch is what cheerful is mostly made of, and the Mate is the only
+    def test_the_buddy_is_the_only_persona_that_moves_its_pitch(self):
+        """Pitch is what cheerful is mostly made of, and the Buddy is the only
         voice with a side to be cheerful about.
         """
         assert {
             key[0] for key, row in DELIVERY.items() if row.pitch
-        } == {MATE}
+        } == {BUDDY}
 
-    def test_the_shipped_table_satisfies_the_mate_rule(self):
+    def test_the_shipped_table_satisfies_the_buddy_rule(self):
         """The rule that was written while the table was empty, now that it is
         not. The conceded row is slower and no brighter, so it passes for the
         reason it was meant to rather than for want of values to compare.
         """
         validate(DELIVERY)
-        assert delivery(MATE, CONCEDED).rate < delivery(MATE, SCORED).rate
-        assert delivery(MATE, CONCEDED).pitch < delivery(MATE, SCORED).pitch
+        assert delivery(BUDDY, CONCEDED).rate < delivery(BUDDY, SCORED).rate
+        assert delivery(BUDDY, CONCEDED).pitch < delivery(BUDDY, SCORED).pitch
 
     def test_the_callers_rate_ceiling_is_not_measured_yet(self):
         """It is words per minute off real audio, and nothing has measured it.
@@ -304,10 +304,10 @@ class TestOnlyTheCallerMayPause:
             )
         assert "identical" in str(failure.value)
 
-    def test_a_pause_on_the_mate_is_refused(self):
+    def test_a_pause_on_the_buddy_is_refused(self):
         with pytest.raises(DeliveryError):
             validate(
-                changed({(MATE, SCORED): Delivery(goal_break=600)})
+                changed({(BUDDY, SCORED): Delivery(goal_break=600)})
             )
 
     def test_a_pause_on_the_caller_is_allowed(self):
@@ -321,13 +321,13 @@ class TestOnlyTheCallerMayPause:
         )
 
 
-class TestTheMateIsNeverCheerfulWhenTheOtherSideScored:
+class TestTheBuddyIsNeverCheerfulWhenTheOtherSideScored:
     """The one rule here that is about taste rather than measurement.
 
     A voice that brightens over a goal against your team is a voice that was
     not listening with you. Brighter and quicker is what cheerful is made of
     in the only two controls there are, so the rule is a comparison between
-    the Mate's two rows rather than a fixed number: with the table unset there
+    the Buddy's two rows rather than a fixed number: with the table unset there
     is no number to compare against, and the relation is the only thing that
     can be stated now.
     """
@@ -336,8 +336,8 @@ class TestTheMateIsNeverCheerfulWhenTheOtherSideScored:
         with pytest.raises(DeliveryError) as failure:
             validate(
                 changed({
-                        (MATE, SCORED): Delivery(pitch=10),
-                        (MATE, CONCEDED): Delivery(pitch=20),
+                        (BUDDY, SCORED): Delivery(pitch=10),
+                        (BUDDY, CONCEDED): Delivery(pitch=20),
                     },
                 )
             )
@@ -347,22 +347,22 @@ class TestTheMateIsNeverCheerfulWhenTheOtherSideScored:
         with pytest.raises(DeliveryError) as failure:
             validate(
                 changed({
-                        (MATE, SCORED): Delivery(rate=5),
-                        (MATE, CONCEDED): Delivery(rate=15),
+                        (BUDDY, SCORED): Delivery(rate=5),
+                        (BUDDY, CONCEDED): Delivery(rate=15),
                     },
                 )
             )
         assert "quicker" in str(failure.value)
 
     def test_the_same_delivery_in_both_is_allowed(self):
-        """The rule is "never brighter", not "always duller". A Mate that
+        """The rule is "never brighter", not "always duller". A Buddy that
         sounds the same either way is not cheerful about a goal against the
         listener's team; it is just even.
         """
         validate(
             changed({
-                    (MATE, SCORED): Delivery(rate=5, pitch=10),
-                    (MATE, CONCEDED): Delivery(rate=5, pitch=10),
+                    (BUDDY, SCORED): Delivery(rate=5, pitch=10),
+                    (BUDDY, CONCEDED): Delivery(rate=5, pitch=10),
                 },
             )
         )
@@ -370,8 +370,8 @@ class TestTheMateIsNeverCheerfulWhenTheOtherSideScored:
     def test_a_duller_and_slower_conceded_row_is_allowed(self):
         validate(
             changed({
-                    (MATE, SCORED): Delivery(rate=5, pitch=10),
-                    (MATE, CONCEDED): Delivery(rate=-5, pitch=0),
+                    (BUDDY, SCORED): Delivery(rate=5, pitch=10),
+                    (BUDDY, CONCEDED): Delivery(rate=-5, pitch=0),
                 },
             )
         )
@@ -406,9 +406,9 @@ class TestLookup:
         for known in SITUATIONS:
             assert known in str(failure.value)
 
-    def test_the_mates_neutral_row_says_why_it_does_not_exist(self):
+    def test_the_buddys_neutral_row_says_why_it_does_not_exist(self):
         with pytest.raises(KeyError) as failure:
-            delivery(MATE, NEUTRAL)
+            delivery(BUDDY, NEUTRAL)
         assert "fans only" in str(failure.value)
 
 

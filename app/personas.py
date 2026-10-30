@@ -37,7 +37,7 @@ Each persona carries six things and one flag that is still false:
 | `prosody_confirmed` | whether this persona's delivery is set | `app/delivery.py`, and it is false |
 
 **The ids come from the contract and are not spelled again here.** `CALLER`,
-`STORYTELLER` and `MATE` are declared in `app/orchestrator_contract.py`,
+`STORYTELLER` and `BUDDY` are declared in `app/orchestrator_contract.py`,
 because the orchestrator picks a default persona and had to name them before
 this file existed. Importing them is what makes a typo here a failure at
 import rather than a persona nothing can select.
@@ -67,7 +67,7 @@ Standard library only, like the rest of `app/`.
 from dataclasses import dataclass
 from typing import Mapping
 
-from app.orchestrator_contract import CALLER, MATE, STORYTELLER
+from app.orchestrator_contract import BUDDY, CALLER, STORYTELLER
 
 
 @dataclass(frozen=True)
@@ -80,7 +80,7 @@ class Persona:
     rather than a way of writing: the narration text is the same in all three.
 
     `fans_only` is true for a persona that only makes sense to somebody with a
-    side. It is the Mate and nothing else: a partisan voice told to a neutral
+    side. It is the Buddy and nothing else: a partisan voice told to a neutral
     listener would be telling them they support a team they did not choose.
 
     `voice` is the IBM Text to Speech voice id, and it is set: the three are
@@ -157,8 +157,8 @@ THE_STORYTELLER = Persona(
 #: side. Nothing asks a model for the first person any more: the prompt
 #: refuses it in every voice, and that rule in the check is the guard behind
 #: it rather than a permission anything uses.
-THE_MATE = Persona(
-    id=MATE,
+THE_BUDDY = Persona(
+    id=BUDDY,
     name="The Buddy",
     profile="Warm, from the next seat.",
     fans_only=True,
@@ -168,7 +168,7 @@ THE_MATE = Persona(
 )
 
 #: The three, in the order the Profile screen lists them.
-PERSONAS: tuple[Persona, ...] = (THE_CALLER, THE_STORYTELLER, THE_MATE)
+PERSONAS: tuple[Persona, ...] = (THE_CALLER, THE_STORYTELLER, THE_BUDDY)
 
 #: By id, which is how every caller reaches one: the orchestrator returns an
 #: id, and a stored preference holds one.

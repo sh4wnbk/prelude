@@ -41,7 +41,7 @@ from app.narration_prompt import (
     facts_from_buildup,
     template_narration,
 )
-from app.personas import THE_CALLER, THE_MATE, THE_STORYTELLER
+from app.personas import THE_BUDDY, THE_CALLER, THE_STORYTELLER
 from app.statsbomb_event_feed import StatsBombEventFeed
 
 MATCH_1986 = 3750191
@@ -752,7 +752,7 @@ class TestPairingRefusesSomeTrueSentences:
 class TestThePartisanVoice:
     """The one thing a persona changes: who may say "we".
 
-    `app/personas.py` has the Mate writing as the listener's side, so that
+    `app/personas.py` has the Buddy writing as the listener's side, so that
     voice may call that side "we", "our" or "us". The Caller and the
     Storyteller are written as nobody, so the same word from them is a loyalty
     the app has put in its own mouth, and no voice may address the fan as
@@ -768,7 +768,7 @@ class TestThePartisanVoice:
         result = check(
             narration("[11] Our captain dribbled past a defender."),
             facts_1986,
-            persona=THE_MATE,
+            persona=THE_BUDDY,
             side="Argentina",
         )
         assert result.grounded, result.summary
@@ -783,7 +783,7 @@ class TestThePartisanVoice:
         result = check(
             narration("[10] Our captain dribbled past a defender."),
             facts_1986,
-            persona=THE_MATE,
+            persona=THE_BUDDY,
             side="Argentina",
         )
         assert not result.grounded
@@ -797,7 +797,7 @@ class TestThePartisanVoice:
         result = check(
             narration("[10] Our defender was dribbled past."),
             facts_1986,
-            persona=THE_MATE,
+            persona=THE_BUDDY,
             side="England",
         )
         assert result.grounded, result.summary
@@ -812,7 +812,7 @@ class TestThePartisanVoice:
         result = check(
             narration("[10, 11] We dribbled past Peter Beardsley."),
             facts_1986,
-            persona=THE_MATE,
+            persona=THE_BUDDY,
             side="Argentina",
         )
         assert result.grounded, result.summary
@@ -851,7 +851,7 @@ class TestThePartisanVoice:
         result = check(
             narration("[11] Your captain dribbled past a defender."),
             facts_1986,
-            persona=THE_MATE,
+            persona=THE_BUDDY,
             side="Argentina",
         )
         assert not result.grounded
@@ -864,10 +864,10 @@ class TestThePartisanVoice:
         question nobody asked, so both the prompt and the check raise.
         """
         with pytest.raises(NoSideForAPartisanVoice):
-            check(narration(GOAL_SENTENCE), facts_1986, persona=THE_MATE)
+            check(narration(GOAL_SENTENCE), facts_1986, persona=THE_BUDDY)
 
     def test_a_partisan_narration_is_held_to_every_other_rule(self, facts_1986):
-        """The Mate loosens the first person and nothing else.
+        """The Buddy loosens the first person and nothing else.
 
         Reid pressured and was never dribbled past, which is the named
         misdescription in `TestMisdescription`. Saying it as "we" does not
@@ -876,7 +876,7 @@ class TestThePartisanVoice:
         result = check(
             narration("[11, 13] We dribbled past Peter Reid."),
             facts_1986,
-            persona=THE_MATE,
+            persona=THE_BUDDY,
             side="Argentina",
         )
         assert not result.grounded
@@ -904,7 +904,7 @@ class TestThePartisanVoice:
 
     def test_a_banned_word_is_banned_in_every_voice(self, facts_1986):
         for persona, side in (
-            (THE_MATE, "Argentina"),
+            (THE_BUDDY, "Argentina"),
             (THE_CALLER, None),
             (THE_STORYTELLER, None),
         ):

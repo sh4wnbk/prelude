@@ -86,7 +86,7 @@ TONIGHT = "tonight"
 #: described: the descriptions, the writing styles and the voices are Task 6.
 CALLER = "caller"
 STORYTELLER = "storyteller"
-MATE = "mate"
+BUDDY = "buddy"
 
 #: What the moment did to the score, **from the scoring side's point of
 #: view**, read out of the score before it and the score after it and nothing
@@ -324,10 +324,10 @@ def header(event: Event, moment: ScoringMoment) -> str:
 
 
 def default_persona(listener: Listener) -> str:
-    """`MATE` for a fan, `STORYTELLER` for a neutral listener.
+    """`BUDDY` for a fan, `STORYTELLER` for a neutral listener.
 
     A partisan voice is for somebody who has a side. Saying "late one for your side"
-    in the Mate's voice to a neutral listener would be telling them they
+    in the Buddy's voice to a neutral listener would be telling them they
     support a team they did not choose.
     """
     raise NotImplementedError("the orchestrator is not built yet")

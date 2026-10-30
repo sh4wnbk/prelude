@@ -37,7 +37,7 @@ from app.narration_prompt import (
     template_narration,
 )
 from app.statsbomb_event_feed import StatsBombEventFeed
-from app.personas import MATE, THE_CALLER, THE_MATE
+from app.personas import BUDDY, THE_BUDDY, THE_CALLER
 from scripts.narration_eval import (
     MODEL,
     NO_PERSONA,
@@ -396,16 +396,16 @@ def a_record(**fields) -> Record:
 
 
 class TestTheVoices:
-    """Task 6c: a persona is a voice, and the Mate is two of them."""
+    """Task 6c: a persona is a voice, and the Buddy is two of them."""
 
     def test_the_two_sides_are_read_off_the_records(self, feed):
         assert match_sides(feed, MATCH_1986) == ("Argentina", "England")
         assert match_sides(feed, MATCH_2022) == ("Argentina", "France")
 
     def test_a_fans_only_persona_is_one_voice_per_side(self, feed):
-        built = voices(feed, MATCH_1986, [MATE])
+        built = voices(feed, MATCH_1986, [BUDDY])
         assert [v.side for v in built] == ["Argentina", "England"]
-        assert {v.persona for v in built} == {THE_MATE}
+        assert {v.persona for v in built} == {THE_BUDDY}
 
     def test_a_persona_with_no_side_is_one_voice(self, feed):
         built = voices(feed, MATCH_1986, [THE_CALLER.id])
@@ -413,7 +413,7 @@ class TestTheVoices:
         assert built[0].side is None
 
     def test_all_is_every_persona(self):
-        assert read_personas("all") == ("caller", "storyteller", "mate")
+        assert read_personas("all") == ("caller", "storyteller", "buddy")
 
     def test_none_is_the_prompt_with_no_style_block(self, feed):
         assert read_personas(NO_PERSONA) == ()
@@ -425,7 +425,7 @@ class TestTheVoices:
 
     def test_a_voice_is_labelled_by_its_persona_and_side(self, feed):
         assert Voice(persona=THE_CALLER, side=None).label == "caller"
-        assert Voice(persona=THE_MATE, side="England").label == "mate (England)"
+        assert Voice(persona=THE_BUDDY, side="England").label == "buddy (England)"
         assert Voice(persona=None, side=None).label == NO_PERSONA
 
     def test_four_voices_over_a_match(self, feed):
@@ -433,8 +433,8 @@ class TestTheVoices:
         assert [v.label for v in built] == [
             "caller",
             "storyteller",
-            "mate (Argentina)",
-            "mate (France)",
+            "buddy (Argentina)",
+            "buddy (France)",
         ]
 
 
@@ -446,8 +446,8 @@ class TestARecordCarriesItsVoice:
         assert a_record().voice == NO_PERSONA
 
     def test_a_partisan_record_names_its_side(self):
-        record = a_record(persona=MATE, side="England")
-        assert record.voice == "mate (England)"
+        record = a_record(persona=BUDDY, side="England")
+        assert record.voice == "buddy (England)"
 
     def test_the_task_4a_records_still_read(self):
         """`--from-json` rebuilds the committed report from them."""
@@ -500,19 +500,19 @@ class TestThePersonaSection:
         rows = [
             a_record(persona="caller"),
             a_record(persona="storyteller"),
-            a_record(persona=MATE, side="Argentina"),
-            a_record(persona=MATE, side="England"),
+            a_record(persona=BUDDY, side="Argentina"),
+            a_record(persona=BUDDY, side="England"),
         ]
         section = "\n".join(persona_section(rows))
-        for voice in ("caller", "storyteller", "mate (Argentina)",
-                      "mate (England)"):
+        for voice in ("caller", "storyteller", "buddy (Argentina)",
+                      "buddy (England)"):
             assert f"| {voice} |" in section
 
     def test_it_counts_the_partisan_narrations_that_said_we(self):
         rows = [
-            a_record(persona=MATE, side="Argentina",
+            a_record(persona=BUDDY, side="Argentina",
                      text="[24] We scored through Maradona."),
-            a_record(persona=MATE, side="Argentina", run=2,
+            a_record(persona=BUDDY, side="Argentina", run=2,
                      text="[24] Maradona shot and scored for Argentina."),
         ]
         section = "\n".join(persona_section(rows))
@@ -747,25 +747,25 @@ class TestTheModelComparison:
         assert "with the beats block" in section
         assert "without it" in section
 
-    def test_the_mate_first_person_count_is_per_model(self):
+    def test_the_buddy_first_person_count_is_per_model(self):
         rows = [
             a_record(
                 arm="a",
                 model=self.GRANITE,
-                persona="mate",
+                persona="buddy",
                 side="Argentina",
                 text="[24] We scored through Maradona.",
             ),
             a_record(
                 arm="a",
                 model=self.GPT_OSS,
-                persona="mate",
+                persona="buddy",
                 side="Argentina",
                 text="[24] Maradona scored for Argentina.",
             ),
         ]
         section = "\n".join(watsonx_section(rows))
-        assert "Mate narrations" in section
+        assert 'Used "we", "our" or "us"' in section
         assert f"| `{self.GRANITE}` | 1 | 1 |" in section
         assert f"| `{self.GPT_OSS}` | 1 | 0 |" in section
 
@@ -863,16 +863,16 @@ class TestTheWorkedExampleRound:
         section = "\n".join(example_section(before, after))
         assert "the same 1 goal" in section
 
-    def test_the_mate_first_person_is_counted_on_both_sides(self):
+    def test_the_buddy_first_person_is_counted_on_both_sides(self):
         before = [
             a_record(
-                arm="a", model=self.MODEL, persona="mate", side="Argentina",
+                arm="a", model=self.MODEL, persona="buddy", side="Argentina",
                 text="[24] Maradona scored for Argentina.",
             )
         ]
         after = [
             a_record(
-                arm="d", model=self.MODEL, persona="mate", side="Argentina",
+                arm="d", model=self.MODEL, persona="buddy", side="Argentina",
                 text="[24] We scored through Maradona.",
             )
         ]

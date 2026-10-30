@@ -104,7 +104,7 @@ from app.personas import Persona
 class NoSideForAPartisanVoice(ValueError):
     """A `fans_only` persona was asked for without a side to be on.
 
-    The Mate is checked as the listener's team, so a Mate narration from
+    The Buddy is checked as the listener's team, so a Buddy narration from
     somebody with no team is one this module cannot read: the first person in
     it has nothing to be true about. Checking it as though nobody were
     partisan would admit "we" with no side behind it, and guessing a side
@@ -339,7 +339,7 @@ BANNED_PATTERNS: Sequence[tuple[str, str]] = (
 
 #: The first person plural, which belongs to one persona and no other.
 #:
-#: `app/personas.py` has the Mate as the partisan voice, so "we" is the one
+#: `app/personas.py` has the Buddy as the partisan voice, so "we" is the one
 #: it could be. From the Caller or the Storyteller it is a claim
 #: nobody made: neither is written as either team, and a narration that says
 #: "our goal" without a side to mean by it has put a loyalty in the app's

@@ -25,8 +25,8 @@ import pytest
 from app.grounding import BANNED_PATTERNS
 from app.orchestrator import default_persona
 from app.orchestrator_contract import (
+    BUDDY,
     CALLER,
-    MATE,
     NEUTRAL,
     STORYTELLER,
     TEAM_A,
@@ -35,8 +35,8 @@ from app.orchestrator_contract import (
 from app.personas import (
     BY_ID,
     PERSONAS,
+    THE_BUDDY,
     THE_CALLER,
-    THE_MATE,
     THE_STORYTELLER,
     available,
     persona,
@@ -72,7 +72,7 @@ class TestTheThreePersonas:
         assert len(PERSONAS) == 3
 
     def test_the_ids_are_the_ones_the_contract_declares(self):
-        assert {p.id for p in PERSONAS} == {CALLER, STORYTELLER, MATE}
+        assert {p.id for p in PERSONAS} == {CALLER, STORYTELLER, BUDDY}
 
     def test_each_id_appears_once(self):
         ids = [p.id for p in PERSONAS]
@@ -81,11 +81,11 @@ class TestTheThreePersonas:
     def test_by_id_holds_every_persona(self):
         assert BY_ID == {p.id: p for p in PERSONAS}
 
-    def test_the_three_are_the_caller_the_storyteller_and_the_mate(self):
-        assert (THE_CALLER.id, THE_STORYTELLER.id, THE_MATE.id) == (
+    def test_the_three_are_the_caller_the_storyteller_and_the_buddy(self):
+        assert (THE_CALLER.id, THE_STORYTELLER.id, THE_BUDDY.id) == (
             CALLER,
             STORYTELLER,
-            MATE,
+            BUDDY,
         )
 
 
@@ -115,16 +115,16 @@ class TestEveryFieldIsFilled:
 
 
 class TestFansOnly:
-    """The Mate is the only persona that needs the listener to have a side."""
+    """The Buddy is the only persona that needs the listener to have a side."""
 
-    def test_only_the_mate_is_fans_only(self):
-        assert {p.id for p in PERSONAS if p.fans_only} == {MATE}
+    def test_only_the_buddy_is_fans_only(self):
+        assert {p.id for p in PERSONAS if p.fans_only} == {BUDDY}
 
     def test_a_fan_may_choose_any_of_the_three(self):
         assert available(fan=True) == PERSONAS
 
-    def test_a_neutral_listener_is_not_offered_the_mate(self):
-        assert MATE not in {p.id for p in available(fan=False)}
+    def test_a_neutral_listener_is_not_offered_the_buddy(self):
+        assert BUDDY not in {p.id for p in available(fan=False)}
         assert len(available(fan=False)) == 2
 
     def test_the_default_for_a_neutral_listener_is_one_they_may_choose(self):
@@ -286,5 +286,5 @@ class TestLookup:
         with pytest.raises(KeyError) as failure:
             persona("commentator")
         message = str(failure.value)
-        for known in (CALLER, STORYTELLER, MATE):
+        for known in (CALLER, STORYTELLER, BUDDY):
             assert known in message

@@ -1,8 +1,8 @@
 r"""The hero samples: both demo goals, in every voice, for Shawn to listen to.
 
 Eight samples. Two goals, the 1986 Maradona goal at 54:18 and the 2022 Di
-Maria goal at 35:22, each in the Caller, the Storyteller and the Mate, with
-the Mate heard from both sides: once as a fan of the side that scored and once
+Maria goal at 35:22, each in the Caller, the Storyteller and the Buddy, with
+the Buddy heard from both sides: once as a fan of the side that scored and once
 as a fan of the side that conceded.
 
 **The words are built by code, not by a model.** The header comes from the
@@ -14,7 +14,7 @@ grounded by construction. These are for judging the voices; the model's
 narration is `scripts/narrate_once.py`.
 
 **Six calls for eight samples, and that is a finding rather than a saving.**
-The delivery table in `app/delivery.py` is all placeholders, so the Mate's
+The delivery table in `app/delivery.py` is all placeholders, so the Buddy's
 scored row and its conceded row are the same empty delivery and build the
 identical request. The two files are written anyway, under both names, from
 the one response: what matters is that **there is nothing to hear between the
@@ -63,9 +63,9 @@ from app.narration_prompt import (  # noqa: E402
     template_narration,
 )
 from app.orchestrator_contract import (  # noqa: E402
+    BUDDY,
     CALLER,
     CONCEDED,
-    MATE,
     NEUTRAL,
     SCORED,
     STORYTELLER,
@@ -88,13 +88,13 @@ HEROES = (
 
 #: Which persona in which situation, and what the sample is called. The Caller
 #: and the Storyteller are heard in the neutral situation, which is what a
-#: listener with no side gets; the Mate is heard from both sides, because it is
+#: listener with no side gets; the Buddy is heard from both sides, because it is
 #: the only persona that has a side at all.
 VOICES = (
     (CALLER, NEUTRAL),
     (STORYTELLER, NEUTRAL),
-    (MATE, SCORED),
-    (MATE, CONCEDED),
+    (BUDDY, SCORED),
+    (BUDDY, CONCEDED),
 )
 
 
@@ -146,7 +146,7 @@ def samples(backend: WatsonTextToSpeech) -> tuple[Sample, ...]:
     for year, match_id, minute, second in HEROES:
         header = heroes[match_id]["header"]
         narration = narration_for(feed, match_id, minute, second)
-        # Which team a Mate listener supports, for the plan to print. The
+        # Which team a Buddy listener supports, for the plan to print. The
         # header names the scoring side first, which is how the two sides are
         # told apart in a sentence rather than in a key.
         scorer = header.split(" ")[0]
@@ -177,7 +177,7 @@ def distinct(all_samples: Sequence[Sample]) -> dict[tuple[str, str], list[Sample
     """The samples grouped by the request they send, in order.
 
     Two samples sharing a request share a response: one call, two files. With
-    the delivery table unset that is the Mate's two sides, and it is the thing
+    the delivery table unset that is the Buddy's two sides, and it is the thing
     the plan should say out loud rather than hide.
     """
     groups: dict[tuple[str, str], list[Sample]] = {}

@@ -507,7 +507,7 @@ def build_prompt(
     asking three models for three registers through this prompt and got one
     register back each time; `docs/narration_eval.md` holds the numbers.
 
-    So the first person is refused here in every voice, the Mate included.
+    So the first person is refused here in every voice, the Buddy included.
     `app/grounding.py` still admits "we" from a partisan persona over that
     side's facts, which is a guard behind a prompt that asks for less than the
     check allows rather than a permission anything reaches for. A prompt
