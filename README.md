@@ -179,7 +179,8 @@ Everything above it is structure.
   both sides, written outside the repo for Shawn to listen to. The words are
   the orchestrator's header and the code-built narration, so no model runs.
   `--plan` prints the character count and makes no call, `--budget` refuses a
-  run above a character count, and `--confirm` sends it.
+  run above a character count, `--personas` reruns one voice's files without
+  paying for the rest, and `--confirm` sends it.
 - `app/delivery.py`: the delivery table, one row per persona per situation,
   holding the rate, the pitch and the two pauses. The values are Shawn's, set
   by ear, with the rules enforced around them: no lowered pitch, no pause on a

@@ -256,11 +256,32 @@ def main(argv: Sequence[str]) -> int:
         default=2500,
         help="refuse to send if the submitted count is above this",
     )
+    parser.add_argument(
+        "--personas",
+        help="only these personas, comma separated; the default is all three",
+    )
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     args = parser.parse_args(argv)
 
     backend = WatsonTextToSpeech()
     all_samples = samples(backend)
+    if args.personas:
+        # A delivery changed for one persona means that persona's files are
+        # stale and the others are not, so a rerun should be able to pay for
+        # the stale ones alone.
+        wanted = args.personas.split(",")
+        unknown = [
+            name for name in wanted
+            if name not in {persona_id for persona_id, _ in VOICES}
+        ]
+        if unknown:
+            print("no such persona in the samples: {}".format(
+                ", ".join(unknown)
+            ), file=sys.stderr)
+            return 2
+        all_samples = tuple(
+            one for one in all_samples if one.persona_id in wanted
+        )
     calls, submitted, _ = plan(all_samples)
     if args.plan or not args.confirm:
         print()

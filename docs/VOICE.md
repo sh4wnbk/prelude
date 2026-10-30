@@ -918,18 +918,26 @@ that it holds no credential.
 `C:\Users\shawn\prelude_voice\samples`: both hero goals, the 1986 Maradona
 goal at 54:18 and the 2022 Di Maria goal at 35:22, in all three voices, with
 the Mate heard from both sides. Six calls, 1,794 submitted characters and
-1,530 spoken, against a budget of 2,500.
+1,530 spoken, against a budget of 2,500. The four Mate files were then
+regenerated once the delivery table was filled in, four calls and 1,196
+submitted characters; `--personas` is what reruns one voice's files without
+paying for the rest.
 
-| File | Voice | Listener | Length |
-| ---- | ----- | -------- | -----: |
-| `1986_caller_neutral.wav` | Heidi | no side | 20.37s |
-| `1986_storyteller_neutral.wav` | Emma | no side | 17.42s |
-| `1986_mate_scored.wav` | Ethan | supporting Argentina | 19.30s |
-| `1986_mate_conceded.wav` | Ethan | supporting England | 19.30s |
-| `2022_caller_neutral.wav` | Heidi | no side | 18.85s |
-| `2022_storyteller_neutral.wav` | Emma | no side | 17.55s |
-| `2022_mate_scored.wav` | Ethan | supporting Argentina | 18.15s |
-| `2022_mate_conceded.wav` | Ethan | supporting France | 18.15s |
+| File | Voice | Listener | Length | Median f0 |
+| ---- | ----- | -------- | -----: | --------: |
+| `1986_caller_neutral.wav` | Heidi | no side | 20.37s | |
+| `1986_storyteller_neutral.wav` | Emma | no side | 17.42s | |
+| `1986_mate_scored.wav` | Ethan | supporting Argentina | 17.75s | 162.2 Hz |
+| `1986_mate_conceded.wav` | Ethan | supporting England | 21.05s | 150.0 Hz |
+| `2022_caller_neutral.wav` | Heidi | no side | 18.85s | |
+| `2022_storyteller_neutral.wav` | Emma | no side | 17.55s | |
+| `2022_mate_scored.wav` | Ethan | supporting Argentina | 16.87s | 162.2 Hz |
+| `2022_mate_conceded.wav` | Ethan | supporting France | 20.02s | 146.3 Hz |
+
+The four Caller and Storyteller files are from before the delivery table was
+filled in, so they are those voices at their own rate with no pauses. The four
+Mate files were regenerated afterwards, at a cost of 1,196 submitted
+characters, and they are the only ones that carry a delivery.
 
 **The words are built by code and no model ran.** The header is the
 orchestrator's, through `openings` in `scripts/write_headers.py`, and the
@@ -938,19 +946,25 @@ assembled out of the numbered facts. So a sample is reproducible, grounded by
 construction, and costs nothing but the speech. These are for judging the
 voices; `scripts/narrate_once.py` is for judging the words.
 
-**Eight files came from six calls, and that is the finding.** The Mate's two
-rows in the delivery table are both empty, so the two sides build the
-identical request, and the two files are the same audio under two names.
-Nothing in them is different because nothing has been set yet. The script
-writes both anyway and says which names share a request, because paying twice
-for identical audio would have hidden it and leaving one out would have hidden
-it too.
+**The first run was eight files from six calls, and that was the finding.**
+With the delivery table empty the Mate's two rows were both empty, so its two
+sides built the identical request and the two files were the same audio under
+two names. The script wrote both anyway and said which names shared a request,
+because paying twice for identical audio would have hidden that there was
+nothing to hear between the sides, and leaving one out would have hidden it
+too.
 
-**The three voices are the only thing a sample separates today.** Every
-delivery value is a placeholder, so what Shawn is hearing is Heidi, Emma and
-Ethan at their own default rate and pitch, reading the same words. That is the
-right thing to listen to first: the delivery is tuned against voices that have
-been chosen, not the other way round.
+**Now there is something to hear.** The regenerated Mate files are four
+distinct calls, and the difference is in the numbers as well as in the ear: a
+goal for your side arrives about three seconds shorter and a tone higher than
+the same goal against you. That is +10 rate against -10, and +10 pitch against
+0, doing exactly what it was set to do.
+
+**The Caller and the Storyteller files are still from the first run.** They
+were not regenerated: 1,196 characters bought the comparison that had none,
+and the other four would have been another 1,196 to hear a rate of 0 and a
+rate of +10 with short pauses. They are worth a rerun once Shawn has heard the
+Mate and knows whether the numbers are close.
 
 ## It ends on the goal, and there is no closer
 

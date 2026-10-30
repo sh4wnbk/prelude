@@ -1590,17 +1590,23 @@ and its `Authorization` header reads redacted because the real one is built
 inside `send` and lives for one call. That is what made the recorded request
 safe to commit.
 
-**The hero samples are eight files from six calls**, 1,794 submitted
-characters against a budget of 2,500, in
-`C:\Users\shawn\prelude_voice\samples`. The Mate's two sides build the
-identical request while the table is empty, so two files are the same audio
-under two names; the script says which, because paying twice would have hidden
-it. `docs/VOICE.md` lists them with their lengths.
+**The hero samples are eight files in `C:\Users\shawn\prelude_voice\samples`.**
+The first run was six calls for eight files, 1,794 submitted characters
+against a budget of 2,500: with the delivery table empty the Mate's two sides
+built the identical request, so two files were the same audio under two names,
+and the script said which rather than paying twice and hiding it. Task 2
+regenerated the four Mate files once the table was filled in, four calls and
+1,196 submitted characters. The Caller and Storyteller files are still from
+the first run and carry no delivery. `docs/VOICE.md` lists all eight with
+their lengths.
 
-**What is owed.** The delivery values, by ear. The Caller's rate ceiling,
-which is words per minute off real audio and is `None` until something
-measures it. And a decision on where between -50 and -20 `pitch_percentage`
-stops being honoured, if anything ever needs a lowered pitch.
+**What is owed.** The Caller's rate ceiling, which is words per minute off
+real audio and is `None` until something measures it: the Caller's rate being
+set at +10 does not settle how high anybody may set it. Regenerating the
+Caller and Storyteller samples, once Shawn has heard the Mate and knows
+whether the numbers are close. And a decision on where between -50 and -20
+`pitch_percentage` stops being honoured, if anything ever needs a lowered
+pitch.
 
 ## Data-check findings
 
