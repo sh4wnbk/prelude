@@ -1,0 +1,165 @@
+{
+  "_note": "The narration each hero moment shows and speaks, written by the model in app/narration_config.py and frozen after it passed the grounding check in app/grounding.py. Regenerate with scripts/freeze_narrations.py --confirm; do not edit the text by hand, because the check's verdict recorded here was reached on these exact words. text is what the card shows and the voice reads, tagged_text is what the check passed, and cited_facts names the event_id in data/raw/ behind every fact the narration used. tests/test_frozen_narrations.py re-runs the check against data/raw/ and fails if a narration here stops passing.",
+  "narrations": {
+    "3750191": {
+      "match_id": 3750191,
+      "minute": 54,
+      "second": 18,
+      "player": "Diego Armando Maradona",
+      "team": "Argentina",
+      "text": "Peter Beardsley was dribbled past at 54:08. Terry Butcher was dribbled past at 54:13. Terry Fenwick was dribbled past at 54:15. Peter Shilton was dribbled past at 54:18. Diego Armando Maradona shot with his left foot from open play at 54:18.",
+      "tagged_text": "[10] Peter Beardsley was dribbled past at 54:08.  \n[14] Terry Butcher was dribbled past at 54:13.  \n[17] Terry Fenwick was dribbled past at 54:15.  \n[21] Peter Shilton was dribbled past at 54:18.  \n[24] Diego Armando Maradona shot with his left foot from open play at 54:18.",
+      "source": "model",
+      "model": "openai/gpt-oss-120b",
+      "provider": "watsonx",
+      "attempt": 1,
+      "first_attempt_grounded": true,
+      "label": "Verified from play data",
+      "check": {
+        "grounded": true,
+        "claims_checked": 33,
+        "failures": [],
+        "summary": "grounded: 33 claim(s) all traced to the data"
+      },
+      "cited_facts": [
+        {
+          "number": 10,
+          "text": "Peter Beardsley (England) was dribbled past, 54:08",
+          "event_id": "372c9acf-fe96-467a-8b57-dad6fbd6d50b",
+          "clock": "54:08",
+          "player": "Peter Beardsley",
+          "team": "England",
+          "action": "Dribbled Past"
+        },
+        {
+          "number": 14,
+          "text": "Terry Butcher (England) was dribbled past, 54:13",
+          "event_id": "044a8cab-3e77-48d3-8410-5aae07c287e6",
+          "clock": "54:13",
+          "player": "Terry Butcher",
+          "team": "England",
+          "action": "Dribbled Past"
+        },
+        {
+          "number": 17,
+          "text": "Terry Fenwick (England) was dribbled past, 54:15",
+          "event_id": "5758ea3c-1ecd-4fe2-b0bf-446a0e5a508b",
+          "clock": "54:15",
+          "player": "Terry Fenwick",
+          "team": "England",
+          "action": "Dribbled Past"
+        },
+        {
+          "number": 21,
+          "text": "Peter Shilton (England) was dribbled past, 54:18",
+          "event_id": "e2680e54-5d35-4342-91e2-dad88a210011",
+          "clock": "54:18",
+          "player": "Peter Shilton",
+          "team": "England",
+          "action": "Dribbled Past"
+        },
+        {
+          "number": 24,
+          "text": "Diego Armando Maradona (Argentina) shot, 54:18",
+          "event_id": "f7c68c94-1db5-477f-aabe-f97733605571",
+          "clock": "54:18",
+          "player": "Diego Armando Maradona",
+          "team": "Argentina",
+          "action": "Shot"
+        }
+      ],
+      "citations_by_sentence": {
+        "1": [
+          10
+        ],
+        "2": [
+          14
+        ],
+        "3": [
+          17
+        ],
+        "4": [
+          21
+        ],
+        "5": [
+          24
+        ]
+      },
+      "frozen_on": "2026-10-30"
+    },
+    "3869685": {
+      "match_id": 3869685,
+      "minute": 35,
+      "second": 22,
+      "player": "Ángel Fabián Di María Hernández",
+      "team": "Argentina",
+      "text": "Nahuel Molina Lucero passed at 35:12. Alexis Mac Allister received the ball at 35:14. Ángel Fabián Di María Hernández received the ball at 35:22. Ángel Fabián Di María Hernández shot at 35:22.",
+      "tagged_text": "[1] Nahuel Molina Lucero passed at 35:12.  \n[2] Alexis Mac Allister received the ball at 35:14.  \n[12] Ángel Fabián Di María Hernández received the ball at 35:22.  \n[13] Ángel Fabián Di María Hernández shot at 35:22.",
+      "source": "model",
+      "model": "openai/gpt-oss-120b",
+      "provider": "watsonx",
+      "attempt": 1,
+      "first_attempt_grounded": true,
+      "label": "Verified from play data",
+      "check": {
+        "grounded": true,
+        "claims_checked": 40,
+        "failures": [],
+        "summary": "grounded: 40 claim(s) all traced to the data"
+      },
+      "cited_facts": [
+        {
+          "number": 1,
+          "text": "Nahuel Molina Lucero (Argentina) passed, 35:12",
+          "event_id": "9afa860b-47cd-4be3-84cc-9f0846027721",
+          "clock": "35:12",
+          "player": "Nahuel Molina Lucero",
+          "team": "Argentina",
+          "action": "Pass"
+        },
+        {
+          "number": 2,
+          "text": "Alexis Mac Allister (Argentina) received the ball, 35:14",
+          "event_id": "31fdf07c-4b0f-4255-a952-7f989c3fa856",
+          "clock": "35:14",
+          "player": "Alexis Mac Allister",
+          "team": "Argentina",
+          "action": "Ball Receipt*"
+        },
+        {
+          "number": 12,
+          "text": "Ángel Fabián Di María Hernández (Argentina) received the ball, 35:22",
+          "event_id": "637f44e5-db4d-4e3b-89a9-fb0f384d3a59",
+          "clock": "35:22",
+          "player": "Ángel Fabián Di María Hernández",
+          "team": "Argentina",
+          "action": "Ball Receipt*"
+        },
+        {
+          "number": 13,
+          "text": "Ángel Fabián Di María Hernández (Argentina) shot, 35:22",
+          "event_id": "ef86f4d9-7acd-4ed0-a5ec-9129079e8fbe",
+          "clock": "35:22",
+          "player": "Ángel Fabián Di María Hernández",
+          "team": "Argentina",
+          "action": "Shot"
+        }
+      ],
+      "citations_by_sentence": {
+        "1": [
+          1
+        ],
+        "2": [
+          2
+        ],
+        "3": [
+          12
+        ],
+        "4": [
+          13
+        ]
+      },
+      "frozen_on": "2026-10-30"
+    }
+  }
+}
