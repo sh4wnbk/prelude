@@ -138,7 +138,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 529 tests in fifteen files, and all 529 pass, so any failure
+The suite is 569 tests in sixteen files, and all 569 pass, so any failure
 means something is wrong. It is run from the repo root:
 
 ```
@@ -165,6 +165,7 @@ No path setting is needed: `pyproject.toml` sets `pythonpath = ["."]` and
 | `tests/test_orchestrator.py` | the greeting, the phase, the score state, the transition, the game focused header, the default persona and `opening`, against `app/orchestrator.py` |
 | `tests/test_personas.py` | the persona config: the three ids, the fields, the three picked voices, the unconfirmed prosody and the Profile copy |
 | `tests/test_pronunciation.py` | the pronunciation table, the markup it builds, the round trip that proves it says the same words, and the seven modules forbidden to import it |
+| `tests/test_delivery.py` | the delivery table: the three situations, the eight rows, the bounds each control is held to, and the Mate never being cheerful when the other side scored |
 
 ### Two guards, on every test
 

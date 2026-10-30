@@ -628,6 +628,107 @@ rate that changed at the goal would be two requests and two files.
 **Nothing above is a delivery.** It is the list of what a delivery may be
 written in. The values are Shawn's, by ear.
 
+## The delivery table: persona by situation
+
+`app/delivery.py` is the table. Eight rows, keyed by persona and situation,
+and every value in every row is a placeholder: Shawn sets them by ear. What is
+built is the shape, the rules the numbers have to obey, and the tests that
+enforce them, so filling it in is an edit to one file and a run of the suite.
+
+**The situation is read off the moment and the listener, never from a model.**
+`situation` in `app/delivery.py` takes a `ScoringMoment` and a `Listener` and
+has no parameter for the narration text, which is what makes that a property
+of the signature rather than a promise in a comment
+(`tests/test_delivery.py::TestNothingHereReadsTheNarration::test_situation_takes_a_moment_and_a_listener_only`).
+A delivery chosen from the text would be a model deciding how a fan should
+feel about a goal, off the same text `app/grounding.py` is holding to the
+records.
+
+| Situation | What it is | Where it comes from |
+| --------- | ---------- | ------------------- |
+| `scored` | the listener's side scored | `outcome` in `app/orchestrator.py` |
+| `conceded` | the other side scored | the same |
+| `neutral` | the listener has no side | the listener's allegiance |
+
+The same goal is two situations for two listeners, which is the whole reason
+the table is keyed this way
+(`tests/test_delivery.py::TestTheSituations::test_the_same_moment_is_two_situations_for_two_listeners`).
+
+**Only the controls the probe found working are in the table.** The columns
+are not a plan; they are what the three voices honour.
+
+| Persona | Situation | `rate` | `pitch` | `sentence_break` | `goal_break` |
+| ------- | --------- | -----: | ------: | ---------------: | -----------: |
+| The Caller | scored | | | | |
+| The Caller | conceded | | | | |
+| The Caller | neutral | | | | |
+| The Storyteller | scored | | | not available | not available |
+| The Storyteller | conceded | | | not available | not available |
+| The Storyteller | neutral | | | not available | not available |
+| The Mate | scored | | | not available | not available |
+| The Mate | conceded | | | not available | not available |
+
+**Eight rows and not nine.** The Mate is `fans_only`, so there is no neutral
+Mate row to write: a partisan voice told to a listener with no side would be
+telling them they support a team they did not choose. Asking for that row
+raises, and the message says why rather than returning a default delivery that
+would sound like nothing was chosen
+(`tests/test_delivery.py::TestLookup::test_the_mates_neutral_row_says_why_it_does_not_exist`).
+
+**The two break columns are the Caller's alone**, because `<break>` moves its
+voice and neither of the other two. A pause written on the Storyteller or the
+Mate is refused rather than sent and ignored
+(`tests/test_delivery.py::TestOnlyTheCallerMayPause`). That rule reads
+`breaks_work` on the persona, which is where the measurement lives, beside the
+voice it is about.
+
+**Pitch has a floor of zero**, which is not a view about how low a voice
+should sit. A lowered pitch is ignored by the service, so writing one would be
+a value that looks like a decision and does nothing, and a value that does
+nothing is worse than no value at all
+(`tests/test_delivery.py::TestTheBounds::test_a_lowered_pitch_is_refused`). A
+persona meant to sit under another gets there by leaving its own pitch alone
+while the others rise.
+
+**The rate's bounds are IBM's**, not this app's: below -50 begins to cost
+pronunciation and above 100 sounds no different from 100. The Caller has a
+tighter ceiling than that, because comprehension comes first, and the number
+is owed rather than invented: it is words per minute measured off real audio,
+nothing has measured it, and `CALLER_RATE_CEILING` is `None` until something
+does
+(`tests/test_delivery.py::TestEveryValueIsStillAPlaceholder::test_the_callers_rate_ceiling_is_not_measured_yet`).
+
+**`None` is not zero.** `None` is the parameter not being sent; zero is
+sending it at its neutral value. They are different requests, so they are
+different values in the table
+(`tests/test_delivery.py::TestTheBounds::test_none_is_not_zero`).
+
+### The Mate is never cheerful when the other side scored
+
+This is the one rule in the table that is about taste rather than about what
+the service honours, and it is the one worth a test of its own. A voice that
+brightens over a goal against your team is a voice that was not listening with
+you.
+
+Brighter and quicker is what cheerful is made of in the only two controls
+there are, so the rule is written as a comparison between the Mate's own two
+rows rather than as a fixed number: the conceded row may not carry more pitch
+than the scored row, and may not carry more rate either
+(`tests/test_delivery.py::TestTheMateIsNeverCheerfulWhenTheOtherSideScored`).
+
+A comparison rather than a number is the only thing that can be stated while
+the table is empty, and it is also the right shape once it is full: it survives
+Shawn filling both rows in by ear in one sitting, whatever numbers he picks.
+
+The rule is "never brighter", not "always duller". A Mate that sounds the same
+either way is not cheerful about a goal against the listener's team; it is
+even, and that is allowed
+(`tests/test_delivery.py::TestTheMateIsNeverCheerfulWhenTheOtherSideScored::test_the_same_delivery_in_both_is_allowed`).
+
+It does not fire on the other two personas. Neither is partisan, so a brighter
+conceded row there is not a voice celebrating against its own listener. It may
+still be wrong by ear; it is not wrong by rule.
+
 ## How a word is said, which is not what it says
 
 `<phoneme>` is the one SSML element IBM supports on all three of these voices,

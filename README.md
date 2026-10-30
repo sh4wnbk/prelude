@@ -163,6 +163,14 @@ Everything above it is structure.
   marked unconfirmed, because Shawn sets them by ear. Three measured runs
   behind that decision are in `docs/narration_eval.md`. No screen offers a
   choice yet.
+- `app/delivery.py`: the delivery table, one row per persona per situation,
+  holding the rate, the pitch and the two pauses. Every value is a placeholder
+  for Shawn to set by ear; what runs is the shape and the rules, which refuse
+  a lowered pitch, a pause on a voice whose breaks do nothing, a rate outside
+  IBM's bounds, and a Mate that is cheerful when the other side scored. The
+  situation comes from the moment and the listener, never from a model.
+- `tests/test_delivery.py`: 40 tests over the situations, the eight rows, the
+  bounds and the Mate rule. All 40 pass.
 - `app/pronunciation.py`: the pronunciation table, word to IPA, with `lead` to
   `liːd` as its one entry. `for_speech` marks the listed words up as
   `<phoneme>` elements for the speech request, and nothing else in `app/` may

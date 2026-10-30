@@ -190,45 +190,46 @@ class TestTheVoices:
 
 
 class TestTheProsodyIsNotSetYet:
-    """The four numbers that separate the voices, and they are empty too.
+    """The delivery is not set, and the flag that says so lives here.
 
-    Shawn sets them by ear in Phase 5: a rate, a pitch, and the pauses that
-    let each sentence land. Comprehension comes first, so the Caller's energy
-    is pitch and emphasis with a rate only modestly above the Storyteller's,
-    and words per minute is measured from the real audio rather than guessed
-    at here.
+    The numbers themselves are in `app/delivery.py`, one row per persona per
+    situation, and `tests/test_delivery.py` holds them. What this file holds
+    is the claim a persona makes about its own delivery, which is
+    `prosody_confirmed`, and the fact that it still says "not chosen".
     """
 
-    def test_every_prosody_field_is_null(self):
-        assert [
-            p.id for p in PERSONAS if any(v is not None for v in p.prosody)
-        ] == []
+    def test_no_persona_carries_delivery_numbers(self):
+        """A rate on a persona would be a second home for one number.
+
+        The probe settled that a delivery is per request and that the same
+        voice does not deliver a goal for the listener's side and one against
+        it the same way, so the numbers are keyed by persona and situation in
+        `app/delivery.py`. A field here would drift from that table.
+        """
+        fields = {f.name for f in dataclasses.fields(PERSONAS[0])}
+        assert fields.isdisjoint(
+            {"rate", "pitch", "sentence_break", "goal_break"}
+        )
 
     def test_every_persona_is_marked_unconfirmed(self):
         assert [p.id for p in PERSONAS if p.prosody_confirmed] == []
 
-    def test_the_four_fields_are_the_prosody(self):
-        """`prosody` is the four, in the order they are set.
 
-        A caller asking whether a persona has a delivery yet asks once. If a
-        fifth field is added, this is what says it has to join the tuple.
+class TestWhichVoicesCanPause:
+    """`breaks_work` is a measurement about a voice, not a taste."""
+
+    def test_only_the_caller_can_pause(self):
+        """`scripts/tts_probe.py` measured a 600 ms break adding 1.36s on the
+        Caller's voice and returning byte for byte identical audio on the
+        other two, so this is the probe's finding written down where the voice
+        it is about is written down.
         """
-        for p in PERSONAS:
-            assert p.prosody == (
-                p.rate, p.pitch, p.sentence_break, p.goal_break
-            )
+        assert {p.id for p in PERSONAS if p.breaks_work} == {CALLER}
 
-    def test_an_empty_prosody_is_never_confirmed(self):
-        """The same broken state as a confirmed null voice, four fields over.
-
-        They are set in one sitting, because a rate heard without the breaks
-        around it is not a judgement anybody can make, so one flag covers the
-        four and a true flag means all four are set.
-        """
+    def test_no_voiceless_persona_claims_working_breaks(self):
+        """A break is a claim about a voice, so there has to be a voice."""
         assert [
-            p.id
-            for p in PERSONAS
-            if p.prosody_confirmed and any(v is None for v in p.prosody)
+            p.id for p in PERSONAS if p.breaks_work and not p.voice
         ] == []
 
 

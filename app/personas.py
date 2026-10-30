@@ -24,7 +24,7 @@ let each beat land, with a slightly longer one before the goal sentence. The
 numbers are set by ear in Phase 5, words per minute is measured from the real
 audio, and the measured ceiling goes into config.
 
-Each persona carries five things and four that are still empty:
+Each persona carries six things and one flag that is still false:
 
 | Field | What it is | Where it is read |
 | ----- | ---------- | ---------------- |
@@ -33,10 +33,8 @@ Each persona carries five things and four that are still empty:
 | `profile` | one line describing the voice to a fan | Task 7 |
 | `fans_only` | whether a neutral listener may pick it | Task 7 |
 | `voice` | the IBM Text to Speech voice | Shawn's pick, and it is set |
-| `rate` | the SSML speaking rate | Phase 5, and it is `None` |
-| `pitch` | the SSML pitch | Phase 5, and it is `None` |
-| `sentence_break` | the pause between sentences | Phase 5, and it is `None` |
-| `goal_break` | the pause before the goal sentence | Phase 5, and it is `None` |
+| `breaks_work` | whether `<break>` does anything on that voice | `app/delivery.py` |
+| `prosody_confirmed` | whether this persona's delivery is set | `app/delivery.py`, and it is false |
 
 **The ids come from the contract and are not spelled again here.** `CALLER`,
 `STORYTELLER` and `MATE` are declared in `app/orchestrator_contract.py`,
@@ -44,20 +42,19 @@ because the orchestrator picks a default persona and had to name them before
 this file existed. Importing them is what makes a typo here a failure at
 import rather than a persona nothing can select.
 
-**The voices are Shawn's and the prosody is not set.** The three voice ids
+**The voices are Shawn's and the delivery is not set.** The three voice ids
 below are the three he named, so `voice_confirmed` is true: the flag says the
 value was chosen by somebody entitled to choose it, not that this repo
-listened to it. The four prosody fields are still `None` with
-`prosody_confirmed` false, because a plausible number written down now would
-be a guess wearing the look of a decision.
+listened to it. `prosody_confirmed` is false on all three, because a plausible
+number written down now would be a guess wearing the look of a decision.
 
 **What a delivery can even be made of was measured first.** All three voices
 are IBM Natural voices, and `scripts/tts_probe.py` found that the `<prosody>`
 element is ignored on every one of them, which is what IBM documents for that
-family. `rate` and `pitch` here are therefore the `rate_percentage` and
-`pitch_percentage` request parameters rather than SSML attributes, pitch moves
-up but not down, and the two breaks exist on `en-AU_HeidiNatural` alone.
-`docs/VOICE.md` carries the numbers.
+family. So a delivery is the `rate_percentage` and `pitch_percentage` request
+parameters, pitch moves up but not down, and pauses exist on
+`en-AU_HeidiNatural` alone. `app/delivery.py` is the table and
+`docs/VOICE.md` carries the numbers behind it.
 
 **`profile` is app output.** It is a line a fan reads, so the rules
 `CLAUDE.md` puts on app output apply to it and
@@ -89,21 +86,25 @@ class Persona:
     `voice` is the IBM Text to Speech voice id, and it is set: the three are
     Shawn's picks.
 
-    `rate` and `pitch` are percentages, written as the strings that go into
-    the request. They are the `rate_percentage` and `pitch_percentage` request
-    parameters and not SSML attributes, because `scripts/tts_probe.py` found
-    `<prosody>` ignored on all three of these voices. One value each, not one
-    per sentence: both parameters are per request. `sentence_break` and
-    `goal_break` are pauses in milliseconds, so the one before the goal can be
-    read against the one between sentences rather than compared as text, and
-    they reach only a voice whose breaks work.
+    `breaks_work` says whether `<break>` does anything on that voice. It is a
+    measurement and not a taste: `scripts/tts_probe.py` found a 600 ms break
+    adding 1.36s on `en-AU_HeidiNatural` and returning byte for byte identical
+    audio on the other two. It lives here because it is a fact about the
+    voice, and `app/delivery.py` reads it to refuse a pause that would be sent
+    and ignored.
 
-    The four prosody fields are `None` until Shawn sets them by ear.
-    `voice_confirmed` covers the voice and `prosody_confirmed` covers the four,
-    which are set together in one sitting: a rate heard without the breaks
-    around it is not a judgement anybody can make. A flag that is false says
-    the fields beside it are not chosen rather than overlooked, and a flag that
-    is true says somebody entitled to choose them did.
+    **The delivery numbers are not here.** They are in `app/delivery.py`, one
+    row per persona per situation, because the probe settled that a delivery
+    is per request and that the same voice does not deliver a goal for the
+    listener's side and one against it the same way. A single rate on a
+    persona could not say that, and two homes for one number drift.
+
+    `voice_confirmed` covers the voice. `prosody_confirmed` covers this
+    persona's rows in the delivery table, which are set together in one
+    sitting: a rate heard without the breaks around it is not a judgement
+    anybody can make. A flag that is false says the values are not chosen
+    rather than overlooked, and a flag that is true says somebody entitled to
+    choose them did.
     """
 
     id: str
@@ -111,22 +112,9 @@ class Persona:
     profile: str
     fans_only: bool
     voice: str | None = None
-    rate: str | None = None
-    pitch: str | None = None
-    sentence_break: int | None = None
-    goal_break: int | None = None
+    breaks_work: bool = False
     voice_confirmed: bool = False
     prosody_confirmed: bool = False
-
-    @property
-    def prosody(self) -> tuple[str | None, str | None, int | None, int | None]:
-        """The four prosody fields, in the order they are set.
-
-        One accessor so a caller that wants to know whether this persona has
-        a delivery yet asks once rather than naming four fields, and so
-        `prosody_confirmed` has something to be about.
-        """
-        return (self.rate, self.pitch, self.sentence_break, self.goal_break)
 
 
 #: The quick one. Its energy is emphasis and pitch rather than speed: a rate
@@ -135,15 +123,16 @@ class Persona:
 #: one a ceiling.
 #:
 #: **It is the only one that can pause.** `<break>` works on this voice and on
-#: neither of the other two, which `scripts/tts_probe.py` measured, so the two
-#: break fields are this persona's alone and the other two carry `None` in
-#: them for good rather than until somebody sets them.
+#: neither of the other two, which `scripts/tts_probe.py` measured, so the
+#: pauses in `app/delivery.py` are this persona's alone and a break on either
+#: of the others is refused rather than sent and ignored.
 THE_CALLER = Persona(
     id=CALLER,
     name="The Caller",
     profile="Quick play-by-play, keeping up with the move.",
     fans_only=False,
     voice="en-AU_HeidiNatural",
+    breaks_work=True,
     voice_confirmed=True,
 )
 
