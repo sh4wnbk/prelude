@@ -1648,7 +1648,8 @@ actions, clocks and numbers against cited facts and "phoneme", "alphabet" and
 "ipa" are none of those. So that mistake would be accepted, labelled "Verified
 from play data" and read out with the markup in it, with nothing raising. The
 structural test that reads source is the only guard against it, which is now
-what the documents say.
+what the documents say. **Task 4 changed that:** the check refuses markup
+outright and the structural test is the second layer.
 
 **One housekeeping note.** `uv add` writes to `.venv`, not to the
 `.venv-prelude` that `CLAUDE.md` names, and it created a stray one. The
@@ -1662,9 +1663,47 @@ set at +10 does not settle how high anybody may set it. Regenerating the
 Caller and Storyteller samples, once Shawn has heard the Mate and knows
 whether the numbers are close. And a decision on where between -50 and -20
 `pitch_percentage` stops being honoured, if anything ever needs a lowered
-pitch. And Shawn's ear on all three pronunciation entries after November 1:
-"minute" and "close" have never been heard, and "lead" has been heard only
-without its entry.
+pitch. And Shawn's ear on the two unheard pronunciation entries after
+November 1, which is "minute" and "close"; this said all three and was
+corrected in task 4. "lead" has been heard with its entry, in Shawn's own
+test and in the hero samples, which carry it.
+
+### Phase 5, task 4: the grounding check refuses markup
+
+**The hole task 3 measured is closed.** `BANNED_PATTERNS` in
+`app/grounding.py` refuses any narration containing `<` or `>`, labelled
+"markup", beside the em dash rule. Narration here is plain prose: nothing the
+prompt or the template writes holds either character, so there is no good
+narration to lose by refusing both.
+
+**It is the characters and not the element.** Matching `<phoneme` would catch
+the one mistake anybody has made and nothing else, and a half-written tag is
+not a smaller problem than a whole one.
+`tests/test_grounding.py::TestNotGrounded::test_markup` and
+`::test_either_bracket_on_its_own` hold that.
+
+**The measurement that used to say the opposite now says this.**
+`tests/test_pronunciation.py::TestTheClockInARealNarration` ran the real 1986
+narration through `for_speech` and asserted both forms came back grounded on
+the same 35 claims. It now asserts the marked-up form is refused with
+"markup" and nothing else, and that the plain narration still passes on its
+35. The structural test that reads source is kept and is now described as the
+second layer: the check catches marked-up narration arriving at it, and
+`TestNothingElseAppliesIt` catches a module that could write markup into a
+header, which no check ever sees.
+
+**Four documents said the source test was the only guard** and now say what
+the check does: `docs/VOICE.md`, `README.md`, `docs/VERIFICATION.md` (a
+`banned` row for markup) and the `app/pronunciation.py` docstring. Two stale
+counts went with them: the README called `lead` the table's one entry, which
+task 3 made three, and `docs/VOICE.md` called it "the first and so far only".
+
+**The pronunciation record is corrected.** Shawn heard "lead" with its entry
+in his own test and in the hero samples, so it is settled; "minute" and
+"close" are the two nobody has heard, and they wait for November 1. Three
+places said or implied all three were waiting.
+
+`pytest -q` reports `660 passed` and the four gates pass.
 
 ## Data-check findings
 

@@ -22,22 +22,27 @@ Were it applied any earlier, the markup would travel with the text:
 | Reader | What it would see | Why that is wrong |
 | ------ | ----------------- | ----------------- |
 | the screen | `take the <phoneme ...>lead</phoneme>.` | a fan reading tags |
-| `app/grounding.py` | the same | markup in the checked text, carried into the label and into the audio, with nothing raising |
+| `app/grounding.py` | the same | a sound narration refused for markup it never wrote |
 | a model | the same | nothing says a pronunciation to a model |
 
-**The check is not a backstop for the second one, which was measured rather
-than assumed.** An earlier version of this docstring said a marked-up
-narration would be refused for an ungrounded name. It is not: both forms come
-back grounded on all 35 claims of the 1986 narration. The check reads names,
-actions, clocks and numbers against the facts a sentence cited, and `phoneme`,
-`alphabet` and `ipa` are none of those, so they pass through as words it has
-no claim about. A narration marked up before the check would be accepted,
-labelled "Verified from play data", and read out with the markup in it.
+**The check refuses markup now, and it did not when this was measured.**
+An earlier version of this docstring said a marked-up narration would be
+refused for an ungrounded name. It was not: both forms came back grounded on
+all 35 claims of the 1986 narration, because the check reads names, actions,
+clocks and numbers against the facts a sentence cited and `phoneme`,
+`alphabet` and `ipa` are none of those. So the markup was accepted, labelled
+"Verified from play data", and read out with the tags in it. `BANNED_PATTERNS`
+in `app/grounding.py` now refuses any narration holding `<` or `>`, labelled
+"markup", which nothing the prompt or the template writes ever holds.
 
-So no module in `app/` imports this one except the speech backend, and
+So the second row of the table is loud rather than silent: the narration is
+refused, and what is lost is a narration that was fine. The first and third
+rows are as quiet as they ever were, so no module in `app/` imports this one
+except the speech backend, and
 `tests/test_pronunciation.py::TestNothingElseAppliesIt` is what holds that. It
-reads source rather than behaviour because there is no behaviour to read: that
-test is the only thing between this mistake and a release.
+reads source rather than behaviour, and it is the second layer: the check
+catches markup arriving at it, this catches a module that could write markup
+into a header, where there is no check to arrive at.
 
 **It says the same words.** `spoken_text` strips the markup back off, and
 `for_speech` is only ever a pronunciation: a round trip returns the input
@@ -87,13 +92,14 @@ from typing import Mapping
 #: which is "{scorer} close the gap." That is the verb, so it is `kloʊz`, and
 #: a voice reading it as `kloʊs` would be saying the adjective.
 #:
-#: **Nobody has heard this one yet.** The other two entries are a listener's
-#: findings written down; this one is a reading of the header plus a
-#: dictionary, and it is in because the sentence it governs leaves no room for
-#: the other pronunciation. Shawn confirms it with the other two after
-#: November 1. If he finds the voices already say it correctly, the entry
-#: costs 44 characters on a transition neither hero goal uses, which is the
-#: cheapest way to be wrong available here.
+#: **Nobody has heard this one yet,** and nobody has heard `minute` with its
+#: entry either; Shawn confirms both after November 1. `lead` is settled: he
+#: heard it with the entry in his own test and again in the hero samples,
+#: which carry it. This one is a reading of the header plus a dictionary
+#: rather than a listener's finding, and it is in because the sentence it
+#: governs leaves no room for the other pronunciation. If the voices turn out
+#: to say it correctly, the entry costs 44 characters on a transition neither
+#: hero goal uses, which is the cheapest way to be wrong available here.
 PRONUNCIATIONS: Mapping[str, str] = {
     "lead": "liːd",
     "minute": "ˈmɪnɪt",

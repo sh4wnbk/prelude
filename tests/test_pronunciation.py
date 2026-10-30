@@ -4,10 +4,11 @@ Two halves. The first is the function: it marks up the listed words, it leaves
 everything else exactly as it found it, and it says the same words it was
 given. The second is the constraint that made the module worth writing
 separately, which is that nothing but the speech request may see its output.
-A `<phoneme>` element in the text the screen shows is a fan reading markup,
-and the same element in the text `app/grounding.py` reads is markup carried
-into the label and into the audio with nothing raising: the check does not
-catch it, which `TestTheClockInARealNarration` measures rather than assumes.
+A `<phoneme>` element in the text the screen shows is a fan reading markup.
+The same element in the text `app/grounding.py` reads was once markup carried
+into the label and into the audio with nothing raising; the check refuses it
+now, which `TestTheClockInARealNarration` measures rather than assumes, and
+the structural test stays as the second layer.
 
 Nothing here calls the speech service. The markup is text and is checked as
 text; whether IBM honours it is `scripts/tts_probe.py`'s question, and
@@ -229,30 +230,33 @@ class TestTheClockInARealNarration:
         assert "<phoneme" not in tagged_1986
         assert check(tagged_1986, facts_1986).grounded
 
-    def test_the_check_does_not_catch_markup_in_the_text_it_reads(
+    def test_the_check_refuses_markup_in_the_text_it_reads(
         self, tagged_1986, facts_1986
     ):
-        """The grounding check is not a backstop for this mistake, and that is
-        why the structural test is the guard.
+        """The grounding check refuses the markup, and the plain narration it
+        was made from still passes on the same claims.
 
-        Marking up the checked text was expected to break the check. It does
-        not: both forms come back grounded on all 35 claims. The check reads
-        names, actions, clocks and numbers against the facts a sentence cited,
-        and `phoneme`, `alphabet` and `ipa` are none of those, so they pass
-        through as words it has no claim about.
+        It did not always, and that is why the rule is the characters rather
+        than an element. Both forms came back grounded on all 35 claims when
+        this was first measured: the check reads names, actions, clocks and
+        numbers against the facts a sentence cited, and `phoneme`, `alphabet`
+        and `ipa` are none of those, so they passed through as words it had no
+        claim about. A narration marked up a step early was accepted, labelled
+        "Verified from play data", and read out with the markup in it.
 
-        So a narration marked up before the check would be accepted, labelled
-        "Verified from play data", and read out with the markup in it. Nothing
-        would fail. `TestNothingElseAppliesIt` is the only thing standing
-        between that and a release, which is the reason it reads source rather
-        than behaviour.
+        `BANNED_PATTERNS` now refuses any narration holding an angle bracket.
+        `TestNothingElseAppliesIt` stays as the second layer: this one catches
+        marked-up text arriving at the check, and that one catches a module
+        that could produce it.
         """
         marked = for_speech(tagged_1986)
         assert marked != tagged_1986
         plain_result = check(tagged_1986, facts_1986)
         marked_result = check(marked, facts_1986)
-        assert plain_result.grounded and marked_result.grounded
-        assert marked_result.checked == plain_result.checked
+        assert plain_result.grounded
+        assert plain_result.checked == 35
+        assert not marked_result.grounded
+        assert {failure.kind for failure in marked_result.failures} == {"markup"}
 
 
 class TestItMarksTheListedWords:
@@ -330,11 +334,13 @@ class TestItSaysTheSameWords:
 class TestNothingElseAppliesIt:
     """The one constraint: the markup reaches the speech request and no other.
 
-    This is a structural test rather than a behavioural one because the bug it
-    guards against is invisible behaviourally. Markup in the header still
-    reads correctly to anything that strips tags, and a narration marked up
-    before the check would be refused with a message about an ungrounded name,
-    which is the wrong thing to go looking at.
+    This is a structural test rather than a behavioural one, and it is the
+    second layer rather than the only one. The grounding check refuses an
+    angle bracket outright, so marked-up narration arriving there is caught;
+    what no behaviour can catch is markup in the header, which still reads
+    correctly to anything that strips tags and never passes through the
+    check. A module that imported the table is what produces either, and that
+    is what this reads for.
     """
 
     def test_no_text_producing_module_imports_it(self):

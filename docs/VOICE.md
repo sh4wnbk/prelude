@@ -776,8 +776,9 @@ still be wrong by ear; it is not wrong by rule.
 ## How a word is said, which is not what it says
 
 `<phoneme>` is the one SSML element that works on all three of these voices,
-and `app/pronunciation.py` is the table: word to IPA, with `lead` to `liːd` as
-the first and so far only entry.
+and `app/pronunciation.py` is the table: word to IPA, with three entries,
+`lead` to `liːd`, `minute` to `ˈmɪnɪt` and `close` to `kloʊz`. `lead` was the
+first, and it is the one Shawn has heard both ways.
 
 It is there because "lead" is two words in English. The metal is `lɛd` and the
 thing a team takes is `liːd`, and the header says "take the lead" on two of
@@ -875,8 +876,10 @@ against `K L OW1 Z`, and the app says it in exactly one place:
 `HEADER_WORDING[CLOSE_GAP]`, which is "{scorer} close the gap." That is the
 verb, so a voice reading it as the adjective would be saying a different word.
 It is the third entry in the table and the first that came from the dictionary
-rather than from a listener; nobody has heard it yet, and Shawn confirms it
-with the other two after the November 1 reset.
+rather than from a listener. Nobody has heard it, and nobody has heard
+"minute" either; Shawn confirms both after the November 1 reset. "lead" is
+not waiting on anything: he heard that one with its entry in his own test and
+again in the hero samples, which carry it.
 
 **Sixteen are reviewed and need nothing**, and the reasons are in
 `app/pronunciation.py` beside each one. They fall into two kinds, neither of
@@ -928,23 +931,34 @@ earlier is the easy mistake and a quiet one:
 | Reader | What it would see | Why that is wrong |
 | ------ | ----------------- | ----------------- |
 | the screen | `take the <phoneme ...>lead</phoneme>.` | a fan reading markup |
-| `app/grounding.py` | the same | markup in the checked text, carried into the label and into the audio, with nothing raising |
+| `app/grounding.py` | the same | a sound narration refused for markup it never wrote |
 | a model | the same | nothing says a pronunciation to a model |
 
-**Neither of the first two failures announces itself, and the second one is
-worse than this document first claimed.** It said a narration marked up before
-the check would come back refused for an ungrounded name, which would at least
-have been a failure. It was wrong, and
-`tests/test_pronunciation.py::TestTheClockInARealNarration::test_the_check_does_not_catch_markup_in_the_text_it_reads`
-is the measurement: the plain and the marked-up 1986 narration both come back
-grounded, on the same 35 claims. The check reads names, actions, clocks and
-numbers against the facts a sentence cited; `phoneme`, `alphabet` and `ipa`
-are none of those and pass through as words it has no claim about.
+**The second row was the quiet one and is now the loud one.** This document
+once said a narration marked up before the check would come back refused for
+an ungrounded name, which would at least have been a failure. That was wrong:
+the plain and the marked-up 1986 narration both came back grounded, on the
+same 35 claims, because the check reads names, actions, clocks and numbers
+against the facts a sentence cited and `phoneme`, `alphabet` and `ipa` are
+none of those. The markup was accepted, carried "Verified from play data" and
+would have been read out with the tags in it.
 
-So a narration marked up before the check would be accepted, would carry
-"Verified from play data", and would be read out with the markup in it, and
-nothing in the pipeline would raise. The guard is structural because there is
-nothing behavioural to guard with:
+**So the check refuses markup outright.** `BANNED_PATTERNS` in
+`app/grounding.py` refuses any narration containing `<` or `>`, labelled
+"markup", beside the em dash rule. It is the characters and not an element,
+because nothing the prompt or the template writes holds either one, so there
+is no good narration to lose and a half-written tag is caught with a whole
+one.
+`tests/test_pronunciation.py::TestTheClockInARealNarration::test_the_check_refuses_markup_in_the_text_it_reads`
+is the measurement: the marked-up 1986 narration is refused with "markup" and
+nothing else, and the plain narration it was made from still passes on its 35
+claims. `tests/test_grounding.py::TestNotGrounded::test_markup` and
+`::test_either_bracket_on_its_own` hold the rule itself.
+
+**The structural test stays as the second layer**, because the check is only
+reached by narration and the other two rows of the table never reach it. A
+marked-up header goes straight to the screen and still reads correctly to
+anything that strips tags.
 `tests/test_pronunciation.py::TestNothingElseAppliesIt::test_no_text_producing_module_imports_it`
 reads the source of the seven modules that produce displayed or checked text
 and fails if any of them imports the table, and

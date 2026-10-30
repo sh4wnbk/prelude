@@ -62,6 +62,7 @@ One test per kind of claim, and one per kind of mistake:
 | banned | a claim about the result, "won the match" | `tests/test_grounding.py::TestTense::test_won_the_match_is_refused` |
 | banned | a line addressed to the fan | `tests/test_grounding.py::TestEnding::test_a_closing_line_addressed_to_the_fan_is_refused` |
 | banned | an em dash | `tests/test_grounding.py::TestNotGrounded::test_an_em_dash` |
+| banned | markup, which is any angle bracket | `tests/test_grounding.py::TestNotGrounded::test_markup` |
 
 **The verdict is whole-narration.** `CLAUDE.md` gives no partial credit, so a
 narration passes or fails together; `app/grounding.py` returns every failing

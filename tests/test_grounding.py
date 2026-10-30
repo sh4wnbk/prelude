@@ -583,6 +583,33 @@ class TestNotGrounded:
         assert not result.grounded
         assert "em dash" in kinds(result)
 
+    def test_markup(self, facts_1986):
+        """A `<phoneme>` element belongs to the speech request, which is built
+        after this check. Narration carrying one was marked up a step early,
+        and every claim in it still checks out, so nothing else would catch
+        it: `tests/test_pronunciation.py` measures that on the real 1986
+        narration.
+        """
+        result = check(
+            '[24] <phoneme alphabet="ipa" ph="liːd">Maradona</phoneme> '
+            "scored for Argentina.",
+            facts_1986,
+        )
+        assert not result.grounded
+        assert "markup" in kinds(result)
+
+    def test_either_bracket_on_its_own(self, facts_1986):
+        """The rule is the characters and not the shape of an element, because
+        a half-written tag is not a smaller problem than a whole one.
+        """
+        for line in (
+            "[24] Maradona scored for Argentina <phoneme.",
+            "[24] Maradona scored for Argentina /phoneme>.",
+        ):
+            result = check(line, facts_1986)
+            assert not result.grounded, line
+            assert "markup" in kinds(result), line
+
     def test_narration_that_asserts_nothing_checkable(self, facts_1986):
         """Prose that names nobody and quotes no clock has nothing tracing back
         to the data, so there is nothing for the label to be true about. A pass

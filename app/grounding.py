@@ -50,7 +50,7 @@ confirm or refuse:
 | `ending` | a last sentence not citing the goal | never; the narration ends on the goal |
 | `untagged` | a sentence citing nothing | never; every sentence cites its facts |
 | `citation` | a number that is not a fact | never |
-| `banned` | a nickname, a verdict, an em dash | never; these are refused outright |
+| `banned` | a nickname, a verdict, a dash, markup | never; these are refused outright |
 | `first person` | "we", "our", "us" | never, unless the persona is partisan |
 | `side` | a partisan "we" | a cited fact is recorded against the listener's side |
 
@@ -261,6 +261,10 @@ BODY_PART_CLAIMS: Mapping[str, str] = {
 #: editorial epithets from app output, and narration is app output; it bans em
 #: dashes from copy. `scripts/scan_copy.py` enforces the same rule on the static
 #: screens, which is a different surface from generated text.
+#:
+#: The last entry is not a rule from `CLAUDE.md` but a fact about this
+#: pipeline: narration is plain prose here and markup only ever reaches it by
+#: mistake, so a bracket is refused on sight.
 BANNED_PATTERNS: Sequence[tuple[str, str]] = (
     ("verdict nickname", r"goal of the century"),
     ("verdict nickname", r"hand of god"),
@@ -319,6 +323,18 @@ BANNED_PATTERNS: Sequence[tuple[str, str]] = (
     ("address to the reader", r"\byours\b"),
     ("em dash", r"—"),
     ("en dash", r"–"),
+    # Markup, which is every angle bracket and not an element this check knows
+    # the shape of. `app/pronunciation.py` wraps a word in
+    # `<phoneme alphabet="ipa" ph="liːd">`, and it is applied where the speech
+    # request is built, after this check has run. A narration reaching here
+    # with a bracket in it has been marked up a step early, and that mistake
+    # used to pass: `phoneme`, `alphabet` and `ipa` are not names, actions,
+    # clocks or numbers, so the marked-up and the plain 1986 narration came
+    # back grounded on the same claims, and the marked-up one would have been
+    # labelled "Verified from play data" and read out with the tags in it.
+    # Nothing the prompt or the template writes holds either character, so
+    # there is nothing to lose by refusing both.
+    ("markup", r"[<>]"),
 )
 
 #: The first person plural, which belongs to one persona and no other.

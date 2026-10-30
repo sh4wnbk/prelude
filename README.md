@@ -149,7 +149,8 @@ Everything above it is structure.
   present-tense verb, in a passage that already happened; a narration that does
   not end on the goal's own shot; a wrong shot type or body part; verdict
   nicknames, editorial epithets, claims about the result, lines addressed to the
-  fan, em dashes; and narration that asserts nothing checkable. It takes the
+  fan, em dashes, any angle bracket; and narration that asserts nothing
+  checkable. It takes the
   persona and the listener's side, which change one thing: a partisan persona
   may say "we", "our" and "us" about that side, in a sentence citing a fact
   recorded against it, and no other voice may say them at all. The prompt asks
@@ -198,13 +199,16 @@ Everything above it is structure.
   moment and the listener, never from a model.
 - `tests/test_delivery.py`: 47 tests over the situations, the eight rows, the
   values in them, the bounds and the Mate rule. All 47 pass.
-- `app/pronunciation.py`: the pronunciation table, word to IPA, with `lead` to
-  `liːd` as its one entry, which is needed: Shawn heard "extend the lead"
-  read as "led" without it and "leed" with it. `for_speech` marks the listed words up as
-  `<phoneme>` elements for the speech request, and nothing else in `app/` may
-  import it: markup in the text a screen shows is a fan reading tags, and
-  markup in the text `app/grounding.py` reads survives the check and reaches
-  both the label and the audio, so a test reads source rather than behaviour.
+- `app/pronunciation.py`: the pronunciation table, word to IPA, with three
+  entries: `lead` to `liːd`, which is needed, since Shawn heard "extend the
+  lead" read as "led" without it and "leed" with it; `minute` to `ˈmɪnɪt`,
+  which all three voices read as "my-NEWT"; and `close` to `kloʊz`, which the
+  dictionary flagged and nobody has heard yet. `for_speech` marks the listed
+  words up as `<phoneme>` elements for the speech request, and nothing else in
+  `app/` may import it: markup in the text a screen shows is a fan reading
+  tags, and markup in the text `app/grounding.py` reads is a sound narration
+  refused for tags it never wrote. The check refuses any angle bracket, and a
+  test reads source as the second layer, for the header, which no check sees.
   Text holding no listed word is returned identically.
 - `tests/test_pronunciation.py`: 35 tests over the table, the markup, the
   round trip that proves a pronunciation never changes a word, the seven
@@ -231,7 +235,7 @@ Everything above it is structure.
   list, the prompt, the one narration style printed in it, the key beats of a
   passage and the fallback narration, which has to reach every one of those
   beats. All pass.
-- `tests/test_grounding.py`: 89 tests over the grounding check, one per way a
+- `tests/test_grounding.py`: 91 tests over the grounding check, one per way a
   narration can be wrong or can look wrong and be fine, including the
   misdescription it refuses by pairing a name with an action and the first
   person, which only the Mate may use and only over its own side's facts.
