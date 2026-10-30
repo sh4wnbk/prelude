@@ -17,6 +17,13 @@ that may apply the pronunciation table.
 | --- | ---------- |
 | the return value | the audio bytes the service sent, unexamined and unmodified |
 
+**A run is counted three ways and paid for in one of them.** IBM counts SSML
+toward the character count and does not count whitespace, so a request costs
+its submitted length less its spaces: `billed_characters` on `SpeechRequest`
+is that figure and is what a budget is set on. `billable_characters` is the
+submitted length, which bounds it above, and `spoken_characters` is the words
+with the markup taken off, which bounds it below.
+
 **The format is the caller's to pick**, through `accept`. `WAV_ACCEPT` is the
 default and is what the probe measured; `MP3_ACCEPT` is what the recordings
 the site ships are requested in, because a WAV of a twenty second narration is
@@ -171,12 +178,24 @@ class SpeechRequest:
 
     @property
     def billable_characters(self) -> int:
-        """The submitted length of the text, which is the conservative count.
+        """The submitted length of the text, markup and whitespace included.
 
-        IBM does not publish whether SSML markup is billable, so this counts
-        it. `spoken_characters` is the floor.
+        The ceiling of what a request can cost rather than what it does cost:
+        `billed_characters` is the figure IBM charges and sits below this.
         """
         return len(self.text)
+
+    @property
+    def billed_characters(self) -> int:
+        """What IBM charges for: the submitted text with the whitespace out.
+
+        IBM publishes this, and it was read from their documentation rather
+        than guessed: SSML counts toward the character count and whitespace
+        does not. So the markup is paid for and the spaces between the words
+        are not, which puts the real figure between `spoken_characters` and
+        `billable_characters` and is the one a budget belongs on.
+        """
+        return len("".join(self.text.split()))
 
     def as_recorded(self) -> dict:
         """The request as a golden fixture holds it."""
@@ -417,10 +436,20 @@ def without_markup(text: str) -> str:
 
 
 def spoken_characters(requests: Sequence[SpeechRequest]) -> int:
-    """The billable floor for a run: the text with its markup taken off.
+    """The floor for a run: the text with its markup taken off.
 
-    Paired with `billable_characters` on each request, which counts the markup
-    too. Both are printed before a paid run, because IBM does not publish
-    which of the two it charges for.
+    Not what a run costs. It is the words a listener hears, which is the
+    figure worth knowing beside the price: `billed_characters` is the price.
     """
     return sum(len(without_markup(request.text)) for request in requests)
+
+
+def billed_characters(requests: Sequence[SpeechRequest]) -> int:
+    """What a run costs: every request's submitted text without whitespace.
+
+    The number a budget is set on, because it is the one IBM charges. The
+    other two are printed beside it, since a count that is not the price is
+    still worth seeing: the submitted length bounds it above and the spoken
+    text bounds it below.
+    """
+    return sum(request.billed_characters for request in requests)

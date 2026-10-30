@@ -59,9 +59,10 @@ count and makes no call. Nothing is sent without `--confirm`. `--from-audio`
 re-measures what is already on disk and sends nothing, which is what a fix to
 a reading uses rather than paying twice for the same audio.
 
-**The cost is counted two ways.** IBM does not publish whether SSML markup is
-billable, so the plan prints the submitted length of every request, which is
-the conservative figure, and the spoken text alone, which is the floor.
+**The cost is counted two ways.** The plan prints the submitted length of
+every request, which bounds the price above, and the spoken text alone, which
+bounds it below. IBM bills the SSML and not the whitespace, which is
+`billed_characters` in `app/tts.py` and sits between the two.
 
 Credentials are read through `app/credentials.py`, which loads them from
 outside the repo. Nothing here prints a value, the service URL included: it
@@ -566,8 +567,8 @@ def plan(arms: Sequence[Arm]) -> tuple[int, int, int]:
     """Print every arm and what it will cost, and send nothing.
 
     Returns `(calls, submitted characters, spoken characters)`. The submitted
-    figure is the conservative one, because IBM does not publish whether SSML
-    markup is billable.
+    figure bounds the price above: IBM bills the SSML and not the whitespace,
+    which `billed_characters` in `app/tts.py` counts.
     """
     submitted = spoken = 0
     print("{} voices x {} arms, the same sentence in each".format(

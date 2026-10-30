@@ -51,6 +51,7 @@ from app.tts import (
     SpeechRequest,
     TextToSpeechError,
     WatsonTextToSpeech,
+    billed_characters,
     post_audio,
     provider,
     sentences,
@@ -430,7 +431,7 @@ class TestOnlyTheCallerGetsPauses:
 
 
 class TestTheCharacterCount:
-    """Counted two ways, because IBM does not publish which it charges for."""
+    """Counted three ways, and IBM charges for one of them."""
 
     def test_the_submitted_count_includes_the_markup(self):
         request = backend().request_for(HEADER, NARRATION, STORYTELLER, NEUTRAL)
@@ -446,6 +447,31 @@ class TestTheCharacterCount:
         request = backend().request_for(HEADER, NARRATION, STORYTELLER, NEUTRAL)
         assert request.billable_characters > len(
             without_markup(request.text)
+        )
+
+    def test_the_billed_count_pays_for_the_markup_and_not_the_spaces(self):
+        """IBM counts SSML toward the character count and not whitespace."""
+        request = backend().request_for(HEADER, NARRATION, STORYTELLER, NEUTRAL)
+        assert request.billed_characters == len(request.text) - sum(
+            character.isspace() for character in request.text
+        )
+        assert "<phoneme" in request.text
+
+    def test_the_billed_count_sits_between_the_other_two(self):
+        request = backend().request_for(HEADER, NARRATION, STORYTELLER, NEUTRAL)
+        assert (
+            len(without_markup(request.text))
+            < request.billed_characters
+            < request.billable_characters
+        )
+
+    def test_a_run_is_billed_request_by_request(self):
+        requests = [
+            backend().request_for(HEADER, NARRATION, persona_id, NEUTRAL)
+            for persona_id in (CALLER, STORYTELLER)
+        ]
+        assert billed_characters(requests) == sum(
+            request.billed_characters for request in requests
         )
 
 

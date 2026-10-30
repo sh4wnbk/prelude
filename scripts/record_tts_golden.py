@@ -27,8 +27,9 @@ the body and not the host, because `TTS_URL` holds an instance id, and its
 `send` and never leaves it.
 
 **It costs one call.** The text is short and fixed, and the plan prints its
-length two ways before anything is sent, because IBM does not publish whether
-SSML markup is billable. Nothing is sent without `--confirm`.
+length two ways before anything is sent: the submitted length and the spoken
+text alone, with what IBM bills between them. Nothing is sent without
+`--confirm`.
 
 Run it:
 

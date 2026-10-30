@@ -172,8 +172,8 @@ Everything above it is structure.
   carries its citation tags, applies the pronunciation table, and puts the
   pauses in only for a voice whose breaks work. Credentials come through
   `app/credentials.py` and a missing one is named before any request.
-- `tests/test_tts.py`: 53 tests over the backend, replaying a real recorded
-  exchange from `tests/golden/tts_synthesize.json`. All 53 pass, and none of
+- `tests/test_tts.py`: 56 tests over the backend, replaying a real recorded
+  exchange from `tests/golden/tts_synthesize.json`. All 56 pass, and none of
   them reaches the service.
 - `scripts/record_tts_golden.py`: records one real speech exchange for that
   replay. `--plan` prints the request and its character count and makes no
@@ -193,6 +193,15 @@ Everything above it is structure.
   `--plan` prints the character count and makes no call, `--budget` refuses a
   run above a character count, `--personas` reruns one voice's files without
   paying for the rest, and `--confirm` sends it.
+- `scripts/tts_hero.py`: the recordings the site serves, one per listener per
+  match, as MP3 under `app/web/assets/`, with `hero.audio` in
+  `app/web/matches.json` written from the files on disk. Same words as the
+  samples in a smaller format. `--plan` prints the character count three ways
+  and makes no call, `--budget` refuses a run above the billed count,
+  `--confirm` sends it, and `--map` rewrites the map alone. **No recording
+  exists yet:** the service answered HTTP 403 to every request on
+  2026-10-30, so `hero.audio` is still empty and the moment card's play
+  button stays disabled.
 - `app/delivery.py`: the delivery table, one row per persona per situation,
   holding the rate, the pitch and the two pauses. The values are Shawn's, set
   by ear, with the rules enforced around them: no lowered pitch, no pause on a

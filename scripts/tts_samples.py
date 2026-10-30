@@ -21,9 +21,11 @@ the one response: what matters is that **there is nothing to hear between the
 two sides yet**, and writing two separately paid-for identical files would
 hide that. The plan says which names share a request and why.
 
-**The character count is printed before anything is sent**, two ways, because
-IBM does not publish whether SSML markup is billable: the submitted length of
-every request and the spoken text alone. Nothing is sent without `--confirm`.
+**The character count is printed before anything is sent**, two ways: the
+submitted length of every request and the spoken text alone. IBM bills
+neither exactly; it counts the SSML and not the whitespace, which is
+`billed_characters` in `app/tts.py` and sits between these two. Nothing is
+sent without `--confirm`.
 
 **The audio is written outside the repo.** It is not the repo's to hold, and
 `data/raw/` and the credentials are out there for the same reason.

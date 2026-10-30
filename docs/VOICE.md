@@ -920,9 +920,11 @@ can stop a word reaching his ear unnoticed.
 
 **No synthesis was spent on this entry.** October's allowance is near its
 limit, and the element itself is already proven on all three voices by the
-`lɛd` arm. Shawn confirms "minute" by ear after the allowance resets on
-November 1; until then what stands behind it is his hearing of the problem and
-the dictionary's agreement that the spelling is ambiguous.
+`lɛd` arm. Shawn confirms "minute" by ear from the hero recordings, which
+open on "Minute 54" and "Minute 35"; until then what stands behind it is his
+hearing of the problem and the dictionary's agreement that the spelling is
+ambiguous. Those recordings do not exist yet: the service answered 403 on
+2026-10-30, which `HANDOFF.md` records under "Phase 5, task 5".
 
 **The markup reaches the speech request and nothing else.** This is the whole
 of the design, and the reason to say it twice is that applying it one step
@@ -1084,6 +1086,25 @@ were not regenerated: 1,196 characters bought the comparison that had none,
 and the other four would have been another 1,196 to hear a rate of 0 and a
 rate of +10 with short pauses. They are worth a rerun once Shawn has heard the
 Mate and knows whether the numbers are close.
+
+## The hero recordings the site serves
+
+`scripts/tts_hero.py` writes the recordings the moment card plays: three per
+match, one per listener, as MP3 under `app/web/assets/`, with `hero.audio` in
+`app/web/matches.json` filled from the files on disk. Same words as the
+samples above, same delivery table, same pronunciation markup; the format is
+smaller because these are committed and served rather than listened to once.
+
+**None of them exists yet.** The run on 2026-10-30 was refused with HTTP 403
+on its first call, and a five character request in both formats was refused
+the same way, so it is the account and not the request. `HANDOFF.md` holds the
+evidence, the three character counts and what each recording will say under
+"Phase 5, task 5".
+
+**A run costs 1,818 characters**, which is the figure IBM bills: it counts the
+SSML and not the whitespace, so the price is the submitted 2,070 less its
+spaces, above the 1,530 spoken. `billed_characters` in `app/tts.py` is that
+number and `--budget` is set on it.
 
 ## It ends on the goal, and there is no closer
 

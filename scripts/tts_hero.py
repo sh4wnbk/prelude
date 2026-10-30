@@ -17,10 +17,12 @@ The samples are WAV and live outside the repo, for judging the voices. These
 are MP3 and are committed, because the site serves them: a WAV of a twenty
 second narration is an order of magnitude larger than the MP3 of it.
 
-**The character count is printed before anything is sent**, two ways, because
-IBM does not publish whether SSML markup is billable: the submitted length of
-every request and the spoken text alone. Nothing is sent without `--confirm`,
-and a run over `--budget` is refused.
+**The character count is printed before anything is sent**, three ways, and
+`--budget` is set on the one IBM charges for. IBM counts SSML toward the
+character count and does not count whitespace, so a request costs its
+submitted length less its spaces: `billed_characters` in `app/tts.py` is that
+figure, with the submitted length above it and the spoken text below it.
+Nothing is sent without `--confirm`, and a run over the budget is refused.
 
 **A refusal keeps what it already wrote.** The free allowance is a monthly
 character count, so a run can be refused part way through. Each file is
@@ -55,14 +57,21 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 # The pronunciation table holds IPA and this script prints the text it built.
 # A Windows console is cp1252 by default, which cannot encode "liːd".
-if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+#
+# Both streams, and stderr is not an afterthought: the service's own refusal
+# comes back as a JSON body that this prints to stderr, and a body holding one
+# character cp1252 cannot encode would fail inside the error handler. The
+# bodies seen so far are ASCII, so this is a guard rather than a fix.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
 
 from app.statsbomb_event_feed import StatsBombEventFeed  # noqa: E402
 from app.tts import (  # noqa: E402
     MP3_ACCEPT,
     SpeechRequest,
     WatsonTextToSpeech,
+    billed_characters,
     without_markup,
 )
 from tts_samples import narration_for  # noqa: E402
@@ -156,8 +165,11 @@ def recordings(backend: WatsonTextToSpeech) -> tuple[Recording, ...]:
     return tuple(built)
 
 
-def plan(all_recordings: Sequence[Recording]) -> tuple[int, int]:
-    """Print every recording and what the run costs. Returns the two totals."""
+def plan(all_recordings: Sequence[Recording]) -> tuple[int, int, int]:
+    """Print every recording and what the run costs. Returns the three totals.
+
+    The middle one is the price; the other two bound it.
+    """
     print("{} recordings, {} calls".format(
         len(all_recordings), len(all_recordings)
     ))
@@ -168,18 +180,24 @@ def plan(all_recordings: Sequence[Recording]) -> tuple[int, int]:
     for index, one in enumerate(all_recordings, start=1):
         print("  call {}: {}".format(index, one.request.query))
         print("    {}".format(one.request.text))
-        print("    {} submitted, {} spoken".format(
+        print("    {} submitted, {} billed, {} spoken".format(
             one.request.billable_characters,
+            one.request.billed_characters,
             len(without_markup(one.request.text)),
         ))
     submitted = sum(one.request.billable_characters for one in all_recordings)
+    billed = billed_characters([one.request for one in all_recordings])
     spoken = sum(
         len(without_markup(one.request.text)) for one in all_recordings
     )
     print()
-    print("  {} characters submitted, markup counted".format(submitted))
+    print("  {} characters submitted, markup and whitespace counted".format(
+        submitted
+    ))
+    print("  {} characters billed, markup counted and whitespace not: this "
+          "is the price".format(billed))
     print("  {} characters spoken, markup not counted".format(spoken))
-    return submitted, spoken
+    return submitted, billed, spoken
 
 
 def run(backend: WatsonTextToSpeech,
@@ -246,7 +264,7 @@ def main(argv: Sequence[str]) -> int:
         "--budget",
         type=int,
         default=2000,
-        help="refuse to send if the submitted count is above this",
+        help="refuse to send if the billed count is above this",
     )
     args = parser.parse_args(argv)
 
@@ -257,21 +275,20 @@ def main(argv: Sequence[str]) -> int:
 
     backend = WatsonTextToSpeech(accept=MP3_ACCEPT)
     all_recordings = recordings(backend)
-    submitted, _ = plan(all_recordings)
+    _submitted, billed, _spoken = plan(all_recordings)
     if args.plan or not args.confirm:
         print()
         print("nothing was sent. --confirm is what sends it.")
         return 0
-    if submitted > args.budget:
+    if billed > args.budget:
         print()
-        print("{} characters is over the budget of {}; nothing was sent".format(
-            submitted, args.budget
-        ), file=sys.stderr)
+        print("{} billed characters is over the budget of {}; nothing was "
+              "sent".format(billed, args.budget), file=sys.stderr)
         return 1
 
     print()
-    print("sending {} calls, {} characters:".format(
-        len(all_recordings), submitted
+    print("sending {} calls, {} billed characters:".format(
+        len(all_recordings), billed
     ))
     try:
         written = run(backend, all_recordings)

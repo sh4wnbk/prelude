@@ -115,14 +115,17 @@ that many.
 sent without `--confirm`, `--arms` sends a named subset, and `--from-audio`
 re-measures the files already on disk without sending anything, which is what a
 correction to a reading uses rather than paying twice for the same audio. The
-character count is printed two ways, because IBM does not publish whether SSML
-markup is billable: every request's submitted length, which is the conservative
-figure, and the spoken text alone.
+character count is printed two ways: every request's submitted length, which
+bounds the price above, and the spoken text alone, which bounds it below.
 
 `scripts/tts_samples.py` and `scripts/tts_hero.py` are the other two, and
 both take the same shape: `--plan` prints every file, the request behind it
-and the character count both ways and sends nothing, `--confirm` is what
-sends, and `--budget` refuses a run above a character count. `tts_hero.py`
+and the character count and sends nothing, `--confirm` is what sends, and
+`--budget` refuses a run above a character count. `tts_hero.py` prints the
+count three ways and budgets on the middle one, which is what IBM charges: it
+counts the SSML toward the character count and does not count whitespace, so a
+request costs its submitted length less its spaces. `billed_characters` in
+`app/tts.py` is that figure. `tts_hero.py`
 writes each file as its response arrives and takes its map from the files on
 disk, so a run the service refuses part way through leaves a map pointing only
 at recordings that exist.
@@ -157,7 +160,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 677 tests in nineteen files, and all 677 pass, so any failure
+The suite is 680 tests in nineteen files, and all 680 pass, so any failure
 means something is wrong. It is run from the repo root:
 
 ```

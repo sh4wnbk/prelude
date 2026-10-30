@@ -1705,6 +1705,122 @@ places said or implied all three were waiting.
 
 `pytest -q` reports `660 passed` and the four gates pass.
 
+### Phase 5, task 5: the hero recordings, built and refused
+
+**The script and the words are finished; there is no audio.** Watson Text to
+Speech answered `HTTP 403 Forbidden` to the first call of the run on
+2026-10-30, so nothing was written, `hero.audio` is still `{}`, and steps 3
+and 4 of the task (the Chromium check and Shawn's listening pass) cannot
+happen yet. The body it sent back:
+
+```
+{"code":403,"error":"Forbidden",
+ "more_info":"https://cloud.ibm.com/docs/watson?topic=watson-forbidden-error",
+ "trace":"c8d0be4c-f414-49c1-85be-cc866ffbb8ce"}
+```
+
+**The 403 is not the format and not the length.** One five character request
+was sent twice, once asking for WAV and once for MP3, and both came back 403
+(traces `91c1e3a4-8494-4529-a3cd-38de6a27c518` and
+`628c2cb9-316b-486e-a45c-11ee22a43347`). So the account refuses every
+synthesis request, which rules out the MP3 Accept header this task added and
+rules out the size of the run. What it does not establish is the reason: the
+body carries none, nothing in this repo can read the usage counter, and the
+credentials file is intact by name. That is Shawn's to look at in IBM Cloud,
+and it is the next first action above.
+
+**What IBM bills is now known, and it is none of the numbers printed before.**
+Shawn checked IBM's documentation: SSML counts toward the character count and
+whitespace does not. So a request costs its submitted length less its spaces,
+which is `billed_characters` on `SpeechRequest` in `app/tts.py`, and it sits
+between the two figures this repo had been printing. Every budget from here is
+set on it. The three counts for the run, from `--plan`:
+
+| Count | Characters | What it is |
+| ----- | ---------: | ---------- |
+| submitted | 2,070 | the text as sent, markup and spaces counted |
+| billed | 1,818 | the price: markup counted, whitespace not |
+| spoken | 1,530 | the words a listener hears |
+
+The brief's ceiling was 2,000. On the submitted count the run was 70 over and
+`--budget` refused it; on the billed count it is 182 under, which is why it
+was sent. Five documents and docstrings that said IBM does not publish which
+count it charges for now say what it charges for.
+
+**Three recordings per match, and every one of them speaks the template.** No
+model ran. The header is the orchestrator's, with no listener name in it,
+through `openings` in `scripts/write_headers.py`; the narration is
+`template_narration` in `app/narration_prompt.py`, the fallback assembled out
+of the numbered facts, through `narration_for` in `scripts/tts_samples.py`.
+The same words as the eight hero samples, in MP3 rather than WAV because
+these are committed and served.
+
+The 1986 text, 363 submitted and 318 billed, is the header
+
+> Argentina extend the lead. Argentina 2, England 0. Here's how it happened.
+
+and the narration
+
+> Minute 54. Peter Beardsley was dribbled past. Terry Butcher was dribbled
+> past. Terry Fenwick was dribbled past. Peter Shilton was dribbled past.
+> Diego Armando Maradona shot and scored for Argentina.
+
+The 2022 text, 327 submitted and 288 billed, is the header
+
+> Argentina extend the lead. Argentina 2, France 0. Here's how it happened.
+
+and the narration
+
+> Minute 35. Lionel Andrés Messi Cuccittini passed. Julián Álvarez passed.
+> Alexis Mac Allister passed. Ángel Fabián Di María Hernández shot and scored
+> for Argentina.
+
+Both carry the pronunciation markup on "lead" and on "minute", which is the
+point of the listening pass: "Minute 54" and "Minute 35" are the first thing
+each recording says after the header, and nobody has yet heard the `minute`
+entry.
+
+**The six files, for Shawn to listen to when they exist.** None of these is on
+disk yet. Each is `app/web/assets/audio/<match_id>_<key>.mp3`, and the key is
+the `hero.voice_for` value the browser looks up, so the name says which fan
+hears it.
+
+| File | Voice | Listener | Listen for |
+| ---- | ----- | -------- | ---------- |
+| `3750191_mate_scored.mp3` | Ethan, +10 rate, +10 pitch | with Argentina | "Minute 54" |
+| `3750191_mate_conceded.mp3` | Ethan, -10 rate, 0 pitch | with England | "Minute 54", and that it is not cheerful |
+| `3750191_storyteller_neutral.mp3` | Emma, 0 rate | no side | "Minute 54" |
+| `3869685_mate_scored.mp3` | Ethan, +10 rate, +10 pitch | with Argentina | "Minute 35" |
+| `3869685_mate_conceded.mp3` | Ethan, -10 rate, 0 pitch | with France | "Minute 35", and that it is not cheerful |
+| `3869685_storyteller_neutral.mp3` | Emma, 0 rate | no side | "Minute 35" |
+
+**The map is written from the files on disk, not from the plan.** A monthly
+allowance can refuse a run part way through, so `scripts/tts_hero.py` writes
+each file as its response arrives and `--map` then fills `hero.audio` with
+whatever is actually there. A partial run therefore leaves a map pointing only
+at real files, which is what
+`tests/test_narration_player.py::TestTheAudioMap`
+holds it to, once per match, and the listeners with no recording keep a disabled button rather
+than a broken one.
+
+**One hour lost to a refusal that looked like a silent crash, and it was
+neither.** The first `--confirm` exited 1 with the last line on screen being
+`sending 6 calls`, and the second, captured to a file, looked the same from
+the tail. The error handler had worked both times: stderr is unbuffered and
+redirected stdout is block-buffered, so the refusal was sitting at the *head*
+of the captured file, above output printed before it. Read the whole file, or
+redirect the two streams separately. A guess that it was an encoding fault in
+the handler was wrong, and the comment it put in `scripts/tts_hero.py` has
+been corrected; `sys.stderr` is reconfigured for UTF-8 there anyway, as a
+guard on a body this one did not need.
+
+**What is owed, and it is step 1 of the task over again.** Once the service
+answers: run `--confirm`, commit the six files, commit `hero.audio`, drive all
+three listeners on both matches in Chromium to see the timer and the waveform
+move, and hand Shawn the table above. Nothing else in the task is outstanding.
+
+`pytest -q` reports `680 passed` and all five gates pass.
+
 ## Data-check findings
 
 Match `3750191`, Argentina 2-1 England, quarter-final, 1986-06-22. 2,748 events.
@@ -2706,7 +2822,27 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (TTS reset on November 1, then the hero recordings)
+## Next first action (the hero recordings, once the service answers)
+
+**The six recordings are not generated: Watson Text to Speech answered HTTP
+403 to every request on 2026-10-30.** Everything around them is built, the
+words and the price are known, and `hero.audio` in `app/web/matches.json` is
+still `{}`, so the moment card's play button stays disabled for all three
+listeners. See "Phase 5, task 5" below for the run, the evidence and what is
+owed.
+
+**Shawn: check the Text to Speech instance in IBM Cloud.** Nothing in this
+repo can read the usage counter, and the 403 body carries no reason, so
+whether this is the Lite plan's monthly characters, a disabled key or a
+deleted instance is a question for the console. The credentials file is
+intact: `app/credentials.py` reports `C:\Users\shawn\.prelude\.env defines
+TTS_API_KEY, TTS_URL, TTS_VOICE, WATSONX_API_KEY, WATSONX_PROJECT_ID,
+WATSONX_URL`, by name and no value. Once it answers, the whole of task 5 is
+one command:
+
+```
+.\.venv-prelude\Scripts\python.exe -I scripts\tts_hero.py --confirm
+```
 
 **Bob task 11 is built, checked and fixed.** `35708cd` built the player to the
 brief, but in Chromium with a silent test file under one key the play button
