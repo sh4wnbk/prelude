@@ -175,6 +175,15 @@ Everything above it is structure.
 - `scripts/record_tts_golden.py`: records one real speech exchange for that
   replay. `--plan` prints the request and its character count and makes no
   call; `--confirm` sends it.
+- `scripts/check_vocabulary.py`: collects every word the app can speak, from
+  the header wording, the event verbs, the narration template, the team names
+  in `app/web/matches.json` and the recorded narrations in `tests/golden/`, and
+  reports the ones the CMU Pronouncing Dictionary lists more than one
+  pronunciation for. Exits non-zero when a flagged word has not been reviewed;
+  `tests/test_vocabulary.py` is the same condition in the suite. No network:
+  the dictionary is a dev dependency and ships its own data.
+- `tests/test_vocabulary.py`: 22 tests over the collector, the two review
+  lists and the three heteronyms in the table. All 22 pass.
 - `scripts/tts_samples.py`: both hero goals in every voice, with the Mate from
   both sides, written outside the repo for Shawn to listen to. The words are
   the orchestrator's header and the code-built narration, so no model runs.

@@ -847,7 +847,73 @@ ambiguous and no amount of context resolves it, which is exactly what the
 
 That is the pattern worth noticing. Both entries so far are heteronyms, both
 were caught by a person listening after the fact, and both were predictable
-from a dictionary before anybody listened.
+from a dictionary before anybody listened. Which is what the check below is.
+
+### Looking the vocabulary up instead of waiting to hear it
+
+`scripts/check_vocabulary.py` collects every word the app can speak and reads
+it against the CMU Pronouncing Dictionary. A spelling with more than one
+listed pronunciation is a word that may come out wrong, so it is reviewed
+once: it either gains an entry in `app/pronunciation.py` or goes on
+`CHECKED_NO_ENTRY_NEEDED` there with the reason it needs none.
+
+None of the vocabulary is typed out in the checker, which is what keeps it
+honest as the app grows:
+
+| Source | What it contributes |
+| ------ | ------------------- |
+| `HEADER_WORDING`, `SCORE_LINE`, `HEADER_TAIL` | the header, every transition |
+| `EVENT_VERBS` | how each event type is said |
+| `template_narration`'s own words | "Minute", "shot and scored for" |
+| `app/web/matches.json` | the team names |
+| `tests/golden/` | the words in the recorded narrations |
+
+On this commit that is 54 words, of which the dictionary flags 19.
+
+**One of the nineteen was a real find.** "close" is a heteronym, `K L OW1 S`
+against `K L OW1 Z`, and the app says it in exactly one place:
+`HEADER_WORDING[CLOSE_GAP]`, which is "{scorer} close the gap." That is the
+verb, so a voice reading it as the adjective would be saying a different word.
+It is the third entry in the table and the first that came from the dictionary
+rather than from a listener; nobody has heard it yet, and Shawn confirms it
+with the other two after the November 1 reset.
+
+**Sixteen are reviewed and need nothing**, and the reasons are in
+`app/pronunciation.py` beside each one. They fall into two kinds, neither of
+which is a risk:
+
+| Kind | Words | Why it does not matter |
+| ---- | ----- | ---------------------- |
+| full against reduced forms | a, an, and, as, for, in, it, the, was | every speaker alternates by position in a sentence, and forcing one would make the delivery worse: "thee gap" is wrong in a way "the gap" never is |
+| unstressed vowels and accents | carried, ended, intercepted, received, recovered, victory, won | the syllable that differs is the one nobody hears |
+
+**A reason rather than a bare list.** A word on the reviewed list with its
+reason is a review somebody can disagree with. A word on a bare list is a word
+somebody silenced, and there would be no way to tell the two apart later.
+
+**One word is not in the dictionary at all**: "miscontrolled", which is
+`EVENT_VERBS["Miscontrol"]` and is a coinage of StatsBomb's. It is reported as
+unchecked rather than flagged, because a dictionary that does not list a word
+has said nothing about it either way.
+
+**The test is the half that runs every time.** The script prints a report
+somebody reads;
+`tests/test_vocabulary.py::TestEveryFlaggedWordHasBeenReviewed::test_no_flagged_word_is_unreviewed`
+fails when a flagged word is on neither list, naming the word, its
+pronunciations and where it is spoken. Change a header wording, add an event
+verb or add a match with a new team name, and the word is either already
+reviewed or the suite goes red. That was checked by removing "the" from the
+reviewed list and watching it fail.
+
+**The dictionary is never fetched.** `cmudict` is a dev dependency and ships
+the data inside the package, so the check runs offline and so does the suite:
+`tests/conftest.py` blocks the network for every test, which a dictionary
+downloaded at test time would have tripped.
+
+**It is a dictionary lookup and not a verdict about audio.** A flag means two
+pronunciations exist for a spelling, which is a reason to listen rather than
+evidence that a voice gets it wrong. The check cannot replace Shawn's ear; it
+can stop a word reaching his ear unnoticed.
 
 **No synthesis was spent on this entry.** October's allowance is near its
 limit, and the element itself is already proven on all three voices by the

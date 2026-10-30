@@ -15,7 +15,7 @@ screens are `docs/DESIGN.md`.
 | Python | 3.13 | `.python-version`, and `requires-python` in `pyproject.toml` |
 | Virtualenv | `.venv-prelude`, managed with `uv` | `CLAUDE.md` |
 | Runtime dependency | `segno` | `pyproject.toml` |
-| Dev dependencies | `pytest`, `pillow`, `zxing-cpp` | `pyproject.toml` |
+| Dev dependencies | `pytest`, `pillow`, `zxing-cpp`, `cmudict` | `pyproject.toml` |
 
 Python is run as `.\.venv-prelude\Scripts\python.exe`, which is what `CLAUDE.md`
 requires and what every script's own docstring shows.
@@ -65,7 +65,12 @@ script to run. So the first command in a new clone is
 
 ## Entry points
 
-Thirteen scripts, each runnable on its own. None of them is imported by anything.
+Fourteen scripts, each runnable on its own. Two are imported, both for the
+same reason: `scripts/tts_samples.py` takes the hero header from
+`scripts/write_headers.py`, which already builds the moment and calls the
+orchestrator for it, and `tests/test_vocabulary.py` takes the collector from
+`scripts/check_vocabulary.py`. In both cases the alternative was a second
+place for the same construction to be wrong.
 
 | Script | What it does | What it writes | What it reaches |
 | ------ | ------------ | -------------- | --------------- |
@@ -82,6 +87,7 @@ Thirteen scripts, each runnable on its own. None of them is imported by anything
 | `scripts/tts_probe.py` | measures which delivery controls change the audio on each candidate voice | WAV files outside the repo, and readings with `--json` | Watson Text to Speech |
 | `scripts/record_tts_golden.py` | records one real speech exchange for the suite to replay | `tests/golden/tts_synthesize.json` | Watson Text to Speech |
 | `scripts/tts_samples.py` | both hero goals in every voice, for Shawn to listen to | WAV files outside the repo | Watson Text to Speech |
+| `scripts/check_vocabulary.py` | every word the app can speak, against the CMU dictionary | nothing | nothing |
 
 The three gates exit non-zero on any finding, which is what lets them gate a
 commit; each says so in its own docstring.
@@ -141,7 +147,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 636 tests in seventeen files, and all 636 pass, so any failure
+The suite is 658 tests in eighteen files, and all 658 pass, so any failure
 means something is wrong. It is run from the repo root:
 
 ```
@@ -170,6 +176,7 @@ No path setting is needed: `pyproject.toml` sets `pythonpath = ["."]` and
 | `tests/test_pronunciation.py` | the pronunciation table, the markup it builds, the round trip that proves it says the same words, and the seven modules forbidden to import it |
 | `tests/test_delivery.py` | the delivery table: the three situations, the eight rows, the bounds each control is held to, and the Mate never being cheerful when the other side scored |
 | `tests/test_tts.py` | the speech backend: the recorded exchange it replays, the request it builds, the pauses, the character counts, and that nothing secret is in a request object |
+| `tests/test_vocabulary.py` | every word the app can speak against the CMU dictionary, and that no flagged word is unreviewed |
 
 ### Two guards, on every test
 

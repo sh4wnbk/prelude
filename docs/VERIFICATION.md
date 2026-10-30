@@ -8,9 +8,9 @@ The rule the whole of it serves is in `CLAUDE.md`: report executed evidence,
 meaning the command run and its real output, not a claim that something works.
 `docs/HARNESS.md` is how to run these things; this is what they decide.
 
-## Five surfaces, five checkers
+## Six surfaces, six checkers
 
-Claims live in five places in this repo, and each has something that reads it
+Claims live in six places in this repo, and each has something that reads it
 back against the data or the code.
 
 | What is claimed | Where the claim sits | What checks it |
@@ -20,8 +20,9 @@ back against the data or the code.
 | no banned copy, and the grounding label only over narration | the screens | `scripts/scan_copy.py` |
 | the docs describe code that exists | `README.md`, `HANDOFF.md`, `docs/` | `scripts/check_docs.py` |
 | the shot and goal counts in the data report | `docs/data_check.md` | `scripts/data_check.py`, which generates it |
+| every word the app speaks has one pronunciation, or a reviewed reason | `app/pronunciation.py` | `scripts/check_vocabulary.py`, and `tests/test_vocabulary.py` in the suite |
 
-A sixth is narrower and worth naming: `scripts/make_tickets.py` writes a QR code
+A seventh is narrower and worth naming: `scripts/make_tickets.py` writes a QR code
 and then reads it back off the PNG with a real decoder, comparing byte for byte,
 because writing an image is not evidence that it holds the payload. It exits
 non-zero on a mismatch or a code that will not decode.

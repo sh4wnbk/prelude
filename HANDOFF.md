@@ -1601,13 +1601,70 @@ regenerated the four Mate files once the table was filled in, four calls and
 the first run and carry no delivery. `docs/VOICE.md` lists all eight with
 their lengths.
 
+### Phase 5, task 3: "minute", and looking words up instead of hearing them
+
+**All three voices read "Minute 54." as "my-NEWT".** The app means the unit of
+time and only ever means it: the word comes from `template_narration`, which
+opens a narration on the clock, so it is the first sentence of most of what a
+fan hears. `minute` to `ˈmɪnɪt` is the second entry. No synthesis was spent on
+it, since October's allowance is near its limit and the element is already
+proven by the `lɛd` arm; Shawn confirms it by ear after November 1.
+
+**The voices were not misreading it.** The CMU Pronouncing Dictionary lists
+`M AY0 N UW1 T` beside `M IH1 N AH0 T` for that spelling. Both entries so far
+are heteronyms, both were caught by a person listening after the audio was
+paid for, and both were predictable from a dictionary before anybody listened.
+
+**So the vocabulary is now looked up in advance.**
+`scripts/check_vocabulary.py` collects every word the app can speak, from the
+header wording, the event verbs, the narration template, the team names in
+`app/web/matches.json` and the recorded narrations in `tests/golden/`, and
+reports any spelling the dictionary lists more than one pronunciation for. 54
+words on this commit, 19 flagged.
+`tests/test_vocabulary.py::TestEveryFlaggedWordHasBeenReviewed::test_no_flagged_word_is_unreviewed`
+fails on a flagged word that is neither in `PRONUNCIATIONS` nor on
+`CHECKED_NO_ENTRY_NEEDED`, so new vocabulary cannot reach a voice unreviewed.
+That was checked by removing "the" from the reviewed list and watching it go
+red.
+
+**It found one thing worth finding.** "close" is a heteronym, and the header
+says "close the gap" on one transition, where it is the verb. It is the third
+entry and the first that came from the dictionary rather than from a listener,
+so nobody has heard it: Shawn confirms it with the other two after the reset.
+Sixteen of the nineteen need nothing and carry their reasons in
+`app/pronunciation.py`; they are full against reduced forms of function words
+and unstressed vowels in verbs. One word, "miscontrolled", is not in the
+dictionary at all and is reported as unchecked rather than flagged.
+
+**The dictionary is a dev dependency and is never fetched.** `cmudict` ships
+its data in the package, which is what lets the suite run it with the network
+blocked.
+
+**A claim in three documents was wrong and is corrected.** They said a
+narration marked up before the grounding check would be refused for an
+ungrounded name. It is not: the plain and the marked-up 1986 narration both
+come back grounded on the same 35 claims, because the check reads names,
+actions, clocks and numbers against cited facts and "phoneme", "alphabet" and
+"ipa" are none of those. So that mistake would be accepted, labelled "Verified
+from play data" and read out with the markup in it, with nothing raising. The
+structural test that reads source is the only guard against it, which is now
+what the documents say.
+
+**One housekeeping note.** `uv add` writes to `.venv`, not to the
+`.venv-prelude` that `CLAUDE.md` names, and it created a stray one. The
+dependency was installed with `UV_PROJECT_ENVIRONMENT=.venv-prelude uv sync`
+and the stray directory was removed. Worth remembering for the next
+dependency.
+
 **What is owed.** The Caller's rate ceiling, which is words per minute off
 real audio and is `None` until something measures it: the Caller's rate being
 set at +10 does not settle how high anybody may set it. Regenerating the
 Caller and Storyteller samples, once Shawn has heard the Mate and knows
 whether the numbers are close. And a decision on where between -50 and -20
 `pitch_percentage` stops being honoured, if anything ever needs a lowered
-pitch.
+pitch. And Shawn's ear on all three pronunciation entries after November 1:
+"minute" and "close" have never been heard, and "lead" has been heard only
+without its entry.
 
 ## Data-check findings
 

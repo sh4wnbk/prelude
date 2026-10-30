@@ -80,9 +80,70 @@ from typing import Mapping
 #: which writes the clock. The CMU Pronouncing Dictionary lists
 #: `M AY0 N UW1 T` beside `M IH1 N AH0 T` for it, so the voices were picking a
 #: real pronunciation of the written word rather than misreading it.
+#: `close` is the third, and the first that came from the dictionary rather
+#: than from a listener. `scripts/check_vocabulary.py` flagged it as a
+#: heteronym, `K L OW1 S` against `K L OW1 Z`, and the app says it in exactly
+#: one place: `HEADER_WORDING[CLOSE_GAP]` in `app/orchestrator_contract.py`,
+#: which is "{scorer} close the gap." That is the verb, so it is `kloʊz`, and
+#: a voice reading it as `kloʊs` would be saying the adjective.
+#:
+#: **Nobody has heard this one yet.** The other two entries are a listener's
+#: findings written down; this one is a reading of the header plus a
+#: dictionary, and it is in because the sentence it governs leaves no room for
+#: the other pronunciation. Shawn confirms it with the other two after
+#: November 1. If he finds the voices already say it correctly, the entry
+#: costs 44 characters on a transition neither hero goal uses, which is the
+#: cheapest way to be wrong available here.
 PRONUNCIATIONS: Mapping[str, str] = {
     "lead": "liːd",
     "minute": "ˈmɪnɪt",
+    "close": "kloʊz",
+}
+
+#: Words the dictionary flags that were looked at and need no entry, each with
+#: the reason. `scripts/check_vocabulary.py` reads every word the app can
+#: speak against the CMU Pronouncing Dictionary and flags any spelling with
+#: more than one listed pronunciation;
+#: `tests/test_vocabulary.py::TestEveryFlaggedWordHasBeenReviewed` fails on a
+#: flagged word that is neither here nor in `PRONUNCIATIONS`, so new
+#: vocabulary cannot reach a voice unreviewed.
+#:
+#: **A reason rather than a bare list**, because the two kinds of flag are not
+#: alike. Most are reduction or accent variants of one word, where either
+#: pronunciation is the same word and a listener would not notice. A few are
+#: heteronyms, where the two pronunciations are different words, and those are
+#: the ones that end up in `PRONUNCIATIONS`. A word sitting here with its
+#: reason is a review somebody can disagree with; a word sitting on a bare
+#: list is a word somebody silenced.
+CHECKED_NO_ENTRY_NEEDED: Mapping[str, str] = {
+    # Function words, flagged because a full and a reduced form are both
+    # listed. Every English speaker alternates between them by position in a
+    # sentence, and a voice choosing either is saying the same word. Forcing
+    # one would make the delivery worse, not better: "thee gap" is wrong in a
+    # way "the gap" never is.
+    "a": "full and reduced forms of one word, AH0 and EY1",
+    "an": "full and reduced forms of one word",
+    "and": "full and reduced forms of one word",
+    "as": "AE1 Z and EH1 Z are accent variants of one word",
+    "for": "full and reduced forms, F AO1 R down to F ER0",
+    "in": "a stress variant only, IH0 N and IH1 N",
+    "it": "a stress variant only, IH1 T and IH0 T",
+    "the": "thuh and thee, which a speaker picks by what follows",
+    "was": "W AA1 Z and W AH0 Z are accent variants of one word",
+    # Verbs from EVENT_VERBS, flagged on unstressed vowels. The syllable that
+    # differs is the one nobody hears: "received" as R AH0 or R IH0 or R IY0
+    # is the same word said by three people from three places.
+    "carried": "the vowel before r, which the voices merge either way",
+    "intercepted": "unstressed vowels, and one listed form drops the first t",
+    "received": "the unstressed first syllable only",
+    "recovered": "the unstressed first syllable only",
+    "won": "W AH1 N and W AA1 N are accent variants of one word",
+    # From the recorded Ollama exchange, which is a smoke-test answer rather
+    # than a narration: "The football match ended in a thrilling 2-1 victory
+    # for the home team." Collected because it is text this app recorded a
+    # model saying, and reviewed on the same footing as everything else.
+    "ended": "the unstressed second syllable only",
+    "victory": "three syllables or two, and both are the word",
 }
 
 #: IBM supports `<phoneme>` on every voice, with IPA as one of its two
