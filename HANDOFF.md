@@ -1480,6 +1480,59 @@ opens.
 spec sheet. The two files in the gitignored `voice_test/` are an earlier
 audition of the same pair.
 
+### Phase 5, task 1, step 1: the delivery probe
+
+**The plan this task started from would not have worked, and reading the docs
+is what caught it.** It set each persona's rate and pitch with `<prosody>`
+tags. IBM's SSML reference says "The `<prosody>` element is not supported for
+Natural voices", and all three candidate voices are Natural voices. The same
+page says the service silently ignores unsupported SSML, so the tags would
+have been accepted, the audio would have come back, and every persona would
+have sounded the same.
+
+`scripts/tts_probe.py` measured what does work. Six arms a voice, 18 calls,
+642 submitted characters against a 3,000 budget, and the audio is in
+`C:\Users\shawn\prelude_voice\probe` for Shawn to compare by ear.
+
+| Control | Heidi | Emma | Ethan |
+| ------- | ----- | ---- | ----- |
+| `rate_percentage`, both ways | works | works | works |
+| `pitch_percentage`, upward | works | works | works |
+| `pitch_percentage`, downward | ignored | ignored | ignored |
+| `<break time="600ms"/>` | works | ignored | ignored |
+| `<prosody>` rate or pitch | ignored | ignored | ignored |
+
+`docs/VOICE.md` carries the durations and the pitches. Three findings behind
+that table shaped everything after it:
+
+**"Ignored" was measured, not inferred.** Those responses are byte for byte
+identical to the plain one, same SHA-256. A control that does nothing and a
+control too subtle to hear are indistinguishable by any other measure, which
+is why the probe hashes the audio.
+
+**The break works on one voice of three,** and on that one a 600 ms break
+added 1.36s. IBM labels `<break>` beta for Natural voices with timing that may
+vary, and that is what varying looks like. Pauses are a Caller-only control.
+
+**Pitch moves up and not down.** +20 works on all three voices and -20 is
+ignored on all three, measured twice in two separate runs. It is not that
+negatives are refused: an earlier arm at -50 halved Heidi's pitch exactly,
+222.2 Hz to 111.1 Hz, the -12.00 semitones IBM documents. Where between -50
+and -20 it stops being honoured is not known here, and nothing depends on
+knowing.
+
+**Two measurement notes, both corrected before anything was written down.**
+The WAV header's length field is a streaming placeholder, `0xFFFFFFFF` for
+both the RIFF size and the data chunk, so `wave.getnframes()` reported
+89478.49 seconds for every file on every voice and every delta came out zero.
+The duration now comes from the bytes that arrived. And duration cannot see a
+pitch change at all, so the probe estimates f0 by autocorrelation; it agrees
+with the service's own arithmetic, 3.16 semitones predicted for a 20 percent
+rise against 3.16, 2.67 and 3.16 measured.
+
+`--from-audio` re-measures the files already on disk and sends nothing, which
+is how both corrections were made without paying for the audio twice.
+
 ## Data-check findings
 
 Match `3750191`, Argentina 2-1 England, quarter-final, 1986-06-22. 2,748 events.

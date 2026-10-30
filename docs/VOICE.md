@@ -552,6 +552,73 @@ harmful. That is the whole of what three attempts showed: the grounding rules
 leave no room for a writing style, so the style text and the examples came out
 and the personas became voices.
 
+## What the three voices can actually be told to do
+
+The personas are separated by sound, so the first question of Phase 5 is which
+controls the service will take. It is not a question a spec sheet answers:
+IBM's own documentation says the `<prosody>` element is not supported for
+Natural voices and that the service **silently ignores** unsupported SSML, so a
+delivery table written against it would be a page of numbers that change
+nothing, and the request would be well formed and the response would be audio.
+Nothing would fail.
+
+`scripts/tts_probe.py` is what measured it instead. Six arms per voice, the
+same sentence in each, 18 calls and 642 submitted characters. The numbers below
+are its output.
+
+| Control | en-AU_HeidiNatural | en-US_EmmaNatural | en-US_EthanNatural |
+| ------- | ------------------ | ----------------- | ------------------ |
+| `rate_percentage`, both ways | works | works | works |
+| `pitch_percentage`, upward | works | works | works |
+| `pitch_percentage`, downward | ignored | ignored | ignored |
+| `<break time="600ms"/>` | works | ignored | ignored |
+| `<prosody rate>` | ignored | ignored | ignored |
+| `<prosody pitch>` | ignored | ignored | ignored |
+
+"Ignored" is not a reading below a threshold. Those responses came back **byte
+for byte identical** to the plain request, same SHA-256: the same voice, asked
+for something different, returned the same file. That is the only evidence that
+settles the question, because a control that does nothing and a control that
+does something too small to hear look alike in any other measure.
+
+**Duration cannot see a pitch change, so the probe measures f0 as well.** A
+pitch shift leaves the length of the audio exactly where it was. The estimate
+is an autocorrelation over the voiced frames, and it checks out against the
+service's own arithmetic: a 20 percent rise predicts 3.16 semitones and the
+three voices measured 3.16, 2.67 and 3.16.
+
+| Voice | plain | `rate_percentage` -20 | +20 | `pitch_percentage` +20 | `<break>` 600ms |
+| ----- | ----: | --------------------: | --: | ---------------------: | --------------: |
+| en-AU_HeidiNatural | 2.16s, 222.2 Hz | 2.46s | 1.91s | 266.8 Hz | 3.52s |
+| en-US_EmmaNatural | 2.30s, 214.3 Hz | 2.62s | 1.85s | 250.0 Hz | no change |
+| en-US_EthanNatural | 2.30s, 166.7 Hz | 2.85s | 1.87s | 200.0 Hz | no change |
+
+Three things in that table are worth saying out loud, because each one costs
+the delivery something.
+
+**The break works on one voice of the three.** IBM labels `<break>` beta for
+Natural voices and says the timing may vary. On Heidi a 600 ms break added
+1.36s, so "may vary" is doing real work; on Emma and Ethan it changed nothing
+at all. A pause between sentences and a longer one before the goal are
+therefore available to the Caller and to nobody else.
+
+**Pitch moves up and not down.** `pitch_percentage` of +20 works on all three
+voices and -20 is ignored on all three, which was measured twice in two
+separate runs. It is not simply that negatives are refused: an earlier arm at
+-50 halved Heidi's pitch exactly, 222.2 Hz to 111.1 Hz, which is the -12.00
+semitones IBM documents. Somewhere between -50 and -20 the parameter stops
+being honoured, and this repo does not know where. So a persona that wants to
+sit lower than another cannot be set there by lowering it; what it can do is
+leave it alone while the others rise.
+
+**The two parameters are per request, not per sentence.** They go in the
+address rather than in the text, which is why they cost no billable
+characters, and it is also why one narration gets one rate and one pitch. A
+rate that changed at the goal would be two requests and two files.
+
+**Nothing above is a delivery.** It is the list of what a delivery may be
+written in. The values are Shawn's, by ear.
+
 ## It ends on the goal, and there is no closer
 
 The narration's last sentence is about the goal, and nothing follows it. No

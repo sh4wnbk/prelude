@@ -204,31 +204,49 @@ garbage output
 `docs/VOICE.md` records what two live runs of it produced, and
 `scripts/narrate_once.py` is how to run another.
 
+### Watson Text to Speech, so far only as a probe
+
+Phase 5. Narration is still text and nothing in the repo speaks it, which
+`README.md` and `docs/narration.md` both say. What exists is one script that
+calls the service to find out what it will take.
+
+`scripts/tts_probe.py` synthesizes one fixed sentence per arm on three
+candidate voices and measures the audio that comes back. It takes no
+narration, no persona and no match, and it writes WAV files outside the repo.
+
+| What | Value |
+| ---- | ----- |
+| Service | IBM Watson Text to Speech |
+| Endpoint | `POST /v1/synthesize`, from IBM's published API |
+| Auth | basic, with the literal user name `apikey`, which is IBM's documented example for this service |
+| Format asked for | `audio/wav`, and all three voices answered 24000 Hz, 1 channel, 16 bit |
+| Variables read | `TTS_API_KEY`, `TTS_URL`, through `app/credentials.py` |
+| Candidate voices | `en-AU_HeidiNatural`, `en-US_EmmaNatural`, `en-US_EthanNatural` |
+
+**What the probe found is in `docs/VOICE.md`**, with the numbers. In short:
+`<prosody>` is ignored on all three voices, which is what IBM documents for
+Natural voices; `rate_percentage` works on all three; `pitch_percentage` works
+upward and is ignored at -20; and `<break>` works on `en-AU_HeidiNatural`
+alone.
+
+**No test covers the probe,** and that is the same decision as the three gates:
+it is a measuring instrument whose evidence is its own output, and a test
+standing in for the service would be testing the stand-in. `tests/conftest.py`
+blocks the network in every test, so nothing in the suite can reach the
+service by accident.
+
+**`TTS_VOICE` is still read by no code.** `.env.example` carries it as the
+working default from before the probe, and the three voices above are named in
+`scripts/tts_probe.py` rather than configured.
+
+**The final voice pick is Shawn's, by ear, and is not to be settled from a spec
+sheet.** `HANDOFF.md` records that, and that the two files in the gitignored
+`voice_test/` are an earlier audition of a different pair.
+
 ## Planned
 
 Nothing in this section is in the repo. No code here reads any of it, and no
 test covers it.
-
-### Watson Text to Speech
-
-Phase 5. Narration is text today and nothing speaks it, which `README.md` and
-`docs/narration.md` both say.
-
-| What | Value | Where it is recorded |
-| ---- | ----- | -------------------- |
-| Service | IBM Watson Text to Speech | `HANDOFF.md` |
-| Instance | the Dallas instance in the team's IBM Cloud account | `HANDOFF.md` |
-| Variables | `TTS_API_KEY`, `TTS_URL`, `TTS_VOICE` | `.env.example` |
-| Working default voice | `en-GB_GeorgeExpressive` | `.env.example`, `HANDOFF.md` |
-| Alternative voice | `en-GB_GeorgeNatural` | `.env.example`, `HANDOFF.md` |
-
-The three variables are in `.env.example` and are read by no code in this repo,
-which `.env.example` itself says. The values came from Shawn rather than from
-the credentials file, which nothing here opens.
-
-**The final voice pick is Shawn's, by ear, and is not to be settled from a spec
-sheet.** `HANDOFF.md` records that, and that the two files in the gitignored
-`voice_test/` are an earlier audition of the same pair.
 
 ### watsonx Orchestrate
 
@@ -240,6 +258,7 @@ the file and the test behind each statement, and this entry goes away.
 
 - That the watsonx backend has been run. It has not; see above.
 - That the model comparison has a result. It has not been run.
-- That any audio exists. None does.
+- That a narration has been spoken. None has. The audio that exists is one
+  fixed probe sentence, outside the repo, and nothing in the app can reach it.
 - That `granite4:micro` narrates well. `docs/VOICE.md` carries what it actually
   produced, including a run where every model attempt was refused.

@@ -100,6 +100,12 @@ Everything above it is structure.
   estimated tokens and makes no call; `--confirm` has to name the same arms as
   `--arms`; `--max-tokens` stops the run between narrations. It is the only
   script in the repo that can spend money.
+- `scripts/tts_probe.py`: measures which delivery controls change the audio on
+  each of the three candidate IBM voices, by synthesizing one fixed sentence
+  per arm and reading the duration, the pitch and the bytes back. `--plan`
+  prints the character count and makes no call; `--confirm` sends it;
+  `--from-audio` re-measures what is already on disk. It writes WAV files
+  outside the repo. What it found is in [`docs/VOICE.md`](docs/VOICE.md).
 - `scripts/narration_eval.py`: narrates goals several times, in one persona or
   all of them, and measures what came back: the first-attempt and after-retry
   pass rates, coverage of the passage's key beats, words per sentence, tokens
