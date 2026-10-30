@@ -629,11 +629,16 @@ rate that changed at the goal would be two requests and two files.
 **Nothing above is a delivery.** It is the list of what a delivery may be
 written in. The values are Shawn's, by ear.
 
-**One arm of the probe is worth copying the next time.** Asking a control for
-what the voice already does cannot tell "honoured" from "ignored": both give
-identical audio. The pronunciation arm fell into exactly that, and the fix was
-to ask for something plainly wrong and watch the audio change. Any future
-control gets measured that way.
+**One arm of the probe is worth copying the next time, and one is worth not
+repeating.** Asking a control for what the voice already does cannot tell
+"honoured" from "ignored": both give identical audio. The pronunciation arm
+fell into exactly that, and the fix was to ask for something plainly wrong and
+watch the audio change. Any future control gets measured that way.
+
+The second mistake was reading one sentence as a verdict on a word, which
+nearly cost the pronunciation table its only entry. The probe speaks a fixed
+sentence; the app speaks a different one. A control measured here is measured
+on that fixed sentence, and that is all it is measured on.
 
 ## The delivery table: persona by situation
 
@@ -742,31 +747,52 @@ still be wrong by ear; it is not wrong by rule.
 and `app/pronunciation.py` is the table: word to IPA, with `lead` to `liːd` as
 the first and so far only entry.
 
-**That it works took two measurements, and the first one was worthless.**
-Asking for `liːd` returned audio byte for byte identical to the same sentence
-with no element at all, on all three voices, which reads exactly like the
-`<prosody>` result and means nothing of the kind. An element asking for the
-pronunciation a voice already uses produces identical audio whether it was
-honoured or thrown away, so the arm could not tell the two apart.
+It is there because "lead" is two words in English. The metal is `lɛd` and the
+thing a team takes is `liːd`, and the header says "take the lead" on two of
+the five transitions in `app/orchestrator_contract.py` and "extend the lead"
+on a third. That is a word the app says out loud on most goals.
+
+**That the element works took two measurements, and the first one was
+worthless.** Asking for `liːd` returned audio byte for byte identical to the
+same sentence with no element at all, on all three voices, which reads exactly
+like the `<prosody>` result and means nothing of the kind. An element asking
+for the pronunciation a voice already uses produces identical audio whether it
+was honoured or thrown away, so the arm could not tell the two apart.
 
 The arm that could is the one asking for the wrong pronunciation: `lɛd`, the
 metal. That changed the audio on all three voices, 96538 bytes to 94138 on
 Heidi, 77938 to 82738 on Emma and 93538 to 101938 on Ethan. The element is
 honoured.
 
-It also means something about the entry in the table: **these three voices
-already say "lead" the right way in this sentence.** That is what identical
-audio for a `liːd` request proves, now that the element is known to work. The
-table's one entry therefore costs around 44 billable characters and changes
-nothing audible today. It is kept because the mechanism is proven and the
-table is where the next word goes, but Shawn can drop the entry and lose
-nothing measurable, and it is worth knowing that before the character budget
-gets tight.
+### The entry is needed, and the probe is not what shows it
 
-It is there because "lead" is two words in English. The metal is `lɛd` and the
-thing a team takes is `liːd`, and the header says "take the lead" on two of
-the five transitions in `app/orchestrator_contract.py` and "extend the lead"
-on a third. That is a word the app says out loud on most goals.
+**The sentence the probe measured is not the sentence the app says.** The
+pronunciation arms spoke "Argentina take the lead.", and the identical audio
+for a `liːd` request on that sentence means the three voices say *that*
+sentence correctly unaided. It says nothing about any other sentence, and the
+header both hero goals actually carry is "Argentina **extend** the lead."
+
+Shawn listened to that one, which is the measurement that counts here:
+
+| Sentence | Without the entry | With the entry |
+| -------- | ----------------- | -------------- |
+| "Argentina extend the lead." | "led" | "leed" |
+
+So the entry is doing real work on the shipped path, and a context one word
+away from the probe's is enough to change which word the voice picks.
+
+**An earlier version of this section had it backwards.** It read the probe's
+identical audio as proof that the entry changes nothing audible and said Shawn
+could drop it and lose nothing. That was a conclusion about "take the lead"
+written as though it were a conclusion about "lead", and the sentence the app
+ships says "extend". The entry stays, and nothing is spent re-proving it: a
+listener heard the difference, which is the evidence this question takes.
+
+**It is also the general lesson twice over.** The first mistake was asking a
+control for what the voice already did; the second was measuring one sentence
+and generalising to a word. A pronunciation is a property of a word in a
+context, so the next entry gets judged on the sentence the app will actually
+say.
 
 **The markup reaches the speech request and nothing else.** This is the whole
 of the design, and the reason to say it twice is that applying it one step

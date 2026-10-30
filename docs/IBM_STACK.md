@@ -248,7 +248,8 @@ recording and says so.
 Natural voices; `rate_percentage` works on all three; `pitch_percentage` works
 upward and is ignored at -20; `<break>` works on `en-AU_HeidiNatural` alone;
 and `<phoneme>` works on all three, which took a second arm to establish
-because the first one asked for a pronunciation the voices already used.
+because the first one asked for the pronunciation the voices already used in
+that one sentence.
 
 **No test covers the probe,** and that is the same decision as the three gates:
 it is a measuring instrument whose evidence is its own output, and a test

@@ -3,8 +3,16 @@
 One table, word to IPA, and one function that marks those words up for the
 speech service. It exists because "lead" is two words in English: the metal is
 `lɛd` and the thing a team takes is `liːd`. The header says "take the lead" on
-two of the five transitions in `app/orchestrator_contract.py`, so this is not
-a hypothetical.
+two of the five transitions in `app/orchestrator_contract.py` and "extend the
+lead" on a third, so this is not a hypothetical.
+
+**And it is not hypothetical in the other direction either: the entry is
+needed.** Both hero headers say "Argentina extend the lead", and Shawn heard
+that read as "led" without the entry and "leed" with it. `docs/VOICE.md`
+records that, and records the measurement that got it wrong first: the probe
+spoke "Argentina take the lead", which these voices say correctly unaided, and
+reading that as a verdict on the word rather than on the sentence is how the
+entry nearly came out. A pronunciation is a property of a word in a context.
 
 **It reaches the speech request and nothing else.** That is the whole design
 constraint, and it is worth spelling out because the alternative is so easy to
@@ -53,7 +61,8 @@ from typing import Mapping
 #:
 #: `lead` is the first entry and the reason this file exists: `liːd`, the lead
 #: a team takes, not `lɛd`, the metal. The header says "take the lead" and
-#: "extend the lead".
+#: "extend the lead", and it is the second of those that needs this: Shawn
+#: heard "extend the lead" read as "led" without the entry.
 PRONUNCIATIONS: Mapping[str, str] = {
     "lead": "liːd",
 }

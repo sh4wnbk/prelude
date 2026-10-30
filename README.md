@@ -189,7 +189,8 @@ Everything above it is structure.
 - `tests/test_delivery.py`: 40 tests over the situations, the eight rows, the
   bounds and the Mate rule. All 40 pass.
 - `app/pronunciation.py`: the pronunciation table, word to IPA, with `lead` to
-  `liːd` as its one entry. `for_speech` marks the listed words up as
+  `liːd` as its one entry, which is needed: Shawn heard "extend the lead"
+  read as "led" without it and "leed" with it. `for_speech` marks the listed words up as
   `<phoneme>` elements for the speech request, and nothing else in `app/` may
   import it: markup in the text a screen shows is a fan reading tags, and
   markup in the text `app/grounding.py` reads is a narration refused for being

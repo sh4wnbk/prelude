@@ -1561,9 +1561,21 @@ for `liːd` returned byte-identical audio, which reads exactly like the
 `<prosody>` result and means nothing of the kind: an element asking a voice
 for what it already does cannot be told from one thrown away. Asking for
 `lɛd`, the metal, changed the audio on all three voices, so the element is
-honoured. Which also settles the entry: **these voices already say "lead"
-correctly**, so the table's one row costs about 44 billable characters and
-changes nothing audible today. Shawn can drop it and lose nothing measurable.
+honoured.
+
+**The entry is needed, and a wrong conclusion about it was corrected in task
+2.** This file said the identical `liːd` audio proved the voices already say
+"lead" correctly, so the entry cost 44 characters and changed nothing audible.
+That was a conclusion about one sentence dressed up as a conclusion about a
+word. The probe spoke "Argentina take the lead.", and both hero headers say
+"Argentina **extend** the lead." Shawn listened to that one: "led" without the
+entry, "leed" with it. So the entry is doing real work on the shipped path,
+and nothing was spent re-proving it, because a listener hearing the difference
+is the evidence this question takes.
+
+Two mistakes in one measurement, and both are worth not repeating: asking a
+control for what the voice already does, and measuring one sentence to settle
+a word. A pronunciation is a property of a word in a context.
 
 **The suite replays a real exchange and makes no call.**
 `tests/golden/tts_synthesize.json` cost 83 submitted characters to record. It
