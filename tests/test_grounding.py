@@ -49,6 +49,7 @@ MATCH_2022 = 3869685
 
 GOAL_1986 = (54, 18)
 PENALTY_2022 = (22, 24)
+HERO_2022 = (35, 22)
 
 # The facts of the 54:18 buildup this file cites, read out of data/raw/. The
 # whole list is 24 facts, one per recorded event; these are the ones the tests
@@ -78,6 +79,25 @@ FACTS_2022 = """
   98. Ousmane Dembélé (France) committed a foul, 20:53
   99. Ángel Fabián Di María Hernández (Argentina) won a foul, 20:53
  100. Lionel Andrés Messi Cuccittini (Argentina) shot, 22:24
+"""
+
+# The 35:22 buildup, the 2022 hero goal, whole: thirteen facts and five
+# recorded players. Task 7 asks a narration to name all five, so the tests for
+# that shape cite every number here.
+FACTS_HERO_2022 = """
+   1. Nahuel Molina Lucero (Argentina) passed, 35:12
+   2. Alexis Mac Allister (Argentina) received the ball, 35:14
+   3. Alexis Mac Allister (Argentina) passed, 35:14
+   4. Lionel Andrés Messi Cuccittini (Argentina) received the ball, 35:15
+   5. Lionel Andrés Messi Cuccittini (Argentina) carried the ball, 35:15
+   6. Lionel Andrés Messi Cuccittini (Argentina) passed, 35:15
+   7. Julián Álvarez (Argentina) received the ball, 35:17
+   8. Julián Álvarez (Argentina) carried the ball, 35:17
+   9. Julián Álvarez (Argentina) passed, 35:17
+  10. Alexis Mac Allister (Argentina) received the ball, 35:20
+  11. Alexis Mac Allister (Argentina) passed, 35:20
+  12. Ángel Fabián Di María Hernández (Argentina) received the ball, 35:22
+  13. Ángel Fabián Di María Hernández (Argentina) shot, 35:22
 """
 
 # The narration ends on the goal and nothing follows it, so a fragment about the
@@ -111,6 +131,20 @@ def facts_penalty(feed):
     moment = next(
         m for m in feed.defining_moments(MATCH_2022)
         if (m.minute, m.second) == PENALTY_2022
+    )
+    return facts_from_buildup(feed.buildup(MATCH_2022, moment))
+
+
+@pytest.fixture(scope="module")
+def facts_hero_2022(feed):
+    """Di María's counter: open play, left foot, five players, minute 35.
+
+    The 2022 hero goal, the one the recordings speak. `facts_penalty` is a
+    different 2022 goal and is not interchangeable with it.
+    """
+    moment = next(
+        m for m in feed.defining_moments(MATCH_2022)
+        if (m.minute, m.second) == HERO_2022
     )
     return facts_from_buildup(feed.buildup(MATCH_2022, moment))
 
@@ -238,6 +272,117 @@ class TestGrounded:
                 facts = facts_from_buildup(feed.buildup(match_id, moment))
                 result = check(template_narration(facts), facts)
                 assert result.grounded, f"{moment}: {result.summary}"
+
+
+class TestTheHeroShape:
+    """The narration shape Task 7 asks the hero prompt for.
+
+    Task 7 changes the prompt three ways: tell the whole move in order naming
+    every player who touched the ball, give the clock at most once at the
+    start, and end on a sentence that says the shot scored. None of that is a
+    change to this module, and these tests are here to show it. They are
+    written against the check exactly as it stands, so when a candidate comes
+    back refused the refusal is about the candidate and not about a rule that
+    had to be bent to allow the shape.
+
+    The two properties the prompt change leans on are the first two tests. A
+    clock is checked only where it appears, so a sentence without one asserts
+    no clock and is read on its names and actions alone; and "scored" is in
+    `ACTION_CLAIMS` against a `Shot`, which the goal fact is, while the
+    outcome-claim patterns leave "score" and its forms alone on purpose
+    because the goal is the thing being narrated.
+    """
+
+    def test_a_sentence_may_carry_no_clock(self, facts_hero_2022):
+        """One sentence, no clock in it. The clock rule reads the clocks a
+        sentence has, so a sentence with none has nothing to disagree with the
+        facts about."""
+        result = check(
+            "[13] Ángel Fabián Di María Hernández shot for Argentina.",
+            facts_hero_2022,
+        )
+        assert result.grounded, result.summary
+
+    def test_a_goal_sentence_that_says_scored(self, facts_hero_2022):
+        """"scored" read against the goal's own shot fact, which is fact 13.
+
+        This is the sentence Task 7 asks every candidate to end on: it says the
+        shot went in, in the past tense, citing the shot the moment was built
+        from. "scored" claims a `Shot` event and fact 13 is one, so the word is
+        grounded rather than being an outcome claim the buildup cannot show.
+        """
+        result = check(
+            "[13] Ángel Fabián Di María Hernández scored for Argentina.",
+            facts_hero_2022,
+        )
+        assert result.grounded, result.summary
+
+    def test_a_whole_narration_with_no_clock_anywhere(self, facts_hero_2022):
+        """The 2022 move in order, all five recorded players, no clock at all.
+
+        The frozen narration put a clock on every sentence and named three of
+        the five. This is the other end of both: the shape the prompt asks for
+        with the clock left off entirely, and the check accepts it.
+        """
+        result = check(
+            "[1] Nahuel Molina Lucero passed.\n"
+            "[2] Alexis Mac Allister received the ball.\n"
+            "[3] Alexis Mac Allister passed.\n"
+            "[4] Lionel Andrés Messi Cuccittini received the ball.\n"
+            "[6] Lionel Andrés Messi Cuccittini passed.\n"
+            "[7] Julián Álvarez received the ball.\n"
+            "[9] Julián Álvarez passed.\n"
+            "[10] Alexis Mac Allister received the ball.\n"
+            "[11] Alexis Mac Allister passed.\n"
+            "[12] Ángel Fabián Di María Hernández received the ball.\n"
+            "[13] Ángel Fabián Di María Hernández shot and scored "
+            "for Argentina.",
+            facts_hero_2022,
+        )
+        assert result.grounded, result.summary
+
+    def test_the_clock_once_at_the_start_and_a_goal_that_scored(
+        self, facts_hero_2022
+    ):
+        """The whole Task 7 shape at once: one clock, on the first sentence,
+        quoted off the fact that sentence cites, and a last line that says the
+        shot scored."""
+        result = check(
+            "[1] Nahuel Molina Lucero passed at 35:12.\n"
+            "[2] Alexis Mac Allister received the ball.\n"
+            "[3] Alexis Mac Allister passed.\n"
+            "[4] Lionel Andrés Messi Cuccittini received the ball.\n"
+            "[6] Lionel Andrés Messi Cuccittini passed.\n"
+            "[7] Julián Álvarez received the ball.\n"
+            "[9] Julián Álvarez passed.\n"
+            "[10] Alexis Mac Allister received the ball.\n"
+            "[11] Alexis Mac Allister passed.\n"
+            "[12] Ángel Fabián Di María Hernández received the ball.\n"
+            "[13] Ángel Fabián Di María Hernández scored for Argentina.",
+            facts_hero_2022,
+        )
+        assert result.grounded, result.summary
+
+    def test_the_same_shape_on_the_1986_goal(self, facts_1986):
+        """All eight recorded players of the 54:18 move, in order, with the
+        clock once at the start and the goal sentence saying it scored. The two
+        players who only pressed are named on their own `Pressure` facts, and
+        each defender beaten is paired with the dribble that beat him."""
+        result = check(
+            "[3] José Luis Cuciuffo passed at 54:03.\n"
+            "[6] Héctor Adolfo Enrique passed.\n"
+            "[7] Diego Armando Maradona received the ball.\n"
+            "[9] Peter Beardsley pressed.\n"
+            "[10, 11] Diego Armando Maradona dribbled past Peter Beardsley.\n"
+            "[13] Peter Reid pressed.\n"
+            "[14, 15] Diego Armando Maradona dribbled past Terry Butcher.\n"
+            "[17, 18] Diego Armando Maradona dribbled past Terry Fenwick.\n"
+            "[21, 22] Diego Armando Maradona dribbled past Peter Shilton.\n"
+            "[24] Diego Armando Maradona scored with his left foot "
+            "for Argentina.",
+            facts_1986,
+        )
+        assert result.grounded, result.summary
 
 
 class TestTense:

@@ -256,7 +256,7 @@ Everything above it is structure.
   list, the prompt, the one narration style printed in it, the key beats of a
   passage and the fallback narration, which has to reach every one of those
   beats. All pass.
-- `tests/test_grounding.py`: 91 tests over the grounding check, one per way a
+- `tests/test_grounding.py`: 96 tests over the grounding check, one per way a
   narration can be wrong or can look wrong and be fine, including the
   misdescription it refuses by pairing a name with an action and the first
   person, which only the Mate may use and only over its own side's facts.
