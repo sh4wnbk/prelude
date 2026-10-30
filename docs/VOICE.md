@@ -854,6 +854,46 @@ provenance block and
 `tests/test_tts.py::TestTheGoldenIsARecording` holds it to that, including
 that it holds no credential.
 
+## The hero samples, and what they do not yet tell apart
+
+`scripts/tts_samples.py` wrote eight files outside the repo, in
+`C:\Users\shawn\prelude_voice\samples`: both hero goals, the 1986 Maradona
+goal at 54:18 and the 2022 Di Maria goal at 35:22, in all three voices, with
+the Mate heard from both sides. Six calls, 1,794 submitted characters and
+1,530 spoken, against a budget of 2,500.
+
+| File | Voice | Listener | Length |
+| ---- | ----- | -------- | -----: |
+| `1986_caller_neutral.wav` | Heidi | no side | 20.37s |
+| `1986_storyteller_neutral.wav` | Emma | no side | 17.42s |
+| `1986_mate_scored.wav` | Ethan | supporting Argentina | 19.30s |
+| `1986_mate_conceded.wav` | Ethan | supporting England | 19.30s |
+| `2022_caller_neutral.wav` | Heidi | no side | 18.85s |
+| `2022_storyteller_neutral.wav` | Emma | no side | 17.55s |
+| `2022_mate_scored.wav` | Ethan | supporting Argentina | 18.15s |
+| `2022_mate_conceded.wav` | Ethan | supporting France | 18.15s |
+
+**The words are built by code and no model ran.** The header is the
+orchestrator's, through `openings` in `scripts/write_headers.py`, and the
+narration is `template_narration` in `app/narration_prompt.py`, the fallback
+assembled out of the numbered facts. So a sample is reproducible, grounded by
+construction, and costs nothing but the speech. These are for judging the
+voices; `scripts/narrate_once.py` is for judging the words.
+
+**Eight files came from six calls, and that is the finding.** The Mate's two
+rows in the delivery table are both empty, so the two sides build the
+identical request, and the two files are the same audio under two names.
+Nothing in them is different because nothing has been set yet. The script
+writes both anyway and says which names share a request, because paying twice
+for identical audio would have hidden it and leaving one out would have hidden
+it too.
+
+**The three voices are the only thing a sample separates today.** Every
+delivery value is a placeholder, so what Shawn is hearing is Heidi, Emma and
+Ethan at their own default rate and pitch, reading the same words. That is the
+right thing to listen to first: the delivery is tuned against voices that have
+been chosen, not the other way round.
+
 ## It ends on the goal, and there is no closer
 
 The narration's last sentence is about the goal, and nothing follows it. No

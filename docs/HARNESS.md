@@ -65,7 +65,7 @@ script to run. So the first command in a new clone is
 
 ## Entry points
 
-Twelve scripts, each runnable on its own. None of them is imported by anything.
+Thirteen scripts, each runnable on its own. None of them is imported by anything.
 
 | Script | What it does | What it writes | What it reaches |
 | ------ | ------------ | -------------- | --------------- |
@@ -81,18 +81,20 @@ Twelve scripts, each runnable on its own. None of them is imported by anything.
 | `scripts/narration_compare.py` | gate on spending: the paid comparison of the two watsonx candidates, with `--plan` printing its cost and making no call | records with `--json` | watsonx.ai, and IBM Cloud IAM |
 | `scripts/tts_probe.py` | measures which delivery controls change the audio on each candidate voice | WAV files outside the repo, and readings with `--json` | Watson Text to Speech |
 | `scripts/record_tts_golden.py` | records one real speech exchange for the suite to replay | `tests/golden/tts_synthesize.json` | Watson Text to Speech |
+| `scripts/tts_samples.py` | both hero goals in every voice, for Shawn to listen to | WAV files outside the repo | Watson Text to Speech |
 
 The three gates exit non-zero on any finding, which is what lets them gate a
 commit; each says so in its own docstring.
 
-**Six scripts reach a paid or local service, and all six are run by hand.**
-They are `scripts/record_narration_golden.py`, `scripts/narrate_once.py`,
-`scripts/narration_eval.py`, `scripts/narration_compare.py`,
-`scripts/tts_probe.py` and `scripts/record_tts_golden.py`, none of which is part of the suite, so no test can
+**Seven scripts reach a paid or local service, and all seven are run by
+hand.** They are `scripts/record_narration_golden.py`,
+`scripts/narrate_once.py`, `scripts/narration_eval.py`,
+`scripts/narration_compare.py`, `scripts/tts_probe.py`,
+`scripts/record_tts_golden.py` and `scripts/tts_samples.py`, none of which is part of the suite, so no test can
 reach a service through them. The guard that makes that more than a convention
 is in `tests/conftest.py` and is described below.
 
-**Three of them can spend money.** The first three reach the local Ollama server
+**Four of them can spend money.** The first three reach the local Ollama server
 and have no watsonx path at all. `scripts/narration_compare.py` is the paid
 narration one, and it is built to be hard to run by accident: `--plan` prints
 the narrations, the calls and the estimated tokens and makes no call,
@@ -244,8 +246,9 @@ because a skip would have let the suite go green with nothing built.
   holds its definition, and no script runs it over the nine goals.
   `scripts/narrate_once.py` does one goal.
 - **No screen plays audio.** `app/tts.py` turns a header and a narration into
-  WAV and is callable from Python. Nothing in `app/web/` reaches it, and no
-  narration is spoken anywhere a fan could hear it.
+  WAV and is callable from Python, and `scripts/tts_samples.py` writes files
+  outside the repo for Shawn to listen to. Nothing in `app/web/` reaches
+  either, and no narration is spoken anywhere a fan could hear it.
 - **No screen reads narration.** The screens take their content from
   `app/web/matches.json`, which `scripts/check_match_copy.py` checks against the
   data; narration reaches no screen.

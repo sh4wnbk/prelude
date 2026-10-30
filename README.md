@@ -175,6 +175,11 @@ Everything above it is structure.
 - `scripts/record_tts_golden.py`: records one real speech exchange for that
   replay. `--plan` prints the request and its character count and makes no
   call; `--confirm` sends it.
+- `scripts/tts_samples.py`: both hero goals in every voice, with the Mate from
+  both sides, written outside the repo for Shawn to listen to. The words are
+  the orchestrator's header and the code-built narration, so no model runs.
+  `--plan` prints the character count and makes no call, `--budget` refuses a
+  run above a character count, and `--confirm` sends it.
 - `app/delivery.py`: the delivery table, one row per persona per situation,
   holding the rate, the pitch and the two pauses. Every value is a placeholder
   for Shawn to set by ear; what runs is the shape and the rules, which refuse

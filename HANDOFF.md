@@ -1533,6 +1533,63 @@ rise against 3.16, 2.67 and 3.16 measured.
 `--from-audio` re-measures the files already on disk and sends nothing, which
 is how both corrections were made without paying for the audio twice.
 
+### Phase 5, task 1: what was built on top of the probe
+
+**The voices are recorded and the delivery is not.** `app/personas.py` carries
+one voice each with `voice_confirmed` true, which says Shawn chose them rather
+than that this repo listened to them. The four delivery numbers left that file
+for `app/delivery.py`, keyed by persona and situation: the probe settled that a
+delivery is per request and that the same voice does not deliver a goal for
+the listener's side and one against it the same way, and a single rate on a
+persona could not say that. Every value in all eight rows is a placeholder.
+
+**The rules around the empty table are the work.** Filling it in is an edit to
+one file and a run of the suite, because the bounds are already enforced: no
+lowered pitch, since the service ignores one; no pause on a voice whose breaks
+do nothing; IBM's own bounds on the rate; and the Mate never brighter or
+quicker when the other side scored, written as a comparison between its own
+two rows so it survives any pair of numbers picked by ear.
+
+**The pronunciation table reaches the speech request and nothing else.** The
+guard is structural, because neither failure announces itself: a header
+carrying markup still reads correctly to anything that strips tags, and a
+narration marked up before the grounding check comes back refused for an
+ungrounded name, which sends a reader to the wrong file.
+
+**`<phoneme>` took two arms to settle and the first was worthless.** Asking
+for `liːd` returned byte-identical audio, which reads exactly like the
+`<prosody>` result and means nothing of the kind: an element asking a voice
+for what it already does cannot be told from one thrown away. Asking for
+`lɛd`, the metal, changed the audio on all three voices, so the element is
+honoured. Which also settles the entry: **these voices already say "lead"
+correctly**, so the table's one row costs about 44 billable characters and
+changes nothing audible today. Shawn can drop it and lose nothing measurable.
+
+**The suite replays a real exchange and makes no call.**
+`tests/golden/tts_synthesize.json` cost 83 submitted characters to record. It
+holds the request and the first 128 bytes of the response, with the full length
+and SHA-256 of the rest, and it says so in its own provenance block: the
+backend returns the bytes it was handed without examining them, so that is
+what a replay has to assert.
+
+**Nothing secret can reach a fixture.** `SpeechRequest` carries the path, the
+query and the body and not the host, because `TTS_URL` holds an instance id,
+and its `Authorization` header reads redacted because the real one is built
+inside `send` and lives for one call. That is what made the recorded request
+safe to commit.
+
+**The hero samples are eight files from six calls**, 1,794 submitted
+characters against a budget of 2,500, in
+`C:\Users\shawn\prelude_voice\samples`. The Mate's two sides build the
+identical request while the table is empty, so two files are the same audio
+under two names; the script says which, because paying twice would have hidden
+it. `docs/VOICE.md` lists them with their lengths.
+
+**What is owed.** The delivery values, by ear. The Caller's rate ceiling,
+which is words per minute off real audio and is `None` until something
+measures it. And a decision on where between -50 and -20 `pitch_percentage`
+stops being honoured, if anything ever needs a lowered pitch.
+
 ## Data-check findings
 
 Match `3750191`, Argentina 2-1 England, quarter-final, 1986-06-22. 2,748 events.
