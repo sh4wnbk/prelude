@@ -187,7 +187,12 @@ def freeze(backend: WatsonxProvider) -> dict:
             "provider": backend.name,
             "attempt": len(narrated.attempts),
             "first_attempt_grounded": narrated.first_attempt_grounded,
-            "label": narrated.label,
+            # The permission, not the words. `scripts/scan_copy.py` refuses
+            # the grounding label in a copy file, because a data file carries
+            # no markup that could place it over anything, and it is right:
+            # the label is spelled once in `app/narration.py` and once in the
+            # markup that puts it beside this narration.
+            "labelled": narrated.labelled,
             "check": {
                 "grounded": result.grounded,
                 "claims_checked": result.checked,

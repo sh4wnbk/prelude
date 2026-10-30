@@ -122,7 +122,7 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-4 failed, 694 passed
+4 failed, 714 passed
 ```
 
 The 4 are Task 13 below, waiting to be built.

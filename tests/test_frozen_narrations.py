@@ -35,7 +35,15 @@ from app.narration import GROUNDING_LABEL, MODEL
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw"
-NARRATIONS = ROOT / "app" / "web" / "narrations.json"
+WEB = ROOT / "app" / "web"
+NARRATIONS = WEB / "narrations.json"
+CARD = WEB / "prelude_03_moment_card.html"
+RENDERER = WEB / "match-content.js"
+SCAN = ROOT / "scripts" / "scan_copy.py"
+
+#: The match whose copy sits inline in the markup, shown before the renderer
+#: runs. The same default `app/web/match-content.js` uses.
+DEFAULT_MATCH = 3750191
 
 #: The two hero goals, by the match they are in and the clock they are at.
 #: Literals, so a narrations.json that quietly pointed at a different moment
@@ -150,7 +158,11 @@ class TestTheFrozenNarrationsAreStillGrounded:
         entry = frozen()[match_id]
         assert entry["source"] == MODEL
         assert entry["model"]
-        assert entry["label"] == GROUNDING_LABEL
+        # The permission to carry the grounding label, recorded as a boolean.
+        # The words themselves are not in this file: `scripts/scan_copy.py`
+        # refuses the label in a copy file, because nothing there can place it
+        # over narration.
+        assert entry["labelled"] is True
 
     @pytest.mark.parametrize("match_id", sorted(HEROES))
     def test_every_cited_fact_is_recorded_with_its_event(self, match_id):
@@ -188,3 +200,74 @@ class TestTheFrozenNarrationsAreStillGrounded:
             assert cites, f"sentence {number} of match {match_id} cites nothing"
             cited.update(cites)
         assert cited == {record["number"] for record in entry["cited_facts"]}
+
+
+class TestTheNarrationOnTheMomentCard:
+    """Where the frozen narration shows, and what sits beside it.
+
+    `CLAUDE.md` allows "Verified from play data" only over narration whose
+    claims trace back to the event data. The frozen narration is the strongest
+    thing on the card by that measure, because a test re-runs the check on it,
+    so the label belongs beside it. `scripts/scan_copy.py` enforces the
+    placement as a tree walk; these tests hold the order a reader sees.
+    """
+
+    def card(self) -> str:
+        return CARD.read_text(encoding="utf-8")
+
+    def test_the_card_has_a_narration_field(self):
+        assert 'data-field="hero_narration"' in self.card()
+
+    def test_the_inline_narration_is_the_frozen_1986_text(self):
+        """The copy shown before the renderer runs is the default match's,
+        as with every other field on this card."""
+        assert frozen()[str(DEFAULT_MATCH)]["text"] in self.card()
+
+    def test_the_narration_sits_under_the_header(self):
+        markup = self.card()
+        assert markup.index('data-field="hero_header"') < markup.index(
+            'data-field="hero_narration"'
+        )
+
+    def test_the_grounding_label_sits_beside_the_narration(self):
+        """One label on the card, after the narration and before the quote.
+
+        It used to sit at the foot of the card beside the quote. A second copy
+        of it would not be a second guarantee, so the one label moved to the
+        narration rather than being duplicated.
+        """
+        markup = self.card()
+        assert markup.count(GROUNDING_LABEL) == 1
+        assert markup.index('data-field="hero_narration"') < markup.index(
+            GROUNDING_LABEL
+        )
+        assert markup.index(GROUNDING_LABEL) < markup.index(
+            'data-field="hero_quote"'
+        )
+
+    def test_the_quote_block_is_still_there(self):
+        """Kept: it does not conflict with the narration.
+
+        The quote names the same players in the same order as the facts the
+        narration cites, so the two say the same thing in different registers.
+        """
+        assert 'data-field="hero_quote"' in self.card()
+
+    def test_the_renderer_fills_the_narration_for_the_chosen_match(self):
+        """Otherwise the 2022 card would show the 1986 narration."""
+        renderer = RENDERER.read_text(encoding="utf-8")
+        assert "narrations.json" in renderer
+        assert '"hero_narration"' in renderer
+
+    def test_the_scan_knows_the_narration_field_holds_narration(self):
+        """`scripts/scan_copy.py` passes a label only where it shares a card
+        with a field it knows holds narration. A new narration field that was
+        not added to that list would make a correct placement a violation, and
+        a reader fixing the gate by moving the label would make it a real one.
+        """
+        source = SCAN.read_text(encoding="utf-8")
+        line = next(
+            one for one in source.splitlines()
+            if one.startswith("NARRATION_FIELDS")
+        )
+        assert "hero_narration" in line

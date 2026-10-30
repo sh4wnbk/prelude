@@ -63,7 +63,7 @@ GROUNDING_LABEL = "Verified from play data"
 # Elements that hold narration. A label is grounded when it shares a card with
 # one of these. If Phase 5 adds another narration field, add it here too, or a
 # correct placement will be reported as a violation.
-NARRATION_FIELDS = {"hero_quote"}
+NARRATION_FIELDS = {"hero_quote", "hero_narration"}
 
 # Walking out of the card and into the page shell would let any label anywhere
 # on a screen count as grounded, so the walk stops at these.

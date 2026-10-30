@@ -277,6 +277,33 @@
     }
   }
 
+  // The narration the model wrote once and scripts/freeze_narrations.py
+  // froze. It is fetched rather than carried in matches.json because it is
+  // not hand-written copy: narrations.json records the check's verdict and
+  // the facts cited beside the words, and the moment card needs only the
+  // words. The inline markup already holds the default match's narration, so
+  // a failed fetch leaves a correct screen rather than an empty one, which is
+  // the same bargain the rest of this file makes.
+  function renderNarration(match) {
+    if (!field("hero_narration")) return;
+
+    fetch(VERSION ? "narrations.json?v=" + VERSION : "narrations.json")
+      .then(function (response) {
+        if (!response.ok) throw new Error("narrations.json " + response.status);
+        return response.json();
+      })
+      .then(function (doc) {
+        var frozen = (doc.narrations || {})[String(match.match_id)];
+        // No frozen narration for this match means the words under the
+        // grounding label were never checked for it, so the inline copy
+        // stays rather than a blank sitting under a label it did not earn.
+        if (frozen && frozen.text) setText("hero_narration", frozen.text);
+      })
+      .catch(function () {
+        /* Left on the inline copy, which is the default match. */
+      });
+  }
+
   function renderMoments(match) {
     var list = field("moments_list");
     if (!list) return;
@@ -386,6 +413,7 @@
     renderChip(match);
     renderLiveSeated(match);
     renderHero(match);
+    renderNarration(match);
     renderMoments(match);
     renderProfile(match);
     renderNarrators(match);

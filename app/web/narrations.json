@@ -14,7 +14,7 @@
       "provider": "watsonx",
       "attempt": 1,
       "first_attempt_grounded": true,
-      "label": "Verified from play data",
+      "labelled": true,
       "check": {
         "grounded": true,
         "claims_checked": 33,
@@ -100,7 +100,7 @@
       "provider": "watsonx",
       "attempt": 1,
       "first_attempt_grounded": true,
-      "label": "Verified from play data",
+      "labelled": true,
       "check": {
         "grounded": true,
         "claims_checked": 40,

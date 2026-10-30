@@ -160,7 +160,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 698 tests in twenty-one files. 694 pass and 4 fail.
+The suite is 718 tests in twenty-two files. 714 pass and 4 fail.
 
 The failures are all in `tests/test_buddy_rename.py`, written before Bob's Task 13 in
 `docs/bob_brief.md`. A failure anywhere else means something is wrong. It is run from the repo root:

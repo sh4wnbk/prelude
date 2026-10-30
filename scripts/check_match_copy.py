@@ -301,6 +301,31 @@ def check_match(entry, fail, note):
 
 WEB = ROOT / "app" / "web"
 DEFAULT_MATCH = 3750191
+NARRATIONS = WEB / "narrations.json"
+
+
+def frozen_narration(match_id, fail):
+    """The frozen narration for one match, as the card should show it.
+
+    It is checked here for the same reason the rest of the inline copy is:
+    the markup carries the default match's words for the moment before the
+    renderer runs, and those words sit under "Verified from play data". A
+    regenerated narrations.json that left the markup behind would leave the
+    label over text the check never passed.
+
+    Whether the words are still grounded is a different question and is
+    `tests/test_frozen_narrations.py`'s. This only asks whether the two
+    copies agree.
+    """
+    if not NARRATIONS.is_file():
+        fail("narrations.json", "is missing; run scripts/freeze_narrations.py")
+        return None
+    doc = json.loads(NARRATIONS.read_text(encoding="utf-8"))
+    entry = doc.get("narrations", {}).get(str(match_id))
+    if not entry:
+        fail("narrations.json", f"has no frozen narration for match {match_id}")
+        return None
+    return entry["text"]
 
 
 def check_screens(doc, fail, note):
@@ -346,7 +371,10 @@ def check_screens(doc, fail, note):
             default["live_seated"]["venue"], default["live_seated"]["ticket"],
             default["live_seated"]["caption"],
         ],
-        "prelude_03_moment_card.html": [default["hero"]["caption"], default["hero"]["quote"]],
+        "prelude_03_moment_card.html": [
+            default["hero"]["caption"], default["hero"]["quote"],
+            frozen_narration(DEFAULT_MATCH, fail),
+        ],
         "prelude_04_moments.html": [default["moments_subtitle"]]
             + [m["title"] for m in default["moments"]]
             + [m["body"] for m in default["moments"]],
