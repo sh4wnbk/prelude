@@ -122,10 +122,8 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-13 failed, 681 passed
+694 passed
 ```
-
-The 13 are Task 12 below, waiting to be built.
 
 The total covers far more than this module now. Phase 4 added the narration
 provider, the prompt, the grounding check and the evaluation, each with its
@@ -1262,6 +1260,10 @@ forgotten:
 
 ## Task 12: "Your narrator" on Profile
 
+**Status: built, in `35c91b6`.** Checked in Chromium: The Buddy marked for an
+England fan, The Storyteller for a neutral listener, the note on tapping The
+Caller, and Change as an outline.
+
 Show the three narrators on Profile, mark the one the fan's answer picked,
 say "coming soon" when another is tapped, rename the partisan one to "The
 Buddy", and make Change an outline. That is the whole task.
@@ -1320,8 +1322,8 @@ Change becomes an outline so the two do not compete.
 
 ### The tests to pass
 
-`tests/test_narrators.py`, 14 tests. Thirteen fail until this is built; the
-fourteenth checks the persona ids are unchanged.
+`tests/test_narrators.py`, 14 tests, all passing now. Thirteen failed until
+this was built; the fourteenth checks the persona ids are unchanged.
 
 Then the full suite, target 0 failed, and the five gates. `check_docs.py`
 failing on the quoted pytest result in this brief, and on

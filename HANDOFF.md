@@ -2822,7 +2822,16 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Shawn runs Bob task 12; the recordings wait for November 1)
+## Next first action (Claude Code Task 6, the frozen narrations; recordings on November 1)
+
+**Bob task 12 is built and checked.** `35c91b6` made the four changes in the
+brief. In Chromium, Profile marked The Buddy for an England fan and The
+Storyteller for a neutral listener, showed the coming-soon note on tapping The
+Caller, and showed Change as an outline under the amber current card.
+`pytest -q` reports `694 passed` and all five gates pass. Its export is still to
+be committed.
+
+### Before Task 12
 
 **The 403 is explained: the Text to Speech instance is disabled above its Lite
 cap.** Shawn read it in IBM Cloud on 2026-10-30: "Inactive. Instance disabled
@@ -2848,8 +2857,7 @@ collected and, in Chromium, marked The Buddy for an England fan and The
 Storyteller for a neutral one and showed the note on tapping The Caller; it
 was reverted.
 
-`pytest -q` reports `13 failed, 681 passed`. Every failure is in
-`tests/test_narrators.py`.
+While it was briefed, every failure was in `tests/test_narrators.py`.
 
 ### The hero recordings, once the service answers
 

@@ -349,7 +349,7 @@ registers were tried, and each gave one register back.
 | ------- | -- | ----- | ------------------- | ---------- |
 | The Caller | `caller` | `en-AU_HeidiNatural` | quick play-by-play, keeping up with the move | everyone |
 | The Storyteller | `storyteller` | `en-US_EmmaNatural` | calm documentary, unhurried and even | everyone |
-| The Mate | `mate` | `en-US_EthanNatural` | warm, from the next seat | fans only |
+| The Buddy | `mate` | `en-US_EthanNatural` | warm, from the next seat | fans only |
 
 **Nothing in the narration text differs between them.** `app/grounding.py`
 reads a narration against the facts it cited whoever asked for it, and
@@ -395,6 +395,10 @@ a person into app output.
 holds the names to "The" and one common noun, and
 `tests/test_personas.py::TestProfileCopy::test_no_verdict_nickname_or_epithet`
 scans the Profile lines for the words `CLAUDE.md` keeps out of app output.
+
+**Shown to fans as "The Buddy" since 2026-10-30.** "Mate" read British in a
+North American market, so `app/personas.py` renamed the display name and kept
+the id `mate`, which is why the rest of this file and the code still say Mate.
 
 **The Mate is the only one that needs a side.** It is the one voice that makes
 no sense without an allegiance: told to a neutral listener it would be saying

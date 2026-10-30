@@ -73,8 +73,6 @@ DOCS = [
 # when it was committed in `076e914`. The list is empty: every path the docs
 # name now exists. Add a path here when a doc names one before it is written.
 DELIBERATELY_ABSENT: set[str] = {
-    "scripts/write_narrators.py",               # Bob, task 12
-    "app/web/narrators.json",                    # written by it
     "bob_sessions/phase5_task12_narrators.md",  # Bob's task 12 export
 }
 
