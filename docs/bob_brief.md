@@ -122,8 +122,10 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-680 passed
+13 failed, 681 passed
 ```
+
+The 13 are Task 12 below, waiting to be built.
 
 The total covers far more than this module now. Phase 4 added the narration
 provider, the prompt, the grounding check and the evaluation, each with its
@@ -1255,6 +1257,95 @@ and styles at run time only.
 forgotten:
 
 > Export this session to `bob_sessions/phase5_task11_player.md` and `.png`,
+> scrub it against the list in `bob_sessions/README.md` before committing, and
+> check the diff rather than the commit.
+
+## Task 12: "Your narrator" on Profile
+
+Show the three narrators on Profile, mark the one the fan's answer picked,
+say "coming soon" when another is tapped, rename the partisan one to "The
+Buddy", and make Change an outline. That is the whole task.
+
+### Why it exists
+
+The personas are now voices, and a fan should see who is narrating. Choosing
+one is not live: the recordings exist only for the narrator each answer picks,
+and recording every narrator in every situation would spend about half a
+month's Text to Speech characters. Shawn's decisions on 2026-10-30: the heading
+is "Your narrator", the partisan persona is shown as "The Buddy" because "Mate"
+reads British in a North American market, and tapping another narrator shows
+that it is coming soon. With the current narrator shown as an amber card,
+Change becomes an outline so the two do not compete.
+
+### What you build
+
+1. **`app/personas.py`.** Change `name="The Mate"` to `name="The Buddy"`.
+   Change nothing else: the id stays `mate`, and so do the contract constant,
+   the delivery table and the recordings' keys.
+2. **`scripts/write_narrators.py`, new.** Writes `app/web/narrators.json` as
+   `{"narrators": [{"id", "name", "profile"} for each persona in PERSONAS]}`,
+   in `PERSONAS` order, with `json.dumps(doc, indent=2, ensure_ascii=False) +
+   "\n"` as UTF-8. `--check` writes nothing and exits 1 if the file is
+   missing or differs, 0 if it matches. `--path PATH` points it at another
+   file. Run it once.
+3. **`app/web/prelude_07_profile.html`.** After the card that holds Name, With
+   and Change, and before the closing `</div>` of the column, add exactly:
+
+   ```
+   <span class="font-label-sm text-label-sm tracking-[0.22em] text-primary-container font-semibold uppercase">Your narrator</span>
+   <div class="flex flex-col gap-space-xs" data-field="narrator_list"></div>
+   <p class="font-body-md text-body-md text-on-surface-variant" data-field="narrator_note" hidden></p>
+   ```
+
+   On the Change button, replace `bg-primary-container text-on-primary` with
+   `bg-transparent border border-primary-container text-primary-container`,
+   and remove `shadow-lg shadow-primary-container/20`. Keep its other classes.
+4. **`app/web/match-content.js`, `renderNarrators(match)`.** Call it from
+   `render`, after `renderProfile`. If `narrator_list` or `narrator_note` is
+   missing, return. Fetch `narrators.json` (with `?v=` + `VERSION` when there
+   is one, as `matches.json` is fetched); on failure leave the list empty. The
+   current narrator's id is the part before the first `_` of
+   `match.hero.voice_for[listenerFor(match.match_id) || "neutral"]`. For each
+   narrator, append a `button` (type `button`) built with `createElement`,
+   holding two `span`s set with `textContent`: the name
+   (`font-label-lg text-label-lg font-bold`) and the profile line
+   (`font-body-md text-body-md`). The button's classes are
+   `w-full text-left rounded-xl p-card-padding-sm flex flex-col gap-space-2xs`
+   plus `bg-primary-container text-on-primary` for the current narrator, with
+   `aria-current="true"`, or `bg-surface-container-highest text-on-surface`
+   for the others. Tapping a narrator that is not current sets
+   `narrator_note`'s text to its name followed by
+   ` is coming soon. For now, Prelude picks your narrator from who you're with.`
+   and un-hides it. Tapping the current one does nothing.
+
+### The tests to pass
+
+`tests/test_narrators.py`, 14 tests. Thirteen fail until this is built; the
+fourteenth checks the persona ids are unchanged.
+
+Then the full suite, target 0 failed, and the five gates. `check_docs.py`
+failing on the quoted pytest result in this brief, and on
+`scripts/write_narrators.py` being listed as absent, is expected and is the
+follow-up's; report any other gate failure.
+
+### Stop conditions
+
+**Do not make choosing a narrator work.** Nothing is stored and nothing else
+changes when a narrator is tapped; only the note appears.
+
+**No `innerHTML` in `renderNarrators`.** Names and descriptions come from a
+file and are set as text.
+
+**Change only the four things above.** No other screen, no other copy, no
+tests, no docs, no TTS or watsonx calls. "The Mate" appearing in docstrings
+and docs elsewhere is the follow-up's.
+
+### When you are done
+
+**Print this reminder at the end of the session**, so the export is not
+forgotten:
+
+> Export this session to `bob_sessions/phase5_task12_narrators.md` and `.png`,
 > scrub it against the list in `bob_sessions/README.md` before committing, and
 > check the diff rather than the commit.
 

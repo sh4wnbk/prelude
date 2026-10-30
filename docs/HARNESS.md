@@ -160,8 +160,10 @@ generating anything:
 
 ## The test harness
 
-The suite is 680 tests in nineteen files, and all 680 pass, so any failure
-means something is wrong. It is run from the repo root:
+The suite is 694 tests in twenty files. 681 pass and 13 fail.
+
+The failures are all in `tests/test_narrators.py`, written before Bob's Task 12 in
+`docs/bob_brief.md`. A failure anywhere else means something is wrong. It is run from the repo root:
 
 ```
 .\.venv-prelude\Scripts\python.exe -m pytest
@@ -178,6 +180,7 @@ No path setting is needed: `pyproject.toml` sets `pythonpath = ["."]` and
 | `tests/test_narration.py` | the pipeline: generate, check, retry, fall back, record |
 | `tests/test_narration_provider.py` | the model config and both backends |
 | `tests/test_credentials.py` | where the credentials file lives, and what is refused |
+| `tests/test_narrators.py` | "Your narrator" on Profile: the Buddy rename, the list written from the personas, the current narrator marked, the coming-soon note, and Change as an outline; failing until Bob's Task 12 |
 | `tests/test_narration_player.py` | playback on the moment card: which recording each listener hears, the audio map, the player's wiring, and that it sends nothing, built by Bob in Task 11 |
 | `tests/test_narration_eval.py` | the key beats, the coverage measure, the token recorder and the voices a run is split into |
 | `tests/test_listener_card.py` | the "Who are you with" card: its copy, where it loads, the storage keys and values, that it sends nothing, the name at the end of the header, and the Live badge not wrapping, built by Bob in Task 9 |

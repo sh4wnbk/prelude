@@ -2822,7 +2822,36 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (the hero recordings, once the service answers)
+## Next first action (Shawn runs Bob task 12; the recordings wait for November 1)
+
+**The 403 is explained: the Text to Speech instance is disabled above its Lite
+cap.** Shawn read it in IBM Cloud on 2026-10-30: "Inactive. Instance disabled
+with reason_code IBMCLOUD_SERVICE_INSTANCE_ABOVE_CAP", plan Lite. It comes back
+with the new month.
+
+**Decisions on 2026-10-30, Shawn's.** What judges hear is recorded, never live:
+the Text to Speech cap is 10,000 characters a month on a shared instance, and
+live voice would let judges exhaust it. The recordings will speak a narration
+written once by gpt-oss-120b and frozen after passing the grounding check, not
+the template (Phase 5, Task 6, to be run by Claude Code). In production the
+narration and voice move onto the phone (an on-device model and the phone's
+own speech, with the same grounding check and fallback), which is vision, not
+built. A "fresh telling" button that rewrites the narration on screen is a
+stretch idea, with the bird's-eye view.
+
+**Bob task 12 in `docs/bob_brief.md` puts "Your narrator" on Profile.** The
+three narrators are shown with the one the fan's answer picked marked, tapping
+another says it is coming soon, the partisan persona is shown as "The Buddy"
+(its id stays `mate`), and Change becomes an outline so it does not compete
+with the amber current card. A dry run of the brief passed every test then
+collected and, in Chromium, marked The Buddy for an England fan and The
+Storyteller for a neutral one and showed the note on tapping The Caller; it
+was reverted.
+
+`pytest -q` reports `13 failed, 681 passed`. Every failure is in
+`tests/test_narrators.py`.
+
+### The hero recordings, once the service answers
 
 **The six recordings are not generated: Watson Text to Speech answered HTTP
 403 to every request on 2026-10-30.** Everything around them is built, the
