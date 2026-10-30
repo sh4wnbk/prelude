@@ -10,6 +10,10 @@
 (function () {
   "use strict";
 
+  function asked() {
+    return window.location.search.indexOf("ask") >= 0;
+  }
+
   // One unbroken literal on purpose. docs/DESIGN.md quotes this class string
   // and scripts/check_docs.py looks for it in manual-entry.js.
   var FIELD = "w-full bg-surface-container px-3 py-1.5 rounded text-[16px] text-on-surface border border-outline-variant/30 focus:outline-none focus:border-primary-container";
@@ -87,12 +91,27 @@
       })(choices[j]));
     }
 
+    // If the card is reopened with an existing answer, pre-select that choice
+    // so Continue is immediately enabled, and keep the name in the field.
+    var stored = Prelude.listenerFor(Prelude.matchId);
+    if (stored) {
+      for (var k = 0; k < choices.length; k++) {
+        if (choices[k].getAttribute("data-value") === stored) {
+          pickChoice(choices[k]);
+          break;
+        }
+      }
+    }
+
     continueBtn.addEventListener("click", function () {
       var chosen = card.querySelector('#listener-choices button[aria-pressed="true"]');
       if (!chosen) return;
       Prelude.setListener(Prelude.matchId, chosen.getAttribute("data-value"));
       Prelude.setName(callField.value);
       overlay.parentNode.removeChild(overlay);
+      if (asked()) {
+        window.history.replaceState(null, "", Prelude.url("prelude_02_live_seated.html"));
+      }
     });
   }
 
@@ -103,7 +122,7 @@
       if (doc.matches[i].match_id === Prelude.matchId) { match = doc.matches[i]; break; }
     }
     if (!match) return;
-    if (Prelude.listenerFor(Prelude.matchId) !== null) return;
+    if (Prelude.listenerFor(Prelude.matchId) !== null && !asked()) return;
     mount(match);
   });
 })();

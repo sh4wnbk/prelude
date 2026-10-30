@@ -307,11 +307,29 @@
     for (var k = 0; k < built.length; k++) list.appendChild(built[k]);
   }
 
+  function renderProfile(match) {
+    if (!field("profile_name")) return;
+    var allegiance = listenerFor(match.match_id);
+    var withLabel;
+    if (allegiance === "team_a") {
+      withLabel = match.home_team;
+    } else if (allegiance === "team_b") {
+      withLabel = match.away_team;
+    } else if (allegiance === "neutral") {
+      withLabel = "Just here for the game";
+    } else {
+      withLabel = "Not set";
+    }
+    setText("profile_name", nameFor() || "Not set");
+    setText("profile_with", withLabel);
+  }
+
   function render(match) {
     renderChip(match);
     renderLiveSeated(match);
     renderHero(match);
     renderMoments(match);
+    renderProfile(match);
     document.documentElement.setAttribute("data-match-rendered", String(match.match_id));
   }
 
