@@ -5,8 +5,9 @@ everything else exactly as it found it, and it says the same words it was
 given. The second is the constraint that made the module worth writing
 separately, which is that nothing but the speech request may see its output.
 A `<phoneme>` element in the text the screen shows is a fan reading markup,
-and the same element in the text `app/grounding.py` reads is a name the check
-cannot match and a narration refused for being pronounceable.
+and the same element in the text `app/grounding.py` reads is markup carried
+into the label and into the audio with nothing raising: the check does not
+catch it, which `TestTheClockInARealNarration` measures rather than assumes.
 
 Nothing here calls the speech service. The markup is text and is checked as
 text; whether IBM honours it is `scripts/tts_probe.py`'s question, and
@@ -20,8 +21,18 @@ from pathlib import Path
 
 import pytest
 
+from app.grounding import check, strip_citations
+from app.narration_prompt import facts_from_buildup, template_narration
 from app.orchestrator import header
-from app.orchestrator_contract import Event, ScoringMoment, TEAM_A
+from app.orchestrator_contract import (
+    NEUTRAL,
+    STORYTELLER,
+    TEAM_A,
+    Event,
+    ScoringMoment,
+)
+from app.statsbomb_event_feed import StatsBombEventFeed
+from app.tts import WatsonTextToSpeech, without_markup
 from app.pronunciation import (
     PHONEME,
     PRONUNCIATIONS,
@@ -33,6 +44,68 @@ from app.pronunciation import (
 )
 
 APP = Path(__file__).resolve().parent.parent / "app"
+
+#: The 1986 hero goal, which is the one whose narration opens on the clock.
+MATCH_1986 = 3750191
+GOAL_1986 = (54, 18)
+
+#: The header the orchestrator writes for it, which is where "lead" is spoken.
+HEADER_1986 = (
+    "Argentina extend the lead. Argentina 2, England 0. "
+    "Here's how it happened."
+)
+
+#: Credentials that are not credentials, so no test reads a file. The backend
+#: is built only to have it construct a request; nothing here sends one, and
+#: `tests/conftest.py` blocks the network for the whole suite anyway.
+FAKE_ENV = {
+    "TTS_API_KEY": "not-a-key",
+    "TTS_URL": "https://example.invalid/instances/not-an-instance",
+}
+
+
+def speech_backend():
+    return WatsonTextToSpeech(
+        env=FAKE_ENV, transport=lambda url, body, headers: b""
+    )
+
+
+@pytest.fixture(scope="module")
+def feed():
+    return StatsBombEventFeed()
+
+
+@pytest.fixture(scope="module")
+def facts_1986(feed):
+    """The facts behind Maradona's second, which the narration is built from."""
+    moment = next(
+        one for one in feed.defining_moments(MATCH_1986)
+        if (one.minute, one.second) == GOAL_1986
+    )
+    return facts_from_buildup(feed.buildup(MATCH_1986, moment))
+
+
+@pytest.fixture(scope="module")
+def tagged_1986(facts_1986):
+    """The narration as it is checked: citation tags still on it.
+
+    `Narrated.tagged_text` in `app/narration.py`. This is what
+    `app/grounding.py` reads, and it is the only form it can read: a sentence
+    with no citation has nothing to be read against, so the stripped text does
+    not pass the check and is not meant to.
+    """
+    return template_narration(facts_1986)
+
+
+@pytest.fixture(scope="module")
+def spoken_1986(tagged_1986):
+    """The narration as it is shown and spoken: the tags taken off.
+
+    `Narrated.text`. The two forms exist because the check needs the
+    citations and a listener must never hear them, which is also why
+    `app/tts.py` refuses the tagged one.
+    """
+    return strip_citations(tagged_1986)
 
 #: The modules that must not reach the pronunciation table. The screen's text
 #: and the checked text come through these, and markup in either is a bug the
@@ -58,10 +131,22 @@ MUST_NOT_IMPORT = (
 
 
 class TestTheTable:
-    """One entry, and the shape the next one has to fit."""
+    """Two entries, and the shape the next one has to fit."""
 
     def test_lead_is_in_the_table(self):
         assert PRONUNCIATIONS["lead"] == "liːd"
+
+    def test_minute_is_in_the_table(self):
+        """All three voices read "Minute 54." as "my-NEWT", the adjective.
+
+        In this app the word only ever means the unit of time: it reaches
+        speech from `template_narration` in `app/narration_prompt.py`, which
+        writes the clock. The CMU Pronouncing Dictionary lists `M AY0 N UW1 T`
+        beside `M IH1 N AH0 T`, so the voices were choosing a real
+        pronunciation of the written word rather than misreading it, and no
+        amount of context would have settled it for them.
+        """
+        assert PRONUNCIATIONS["minute"] == "ˈmɪnɪt"
 
     def test_every_key_is_lower_case(self):
         """The match is case insensitive and looks the key up in lower case,
@@ -86,6 +171,88 @@ class TestTheTable:
         assert [
             word for word, ipa in PRONUNCIATIONS.items() if '"' in ipa
         ] == []
+
+
+class TestTheClockInARealNarration:
+    """The one entry added for a word the narration writes, end to end.
+
+    `template_narration` opens on "Minute 54." for the 1986 hero goal, so this
+    is the shipped path rather than a sentence invented for a test: the real
+    narration, through the real backend, with the real table.
+    """
+
+    def test_the_real_narration_says_minute(self, spoken_1986):
+        assert spoken_1986.startswith("Minute 54.")
+
+    def test_the_request_carries_the_element(self, spoken_1986):
+        request = speech_backend().request_for(
+            HEADER_1986, spoken_1986, STORYTELLER, NEUTRAL
+        )
+        assert (
+            '<phoneme alphabet="ipa" ph="ˈmɪnɪt">Minute</phoneme>'
+            in request.text
+        )
+
+    def test_the_request_says_the_same_words(self, spoken_1986):
+        request = speech_backend().request_for(
+            HEADER_1986, spoken_1986, STORYTELLER, NEUTRAL
+        )
+        assert without_markup(request.text) == HEADER_1986 + " " + spoken_1986
+
+    def test_the_displayed_narration_is_unchanged(self, spoken_1986):
+        """What a screen shows, after the request has been built from it."""
+        before = spoken_1986
+        speech_backend().request_for(
+            HEADER_1986, spoken_1986, STORYTELLER, NEUTRAL
+        )
+        assert spoken_1986 == before
+        assert "<phoneme" not in spoken_1986
+
+    def test_the_displayed_header_is_unchanged(self):
+        assert "<phoneme" not in HEADER_1986
+        assert "Minute" not in HEADER_1986
+
+    def test_the_checked_narration_is_grounded_and_unchanged(
+        self, tagged_1986, facts_1986
+    ):
+        """The text the check reads carries no markup and still passes.
+
+        It is the tagged form, which is the only form the check can read, and
+        it says the clock in the same sentence the request marks up. Building
+        the request leaves it exactly as it was.
+        """
+        before = tagged_1986
+        speech_backend().request_for(
+            HEADER_1986, strip_citations(tagged_1986), STORYTELLER, NEUTRAL
+        )
+        assert tagged_1986 == before
+        assert "<phoneme" not in tagged_1986
+        assert check(tagged_1986, facts_1986).grounded
+
+    def test_the_check_does_not_catch_markup_in_the_text_it_reads(
+        self, tagged_1986, facts_1986
+    ):
+        """The grounding check is not a backstop for this mistake, and that is
+        why the structural test is the guard.
+
+        Marking up the checked text was expected to break the check. It does
+        not: both forms come back grounded on all 35 claims. The check reads
+        names, actions, clocks and numbers against the facts a sentence cited,
+        and `phoneme`, `alphabet` and `ipa` are none of those, so they pass
+        through as words it has no claim about.
+
+        So a narration marked up before the check would be accepted, labelled
+        "Verified from play data", and read out with the markup in it. Nothing
+        would fail. `TestNothingElseAppliesIt` is the only thing standing
+        between that and a release, which is the reason it reads source rather
+        than behaviour.
+        """
+        marked = for_speech(tagged_1986)
+        assert marked != tagged_1986
+        plain_result = check(tagged_1986, facts_1986)
+        marked_result = check(marked, facts_1986)
+        assert plain_result.grounded and marked_result.grounded
+        assert marked_result.checked == plain_result.checked
 
 
 class TestItMarksTheListedWords:

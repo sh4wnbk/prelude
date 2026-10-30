@@ -1541,7 +1541,8 @@ than that this repo listened to them. The four delivery numbers left that file
 for `app/delivery.py`, keyed by persona and situation: the probe settled that a
 delivery is per request and that the same voice does not deliver a goal for
 the listener's side and one against it the same way, and a single rate on a
-persona could not say that. Every value in all eight rows is a placeholder.
+persona could not say that. Every value in all eight rows was a placeholder
+at that point; task 2 filled them in.
 
 **The rules around the empty table are the work.** Filling it in is an edit to
 one file and a run of the suite, because the bounds are already enforced: no

@@ -22,13 +22,22 @@ Were it applied any earlier, the markup would travel with the text:
 | Reader | What it would see | Why that is wrong |
 | ------ | ----------------- | ----------------- |
 | the screen | `take the <phoneme ...>lead</phoneme>.` | a fan reading tags |
-| `app/grounding.py` | the same | a name or a number inside a tag is a name the check cannot match, so a grounded narration would be refused for being pronounceable |
+| `app/grounding.py` | the same | markup in the checked text, carried into the label and into the audio, with nothing raising |
 | a model | the same | nothing says a pronunciation to a model |
 
+**The check is not a backstop for the second one, which was measured rather
+than assumed.** An earlier version of this docstring said a marked-up
+narration would be refused for an ungrounded name. It is not: both forms come
+back grounded on all 35 claims of the 1986 narration. The check reads names,
+actions, clocks and numbers against the facts a sentence cited, and `phoneme`,
+`alphabet` and `ipa` are none of those, so they pass through as words it has
+no claim about. A narration marked up before the check would be accepted,
+labelled "Verified from play data", and read out with the markup in it.
+
 So no module in `app/` imports this one except the speech backend, and
-`tests/test_pronunciation.py::TestNothingElseAppliesIt` is what holds that:
-the header the screen shows and the narration the check reads are the same
-strings they were before this file existed.
+`tests/test_pronunciation.py::TestNothingElseAppliesIt` is what holds that. It
+reads source rather than behaviour because there is no behaviour to read: that
+test is the only thing between this mistake and a release.
 
 **It says the same words.** `spoken_text` strips the markup back off, and
 `for_speech` is only ever a pronunciation: a round trip returns the input
@@ -63,8 +72,17 @@ from typing import Mapping
 #: a team takes, not `lɛd`, the metal. The header says "take the lead" and
 #: "extend the lead", and it is the second of those that needs this: Shawn
 #: heard "extend the lead" read as "led" without the entry.
+#:
+#: `minute` is the second, and the clearer case of the two. All three voices
+#: read "Minute 54." as "my-NEWT", the adjective meaning tiny, where the app
+#: means the unit of time and only ever means the unit of time: the word
+#: reaches speech from `template_narration` in `app/narration_prompt.py`,
+#: which writes the clock. The CMU Pronouncing Dictionary lists
+#: `M AY0 N UW1 T` beside `M IH1 N AH0 T` for it, so the voices were picking a
+#: real pronunciation of the written word rather than misreading it.
 PRONUNCIATIONS: Mapping[str, str] = {
     "lead": "liːd",
+    "minute": "ˈmɪnɪt",
 }
 
 #: IBM supports `<phoneme>` on every voice, with IPA as one of its two

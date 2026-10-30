@@ -194,12 +194,13 @@ Everything above it is structure.
   read as "led" without it and "leed" with it. `for_speech` marks the listed words up as
   `<phoneme>` elements for the speech request, and nothing else in `app/` may
   import it: markup in the text a screen shows is a fan reading tags, and
-  markup in the text `app/grounding.py` reads is a narration refused for being
-  pronounceable. Text holding no listed word is returned identically.
-- `tests/test_pronunciation.py`: 27 tests over the table, the markup, the
-  round trip that proves a pronunciation never changes a word, and the seven
-  modules forbidden to import it, and the one module that applies it. All 27
-  pass.
+  markup in the text `app/grounding.py` reads survives the check and reaches
+  both the label and the audio, so a test reads source rather than behaviour.
+  Text holding no listed word is returned identically.
+- `tests/test_pronunciation.py`: 35 tests over the table, the markup, the
+  round trip that proves a pronunciation never changes a word, the seven
+  modules forbidden to import it, the one module that applies it, and the real
+  1986 narration through the real backend. All 35 pass.
 - `tests/test_personas.py`: 27 tests over the config's shape, the ids against
   `app/orchestrator_contract.py`, the three picked voices, the unconfirmed
   prosody fields and the Profile copy. All 27 pass.

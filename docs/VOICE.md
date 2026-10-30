@@ -826,6 +826,35 @@ and generalising to a word. A pronunciation is a property of a word in a
 context, so the next entry gets judged on the sentence the app will actually
 say.
 
+### The second entry: "minute"
+
+| Word | IPA | Sentence | What the voices did | Heard by |
+| ---- | --- | -------- | ------------------- | -------- |
+| `lead` | `liːd` | "Argentina extend the lead." | "led" | Shawn |
+| `minute` | `ˈmɪnɪt` | "Minute 54." | "my-NEWT" | Shawn, all three voices |
+
+All three voices read "Minute 54." as the adjective meaning tiny. In this app
+the word only ever means the unit of time: it reaches speech from
+`template_narration` in `app/narration_prompt.py`, which opens a narration on
+the clock, so this is the first sentence of most of what a fan hears.
+
+**The voices were not misreading it.** The CMU Pronouncing Dictionary lists
+`M AY0 N UW1 T` and `M AY0 N Y UW1 T` beside `M IH1 N AH0 T` for that
+spelling. Both are real pronunciations of the written word, and nothing in
+"Minute 54." tells a voice which one is meant: the written form is genuinely
+ambiguous and no amount of context resolves it, which is exactly what the
+`<phoneme>` element is for.
+
+That is the pattern worth noticing. Both entries so far are heteronyms, both
+were caught by a person listening after the fact, and both were predictable
+from a dictionary before anybody listened.
+
+**No synthesis was spent on this entry.** October's allowance is near its
+limit, and the element itself is already proven on all three voices by the
+`lɛd` arm. Shawn confirms "minute" by ear after the allowance resets on
+November 1; until then what stands behind it is his hearing of the problem and
+the dictionary's agreement that the spelling is ambiguous.
+
 **The markup reaches the speech request and nothing else.** This is the whole
 of the design, and the reason to say it twice is that applying it one step
 earlier is the easy mistake and a quiet one:
@@ -833,13 +862,23 @@ earlier is the easy mistake and a quiet one:
 | Reader | What it would see | Why that is wrong |
 | ------ | ----------------- | ----------------- |
 | the screen | `take the <phoneme ...>lead</phoneme>.` | a fan reading markup |
-| `app/grounding.py` | the same | a name or a number inside an element is one the check cannot match, so a grounded narration would be refused for being pronounceable |
+| `app/grounding.py` | the same | markup in the checked text, carried into the label and into the audio, with nothing raising |
 | a model | the same | nothing says a pronunciation to a model |
 
-Neither of the first two failures announces itself. A header with markup in it
-still reads correctly to anything that strips tags, and a narration marked up
-before the check comes back refused with a message about an ungrounded name,
-which sends a reader to the wrong file. So the guard is structural:
+**Neither of the first two failures announces itself, and the second one is
+worse than this document first claimed.** It said a narration marked up before
+the check would come back refused for an ungrounded name, which would at least
+have been a failure. It was wrong, and
+`tests/test_pronunciation.py::TestTheClockInARealNarration::test_the_check_does_not_catch_markup_in_the_text_it_reads`
+is the measurement: the plain and the marked-up 1986 narration both come back
+grounded, on the same 35 claims. The check reads names, actions, clocks and
+numbers against the facts a sentence cited; `phoneme`, `alphabet` and `ipa`
+are none of those and pass through as words it has no claim about.
+
+So a narration marked up before the check would be accepted, would carry
+"Verified from play data", and would be read out with the markup in it, and
+nothing in the pipeline would raise. The guard is structural because there is
+nothing behavioural to guard with:
 `tests/test_pronunciation.py::TestNothingElseAppliesIt::test_no_text_producing_module_imports_it`
 reads the source of the seven modules that produce displayed or checked text
 and fails if any of them imports the table, and
