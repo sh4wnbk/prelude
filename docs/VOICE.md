@@ -581,6 +581,7 @@ are its output.
 | `pitch_percentage`, upward | works | works | works |
 | `pitch_percentage`, downward | ignored | ignored | ignored |
 | `<break time="600ms"/>` | works | ignored | ignored |
+| `<phoneme>` | works | works | works |
 | `<prosody rate>` | ignored | ignored | ignored |
 | `<prosody pitch>` | ignored | ignored | ignored |
 
@@ -627,6 +628,12 @@ rate that changed at the goal would be two requests and two files.
 
 **Nothing above is a delivery.** It is the list of what a delivery may be
 written in. The values are Shawn's, by ear.
+
+**One arm of the probe is worth copying the next time.** Asking a control for
+what the voice already does cannot tell "honoured" from "ignored": both give
+identical audio. The pronunciation arm fell into exactly that, and the fix was
+to ask for something plainly wrong and watch the audio change. Any future
+control gets measured that way.
 
 ## The delivery table: persona by situation
 
@@ -731,9 +738,30 @@ still be wrong by ear; it is not wrong by rule.
 
 ## How a word is said, which is not what it says
 
-`<phoneme>` is the one SSML element IBM supports on all three of these voices,
+`<phoneme>` is the one SSML element that works on all three of these voices,
 and `app/pronunciation.py` is the table: word to IPA, with `lead` to `liːd` as
 the first and so far only entry.
+
+**That it works took two measurements, and the first one was worthless.**
+Asking for `liːd` returned audio byte for byte identical to the same sentence
+with no element at all, on all three voices, which reads exactly like the
+`<prosody>` result and means nothing of the kind. An element asking for the
+pronunciation a voice already uses produces identical audio whether it was
+honoured or thrown away, so the arm could not tell the two apart.
+
+The arm that could is the one asking for the wrong pronunciation: `lɛd`, the
+metal. That changed the audio on all three voices, 96538 bytes to 94138 on
+Heidi, 77938 to 82738 on Emma and 93538 to 101938 on Ethan. The element is
+honoured.
+
+It also means something about the entry in the table: **these three voices
+already say "lead" the right way in this sentence.** That is what identical
+audio for a `liːd` request proves, now that the element is known to work. The
+table's one entry therefore costs around 44 billable characters and changes
+nothing audible today. It is kept because the mechanism is proven and the
+table is where the next word goes, but Shawn can drop the entry and lose
+nothing measurable, and it is worth knowing that before the character budget
+gets tight.
 
 It is there because "lead" is two words in English. The metal is `lɛd` and the
 thing a team takes is `liːd`, and the header says "take the lead" on two of
@@ -776,6 +804,55 @@ Every element costs billable characters, around 40 each time on a plan that
 charges by the character, and SSML escaping is only needed once there is
 markup to escape. So the common case sends what the screen shows and pays
 nothing for the feature.
+
+## The speech backend
+
+`app/tts.py` is the one module that turns text into audio. It takes the
+header, the narration, a persona and a situation, and returns the WAV bytes
+the service sent, unexamined: a backend that inspected its own output would be
+deciding whether the service had done its job.
+
+**The citation tags are refused rather than spoken.** `Narrated.text` is the
+stripped narration and `Narrated.tagged_text` is the one kept for the audit
+trail, and the two are one character apart at a call site. "Open bracket
+fourteen comma fifteen close bracket" read aloud over a goal is the kind of
+thing that ships, so any text `strip_citations` would change is refused
+(`tests/test_tts.py::TestItRefusesTaggedText`).
+
+**The delivery reaches the request in two places**, and that is the service's
+shape rather than a choice: the rate and the pitch are query parameters, so
+they are per request, and the pauses are elements inside the text, so they are
+per sentence and go only to the Caller.
+
+**The order of the two markups matters**, and it is the one subtle thing in
+the file. The pronunciation table escapes the text when it marks a word up.
+Inserting the pauses first and marking up second would escape them into
+`&lt;break ...`, which the service would read out rather than honour, so
+pronunciation goes first and the pauses are joined between marked-up sentences
+(`tests/test_tts.py::TestOnlyTheCallerGetsPauses::test_the_pause_markup_is_not_escaped`).
+
+**Nothing secret is in the request object.** `SpeechRequest` carries the path,
+the query and the body, and the host is added when the request is sent;
+`TTS_URL` holds an instance id, so a request object holding the full URL could
+not be printed, recorded or committed. The `Authorization` header reads
+`Basic <redacted>` and the real one is built inside `send`, where it lives for
+the length of one call
+(`tests/test_tts.py::TestNothingSecretIsInTheRequest`).
+
+**The test replays a real exchange.** `tests/golden/tts_synthesize.json` was
+recorded by `scripts/record_tts_golden.py`, one call, 83 submitted characters.
+The request is rebuilt from the backend and compared against the recorded one,
+because a recording is worth nothing if the replay sends something else
+(`tests/test_tts.py::TestTheReplaySendsWhatWasRecorded::test_the_request_matches_the_one_that_was_recorded`).
+
+What the golden holds of the response is its first 128 bytes, the RIFF header
+and the start of the audio, with the full length and SHA-256 of what it did
+not keep. `app/tts.py` returns the bytes it was handed without examining them,
+so what a replay has to assert is exactly that, and a hundred bytes do it as
+well as the ninety thousand the service sent. The fixture says so in its own
+provenance block and
+`tests/test_tts.py::TestTheGoldenIsARecording` holds it to that, including
+that it holds no credential.
 
 ## It ends on the goal, and there is no closer
 

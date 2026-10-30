@@ -105,14 +105,16 @@ def unescape(text: str) -> str:
     return text
 
 
-def for_speech(text: str) -> str:
+def for_speech(text: str, as_ssml: bool = False) -> str:
     """`text` with every listed word marked up for the speech service.
 
     Returns `text` itself, unchanged and unescaped, when no listed word is in
     it: the overwhelmingly common case, and it should cost nothing.
 
-    Once there is one tag the whole body is SSML, so the rest of the text is
-    escaped at that point and not before.
+    `as_ssml` escapes it anyway. That is for a caller adding markup of its
+    own, such as the pauses `app/tts.py` puts between sentences: once there is
+    any element in the body the whole body is parsed as SSML, and a raw `&` in
+    it is a 400 from the service rather than an ampersand.
     """
     if "<phoneme" in text:
         raise AlreadyMarkedUp(
@@ -120,7 +122,7 @@ def for_speech(text: str) -> str:
             "applied once, where the speech request is built"
         )
     if not _WORDS.search(text):
-        return text
+        return escape(text) if as_ssml else text
 
     out = []
     end = 0

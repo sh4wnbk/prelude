@@ -65,7 +65,7 @@ script to run. So the first command in a new clone is
 
 ## Entry points
 
-Eleven scripts, each runnable on its own. None of them is imported by anything.
+Twelve scripts, each runnable on its own. None of them is imported by anything.
 
 | Script | What it does | What it writes | What it reaches |
 | ------ | ------------ | -------------- | --------------- |
@@ -80,18 +80,19 @@ Eleven scripts, each runnable on its own. None of them is imported by anything.
 | `scripts/narration_eval.py` | narrates goals several times in one or more personas and measures the result | `docs/narration_eval.md`, and records with `--json` | a local Ollama server |
 | `scripts/narration_compare.py` | gate on spending: the paid comparison of the two watsonx candidates, with `--plan` printing its cost and making no call | records with `--json` | watsonx.ai, and IBM Cloud IAM |
 | `scripts/tts_probe.py` | measures which delivery controls change the audio on each candidate voice | WAV files outside the repo, and readings with `--json` | Watson Text to Speech |
+| `scripts/record_tts_golden.py` | records one real speech exchange for the suite to replay | `tests/golden/tts_synthesize.json` | Watson Text to Speech |
 
 The three gates exit non-zero on any finding, which is what lets them gate a
 commit; each says so in its own docstring.
 
-**Five scripts reach a paid or local service, and all five are run by hand.**
+**Six scripts reach a paid or local service, and all six are run by hand.**
 They are `scripts/record_narration_golden.py`, `scripts/narrate_once.py`,
-`scripts/narration_eval.py`, `scripts/narration_compare.py` and
-`scripts/tts_probe.py`, none of which is part of the suite, so no test can
+`scripts/narration_eval.py`, `scripts/narration_compare.py`,
+`scripts/tts_probe.py` and `scripts/record_tts_golden.py`, none of which is part of the suite, so no test can
 reach a service through them. The guard that makes that more than a convention
 is in `tests/conftest.py` and is described below.
 
-**Two of them can spend money.** The first three reach the local Ollama server
+**Three of them can spend money.** The first three reach the local Ollama server
 and have no watsonx path at all. `scripts/narration_compare.py` is the paid
 narration one, and it is built to be hard to run by accident: `--plan` prints
 the narrations, the calls and the estimated tokens and makes no call,
@@ -138,7 +139,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 569 tests in sixteen files, and all 569 pass, so any failure
+The suite is 618 tests in seventeen files, and all 618 pass, so any failure
 means something is wrong. It is run from the repo root:
 
 ```
@@ -166,6 +167,7 @@ No path setting is needed: `pyproject.toml` sets `pythonpath = ["."]` and
 | `tests/test_personas.py` | the persona config: the three ids, the fields, the three picked voices, the unconfirmed prosody and the Profile copy |
 | `tests/test_pronunciation.py` | the pronunciation table, the markup it builds, the round trip that proves it says the same words, and the seven modules forbidden to import it |
 | `tests/test_delivery.py` | the delivery table: the three situations, the eight rows, the bounds each control is held to, and the Mate never being cheerful when the other side scored |
+| `tests/test_tts.py` | the speech backend: the recorded exchange it replays, the request it builds, the pauses, the character counts, and that nothing secret is in a request object |
 
 ### Two guards, on every test
 
@@ -202,6 +204,7 @@ Three substitutes, so that no test needs one running.
 | ---------- | ---------- | ---- |
 | `tests/golden/ollama_development_model.json` | a real exchange with a local Ollama server, recorded verbatim | `tests/test_narration_provider.py::TestOllamaBackend::test_the_golden_is_a_recording` |
 | `tests/golden/watsonx_text_generation.json` | written by hand from IBM's published schema, and it says so in its own provenance block | `tests/test_narration_provider.py::TestWatsonxBackend::test_the_golden_says_it_is_not_a_recording` |
+| `tests/golden/tts_synthesize.json` | a real speech exchange, with the first 128 bytes of the response body | `tests/test_tts.py::TestTheGoldenIsARecording::test_it_says_it_is_a_recording` |
 | the `Script` provider in `tests/test_narration.py` | a provider that returns lines written in the test, so a test can say "the model drifts twice and then behaves" | `tests/test_narration.py::TestRetries::test_a_failing_narration_is_regenerated_whole` |
 
 A recording is worth nothing if the replay sends something else, so the
@@ -240,10 +243,9 @@ because a skip would have let the suite go green with nothing built.
   `pass_rate` and `tests/test_narration.py::TestPassRate::test_it_counts_first_attempts_only`
   holds its definition, and no script runs it over the nine goals.
   `scripts/narrate_once.py` does one goal.
-- **No audio from narration yet.** Nothing in the repo turns a narration into
-  speech. `scripts/tts_probe.py` reads `TTS_API_KEY` and `TTS_URL` and
-  synthesizes one fixed sentence to find out which delivery controls work; it
-  takes no narration and writes nothing a screen could play.
+- **No screen plays audio.** `app/tts.py` turns a header and a narration into
+  WAV and is callable from Python. Nothing in `app/web/` reaches it, and no
+  narration is spoken anywhere a fan could hear it.
 - **No screen reads narration.** The screens take their content from
   `app/web/matches.json`, which `scripts/check_match_copy.py` checks against the
   data; narration reaches no screen.

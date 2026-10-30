@@ -113,6 +113,27 @@ VOICES = (
 #: in every arm, so a duration is comparable across them.
 SENTENCE = "He turned, and the shot went in."
 
+#: The sentence the pronunciation arms speak, and the same with the element
+#: around the word. "lead" is the entry in `app/pronunciation.py` and the
+#: reason that file exists: the metal is `lɛd` and the thing a team takes
+#: is `liːd`.
+LEAD_SENTENCE = "Argentina take the lead."
+LEAD_PHONEME_SENTENCE = LEAD_SENTENCE.replace(
+    "lead", '<phoneme alphabet="ipa" ph="liːd">lead</phoneme>'
+)
+
+#: The same sentence asking for the **wrong** pronunciation, the metal.
+#:
+#: This is the arm that can actually answer the question. Asking for `liːd`
+#: proves nothing: if the voice already says it that way, an element
+#: requesting what is already happening produces identical audio whether it
+#: was honoured or ignored. Asking for `lɛd` is different from whatever the
+#: voice does by default, so identical audio can only mean the element was
+#: ignored. Nothing ships this; it is a measurement.
+LEAD_WRONG_SENTENCE = LEAD_SENTENCE.replace(
+    "lead", '<phoneme alphabet="ipa" ph="lɛd">lead</phoneme>'
+)
+
 #: How far the two parameters are moved, as a percentage, in both directions.
 SHIFT = 20
 
@@ -183,6 +204,10 @@ class Arm:
     control: str
     expect: str
     spoken: str = SENTENCE
+    #: Which arm this one is read against. Almost every arm is read against
+    #: the plain rendering of the same sentence; the pronunciation pair speaks
+    #: a different sentence, so it carries its own baseline.
+    baseline: str = "plain"
 
 
 ARMS: tuple[Arm, ...] = (
@@ -216,6 +241,17 @@ ARMS: tuple[Arm, ...] = (
         "higher f0",
     ),
     Arm("break_600ms", BREAK_SENTENCE, {}, "break", "longer"),
+    # `<phoneme>` is the one element `app/pronunciation.py` depends on, and
+    # IBM documents it as supported with no voice-type restriction. Documented
+    # as supported is what `<prosody>` also was, so it is measured: one
+    # sentence holding "lead" plain, and the same sentence with the element
+    # around that word. Different bytes mean the element reached the voice.
+    Arm("lead_plain", LEAD_SENTENCE, {}, "phoneme", "baseline",
+        spoken=LEAD_SENTENCE),
+    Arm("lead_phoneme", LEAD_PHONEME_SENTENCE, {}, "phoneme", "different",
+        spoken=LEAD_SENTENCE, baseline="lead_plain"),
+    Arm("lead_phoneme_wrong", LEAD_WRONG_SENTENCE, {}, "phoneme", "different",
+        spoken=LEAD_SENTENCE, baseline="lead_plain"),
 )
 
 #: Arms the first run measured and the delivery table will not be built from.
@@ -595,7 +631,6 @@ def verdicts(
     f0. Identical bytes to the plain arm are reported beside it, because they
     say more than either measure.
     """
-    base = voice_readings["plain"]
     results: dict[str, str] = {}
     controls = dict.fromkeys(a.control for a in arms if a.control != "none")
     for control in controls:
@@ -603,8 +638,20 @@ def verdicts(
         moved = 0
         total = 0
         for arm in (a for a in arms if a.control == control):
+            if arm.expect == "baseline":
+                continue
+            base = voice_readings[arm.baseline]
             total += 1
             reading = voice_readings[arm.name]
+            if arm.expect == "different":
+                moved_here = reading["sha256"] != base["sha256"]
+                notes.append("{} {} {}".format(
+                    arm.name,
+                    "differs from" if moved_here else "is identical to",
+                    arm.baseline,
+                ))
+                moved += 1 if moved_here else 0
+                continue
             if arm.expect in ("longer", "shorter"):
                 delta = reading["duration"] - base["duration"]
                 moved_here = abs(delta) > DURATION_TOLERANCE and (

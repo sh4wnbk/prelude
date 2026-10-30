@@ -204,15 +204,35 @@ garbage output
 `docs/VOICE.md` records what two live runs of it produced, and
 `scripts/narrate_once.py` is how to run another.
 
-### Watson Text to Speech, so far only as a probe
+### Watson Text to Speech
 
-Phase 5. Narration is still text and nothing in the repo speaks it, which
-`README.md` and `docs/narration.md` both say. What exists is one script that
-calls the service to find out what it will take.
+Phase 5. `app/tts.py` is the backend: it takes a header, a narration, a
+persona and a situation, and returns the WAV bytes the service sent. No screen
+reaches it, so no fan hears anything yet.
 
-`scripts/tts_probe.py` synthesizes one fixed sentence per arm on three
-candidate voices and measures the audio that comes back. It takes no
-narration, no persona and no match, and it writes WAV files outside the repo.
+`scripts/tts_probe.py` is what measured the service before any of it was
+written: one fixed sentence per arm on three candidate voices, with the audio
+that came back measured rather than assumed. It writes WAV files outside the
+repo.
+
+| Behaviour | Test |
+| --------- | ---- |
+| it replays a real recorded exchange | `tests/test_tts.py::TestTheGoldenIsARecording::test_it_says_it_is_a_recording` |
+| the request matches the one that was recorded | `tests/test_tts.py::TestTheReplaySendsWhatWasRecorded::test_the_request_matches_the_one_that_was_recorded` |
+| it returns the bytes the service sent, unmodified | `tests/test_tts.py::TestTheReplaySendsWhatWasRecorded::test_it_returns_exactly_the_bytes_the_service_sent` |
+| one request, since the key goes in directly and there is no token to exchange | `tests/test_tts.py::TestTheReplaySendsWhatWasRecorded::test_it_sends_one_request` |
+| a narration still carrying its citation tags is refused | `tests/test_tts.py::TestItRefusesTaggedText` |
+| the rate and pitch are sent only once decided | `tests/test_tts.py::TestTheRequestShape::test_an_unset_rate_or_pitch_is_not_sent` |
+| pauses reach the Caller's voice and no other | `tests/test_tts.py::TestOnlyTheCallerGetsPauses` |
+| no request object holds the host or the token | `tests/test_tts.py::TestNothingSecretIsInTheRequest` |
+| a missing credential is named and nothing is sent | `tests/test_tts.py::TestCredentials::test_a_missing_credential_is_named_and_nothing_is_sent` |
+
+**The suite makes no speech call.** `tests/golden/tts_synthesize.json` is a
+real exchange, recorded once by `scripts/record_tts_golden.py` at a cost of 83
+submitted characters, and the fixture carries its own provenance block saying
+what it holds: the request, and the first 128 bytes of the response with the
+full length and SHA-256 of the rest. Unlike the watsonx fixture, this one is a
+recording and says so.
 
 | What | Value |
 | ---- | ----- |
@@ -226,8 +246,9 @@ narration, no persona and no match, and it writes WAV files outside the repo.
 **What the probe found is in `docs/VOICE.md`**, with the numbers. In short:
 `<prosody>` is ignored on all three voices, which is what IBM documents for
 Natural voices; `rate_percentage` works on all three; `pitch_percentage` works
-upward and is ignored at -20; and `<break>` works on `en-AU_HeidiNatural`
-alone.
+upward and is ignored at -20; `<break>` works on `en-AU_HeidiNatural` alone;
+and `<phoneme>` works on all three, which took a second arm to establish
+because the first one asked for a pronunciation the voices already used.
 
 **No test covers the probe,** and that is the same decision as the three gates:
 it is a measuring instrument whose evidence is its own output, and a test

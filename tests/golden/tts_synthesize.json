@@ -1,0 +1,30 @@
+{
+  "provenance": {
+    "what": "a real exchange with IBM Watson Text to Speech, recorded by scripts/record_tts_golden.py",
+    "recorded": "2026-10-29",
+    "is_a_recording": true,
+    "response_body_is": "the first 128 bytes of the response, which is the RIFF header and the start of the audio",
+    "response_is_not": "the whole response. app/tts.py returns the bytes the service sent without examining them, so what a replay asserts is that it returns exactly what it was handed, and the audio itself would add nothing a test could check",
+    "holds_no_credential": "the host is not in the request, because TTS_URL carries an instance id, and the Authorization header is redacted because the real one is built inside send and never leaves it",
+    "persona": "storyteller",
+    "situation": "neutral",
+    "header": "Argentina take the lead.",
+    "narration": "Maradona shot."
+  },
+  "request": {
+    "path": "/v1/synthesize",
+    "query": "voice=en-US_EmmaNatural",
+    "text": "Argentina take the <phoneme alphabet=\"ipa\" ph=\"liːd\">lead</phoneme>. Maradona shot.",
+    "headers": {
+      "Content-Type": "application/json",
+      "Accept": "audio/wav",
+      "Authorization": "Basic <redacted>"
+    }
+  },
+  "response": {
+    "bytes": 140338,
+    "sha256": "33927975aa59266b3e6e4fb3117b03e17d7b3b19a19dce14432349bfdbf0a4ba",
+    "head_base64": "UklGRv////9XQVZFZm10IBAAAAABAAEAwF0AAIC7AAACABAATElTVBoAAABJTkZPSVNGVA0AAABMYXZmNjAuMy4xMDAAAGRhdGH/////AAAEAAIAAAABAAAAAQABAAAAAAAAAAAAAQABAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+    "head_bytes": 128
+  }
+}

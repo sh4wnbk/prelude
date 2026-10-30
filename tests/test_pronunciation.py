@@ -38,6 +38,14 @@ APP = Path(__file__).resolve().parent.parent / "app"
 #: and the checked text come through these, and markup in either is a bug the
 #: rest of the suite would not catch: the narration would still be grounded
 #: and the header would still read correctly to anything that strips tags.
+def _imports_pronunciation(name: str) -> bool:
+    """Whether `app/<name>` imports the pronunciation table."""
+    source = (APP / name).read_text(encoding="utf-8")
+    return bool(
+        re.search(r"^\s*(from|import)\s+app\.pronunciation", source, re.MULTILINE)
+    )
+
+
 MUST_NOT_IMPORT = (
     "grounding.py",
     "narration.py",
@@ -163,13 +171,24 @@ class TestNothingElseAppliesIt:
     """
 
     def test_no_text_producing_module_imports_it(self):
-        offenders = []
-        for name in MUST_NOT_IMPORT:
-            source = (APP / name).read_text(encoding="utf-8")
-            if re.search(r"^\s*(from|import)\s+app\.pronunciation", source,
-                         re.MULTILINE):
-                offenders.append(name)
+        offenders = [
+            name for name in MUST_NOT_IMPORT if _imports_pronunciation(name)
+        ]
         assert offenders == []
+
+    def test_the_speech_backend_is_the_one_module_that_does(self):
+        """The constraint has two halves and this is the second one.
+
+        A table nothing imports is a table that does nothing, so the test
+        above would pass just as well if the markup never reached the service
+        at all. `app/tts.py` is where it is applied, and it is the only place.
+        """
+        applies = [
+            path.name
+            for path in sorted(APP.glob("*.py"))
+            if _imports_pronunciation(path.name)
+        ]
+        assert applies == ["tts.py"]
 
     def test_the_header_the_screen_shows_carries_no_markup(self):
         """The real header for a real transition, and it says "lead"."""

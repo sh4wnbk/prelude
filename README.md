@@ -163,6 +163,18 @@ Everything above it is structure.
   marked unconfirmed, because Shawn sets them by ear. Three measured runs
   behind that decision are in `docs/narration_eval.md`. No screen offers a
   choice yet.
+- `app/tts.py`: the speech backend. Takes the header, the narration, a persona
+  and a situation, and returns the WAV bytes IBM Watson Text to Speech sent.
+  Callable from Python; no screen reaches it. It refuses a narration that still
+  carries its citation tags, applies the pronunciation table, and puts the
+  pauses in only for a voice whose breaks work. Credentials come through
+  `app/credentials.py` and a missing one is named before any request.
+- `tests/test_tts.py`: 48 tests over the backend, replaying a real recorded
+  exchange from `tests/golden/tts_synthesize.json`. All 48 pass, and none of
+  them reaches the service.
+- `scripts/record_tts_golden.py`: records one real speech exchange for that
+  replay. `--plan` prints the request and its character count and makes no
+  call; `--confirm` sends it.
 - `app/delivery.py`: the delivery table, one row per persona per situation,
   holding the rate, the pitch and the two pauses. Every value is a placeholder
   for Shawn to set by ear; what runs is the shape and the rules, which refuse
@@ -177,9 +189,10 @@ Everything above it is structure.
   import it: markup in the text a screen shows is a fan reading tags, and
   markup in the text `app/grounding.py` reads is a narration refused for being
   pronounceable. Text holding no listed word is returned identically.
-- `tests/test_pronunciation.py`: 26 tests over the table, the markup, the
+- `tests/test_pronunciation.py`: 27 tests over the table, the markup, the
   round trip that proves a pronunciation never changes a word, and the seven
-  modules forbidden to import it. All 26 pass.
+  modules forbidden to import it, and the one module that applies it. All 27
+  pass.
 - `tests/test_personas.py`: 27 tests over the config's shape, the ids against
   `app/orchestrator_contract.py`, the three picked voices, the unconfirmed
   prosody fields and the Profile copy. All 27 pass.
