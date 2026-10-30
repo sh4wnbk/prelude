@@ -122,10 +122,8 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-4 failed, 714 passed
+718 passed
 ```
-
-The 4 are Task 13 below, waiting to be built.
 
 The total covers far more than this module now. Phase 4 added the narration
 provider, the prompt, the grounding check and the evaluation, each with its
@@ -1355,6 +1353,9 @@ forgotten:
 
 ## Task 13: rename the persona id from mate to buddy
 
+**Status: built, in `4e61a10`.** Test names that spelled the old id were
+renamed with it, so the docs that cite them were updated in the follow-up.
+
 Rename the partisan persona's id, constant and every live use from "mate" to
 "buddy", so the code says what the screen says. That is the whole task.
 
@@ -1392,7 +1393,8 @@ as they are. The docs are the follow-up's.
 
 ### The tests to pass
 
-`tests/test_buddy_rename.py`, 4 tests, all failing until this is built. The
+`tests/test_buddy_rename.py`, 4 tests, all passing now; all 4 failed until
+this was built. The
 last one lists every live line that still says "mate", which is the to-do list.
 
 Then the full suite, target 0 failed, and the five gates. `check_docs.py`

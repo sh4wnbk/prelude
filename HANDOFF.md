@@ -2950,7 +2950,24 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Bob task 13, then the recordings on November 1)
+## Next first action (Claude Code Task 7: better frozen narrations, chosen by Shawn)
+
+**Bob task 13 is built and checked.** `4e61a10` renamed the id to `buddy` in
+every live file; both written files pass `--check`, and the follow-up updated
+the docs that cited the test names it renamed. `pytest -q` reports
+`718 passed` and all five gates pass. It cost 21.07 Bobcoins, five times a
+typical task, because a rename across 18 files is mostly reading: broad
+mechanical edits are expensive for Bob, small targeted ones are cheap.
+
+**The frozen narrations are grounded but not ready to record.** Read as audio,
+the 2022 one names 4 of the 13 recorded events and leaves out Messi and
+Álvarez; neither one says the shot scored; every sentence carries a clock; and
+the 1986 one does not name Maradona until the last line. All four are prompt
+choices, not grounding limits, and they are cheap to fix on watsonx before the
+voice is spent. Task 7, briefed to Claude Code, asks for five grounded
+candidates per goal with those fixed, for Shawn to choose from.
+
+### Before Task 7: Bob task 13
 
 **Bob task 13 in `docs/bob_brief.md` renames the persona id from `mate` to
 `buddy`**, Shawn's call on 2026-10-30, made before the hero recordings exist
@@ -2958,9 +2975,7 @@ because their filenames are built from the id. Live code, data and tests
 change; the past does not: `scripts/narration_eval.py`, `docs/narration_eval.md`,
 this file's history and `bob_sessions/` keep "Mate" for the runs made under that
 name. The docs that describe the current state are the follow-up's.
-`pytest -q` reports `4 failed, 714 passed`. Every failure is in
-`tests/test_buddy_rename.py`, whose last test lists each live line still to
-rename.
+While it was briefed, every failure was in `tests/test_buddy_rename.py`.
 
 **The rename comes first, and the recordings after it.** `scripts/tts_hero.py`
 names each file `<match_id>_<key>.mp3` from `hero.voice_for`, so the six

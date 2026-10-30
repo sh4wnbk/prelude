@@ -405,7 +405,7 @@ no sense without an allegiance: told to a neutral listener it would be saying
 they support a team they did not choose. `fans_only` is true for it and false
 for the other two, and `available` in `app/personas.py` is what leaves it out
 for a neutral listener.
-`tests/test_personas.py::TestFansOnly::test_a_neutral_listener_is_not_offered_the_mate`
+`tests/test_personas.py::TestFansOnly::test_a_neutral_listener_is_not_offered_the_buddy`
 covers that, and
 `tests/test_personas.py::TestFansOnly::test_the_default_for_a_neutral_listener_is_one_they_may_choose`
 covers the disagreement that would not otherwise show up: `default_persona` in
@@ -721,7 +721,7 @@ Mate row to write: a partisan voice told to a listener with no side would be
 telling them they support a team they did not choose. Asking for that row
 raises, and the message says why rather than returning a default delivery that
 would sound like nothing was chosen
-(`tests/test_delivery.py::TestLookup::test_the_mates_neutral_row_says_why_it_does_not_exist`).
+(`tests/test_delivery.py::TestLookup::test_the_buddys_neutral_row_says_why_it_does_not_exist`).
 
 **The two break columns are the Caller's alone**, because `<break>` moves its
 voice and neither of the other two. A pause written on the Storyteller or the
@@ -762,7 +762,7 @@ Brighter and quicker is what cheerful is made of in the only two controls
 there are, so the rule is written as a comparison between the Mate's own two
 rows rather than as a fixed number: the conceded row may not carry more pitch
 than the scored row, and may not carry more rate either
-(`tests/test_delivery.py::TestTheMateIsNeverCheerfulWhenTheOtherSideScored`).
+(`tests/test_delivery.py::TestTheBuddyIsNeverCheerfulWhenTheOtherSideScored`).
 
 A comparison rather than a number is the only thing that can be stated while
 the table is empty, and it is also the right shape once it is full: it survives
@@ -771,7 +771,7 @@ Shawn filling both rows in by ear in one sitting, whatever numbers he picks.
 The rule is "never brighter", not "always duller". A Mate that sounds the same
 either way is not cheerful about a goal against the listener's team; it is
 even, and that is allowed
-(`tests/test_delivery.py::TestTheMateIsNeverCheerfulWhenTheOtherSideScored::test_the_same_delivery_in_both_is_allowed`).
+(`tests/test_delivery.py::TestTheBuddyIsNeverCheerfulWhenTheOtherSideScored::test_the_same_delivery_in_both_is_allowed`).
 
 It does not fire on the other two personas. Neither is partisan, so a brighter
 conceded row there is not a voice celebrating against its own listener. It may
