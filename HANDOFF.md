@@ -2822,7 +2822,19 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Claude Code Task 6, the frozen narrations; recordings on November 1)
+## Next first action (Bob task 13, then Claude Code Task 6; recordings on November 1)
+
+**Bob task 13 in `docs/bob_brief.md` renames the persona id from `mate` to
+`buddy`**, Shawn's call on 2026-10-30, made before the hero recordings exist
+because their filenames are built from the id. Live code, data and tests
+change; the past does not: `scripts/narration_eval.py`, `docs/narration_eval.md`,
+this file's history and `bob_sessions/` keep "Mate" for the runs made under that
+name. The docs that describe the current state are the follow-up's.
+`pytest -q` reports `4 failed, 694 passed`. Every failure is in
+`tests/test_buddy_rename.py`, whose last test lists each live line still to
+rename.
+
+### Before Task 13
 
 **Bob task 12 is built and checked.** `35c91b6` made the four changes in the
 brief. In Chromium, Profile marked The Buddy for an England fan and The

@@ -73,7 +73,7 @@ DOCS = [
 # when it was committed in `076e914`. The list is empty: every path the docs
 # name now exists. Add a path here when a doc names one before it is written.
 DELIBERATELY_ABSENT: set[str] = {
-    "bob_sessions/phase5_task12_narrators.md",  # Bob's task 12 export
+    "bob_sessions/phase5_task13_buddy_rename.md",  # Bob's task 13 export
 }
 
 PATH_IN_BACKTICKS = re.compile(

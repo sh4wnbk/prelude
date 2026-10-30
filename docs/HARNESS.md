@@ -160,8 +160,10 @@ generating anything:
 
 ## The test harness
 
-The suite is 694 tests in twenty files, and all 694 pass, so any failure
-means something is wrong. It is run from the repo root:
+The suite is 698 tests in twenty-one files. 694 pass and 4 fail.
+
+The failures are all in `tests/test_buddy_rename.py`, written before Bob's Task 13 in
+`docs/bob_brief.md`. A failure anywhere else means something is wrong. It is run from the repo root:
 
 ```
 .\.venv-prelude\Scripts\python.exe -m pytest
@@ -178,6 +180,7 @@ No path setting is needed: `pyproject.toml` sets `pythonpath = ["."]` and
 | `tests/test_narration.py` | the pipeline: generate, check, retry, fall back, record |
 | `tests/test_narration_provider.py` | the model config and both backends |
 | `tests/test_credentials.py` | where the credentials file lives, and what is refused |
+| `tests/test_buddy_rename.py` | the partisan persona's id is `buddy` in every live file, with the past left as it was; failing until Bob's Task 13 |
 | `tests/test_narrators.py` | "Your narrator" on Profile: the Buddy rename, the list written from the personas, the current narrator marked, the coming-soon note, and Change as an outline, built by Bob in Task 12 |
 | `tests/test_narration_player.py` | playback on the moment card: which recording each listener hears, the audio map, the player's wiring, and that it sends nothing, built by Bob in Task 11 |
 | `tests/test_narration_eval.py` | the key beats, the coverage measure, the token recorder and the voices a run is split into |

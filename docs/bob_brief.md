@@ -122,8 +122,10 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-694 passed
+4 failed, 694 passed
 ```
+
+The 4 are Task 13 below, waiting to be built.
 
 The total covers far more than this module now. Phase 4 added the narration
 provider, the prompt, the grounding check and the evaluation, each with its
@@ -1350,4 +1352,68 @@ forgotten:
 > Export this session to `bob_sessions/phase5_task12_narrators.md` and `.png`,
 > scrub it against the list in `bob_sessions/README.md` before committing, and
 > check the diff rather than the commit.
+
+## Task 13: rename the persona id from mate to buddy
+
+Rename the partisan persona's id, constant and every live use from "mate" to
+"buddy", so the code says what the screen says. That is the whole task.
+
+### Why it exists
+
+Task 12 changed the name fans see to "The Buddy" and kept the id `mate`.
+Shawn's call on 2026-10-30 is to rename the id too, now, before the hero
+recordings exist: their filenames are built from the id, and once
+`3750191_mate_scored.mp3` is committed, renaming means regenerating audio
+against a monthly character cap.
+
+### What you change
+
+1. **`app/orchestrator_contract.py`.** `MATE = "mate"` becomes
+   `BUDDY = "buddy"`. No alias: `MATE` must no longer exist.
+2. **Every live use of the constant, the id and the word**, in `app/*.py`,
+   `app/web/*.js`, `app/web/*.json`, `app/web/*.html`, `scripts/*.py` except
+   `scripts/narration_eval.py`, and `tests/test_*.py` except
+   `tests/test_buddy_rename.py`: `MATE` becomes `BUDDY`, `THE_MATE` becomes
+   `THE_BUDDY`, the string `"mate"` becomes `"buddy"`, and "Mate" or "mate"
+   in comments and docstrings becomes "Buddy" or "buddy". Keys built from the
+   id change with it: `mate_scored` becomes `buddy_scored`, `mate_conceded`
+   becomes `buddy_conceded`. Change expected values in tests only where they
+   spell the old id; change nothing else a test asserts.
+3. **Regenerate the two written files**, never by hand:
+   `scripts/write_headers.py` (for `hero.voice_for`) and
+   `scripts/write_narrators.py` (for `app/web/narrators.json`).
+
+### Do not rename the past
+
+`scripts/narration_eval.py` writes the report of runs made while the persona
+was the Mate, and `docs/narration_eval.md`, `HANDOFF.md`, every other doc and
+everything in `bob_sessions/` describe those runs. Leave all of them exactly
+as they are. The docs are the follow-up's.
+
+### The tests to pass
+
+`tests/test_buddy_rename.py`, 4 tests, all failing until this is built. The
+last one lists every live line that still says "mate", which is the to-do list.
+
+Then the full suite, target 0 failed, and the five gates. `check_docs.py`
+failing on the quoted pytest result in this brief, or on a doc that names
+the old constant, is expected and is the follow-up's; report any other gate
+failure.
+
+### Stop conditions
+
+**A rename and nothing else.** No logic, no copy shown to fans, no file
+moves, no TTS or watsonx calls.
+
+**If a test fails for any reason other than a spelling of the old id, stop
+and report it.** Do not change what a test asserts to make it pass.
+
+### When you are done
+
+**Print this reminder at the end of the session**, so the export is not
+forgotten:
+
+> Export this session to `bob_sessions/phase5_task13_buddy_rename.md` and
+> `.png`, scrub it against the list in `bob_sessions/README.md` before
+> committing, and check the diff rather than the commit.
 
