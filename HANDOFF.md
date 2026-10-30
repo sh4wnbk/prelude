@@ -2706,7 +2706,25 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Task 7 is done; Phase 5, voice and audio, is next)
+## Next first action (Shawn runs Bob task 11, audio playback)
+
+**Bob task 11 in `docs/bob_brief.md` wires the moment card's player to real
+audio.** Which recording a fan hears is decided in Python by
+`scripts/write_headers.py`, from `default_persona` and `situation`, and
+written as `hero.voice_for`; the browser looks its answer up in `hero.audio`,
+which stays empty until the hero recordings are generated after the
+November 1 TTS reset, so until then the play button is disabled. A dry run of
+the brief passed all 674 tests and, in Chromium with a silent test file under
+one key, played and paused, advanced the timer and the waveform, replayed, and
+left the button disabled for the two keys with no file; it was reverted.
+
+The dry run also found that a player loaded in the `<head>` sees no buttons, so the brief
+requires the `DOMContentLoaded` start that `match-content.js` uses.
+
+`pytest -q` reports `13 failed, 661 passed`. Every failure is in
+`tests/test_narration_player.py`.
+
+### Before Task 11: Task 7 is done
 
 **Bob task 10 is built and checked, and with it the Task 7 work.** `4ef3aa0`
 built the Profile screen to the brief. Driven in Chromium it showed "Shawn |

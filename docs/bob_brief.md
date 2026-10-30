@@ -122,8 +122,10 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-660 passed
+13 failed, 661 passed
 ```
+
+The 13 are Task 11 below, waiting to be built.
 
 The total covers far more than this module now. Phase 4 added the narration
 provider, the prompt, the grounding check and the evaluation, each with its
@@ -1148,6 +1150,103 @@ to Live, where the card already lives.
 forgotten:
 
 > Export this session to `bob_sessions/phase4_task10_profile.md` and `.png`,
+> scrub it against the list in `bob_sessions/README.md` before committing, and
+> check the diff rather than the commit.
+
+## Task 11: audio playback on the moment card
+
+Make the moment card's player play the recording the fan should hear, and
+nothing else. That is the whole task.
+
+### Why it exists
+
+The player is a mock: the play button swaps its icon and plays nothing, and the
+waveform shows a fixed progress. The speech backend now exists
+(`app/tts.py`), and the hero recordings are generated after the November 1
+TTS reset, so the player is built now against a map that is empty until then.
+
+Which recording a fan hears is the orchestrator's decision, made in Python
+ahead of time like the header: `default_persona` picks the voice from the
+listener's side, and `situation` in `app/delivery.py` picks the delivery. The
+browser only looks up its answer.
+
+### What you build
+
+1. **`scripts/write_headers.py`.** Add `voice_keys(path=...)`, returning
+   `{match_id: {"team_a": key, "team_b": key, "neutral": key}}`, where each key
+   is `default_persona(listener) + "_" + situation(moment, listener)` for a
+   `Listener` with that allegiance and the same hero `ScoringMoment` the header
+   is built from. Import `default_persona` from `app/orchestrator.py`,
+   `situation` from `app/delivery.py`, and `NEUTRAL` and `Listener` from
+   `app/orchestrator_contract.py`. Build the moment once, in one place, for
+   both the opening and the keys. When writing, set `hero.voice_for` to the
+   keys and set `hero.audio` to `{}` only if it is not already present. `--check`
+   exits 1 if `hero.voice_for` differs, as it already does for `hero.opening`.
+   Run the script once.
+2. **`app/web/narration-player.js`, new.** Everything below runs only after
+   the document has loaded: `match-content.js` is loaded in the `<head>`, so
+   wrap the work in a `start()` function and call it on `DOMContentLoaded`, or
+   at once if `document.readyState` is no longer `"loading"`, exactly as
+   `match-content.js` does.
+   - Find `#playBtn`, `#playIcon`, `#timerReadout`, `#scrubTrack` and
+     `#replayAction`. The waveform bars are the `div`s inside `#scrubTrack`
+     with the class `w-[3px]`, and the playhead is the `.absolute` element
+     inside it.
+   - Show zero progress at once: every bar takes `bg-secondary-container/70`
+     and loses `bg-primary-container`, the playhead's `style.left` is `"0%"`,
+     and `playBtn.disabled = true`.
+   - With `Prelude.whenMatches`, find the match for `Prelude.matchId`. The key
+     is `match.hero.voice_for[Prelude.listenerFor(Prelude.matchId) ||
+     "neutral"]`, and the file is `match.hero.audio[key]`. With no file, leave
+     `playBtn.disabled = true` and stop. With one, create `new Audio(file)` and
+     enable the button.
+   - The play button plays or pauses, with `#playIcon` reading `pause` or
+     `play_arrow`. On `timeupdate`, the first `round(bars × currentTime /
+     duration)` bars take `bg-primary-container` and the rest
+     `bg-secondary-container/70`, the playhead's `style.left` is the same
+     fraction as a percentage, and `#timerReadout` shows the elapsed time as
+     `m:ss`. On `ended`, the icon returns to `play_arrow`.
+   - `#replayAction` sets `currentTime` to `Math.max(0, currentTime - 10)` and
+     plays. A click on `#scrubTrack` seeks to the clicked fraction.
+3. **`app/web/prelude_03_moment_card.html`.** Load the player right after
+   `match-content.js`, exactly as
+   `<script src="narration-player.js?v=__V__"></script>`. In the inline script,
+   delete `let isPlaying = false;`, `togglePlay` and the play and replay
+   listeners. Keep the sync and share listeners. Change no markup.
+
+### The tests to pass
+
+`tests/test_narration_player.py`, 14 tests. Thirteen fail until this is built;
+the fourteenth checks no other screen loads the player.
+
+Then the full suite, target 0 failed, and the five gates
+(`scripts/data_check.py`, `scripts/scan_copy.py`,
+`scripts/check_match_copy.py`, `scripts/check_docs.py`,
+`scripts/check_vocabulary.py`). `check_docs.py` failing on the quoted pytest
+result in this brief, and on `app/web/narration-player.js` being listed as
+absent, is expected and is the follow-up's; report any other gate failure.
+
+### Stop conditions
+
+**Do not add audio files or entries to `hero.audio`.** The recordings come
+after the TTS reset; with none, the play button is simply disabled.
+
+**Do not touch `app/tts.py`, `app/delivery.py`, `app/personas.py`, any test or
+any doc**, and make no TTS calls.
+
+**No `innerHTML` and no network calls in the player.** The audio element loads
+its file; nothing else is fetched.
+
+**Do not change the moment card's markup**, including the waveform and the
+playhead's classes: `docs/DESIGN.md` quotes them. The player changes classes
+and styles at run time only.
+
+### When you are done
+
+**Print this reminder at the end of the session**, so the export is not
+forgotten:
+
+> Export this session to `bob_sessions/phase5_task11_player.md` and `.png`,
 > scrub it against the list in `bob_sessions/README.md` before committing, and
 > check the diff rather than the commit.
 
