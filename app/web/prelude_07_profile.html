@@ -11,8 +11,11 @@
 <div class="w-full rounded-xl bg-surface-container p-card-padding-md flex flex-col gap-space-md border border-surface-container-highest/30">
 <div class="flex flex-col gap-space-2xs"><span class="font-label-sm text-label-sm text-outline uppercase">Name</span><span class="font-body-lg text-body-lg text-on-surface" data-field="profile_name">Not set</span></div>
 <div class="flex flex-col gap-space-2xs"><span class="font-label-sm text-label-sm text-outline uppercase">With</span><span class="font-body-lg text-body-lg text-on-surface" data-field="profile_with">Not set</span></div>
-<button class="mt-1 w-full h-touch-target-min rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg font-bold tracking-wider uppercase flex items-center justify-center shadow-lg shadow-primary-container/20" id="profileChange" type="button">Change</button>
+<button class="mt-1 w-full h-touch-target-min rounded-full bg-transparent border border-primary-container text-primary-container font-label-lg text-label-lg font-bold tracking-wider uppercase flex items-center justify-center" id="profileChange" type="button">Change</button>
 </div>
+<span class="font-label-sm text-label-sm tracking-[0.22em] text-primary-container font-semibold uppercase">Your narrator</span>
+<div class="flex flex-col gap-space-xs" data-field="narrator_list"></div>
+<p class="font-body-md text-body-md text-on-surface-variant" data-field="narrator_note" hidden></p>
 </div>
 <script>
   document.getElementById('profileChange').addEventListener('click', function () {

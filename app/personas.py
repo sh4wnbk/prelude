@@ -159,7 +159,7 @@ THE_STORYTELLER = Persona(
 #: it rather than a permission anything uses.
 THE_MATE = Persona(
     id=MATE,
-    name="The Mate",
+    name="The Buddy",
     profile="Warm, from the next seat.",
     fans_only=True,
     voice="en-US_EthanNatural",

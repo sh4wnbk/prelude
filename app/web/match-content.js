@@ -324,12 +324,71 @@
     setText("profile_with", withLabel);
   }
 
+  function renderNarrators(match) {
+    var list = field("narrator_list");
+    var note = field("narrator_note");
+    if (!list || !note) return;
+
+    fetch(VERSION ? "narrators.json?v=" + VERSION : "narrators.json")
+      .then(function (response) {
+        if (!response.ok) throw new Error("narrators.json " + response.status);
+        return response.json();
+      })
+      .then(function (doc) {
+        var voiceFor = match.hero && match.hero.voice_for;
+        var allegiance = listenerFor(match.match_id) || "neutral";
+        var voiceKey = voiceFor ? voiceFor[allegiance] : null;
+        var currentId = voiceKey ? voiceKey.split("_")[0] : null;
+
+        var narrators = doc.narrators || [];
+        for (var i = 0; i < narrators.length; i++) {
+          var narrator = narrators[i];
+          var isCurrent = narrator.id === currentId;
+
+          var btn = document.createElement("button");
+          btn.type = "button";
+          var baseClasses = "w-full text-left rounded-xl p-card-padding-sm flex flex-col gap-space-2xs";
+          if (isCurrent) {
+            btn.className = baseClasses + " bg-primary-container text-on-primary";
+            btn.setAttribute("aria-current", "true");
+          } else {
+            btn.className = baseClasses + " bg-surface-container-highest text-on-surface";
+          }
+
+          var nameSpan = document.createElement("span");
+          nameSpan.className = "font-label-lg text-label-lg font-bold";
+          nameSpan.textContent = narrator.name;
+
+          var profileSpan = document.createElement("span");
+          profileSpan.className = "font-body-md text-body-md";
+          profileSpan.textContent = narrator.profile;
+
+          btn.appendChild(nameSpan);
+          btn.appendChild(profileSpan);
+
+          (function (n, current) {
+            btn.addEventListener("click", function () {
+              if (current) return;
+              note.textContent = n.name + " is coming soon. For now, Prelude picks your narrator from who you're with.";
+              note.removeAttribute("hidden");
+            });
+          }(narrator, isCurrent));
+
+          list.appendChild(btn);
+        }
+      })
+      .catch(function () {
+        /* Leave the list empty on failure. */
+      });
+  }
+
   function render(match) {
     renderChip(match);
     renderLiveSeated(match);
     renderHero(match);
     renderMoments(match);
     renderProfile(match);
+    renderNarrators(match);
     document.documentElement.setAttribute("data-match-rendered", String(match.match_id));
   }
 

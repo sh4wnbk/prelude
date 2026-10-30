@@ -1,0 +1,19 @@
+{
+  "narrators": [
+    {
+      "id": "caller",
+      "name": "The Caller",
+      "profile": "Quick play-by-play, keeping up with the move."
+    },
+    {
+      "id": "storyteller",
+      "name": "The Storyteller",
+      "profile": "Calm documentary, unhurried and even."
+    },
+    {
+      "id": "mate",
+      "name": "The Buddy",
+      "profile": "Warm, from the next seat."
+    }
+  ]
+}
