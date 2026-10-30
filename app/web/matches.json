@@ -72,7 +72,13 @@
         "opening": {
           "greeting": "tonight",
           "header": "Argentina extend the lead. Argentina 2, England 0. Here's how it happened."
-        }
+        },
+        "voice_for": {
+          "team_a": "mate_scored",
+          "team_b": "mate_conceded",
+          "neutral": "storyteller_neutral"
+        },
+        "audio": {}
       },
       "moments_subtitle": "ARGENTINA vs ENGLAND · TONIGHT SO FAR",
       "synced_count": 2,
@@ -187,7 +193,13 @@
         "opening": {
           "greeting": "tonight",
           "header": "Argentina extend the lead. Argentina 2, France 0. Here's how it happened."
-        }
+        },
+        "voice_for": {
+          "team_a": "mate_scored",
+          "team_b": "mate_conceded",
+          "neutral": "storyteller_neutral"
+        },
+        "audio": {}
       },
       "moments_subtitle": "ARGENTINA vs FRANCE · TONIGHT SO FAR",
       "synced_count": 2,

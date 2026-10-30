@@ -5,6 +5,7 @@
   </style>
 <link href="phone-frame.css?v=__V__" rel="stylesheet"/>
 <script src="match-content.js?v=__V__"></script>
+<script src="narration-player.js?v=__V__"></script>
 </head><body class="bg-surface text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.35)]"><div class="h-16 px-screen-edge-mobile flex items-center justify-between"><div class="flex items-center gap-space-sm"><a aria-label="Prelude home" class="font-label-lg text-label-lg tracking-[0.2em] font-semibold text-on-surface uppercase select-none hover:text-primary-container transition-colors" href="prelude_01_picker.html?v=__V__">PRELUDE</a></div><div class="flex items-center gap-space-sm"><div class="inline-flex items-center gap-space-xs px-space-sm py-1.5 rounded-full bg-surface-container-high/80 backdrop-blur-md shadow-[0_1px_4px_rgba(0,0,0,0.2)]"><span class="w-1.5 h-1.5 rounded-full bg-primary-container pulse-live"></span><span class="font-label-sm text-label-sm text-on-surface font-semibold tracking-wider uppercase" data-field="chip">ARG vs ENG · LIVE</span></div><a aria-label="Profile" class="w-8 h-8 rounded-full bg-primary flex items-center justify-center" href="prelude_07_profile.html?v=__V__"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></a></div></div></header><main class="flex flex-col relative w-full pt-16 pb-24 bg-surface min-h-screen"><div class="flex flex-col w-full px-screen-edge-mobile py-space-sm gap-space-md">
 <!-- Back to Flow Bar & Live State Telemetry -->
 <div class="flex items-center justify-between">
@@ -110,29 +111,8 @@
 </div>
 <script>
   (function initMomentCardInteraction() {
-    const playBtn = document.getElementById('playBtn');
-    const playIcon = document.getElementById('playIcon');
-    const timerReadout = document.getElementById('timerReadout');
     const syncAction = document.getElementById('syncAction');
-    const replayAction = document.getElementById('replayAction');
     const shareAction = document.getElementById('shareAction');
-
-    let isPlaying = false;
-
-    // No clock here. #timerReadout stays empty until Phase 5 wires the real
-    // runtime from the fixture; there is no fixed duration to count against.
-    function togglePlay() {
-      isPlaying = !isPlaying;
-      playIcon.textContent = isPlaying ? 'pause' : 'play_arrow';
-    }
-
-    playBtn?.addEventListener('click', togglePlay);
-
-    replayAction?.addEventListener('click', () => {
-      if (!isPlaying) {
-        togglePlay();
-      }
-    });
 
     syncAction?.addEventListener('click', () => {
       const originalText = syncAction.innerHTML;
