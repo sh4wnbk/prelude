@@ -1,4 +1,4 @@
-"""The speech backend: a header, a narration and a persona in, WAV out.
+"""The speech backend: a header, a narration and a persona in, audio out.
 
 One class, `WatsonTextToSpeech`, built against IBM's published synthesis API.
 It is the only module in `app/` that turns text into audio, and the only one
@@ -15,7 +15,13 @@ that may apply the pronunciation table.
 
 | Out | What it is |
 | --- | ---------- |
-| the return value | the WAV bytes the service sent, unexamined and unmodified |
+| the return value | the audio bytes the service sent, unexamined and unmodified |
+
+**The format is the caller's to pick**, through `accept`. `WAV_ACCEPT` is the
+default and is what the probe measured; `MP3_ACCEPT` is what the recordings
+the site ships are requested in, because a WAV of a twenty second narration is
+an order of magnitude larger than the MP3 of it and the files live in the
+repo. Nothing else in the request changes with the format.
 
 **The citation tags are refused rather than spoken.** `Narrated.text` is the
 stripped text and `Narrated.tagged_text` is the audited one, and the two are
@@ -85,10 +91,13 @@ from app.grounding import strip_citations
 from app.personas import persona
 from app.pronunciation import for_speech, spoken_text
 
-#: IBM's synthesis endpoint, and the format asked for. The probe found all
-#: three voices answering 24000 Hz, 1 channel, 16 bit for this Accept header.
+#: IBM's synthesis endpoint, and the two formats asked for. The probe found
+#: all three voices answering 24000 Hz, 1 channel, 16 bit for the WAV header.
+#: MP3 is the same audio compressed, and it is what the committed recordings
+#: ask for: `scripts/tts_hero.py` writes them into the site.
 SYNTHESIZE_PATH = "/v1/synthesize"
 WAV_ACCEPT = "audio/wav"
+MP3_ACCEPT = "audio/mp3"
 
 #: The variables this needs. The names come from `.env.example`, which is the
 #: template in the repo; the values come from the credentials file outside it.
@@ -374,7 +383,10 @@ class WatsonTextToSpeech:
     def speak(
         self, header: str, narration: str, persona_id: str, situation: str
     ) -> bytes:
-        """The WAV for this narration, in this persona, in this situation."""
+        """The audio for this narration, in this persona, in this situation.
+
+        The format is whichever `accept` this backend was built with.
+        """
         return self.send(
             self.request_for(header, narration, persona_id, situation)
         )

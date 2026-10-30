@@ -1,0 +1,297 @@
+r"""The hero recordings the site ships: three listeners, two matches, six MP3s.
+
+`hero.voice_for` in `app/web/matches.json` already says which recording each
+listener hears: `mate_scored` for a fan of the side that scored,
+`mate_conceded` for a fan of the side that conceded, `storyteller_neutral` for
+a fan with no side. `scripts/write_headers.py` computes those keys and the
+moment card's player looks its answer up in `hero.audio`. This script is what
+fills that map: one file per key per match, under
+`app/web/assets/audio/<match_id>_<key>.mp3`.
+
+**It is the same words as `scripts/tts_samples.py` in a smaller format.** The
+header is the orchestrator's, with no listener name in it, through `openings`
+in `scripts/write_headers.py`; the narration is `template_narration` in
+`app/narration_prompt.py`, the fallback assembled out of the numbered facts.
+No model runs, so a recording is reproducible and grounded by construction.
+The samples are WAV and live outside the repo, for judging the voices. These
+are MP3 and are committed, because the site serves them: a WAV of a twenty
+second narration is an order of magnitude larger than the MP3 of it.
+
+**The character count is printed before anything is sent**, two ways, because
+IBM does not publish whether SSML markup is billable: the submitted length of
+every request and the spoken text alone. Nothing is sent without `--confirm`,
+and a run over `--budget` is refused.
+
+**A refusal keeps what it already wrote.** The free allowance is a monthly
+character count, so a run can be refused part way through. Each file is
+written as its response arrives, the error is printed with the status the
+service sent, and `--map` then writes `hero.audio` from the files that are
+actually on disk, so a partial run leaves a map that matches it.
+
+Run it:
+
+    .\.venv-prelude\Scripts\python.exe -I scripts\tts_hero.py --plan
+    .\.venv-prelude\Scripts\python.exe -I scripts\tts_hero.py --confirm
+    .\.venv-prelude\Scripts\python.exe -I scripts\tts_hero.py --map
+
+Standard library only.
+"""
+
+import argparse
+import json
+import sys
+import urllib.error
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Sequence
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+# `scripts/write_headers.py` builds the header and `scripts/tts_samples.py`
+# builds the narration, and doing either a second time here would be a second
+# place for that construction to be wrong. The scripts directory is not on the
+# path under `-I`, so it is added explicitly rather than by accident.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+# The pronunciation table holds IPA and this script prints the text it built.
+# A Windows console is cp1252 by default, which cannot encode "liːd".
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+from app.statsbomb_event_feed import StatsBombEventFeed  # noqa: E402
+from app.tts import (  # noqa: E402
+    MP3_ACCEPT,
+    SpeechRequest,
+    WatsonTextToSpeech,
+    without_markup,
+)
+from tts_samples import narration_for  # noqa: E402
+from write_headers import openings  # noqa: E402
+
+#: The site's copy, and where the recordings go beside it. The path written
+#: into `hero.audio` is relative to `app/web/`, which is what the player
+#: fetches against and what `tests/test_narration_player.py` resolves.
+MATCHES = ROOT / "app" / "web" / "matches.json"
+AUDIO_DIR = ROOT / "app" / "web" / "assets" / "audio"
+AUDIO_HREF = "assets/audio"
+
+
+@dataclass(frozen=True)
+class Recording:
+    """One file to write, and the request that would produce it."""
+
+    match_id: int
+    key: str
+    persona_id: str
+    situation: str
+    listener: str
+    header: str
+    narration: str
+    request: SpeechRequest
+
+    @property
+    def filename(self) -> str:
+        return "{}_{}.mp3".format(self.match_id, self.key)
+
+    @property
+    def href(self) -> str:
+        return "{}/{}".format(AUDIO_HREF, self.filename)
+
+    @property
+    def path(self) -> Path:
+        return AUDIO_DIR / self.filename
+
+
+def listener_label(match: dict, allegiance: str) -> str:
+    """Which fan hears this recording, in the words the two sides are told
+    apart by: the team's name rather than the key."""
+    if allegiance == "team_a":
+        return "supporting {}".format(match["home_team"])
+    if allegiance == "team_b":
+        return "supporting {}".format(match["away_team"])
+    return "no side"
+
+
+def recordings(backend: WatsonTextToSpeech) -> tuple[Recording, ...]:
+    """Every recording the site needs, with the request each one would send.
+
+    The keys are read out of `hero.voice_for` rather than rebuilt here:
+    `scripts/write_headers.py --check` is the gate that holds that field to
+    what the orchestrator and the delivery table decide, and a second
+    derivation here could disagree with the one the browser reads.
+    """
+    doc = json.loads(MATCHES.read_text(encoding="utf-8"))
+    feed = StatsBombEventFeed()
+    heroes = openings()
+    built = []
+    for match in doc["matches"]:
+        match_id = match["match_id"]
+        hero = match["hero"]
+        header = heroes[match_id]["header"]
+        narration = narration_for(
+            feed, match_id, hero["event"]["minute"], hero["event"]["second"]
+        )
+        seen = set()
+        for allegiance, key in hero["voice_for"].items():
+            if key in seen:
+                # Two listeners can be sent to one recording, and then it is
+                # one file and one call rather than the same audio twice.
+                continue
+            seen.add(key)
+            persona_id, situation = key.rsplit("_", 1)
+            built.append(
+                Recording(
+                    match_id=match_id,
+                    key=key,
+                    persona_id=persona_id,
+                    situation=situation,
+                    listener=listener_label(match, allegiance),
+                    header=header,
+                    narration=narration,
+                    request=backend.request_for(
+                        header, narration, persona_id, situation
+                    ),
+                )
+            )
+    return tuple(built)
+
+
+def plan(all_recordings: Sequence[Recording]) -> tuple[int, int]:
+    """Print every recording and what the run costs. Returns the two totals."""
+    print("{} recordings, {} calls".format(
+        len(all_recordings), len(all_recordings)
+    ))
+    print()
+    for one in all_recordings:
+        print("  {}: {}, {}".format(one.filename, one.persona_id, one.listener))
+    print()
+    for index, one in enumerate(all_recordings, start=1):
+        print("  call {}: {}".format(index, one.request.query))
+        print("    {}".format(one.request.text))
+        print("    {} submitted, {} spoken".format(
+            one.request.billable_characters,
+            len(without_markup(one.request.text)),
+        ))
+    submitted = sum(one.request.billable_characters for one in all_recordings)
+    spoken = sum(
+        len(without_markup(one.request.text)) for one in all_recordings
+    )
+    print()
+    print("  {} characters submitted, markup counted".format(submitted))
+    print("  {} characters spoken, markup not counted".format(spoken))
+    return submitted, spoken
+
+
+def run(backend: WatsonTextToSpeech,
+        all_recordings: Sequence[Recording]) -> list[Recording]:
+    """Send one request per recording and write each file as it arrives.
+
+    Returns the recordings that were written. An HTTP error stops the run and
+    is re-raised to the caller, which reports it: the allowance is monthly and
+    a refusal part way through is the shape a limit arrives in.
+    """
+    AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+    written = []
+    for one in all_recordings:
+        audio = backend.send(one.request)
+        one.path.write_bytes(audio)
+        written.append(one)
+        print("  {}: {} bytes".format(one.filename, len(audio)), flush=True)
+    return written
+
+
+def write_map() -> dict:
+    """Write `hero.audio` from the files that are on disk, and report it.
+
+    Driven by what exists rather than by what was asked for, so a run that was
+    refused part way through leaves a map pointing only at real files, which
+    is what `tests/test_narration_player.py::TestTheAudioMap` holds it to and
+    what leaves the player's button disabled for a listener with no recording.
+    """
+    doc = json.loads(MATCHES.read_text(encoding="utf-8"))
+    report = {}
+    for match in doc["matches"]:
+        hero = match["hero"]
+        audio = {}
+        for key in sorted(set(hero["voice_for"].values())):
+            filename = "{}_{}.mp3".format(match["match_id"], key)
+            if (AUDIO_DIR / filename).is_file():
+                audio[key] = "{}/{}".format(AUDIO_HREF, filename)
+        hero["audio"] = audio
+        report[match["match_id"]] = audio
+    MATCHES.write_text(
+        json.dumps(doc, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    return report
+
+
+def main(argv: Sequence[str]) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument(
+        "--plan",
+        action="store_true",
+        help="print the recordings and the character count, and make no call",
+    )
+    parser.add_argument(
+        "--confirm", action="store_true", help="send them; this is the paid path"
+    )
+    parser.add_argument(
+        "--map",
+        action="store_true",
+        help="write hero.audio from the files on disk, and make no call",
+    )
+    parser.add_argument(
+        "--budget",
+        type=int,
+        default=2000,
+        help="refuse to send if the submitted count is above this",
+    )
+    args = parser.parse_args(argv)
+
+    if args.map and not args.confirm:
+        for match_id, audio in write_map().items():
+            print("  {}: {}".format(match_id, json.dumps(audio)))
+        return 0
+
+    backend = WatsonTextToSpeech(accept=MP3_ACCEPT)
+    all_recordings = recordings(backend)
+    submitted, _ = plan(all_recordings)
+    if args.plan or not args.confirm:
+        print()
+        print("nothing was sent. --confirm is what sends it.")
+        return 0
+    if submitted > args.budget:
+        print()
+        print("{} characters is over the budget of {}; nothing was sent".format(
+            submitted, args.budget
+        ), file=sys.stderr)
+        return 1
+
+    print()
+    print("sending {} calls, {} characters:".format(
+        len(all_recordings), submitted
+    ))
+    try:
+        written = run(backend, all_recordings)
+    except urllib.error.HTTPError as refused:
+        body = refused.read().decode("utf-8", errors="replace")
+        print()
+        print("the service refused: HTTP {} {}".format(
+            refused.code, refused.reason
+        ), file=sys.stderr)
+        print(body, file=sys.stderr)
+        print("whatever was written before this is kept; --map writes the "
+              "map from the files on disk", file=sys.stderr)
+        return 1
+    print()
+    print("{} files in {}".format(len(written), AUDIO_DIR))
+    print()
+    for match_id, audio in write_map().items():
+        print("  {}: {}".format(match_id, json.dumps(audio)))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

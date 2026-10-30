@@ -87,20 +87,22 @@ place for the same construction to be wrong.
 | `scripts/tts_probe.py` | measures which delivery controls change the audio on each candidate voice | WAV files outside the repo, and readings with `--json` | Watson Text to Speech |
 | `scripts/record_tts_golden.py` | records one real speech exchange for the suite to replay | `tests/golden/tts_synthesize.json` | Watson Text to Speech |
 | `scripts/tts_samples.py` | both hero goals in every voice, for Shawn to listen to | WAV files outside the repo | Watson Text to Speech |
+| `scripts/tts_hero.py` | the recordings the site serves: each hero goal in the voice each listener is sent to | MP3 files under `app/web/assets/`, and `hero.audio` in `app/web/matches.json` | Watson Text to Speech |
 | `scripts/check_vocabulary.py` | every word the app can speak, against the CMU dictionary | nothing | nothing |
 
 The three gates exit non-zero on any finding, which is what lets them gate a
 commit; each says so in its own docstring.
 
-**Seven scripts reach a paid or local service, and all seven are run by
+**Eight scripts reach a paid or local service, and all eight are run by
 hand.** They are `scripts/record_narration_golden.py`,
 `scripts/narrate_once.py`, `scripts/narration_eval.py`,
 `scripts/narration_compare.py`, `scripts/tts_probe.py`,
-`scripts/record_tts_golden.py` and `scripts/tts_samples.py`, none of which is part of the suite, so no test can
+`scripts/record_tts_golden.py`, `scripts/tts_samples.py` and
+`scripts/tts_hero.py`, none of which is part of the suite, so no test can
 reach a service through them. The guard that makes that more than a convention
 is in `tests/conftest.py` and is described below.
 
-**Four of them can spend money.** The first three reach the local Ollama server
+**Five of them can spend money.** The first three reach the local Ollama server
 and have no watsonx path at all. `scripts/narration_compare.py` is the paid
 narration one, and it is built to be hard to run by accident: `--plan` prints
 the narrations, the calls and the estimated tokens and makes no call,
@@ -116,6 +118,14 @@ correction to a reading uses rather than paying twice for the same audio. The
 character count is printed two ways, because IBM does not publish whether SSML
 markup is billable: every request's submitted length, which is the conservative
 figure, and the spoken text alone.
+
+`scripts/tts_samples.py` and `scripts/tts_hero.py` are the other two, and
+both take the same shape: `--plan` prints every file, the request behind it
+and the character count both ways and sends nothing, `--confirm` is what
+sends, and `--budget` refuses a run above a character count. `tts_hero.py`
+writes each file as its response arrives and takes its map from the files on
+disk, so a run the service refuses part way through leaves a map pointing only
+at recordings that exist.
 
 **What it measured is in `docs/VOICE.md`.** `<prosody>` is ignored on all three
 Natural voices, `rate_percentage` works on all three, `pitch_percentage` works
@@ -147,7 +157,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 675 tests in nineteen files, and all 675 pass, so any failure
+The suite is 677 tests in nineteen files, and all 677 pass, so any failure
 means something is wrong. It is run from the repo root:
 
 ```

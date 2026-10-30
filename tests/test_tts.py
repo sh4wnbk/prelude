@@ -43,6 +43,7 @@ from app.pronunciation import PRONUNCIATIONS
 from app.tts import (
     BASIC_AUTH_USER,
     REDACTED,
+    MP3_ACCEPT,
     SYNTHESIZE_PATH,
     WAV_ACCEPT,
     CitationTagsInText,
@@ -189,6 +190,28 @@ class TestTheRequestShape:
     def test_it_asks_for_wav(self):
         request = backend().request_for(HEADER, NARRATION, STORYTELLER, NEUTRAL)
         assert request.headers["Accept"] == WAV_ACCEPT
+
+    def test_the_format_is_the_callers_to_pick(self):
+        """`scripts/tts_hero.py` asks for MP3, because the files are committed."""
+        backend_mp3 = WatsonTextToSpeech(
+            env=FAKE_ENV,
+            transport=lambda url, body, headers: b"",
+            accept=MP3_ACCEPT,
+        )
+        request = backend_mp3.request_for(
+            HEADER, NARRATION, STORYTELLER, NEUTRAL
+        )
+        assert request.headers["Accept"] == MP3_ACCEPT
+
+    def test_the_format_changes_nothing_else_in_the_request(self):
+        """Only the Accept header moves, so an MP3 run is the same text."""
+        wav = backend().request_for(HEADER, NARRATION, STORYTELLER, NEUTRAL)
+        mp3 = WatsonTextToSpeech(
+            env=FAKE_ENV,
+            transport=lambda url, body, headers: b"",
+            accept=MP3_ACCEPT,
+        ).request_for(HEADER, NARRATION, STORYTELLER, NEUTRAL)
+        assert (mp3.path, mp3.query, mp3.text) == (wav.path, wav.query, wav.text)
 
     def test_the_voice_is_the_personas(self):
         for persona_id in (CALLER, STORYTELLER):

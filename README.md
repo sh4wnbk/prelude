@@ -165,13 +165,15 @@ Everything above it is structure.
   behind that decision are in `docs/narration_eval.md`. No screen offers a
   choice yet.
 - `app/tts.py`: the speech backend. Takes the header, the narration, a persona
-  and a situation, and returns the WAV bytes IBM Watson Text to Speech sent.
+  and a situation, and returns the audio bytes IBM Watson Text to Speech
+  sent, in the format the caller asked for: WAV by default, MP3 for the
+  recordings the site ships.
   Callable from Python; no screen reaches it. It refuses a narration that still
   carries its citation tags, applies the pronunciation table, and puts the
   pauses in only for a voice whose breaks work. Credentials come through
   `app/credentials.py` and a missing one is named before any request.
-- `tests/test_tts.py`: 51 tests over the backend, replaying a real recorded
-  exchange from `tests/golden/tts_synthesize.json`. All 51 pass, and none of
+- `tests/test_tts.py`: 53 tests over the backend, replaying a real recorded
+  exchange from `tests/golden/tts_synthesize.json`. All 53 pass, and none of
   them reaches the service.
 - `scripts/record_tts_golden.py`: records one real speech exchange for that
   replay. `--plan` prints the request and its character count and makes no
