@@ -2979,7 +2979,7 @@ text for every voice, and the id appears nowhere in it.
 instance is disabled above its Lite cap until the month turns:
 
 ```
-.\.venv-prelude\Scripts\python.exe -I scripts	ts_hero.py --confirm
+.\.venv-prelude\Scripts\python.exe -I scripts\tts_hero.py --confirm
 ```
 
 It costs 1,959 billed characters against a `--budget` of 2,000. Then commit
