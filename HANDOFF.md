@@ -2492,7 +2492,10 @@ showed "Olivia | Just here for the game". Two corrections: `asked()` matched
 screen carried its own Tailwind config instead of the shared one, with a dark
 `primary-container`, so its amber looked disabled on Shawn's phone. The shared
 head is restored and a test now holds every screen to one config. `pytest -q`
-reports `501 passed` and all four gates pass. The Task 7 plan's persona cards
+reports `501 passed` and all four gates pass. Change was then given the
+Heading out treatment, `text-on-primary` with `shadow-lg
+shadow-primary-container/20`, Shawn's pick for consistency with the app's main
+actions over an outline. The Task 7 plan's persona cards
 on Profile move to Phase 5, once there are voices to pick.
 
 ### Bob task 10, as it was briefed
