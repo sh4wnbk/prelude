@@ -163,6 +163,15 @@ Everything above it is structure.
   marked unconfirmed, because Shawn sets them by ear. Three measured runs
   behind that decision are in `docs/narration_eval.md`. No screen offers a
   choice yet.
+- `app/pronunciation.py`: the pronunciation table, word to IPA, with `lead` to
+  `liːd` as its one entry. `for_speech` marks the listed words up as
+  `<phoneme>` elements for the speech request, and nothing else in `app/` may
+  import it: markup in the text a screen shows is a fan reading tags, and
+  markup in the text `app/grounding.py` reads is a narration refused for being
+  pronounceable. Text holding no listed word is returned identically.
+- `tests/test_pronunciation.py`: 26 tests over the table, the markup, the
+  round trip that proves a pronunciation never changes a word, and the seven
+  modules forbidden to import it. All 26 pass.
 - `tests/test_personas.py`: 27 tests over the config's shape, the ids against
   `app/orchestrator_contract.py`, the three picked voices, the unconfirmed
   prosody fields and the Profile copy. All 27 pass.

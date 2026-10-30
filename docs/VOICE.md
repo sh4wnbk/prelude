@@ -628,6 +628,54 @@ rate that changed at the goal would be two requests and two files.
 **Nothing above is a delivery.** It is the list of what a delivery may be
 written in. The values are Shawn's, by ear.
 
+## How a word is said, which is not what it says
+
+`<phoneme>` is the one SSML element IBM supports on all three of these voices,
+and `app/pronunciation.py` is the table: word to IPA, with `lead` to `liːd` as
+the first and so far only entry.
+
+It is there because "lead" is two words in English. The metal is `lɛd` and the
+thing a team takes is `liːd`, and the header says "take the lead" on two of
+the five transitions in `app/orchestrator_contract.py` and "extend the lead"
+on a third. That is a word the app says out loud on most goals.
+
+**The markup reaches the speech request and nothing else.** This is the whole
+of the design, and the reason to say it twice is that applying it one step
+earlier is the easy mistake and a quiet one:
+
+| Reader | What it would see | Why that is wrong |
+| ------ | ----------------- | ----------------- |
+| the screen | `take the <phoneme ...>lead</phoneme>.` | a fan reading markup |
+| `app/grounding.py` | the same | a name or a number inside an element is one the check cannot match, so a grounded narration would be refused for being pronounceable |
+| a model | the same | nothing says a pronunciation to a model |
+
+Neither of the first two failures announces itself. A header with markup in it
+still reads correctly to anything that strips tags, and a narration marked up
+before the check comes back refused with a message about an ungrounded name,
+which sends a reader to the wrong file. So the guard is structural:
+`tests/test_pronunciation.py::TestNothingElseAppliesIt::test_no_text_producing_module_imports_it`
+reads the source of the seven modules that produce displayed or checked text
+and fails if any of them imports the table, and
+`tests/test_pronunciation.py::TestNothingElseAppliesIt::test_the_header_the_screen_shows_carries_no_markup`
+builds the real 54:18 header and asserts it says "lead" and carries no
+element.
+
+**It says the same words.** `spoken_text` takes the markup back off, and a
+round trip returns the input exactly
+(`tests/test_pronunciation.py::TestItSaysTheSameWords`, which parametrizes
+the round trip over eight texts).
+That is not a convenience: an entry that changed a word rather than its
+pronunciation is exactly what this repo must not ship, and it would show up as
+a round trip that did not return what it was given.
+
+**Text with no listed word is returned identically**, the same string and not
+an equal one
+(`tests/test_pronunciation.py::TestItTouchesNothingElse::test_text_with_no_listed_word_is_returned_identically`).
+Every element costs billable characters, around 40 each time on a plan that
+charges by the character, and SSML escaping is only needed once there is
+markup to escape. So the common case sends what the screen shows and pays
+nothing for the feature.
+
 ## It ends on the goal, and there is no closer
 
 The narration's last sentence is about the goal, and nothing follows it. No

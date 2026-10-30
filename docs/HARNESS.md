@@ -22,9 +22,10 @@ requires and what every script's own docstring shows.
 
 **`app/` imports nothing outside the standard library.** Every module in it says
 so in its docstring (`app/credentials.py`, `app/grounding.py`,
-`app/narration_prompt.py`, `app/narration_provider.py`), and the imports bear it
-out: `json`, `os`, `re`, `unicodedata`, `urllib`, `dataclasses`, `pathlib`,
-`types` and `typing`, and nothing else. The one place a third-party package is
+`app/narration_prompt.py`, `app/narration_provider.py`,
+`app/pronunciation.py`), and the imports bear it out: `json`, `os`, `re`,
+`unicodedata`, `urllib`, `dataclasses`, `pathlib`, `types` and `typing`, and
+nothing else. The one place a third-party package is
 needed is `scripts/make_tickets.py`, which uses `segno` to write a QR code and
 `zxing-cpp` with `pillow` to read it back off the PNG before it counts as
 written.
@@ -137,7 +138,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 503 tests in fourteen files, and all 503 pass, so any failure
+The suite is 529 tests in fifteen files, and all 529 pass, so any failure
 means something is wrong. It is run from the repo root:
 
 ```
@@ -163,6 +164,7 @@ No path setting is needed: `pyproject.toml` sets `pythonpath = ["."]` and
 | `tests/test_screen_copy.py` | the copy Shawn settled on 2026-10-29: the card's label, the Live helper after Heading out, the share title and texts, built by Bob in Task 7 |
 | `tests/test_orchestrator.py` | the greeting, the phase, the score state, the transition, the game focused header, the default persona and `opening`, against `app/orchestrator.py` |
 | `tests/test_personas.py` | the persona config: the three ids, the fields, the three picked voices, the unconfirmed prosody and the Profile copy |
+| `tests/test_pronunciation.py` | the pronunciation table, the markup it builds, the round trip that proves it says the same words, and the seven modules forbidden to import it |
 
 ### Two guards, on every test
 
