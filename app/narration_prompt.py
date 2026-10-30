@@ -465,6 +465,154 @@ def beats_block(facts: Facts) -> str:
     )
 
 
+#: The actions that put the ball at a player's feet. A narration telling the
+#: whole move names everyone who had a touch, and these are the records that
+#: say somebody did.
+#:
+#: `Dribbled Past`, `Pressure` and `Duel` are deliberately not here. Being
+#: beaten, closing a player down or contesting a ball is not a touch, and the
+#: defenders those records name reach the narration through `key_beats`
+#: instead, which is where a dribble past an opponent is already required.
+TOUCH_ACTIONS = frozenset(
+    {
+        "Ball Recovery",
+        "Pass",
+        "Ball Receipt*",
+        "Carry",
+        "Dribble",
+        "Clearance",
+        "Block",
+        "Interception",
+        "Goal Keeper",
+        "Miscontrol",
+        "Shot",
+    }
+)
+
+
+@dataclass(frozen=True)
+class MoveStep:
+    """One step of the move: a player, and the facts recording their touches.
+
+    `numbers` holds the consecutive touch facts this player had in one turn on
+    the ball, so receiving, carrying and passing is one step rather than three.
+    """
+
+    player: str
+    numbers: tuple[int, ...]
+
+
+def move_steps(facts: Facts) -> tuple[MoveStep, ...]:
+    """The passage as steps, in order, one per turn on the ball.
+
+    A step is a run of consecutive touch records by one player. A fact that is
+    not a touch ends the run, which is what keeps the 1986 goal honest: the
+    scorer's touches either side of a `Dribbled Past` are two steps of the
+    move and not one, because beating a defender happened between them. So
+    that passage comes out as the two passes into it and then one step per
+    defender beaten, which is the shape a listener would recognise.
+
+    The goal shot is always the last step on its own, whoever touched the ball
+    before it, because the narration ends on the goal.
+
+    This is what the hero prompt counts sentences from. It is not a new source
+    of truth: every number in it is a fact number, and every fact is one
+    record in `data/raw/`.
+    """
+    goal = facts.goal_fact
+    steps: list[MoveStep] = []
+    previous: str | None = None
+    for fact in facts.facts:
+        if fact.number == goal.number:
+            continue
+        if fact.beat.action not in TOUCH_ACTIONS:
+            previous = None
+            continue
+        if steps and previous == fact.beat.player:
+            steps[-1] = MoveStep(
+                steps[-1].player, steps[-1].numbers + (fact.number,)
+            )
+        else:
+            steps.append(MoveStep(fact.beat.player, (fact.number,)))
+        previous = fact.beat.player
+    steps.append(MoveStep(goal.beat.player, (goal.number,)))
+    return tuple(steps)
+
+
+def touched_the_ball(facts: Facts) -> tuple[str, ...]:
+    """Every player with a recorded touch, in the order of their first one.
+
+    Named once each, however many touches they had, because this is the list
+    the hero prompt asks a narration to name in full.
+    """
+    seen: list[str] = []
+    for step in move_steps(facts):
+        if step.player not in seen:
+            seen.append(step.player)
+    return tuple(seen)
+
+
+def hero_block(facts: Facts) -> str:
+    """The move printed as ordered steps, for the prompt that gets recorded.
+
+    **Why the hero prompt gets this and the others do not.** The frozen
+    narrations from Task 6 were grounded and thin: the 2022 one named three of
+    the five players who touched the ball and left out Messi and Álvarez, who
+    are both on the moment card, and the 1986 one did not name the scorer until
+    its last line. Nothing in `app/grounding.py` was wrong about either. The
+    check asks whether what a sentence says is true, not whether the narration
+    told the move, so fullness is a thing to ask for in the prompt or not to
+    get at all.
+
+    So the steps are named rather than left to be found, the same way
+    `beats_block` names the turning points. The two blocks overlap on purpose
+    where a step is also a dribble past an opponent: one says this is a step of
+    the move, the other says this is a turning point, and a narration that
+    takes them both in order has told the passage end to end.
+
+    Nothing here enforces anything. `app/grounding.py` is unchanged and still
+    refuses on truth alone.
+    """
+    steps = move_steps(facts)
+    players = touched_the_ball(facts)
+    by_number = {fact.number: fact for fact in facts.facts}
+    lines = []
+    for index, step in enumerate(steps, start=1):
+        numbers = ", ".join(str(number) for number in step.numbers)
+        plural = "facts" if len(step.numbers) > 1 else "fact"
+        # The verbs, so a step says what happened in it and not only who had
+        # the ball. Five of the eight steps of the 1986 move are the same
+        # player, and without them that list reads as one name five times.
+        verbs = ", ".join(
+            EVENT_VERBS.get(
+                by_number[number].beat.action,
+                by_number[number].beat.action,
+            )
+            for number in step.numbers
+        )
+        last = " (the goal)" if index == len(steps) else ""
+        lines.append(
+            f"  {index}. {step.player}, from {plural} {numbers}: "
+            f"{verbs}{last}"
+        )
+    return (
+        "\nTHE WHOLE MOVE\n"
+        + _wrapped(
+            "This narration is the one that gets recorded, so it tells the"
+            " move end to end and not a few steps of it. Take the steps in"
+            " this order, one sentence each, citing the fact numbers shown:"
+        )
+        + "\n"
+        + "\n".join(lines)
+        + "\n"
+        + _wrapped(
+            "Every player in that list touched the ball, and the narration"
+            " names every one of them: " + ", ".join(players) + "."
+        )
+        + "\n"
+    )
+
+
 def style_block() -> str:
     """The one style every narration is written in, printed for the model.
 
@@ -493,10 +641,167 @@ def _wrapped(text: str, indent: str = "") -> str:
     )
 
 
+def _rule(number: int, *paragraphs: str) -> str:
+    """One numbered rule, wrapped the way the rest of the prompt is written.
+
+    The rules used to be written out inside the prompt string, already wrapped
+    by hand, which was fine while every one of them was a constant. Three of
+    them read differently for the recording, and a clause substituted into
+    hand-wrapped text leaves one line running past the margin and the rest
+    short. So the rules carry their words and this carries their shape.
+
+    Several paragraphs stay several paragraphs, indented under the number.
+    Nothing about the wrapping is load bearing; a model reads either.
+    """
+    head = f"{number}. "
+    indent = " " * len(head)
+    return "\n".join(
+        textwrap.fill(
+            " ".join(paragraph.split()),
+            width=76,
+            initial_indent=head if index == 0 else indent,
+            subsequent_indent=indent,
+        )
+        for index, paragraph in enumerate(paragraphs)
+    )
+
+
+def rules_block(facts: Facts, sentences: int, hero: bool = False) -> str:
+    """The numbered rules, which are the rules `app/grounding.py` enforces.
+
+    **Three of them read differently for the recording, and all three ask for
+    less than the check allows.** That is the safe direction, and the reason it
+    is safe is written down in `tests/test_grounding.py::TestTheHeroShape`: the
+    check accepts a sentence with no clock and a goal sentence that says it
+    scored, so neither hero rule needed a rule in the check bent to allow it.
+    A prompt asking for more than the check enforces costs nothing; one asking
+    for less sets the model up to fail, and the retry does not help it.
+
+    Rule 2 gains the goal sentence saying it scored. The frozen narrations
+    from Task 6 ended on "shot" and never said the ball went in, which is
+    grounded (the check's ending rule is that the last sentence cites the
+    goal's own shot fact) and is not what a listener needs to hear last.
+
+    Rule 6 goes from a clock per cited fact to one clock on the first line.
+    Both frozen narrations put a clock on every sentence, which is true of
+    each sentence and reads as a log.
+
+    Rule 8 has to be said more carefully once rule 2 asks for "scored", or the
+    two contradict each other: the scoreline is still out, and the goal going
+    in is still in. Nothing about what the goal meant for the match becomes
+    sayable.
+    """
+    goal = facts.goal_fact
+
+    scored = (
+        " It says the shot scored: the fact it cites is the shot that went"
+        " in, so the last sentence says so."
+        if hero
+        else ""
+    )
+    clock = (
+        "Give the clock once, on the first line, and on no other line. It is"
+        " written exactly as the fact that line cites writes it. A clock on"
+        " every sentence is true of every sentence and reads as a log rather"
+        " than as a passage of play; a listener needs telling once when this"
+        " happened. Write any count as a word, not a digit: \"past two"
+        " defenders\", never \"past 2 defenders\". No digits besides that one"
+        " clock."
+        if hero
+        else "A clock is written exactly as the fact you cite writes it, so a"
+        " clock belongs only to a line citing the fact it was printed on."
+        " Write any count as a word, not a digit: \"past two defenders\","
+        " never \"past 2 defenders\". The only other digits allowed are the"
+        " minute of a cited fact and the second the goal was scored at."
+    )
+    outcome = (
+        "Say nothing about the scoreline, the result, or what the goal meant"
+        " for the match. Saying the shot scored is rule 2 and is required;"
+        " saying what it made the score is not. What you have is one passage"
+        " of play, and it does not say who won. \"won a foul\" is fine,"
+        " because the facts record one; \"won the match\" is not."
+        if hero
+        else "Say nothing about the score, the result, or what the goal meant"
+        " for the match. What you have is one passage of play, and it does"
+        " not say who won. \"won a foul\" is fine, because the facts record"
+        " one; \"won the match\" is not."
+    )
+    per_step = (
+        " One for each step of the move above, in that order." if hero else ""
+    )
+
+    return "\n".join(
+        (
+            _rule(
+                1,
+                "Write in the past tense, as the facts above are written."
+                " This passage has already happened and you are telling a fan"
+                " what they missed, so \"dribbled\", not \"dribbles\";"
+                " \"shot\", not \"shoots\"; \"was dribbled past\", not \"is"
+                " dribbled past\". A line in the present tense is rejected.",
+            ),
+            _rule(
+                2,
+                f"The last line is about the goal and cites fact"
+                f" {goal.number}.{scored} Nothing follows it: no summary, no"
+                " comment, no sentence addressed to the reader. The narration"
+                " stops on the goal.",
+                "Write about the players, never to the listener and never as"
+                " one of the teams: \"you\", \"your\", \"we\", \"our\" and"
+                " \"us\" are all rejected.",
+            ),
+            _rule(
+                3,
+                "Every name, action and clock in a sentence has to come from a"
+                " fact that line cites, and a name has to sit in the same fact"
+                " as the action you give it. \"dribbled past a defender\" needs"
+                " one cited fact that records a dribble by or against that"
+                " defender; if no single fact pairs them, the line is rejected"
+                " even though both words appear somewhere in the list. A real"
+                " player who is not in this passage is rejected like an"
+                " invented one.",
+            ),
+            _rule(
+                4,
+                "Give each line one action, so every name in it belongs to"
+                " that action. Two players doing two different things are two"
+                " lines.",
+            ),
+            _rule(
+                5,
+                "Do not say the goal was a penalty, a free kick or a corner"
+                " unless the shot type above says so. Do not name a body part"
+                " other than the one above.",
+            ),
+            _rule(6, clock),
+            _rule(
+                7,
+                "No nicknames and no verdicts for the goal, the players or the"
+                " match. Say what the data records, not how good it was. Words"
+                " like \"decisive\", \"brilliant\" and \"significant\" are"
+                " rejected.",
+            ),
+            _rule(8, outcome),
+            _rule(
+                9,
+                "No em dashes. Use a colon, a semicolon, parentheses or two"
+                " sentences.",
+            ),
+            _rule(
+                10,
+                f"Write {sentences} sentences of plain past-tense commentary,"
+                f" one per line.{per_step} Output those lines only, with no"
+                " preamble, heading or explanation.",
+            ),
+        )
+    )
+
+
 def build_prompt(
     facts: Facts,
     sentences: int = DEFAULT_SENTENCES,
     beats: bool = True,
+    hero: bool = False,
 ) -> str:
     """The prompt for one goal.
 
@@ -550,6 +855,8 @@ def build_prompt(
     # then named five beats to cover would contradict itself, and the model
     # would have to drop one of the two instructions to obey the other.
     block = beats_block(facts) if beats else ""
+    move = move_steps(facts) if hero else ()
+    hero_text = hero_block(facts) if hero else ""
     style = style_block()
     # A prompt that names no beats asks for no sentence per beat either, so
     # the count stays where the caller put it. Raising it for beats the model
@@ -558,6 +865,12 @@ def build_prompt(
         len([b for b in key_beats(facts) if b.kind != SHOT]) if beats else 0
     )
     sentences = max(sentences, covered + 1)
+    # The hero prompt asks for the whole move, so it needs a line per step of
+    # it rather than the four a shorter telling fits into. The steps already
+    # include the dribbles past a defender, so this is not added to `covered`:
+    # it is the other floor, and the larger of the two wins.
+    sentences = max(sentences, len(move))
+    rules = rules_block(facts, sentences, hero=hero)
 
     return f"""You are writing the narration for one goal in a football match.
 The app this is for says only what the match data proves, so you may use the
@@ -574,7 +887,7 @@ THE FACTS
 One numbered line per recorded event, in the order it happened. Nothing
 happened that is not here.
 {fact_list(facts)}
-{block}{style}
+{block}{hero_text}{style}
 WRITE IT LIKE THIS
 Write {sentences} lines. Each line starts with the numbers of the facts it is
 about, in square brackets, and then says them in one sentence:
@@ -587,39 +900,7 @@ write the sentence. Never write a number you have not read off a line, and do
 not put the same number on every line.
 
 RULES
-1. Write in the past tense, as the facts above are written. This passage has
-   already happened and you are telling a fan what they missed, so "dribbled",
-   not "dribbles"; "shot", not "shoots"; "was dribbled past", not "is dribbled
-   past". A line in the present tense is rejected.
-2. The last line is about the goal and cites fact {goal.number}. Nothing follows
-   it: no summary, no comment, no sentence addressed to the reader. The
-   narration stops on the goal.
-   Write about the players, never to the listener and never as one of the
-   teams: "you", "your", "we", "our" and "us" are all rejected.
-3. Every name, action and clock in a sentence has to come from a fact that line
-   cites, and a name has to sit in the same fact as the action you give it.
-   "dribbled past a defender" needs one cited fact that records a dribble by or
-   against that defender; if no single fact pairs them, the line is rejected
-   even though both words appear somewhere in the list. A real player who is
-   not in this passage is rejected like an invented one.
-4. Give each line one action, so every name in it belongs to that action. Two
-   players doing two different things are two lines.
-5. Do not say the goal was a penalty, a free kick or a corner unless the shot
-   type above says so. Do not name a body part other than the one above.
-6. A clock is written exactly as the fact you cite writes it, so a clock
-   belongs only to a line citing the fact it was printed on. Write any count as
-   a word, not a digit: "past two defenders", never "past 2 defenders". The
-   only other digits allowed are the minute of a cited fact and the second the
-   goal was scored at.
-7. No nicknames and no verdicts for the goal, the players or the match. Say
-   what the data records, not how good it was. Words like "decisive",
-   "brilliant" and "significant" are rejected.
-8. Say nothing about the score, the result, or what the goal meant for the
-   match. What you have is one passage of play, and it does not say who won.
-   "won a foul" is fine, because the facts record one; "won the match" is not.
-9. No em dashes. Use a colon, a semicolon, parentheses or two sentences.
-10. Write {sentences} sentences of plain past-tense commentary, one per line.
-    Output those lines only, with no preamble, heading or explanation.
+{rules}
 """
 
 

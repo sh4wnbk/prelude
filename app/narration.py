@@ -148,6 +148,7 @@ def narrate(
     persona: Persona | None = None,
     side: str | None = None,
     beats: bool = True,
+    hero: bool = False,
 ) -> Narrated:
     """Narrate `moment`, returning grounded text or raising.
 
@@ -162,6 +163,15 @@ def narrate(
     person from a partisan voice over that side's facts, which is a guard
     rather than something the prompt asks for; a partisan persona with no side
     raises there.
+
+    `hero` asks the prompt for the shape the recordings speak: the whole move
+    in order naming every player who touched the ball, the clock once at the
+    start, and a last sentence that says the shot scored. It is off
+    everywhere but `scripts/freeze_narrations.py` and the candidate run
+    behind it, because the pass rates in `docs/narration_eval.md` were
+    measured without it. It reaches the prompt and not the check: all three
+    of those are things `app/grounding.py` already accepted, which
+    `tests/test_grounding.py::TestTheHeroShape` holds it to.
 
     `beats` prints the key beats of the passage in the prompt. It is true
     everywhere but in one arm of the paid comparison, which measures what the
@@ -179,7 +189,9 @@ def narrate(
     """
     facts = facts_from_buildup(feed.buildup(match_id, moment))
     chosen = narration_provider or default_provider()
-    prompt = build_prompt(facts, sentences=sentences, beats=beats)
+    prompt = build_prompt(
+        facts, sentences=sentences, beats=beats, hero=hero
+    )
 
     attempts: list[Attempt] = []
     for number in range(1, max_retries + 2):

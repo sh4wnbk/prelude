@@ -30,6 +30,9 @@ from app.narration_prompt import (
     Facts,
     beats_block,
     build_prompt,
+    hero_block,
+    move_steps,
+    touched_the_ball,
     fact_list,
     facts_from_buildup,
     template_narration,
@@ -82,6 +85,16 @@ def facts_for(feed, match_id, clock) -> Facts:
         if (m.minute, m.second) == clock
     )
     return facts_from_buildup(feed.buildup(match_id, moment))
+
+
+def flat(text: str) -> str:
+    """The text as one line, for asserting on wrapped prose.
+
+    The rules are hard wrapped at 76 columns, so a phrase a test is looking
+    for can sit across a line break. Flattening says what the rule says
+    without pinning where it happens to wrap.
+    """
+    return " ".join(text.split())
 
 
 def every_goal(feed):
@@ -345,6 +358,236 @@ class TestBeatsBlock:
             "THE BEATS TO COVER"
         ) < prompt.index("WRITE IT LIKE THIS")
 
+# The 2022 hero goal, the one the recordings speak, read out of data/raw/. The
+# move is thirteen facts; five players touched the ball and the frozen
+# narration from Task 6 named three of them.
+HERO_2022 = {
+    "clock": (35, 22),
+    "beats": 13,
+    "touched": (
+        "Nahuel Molina Lucero",
+        "Alexis Mac Allister",
+        "Lionel Andrés Messi Cuccittini",
+        "Julián Álvarez",
+        "Ángel Fabián Di María Hernández",
+    ),
+    # Six turns on the ball and then the shot. Mac Allister has two of them,
+    # which is why the step count is not the player count.
+    "steps": 7,
+}
+
+# The 1986 hero goal. Only three players touched the ball: the four defenders
+# who were beaten and Reid, who pressed, touched it in none of the records.
+HERO_1986 = {
+    "steps": 8,
+    "touched": (
+        "José Luis Cuciuffo",
+        "Héctor Adolfo Enrique",
+        "Diego Armando Maradona",
+    ),
+    "never_touched": (
+        "Peter Beardsley",
+        "Peter Reid",
+        "Terry Butcher",
+        "Terry Fenwick",
+        "Peter Shilton",
+    ),
+}
+
+
+class TestMoveSteps:
+    """The passage as turns on the ball, which the hero prompt counts from."""
+
+    def test_the_step_count_is_the_one_read_from_the_data(self, feed):
+        assert (
+            len(move_steps(facts_for(feed, MATCH_1986, GOAL_1986["clock"])))
+            == HERO_1986["steps"]
+        )
+        assert (
+            len(move_steps(facts_for(feed, MATCH_2022, HERO_2022["clock"])))
+            == HERO_2022["steps"]
+        )
+
+    def test_every_number_in_a_step_is_a_fact_of_the_passage(self, feed):
+        for _, _, facts in every_goal(feed):
+            numbers = {fact.number for fact in facts.facts}
+            for step in move_steps(facts):
+                assert step.numbers
+                for number in step.numbers:
+                    assert number in numbers
+
+    def test_the_goal_is_the_last_step_on_its_own(self, feed):
+        """However the scorer came by the ball, the shot is its own step: the
+        narration ends on it, so it gets the last sentence."""
+        for _, _, facts in every_goal(feed):
+            last = move_steps(facts)[-1]
+            assert last.numbers == (facts.goal_fact.number,)
+            assert last.player == facts.goal_fact.beat.player
+
+    def test_a_step_holds_one_player(self, feed):
+        for _, _, facts in every_goal(feed):
+            by_number = {fact.number: fact for fact in facts.facts}
+            for step in move_steps(facts):
+                for number in step.numbers:
+                    assert by_number[number].beat.player == step.player
+
+    def test_the_numbers_run_forwards_and_are_never_repeated(self, feed):
+        """The steps are the move in order, so the facts they cite only ever go
+        forwards and no fact lands in two steps."""
+        for _, _, facts in every_goal(feed):
+            seen: list[int] = []
+            for step in move_steps(facts):
+                seen += list(step.numbers)
+            assert seen == sorted(seen)
+            assert len(seen) == len(set(seen))
+
+    def test_being_dribbled_past_does_not_start_a_step(self, feed):
+        """The 1986 move is three players on the ball, not eight. A defender
+        who was beaten or who pressed never had a touch, and `key_beats` is
+        what puts him into the narration."""
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        players = {step.player for step in move_steps(facts)}
+        assert players == set(HERO_1986["touched"])
+        for defender in HERO_1986["never_touched"]:
+            assert defender not in players
+
+    def test_a_non_touch_fact_ends_a_run(self, feed):
+        """The scorer's touches either side of a `Dribbled Past` are two steps
+        and not one, because beating a defender happened between them. Six of
+        the eight 1986 steps are his for that reason."""
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        scorer = GOAL_1986["scorer"]
+        steps = move_steps(facts)
+        assert sum(1 for step in steps if step.player == scorer) == 6
+
+
+class TestTouchedTheBall:
+    def test_it_names_every_player_with_a_touch_once_in_order(self, feed):
+        assert (
+            touched_the_ball(facts_for(feed, MATCH_2022, HERO_2022["clock"]))
+            == HERO_2022["touched"]
+        )
+        assert (
+            touched_the_ball(facts_for(feed, MATCH_1986, GOAL_1986["clock"]))
+            == HERO_1986["touched"]
+        )
+
+    def test_every_player_it_names_is_in_the_passage(self, feed):
+        for _, _, facts in every_goal(feed):
+            recorded = {fact.beat.player for fact in facts.facts}
+            for player in touched_the_ball(facts):
+                assert player in recorded
+
+    def test_the_scorer_is_always_one_of_them(self, feed):
+        for _, _, facts in every_goal(feed):
+            assert facts.goal_fact.beat.player in touched_the_ball(facts)
+
+
+class TestTheHeroPrompt:
+    """What `hero=True` adds, and what it leaves alone.
+
+    The frozen narrations from Task 6 were grounded and thin, and all four
+    things wrong with them were prompt choices: the 2022 one named three of
+    the five players who touched the ball, neither said the shot scored, every
+    sentence carried a clock, and the 1986 one did not name the scorer until
+    its last line. These hold the prompt to asking for the other shape.
+    """
+
+    def test_the_default_prompt_is_not_the_hero_prompt(self, feed):
+        """`hero` is off by default, and off it changes nothing. The numbers in
+        `docs/narration_eval.md` were measured on the prompt without it."""
+        facts = facts_for(feed, MATCH_2022, HERO_2022["clock"])
+        assert "THE WHOLE MOVE" not in build_prompt(facts)
+        assert "THE WHOLE MOVE" in build_prompt(facts, hero=True)
+
+    def test_it_names_every_player_who_touched_the_ball(self, feed):
+        """The 2022 fix, stated as a test: Messi and Álvarez are in the
+        prompt's own list of who the narration names."""
+        facts = facts_for(feed, MATCH_2022, HERO_2022["clock"])
+        block = hero_block(facts)
+        for player in HERO_2022["touched"]:
+            assert player in block
+
+    def test_it_asks_for_one_sentence_per_step(self, feed):
+        for match_id, clock, expected in (
+            (MATCH_1986, GOAL_1986["clock"], HERO_1986["steps"]),
+            (MATCH_2022, HERO_2022["clock"], HERO_2022["steps"]),
+        ):
+            facts = facts_for(feed, match_id, clock)
+            prompt = build_prompt(facts, hero=True)
+            assert f"Write {expected} sentences" in prompt
+            assert f"Write {expected} lines" in prompt
+
+    def test_the_step_count_outranks_the_requested_count(self, feed):
+        """A prompt cannot ask for four sentences and then print seven steps."""
+        facts = facts_for(feed, MATCH_2022, HERO_2022["clock"])
+        assert "Write 7 sentences" in build_prompt(
+            facts, sentences=3, hero=True
+        )
+
+    def test_it_asks_for_the_clock_once(self, feed):
+        """The default prompt still allows one per cited fact, which is what
+        `app/grounding.py` permits either way."""
+        facts = facts_for(feed, MATCH_2022, HERO_2022["clock"])
+        hero = build_prompt(facts, hero=True)
+        assert "Give the clock once, on the first line" in flat(hero)
+        assert "on no other line" in flat(hero)
+        assert "Give the clock once" not in flat(build_prompt(facts))
+
+    def test_it_asks_the_last_sentence_to_say_the_shot_scored(self, feed):
+        facts = facts_for(feed, MATCH_2022, HERO_2022["clock"])
+        hero = build_prompt(facts, hero=True)
+        assert "It says the shot scored" in flat(hero)
+        assert "says the shot scored" not in flat(build_prompt(facts))
+
+    def test_the_outcome_rule_does_not_contradict_the_goal_sentence(self, feed):
+        """Rule 8 refuses the scoreline and rule 2 asks for "scored", so rule 8
+        has to say which of the two it means. A prompt saying both "say it
+        scored" and "say nothing about the score" would have the model drop one
+        instruction to obey the other."""
+        facts = facts_for(feed, MATCH_2022, HERO_2022["clock"])
+        hero = build_prompt(facts, hero=True)
+        assert "Say nothing about the scoreline" in flat(hero)
+        assert (
+            "Saying the shot scored is rule 2 and is required"
+            in flat(hero)
+        )
+
+    def test_the_block_sits_after_the_facts_and_before_the_style(self, feed):
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        prompt = build_prompt(facts, hero=True)
+        assert (
+            prompt.index("THE FACTS")
+            < prompt.index("THE WHOLE MOVE")
+            < prompt.index("THE STYLE")
+        )
+
+    def test_the_beats_block_is_still_there(self, feed):
+        """The two blocks overlap where a step is also a dribble past an
+        opponent, and both stay: one says this is a step of the move, the other
+        says this is a turning point."""
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        prompt = build_prompt(facts, hero=True)
+        assert "THE BEATS TO COVER" in prompt
+        assert "Peter Beardsley" in prompt
+
+    def test_no_hero_prompt_has_an_em_dash(self, feed):
+        for _, _, facts in every_goal(feed):
+            prompt = build_prompt(facts, hero=True)
+            assert "—" not in prompt
+            assert "–" not in prompt
+
+    def test_every_rule_is_wrapped_inside_the_margin(self, feed):
+        """The rules are prose a person reads while working out why a narration
+        was refused. Three of them have a clause substituted in, which is what
+        used to leave one line long and the rest of the rule short."""
+        for _, _, facts in every_goal(feed):
+            for hero in (False, True):
+                prompt = build_prompt(facts, hero=hero)
+                rules = prompt[prompt.index("\nRULES\n"):]
+                for line in rules.splitlines():
+                    assert len(line) <= 78, (hero, line)
+
 class TestTemplateNarration:
     def test_it_stays_within_its_sentence_budget_unless_a_beat_needs_room(
         self, feed
@@ -489,9 +732,15 @@ class TestTheOneNarrationStyle:
         A persona argument that changed nothing would be worse than none: a
         caller would read it as a register reaching the model, which is the
         thing three runs measured and did not find.
+
+        `hero` is not a voice. It asks for a fuller telling of the move and a
+        different clock rule, and it reads the same whoever is listening, so
+        the narration it produces is still one text for all three personas.
         """
         taken = set(inspect.signature(build_prompt).parameters)
-        assert taken == {"facts", "sentences", "beats"}
+        assert taken == {"facts", "sentences", "beats", "hero"}
+        assert "persona" not in taken
+        assert "side" not in taken
 
     def test_the_prompt_refuses_the_first_person_in_the_one_voice_it_has(
         self, feed
