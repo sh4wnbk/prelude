@@ -2706,7 +2706,19 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Shawn runs Bob task 11, audio playback)
+## Next first action (TTS reset on November 1, then the hero recordings)
+
+**Bob task 11 is built, checked and fixed.** `35708cd` built the player to the
+brief, but in Chromium with a silent test file under one key the play button
+stayed disabled for every listener: the player read `Prelude.whenMatches`'s
+argument as the list of matches when it is the document. The follow-up reads
+`doc.matches`, returns on a failed fetch, and adds a test that fails on the
+original. Rechecked: the Argentina fan's key played, paused, advanced the
+timer and waveform and replayed; the two keys with no file stayed disabled.
+`pytest -q` reports `675 passed` and all five gates pass. Nothing more can be
+heard until the recordings exist, after the November 1 TTS reset.
+
+### Bob task 11, as it was briefed
 
 **Bob task 11 in `docs/bob_brief.md` wires the moment card's player to real
 audio.** Which recording a fan hears is decided in Python by
@@ -2714,7 +2726,7 @@ audio.** Which recording a fan hears is decided in Python by
 written as `hero.voice_for`; the browser looks its answer up in `hero.audio`,
 which stays empty until the hero recordings are generated after the
 November 1 TTS reset, so until then the play button is disabled. A dry run of
-the brief passed all 674 tests and, in Chromium with a silent test file under
+the brief passed every test then collected and, in Chromium with a silent test file under
 one key, played and paused, advanced the timer and the waveform, replayed, and
 left the button disabled for the two keys with no file; it was reverted.
 

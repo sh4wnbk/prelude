@@ -130,6 +130,18 @@ class TestThePlayer:
         assert "voice_for" in text
         assert "Prelude.listenerFor(" in text
 
+    def test_it_reads_the_list_out_of_the_document(self):
+        """`Prelude.whenMatches` passes the whole document, or null, not the
+        list. Bob's Task 11 treated it as the list, so the loop never ran and
+        the play button stayed disabled even with a recording; a browser run
+        with a test file caught it."""
+        text = player()
+        found = re.search(r"whenMatches\(function \((\w+)\)", text)
+        assert found, "whenMatches is not called with a named function argument"
+        name = found.group(1)
+        assert f"if (!{name})" in text
+        assert f"{name}.matches" in text
+
     def test_it_disables_play_with_no_recording(self):
         assert "playBtn.disabled = true" in player()
 

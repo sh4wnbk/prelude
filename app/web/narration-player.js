@@ -23,7 +23,13 @@
     }
     playBtn.disabled = true;
 
-    Prelude.whenMatches(function (matches) {
+    // whenMatches hands over the whole matches.json document, or null when it
+    // could not be fetched; the list is its `matches` field.
+    Prelude.whenMatches(function (doc) {
+      if (!doc) {
+        return;
+      }
+      var matches = doc.matches;
       var match = null;
       for (var i = 0; i < matches.length; i++) {
         if (matches[i].match_id === Prelude.matchId) {

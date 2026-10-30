@@ -122,10 +122,8 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-13 failed, 661 passed
+675 passed
 ```
-
-The 13 are Task 11 below, waiting to be built.
 
 The total covers far more than this module now. Phase 4 added the narration
 provider, the prompt, the grounding check and the evaluation, each with its
@@ -1155,6 +1153,15 @@ forgotten:
 
 ## Task 11: audio playback on the moment card
 
+**Status: built, in `35708cd`, with one fix in the follow-up.** The player
+took `Prelude.whenMatches`'s argument for the list of matches, but it is the
+whole document, or null on a failed fetch. The loop over it never ran, so the
+play button stayed disabled even with a recording. A browser run with a silent
+test file under one key caught it; the player now reads `doc.matches`, returns
+on null, and
+`tests/test_narration_player.py::TestThePlayer::test_it_reads_the_list_out_of_the_document`
+fails on the original.
+
 Make the moment card's player play the recording the fan should hear, and
 nothing else. That is the whole task.
 
@@ -1216,8 +1223,9 @@ browser only looks up its answer.
 
 ### The tests to pass
 
-`tests/test_narration_player.py`, 14 tests. Thirteen fail until this is built;
-the fourteenth checks no other screen loads the player.
+`tests/test_narration_player.py`, 15 tests, all passing now. Thirteen of the
+first fourteen failed until this was built; the fifteenth was added in the
+follow-up.
 
 Then the full suite, target 0 failed, and the five gates
 (`scripts/data_check.py`, `scripts/scan_copy.py`,
