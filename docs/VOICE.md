@@ -1095,20 +1095,36 @@ Mate and knows whether the numbers are close.
 
 `scripts/tts_hero.py` writes the recordings the moment card plays: three per
 match, one per listener, as MP3 under `app/web/assets/`, with `hero.audio` in
-`app/web/matches.json` filled from the files on disk. Same words as the
-samples above, same delivery table, same pronunciation markup; the format is
-smaller because these are committed and served rather than listened to once.
+`app/web/matches.json` filled from the files on disk. Same delivery table and
+same pronunciation markup as the samples above; the format is smaller because
+these are committed and served rather than listened to once.
+
+**The words are no longer the samples' words.** The samples speak
+`template_narration`. These speak the narration `openai/gpt-oss-120b` wrote
+and `app/grounding.py` passed, frozen in `app/web/narrations.json` by
+`scripts/freeze_narrations.py` and shown on the moment card under the
+grounding label. What a judge hears and what a judge reads are one text, and
+it is the narration the system actually writes rather than the fallback it
+keeps for when the model drifts.
 
 **None of them exists yet.** The run on 2026-10-30 was refused with HTTP 403
 on its first call, and a five character request in both formats was refused
 the same way, so it is the account and not the request. `HANDOFF.md` holds the
 evidence, the three character counts and what each recording will say under
-"Phase 5, task 5".
+"Phase 5, task 5" and "Phase 5, task 6".
 
-**A run costs 1,818 characters**, which is the figure IBM bills: it counts the
-SSML and not the whitespace, so the price is the submitted 2,070 less its
-spaces, above the 1,530 spoken. `billed_characters` in `app/tts.py` is that
-number and `--budget` is set on it.
+**A run costs 1,959 characters**, which is the figure IBM bills: it counts the
+SSML and not the whitespace, so the price is the submitted 2,268 less its
+spaces. `billed_characters` in `app/tts.py` is that number and `--budget` is
+set on it, at a default of 2,000: the run clears it by 41 characters, which is
+close enough that another pronunciation entry on a word either hero narration
+says would push it over.
+
+**The spoken count is now below the billed one**, 1,746 against 1,959, where
+it used to be above it. Nothing changed in how either is counted: the frozen
+narrations carry more markup than the template did, because the 2022 one says
+"Di" twice and each occurrence costs a `<phoneme>` element, and markup counts
+toward the price while the whitespace it displaces does not.
 
 ## It ends on the goal, and there is no closer
 

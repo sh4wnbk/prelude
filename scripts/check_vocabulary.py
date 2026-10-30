@@ -93,6 +93,14 @@ from app.pronunciation import (  # noqa: E402
 #: the same file, so these are the names the app actually speaks.
 MATCHES = ROOT / "app" / "web" / "matches.json"
 
+#: The frozen hero narrations. `scripts/tts_hero.py` sends these words to be
+#: spoken, so they are vocabulary in the same way the template's are. They
+#: were not collected while that script spoke `template_narration`, whose
+#: words come from `EVENT_VERBS` and `TEMPLATE_WORDS` above; a model writes
+#: from a wider vocabulary than the template does, which is exactly why this
+#: file exists.
+NARRATIONS = ROOT / "app" / "web" / "narrations.json"
+
 #: The recorded exchanges. Each is included only if its own provenance block
 #: says it is a recording.
 GOLDEN = ROOT / "tests" / "golden"
@@ -173,6 +181,12 @@ def speakable() -> dict[str, set[str]]:
         {entry[side] for entry in matches["matches"]
          for side in ("home_team", "away_team")}
     )
+
+    if NARRATIONS.is_file():
+        frozen = json.loads(NARRATIONS.read_text(encoding="utf-8"))
+        sources["the frozen narrations"] = [
+            entry["text"] for entry in frozen["narrations"].values()
+        ]
 
     for name, texts in _golden_texts().items():
         sources["tests/golden/" + name] = texts

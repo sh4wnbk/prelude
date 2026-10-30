@@ -8,14 +8,22 @@ moment card's player looks its answer up in `hero.audio`. This script is what
 fills that map: one file per key per match, under
 `app/web/assets/audio/<match_id>_<key>.mp3`.
 
-**It is the same words as `scripts/tts_samples.py` in a smaller format.** The
-header is the orchestrator's, with no listener name in it, through `openings`
-in `scripts/write_headers.py`; the narration is `template_narration` in
-`app/narration_prompt.py`, the fallback assembled out of the numbered facts.
-No model runs, so a recording is reproducible and grounded by construction.
-The samples are WAV and live outside the repo, for judging the voices. These
-are MP3 and are committed, because the site serves them: a WAV of a twenty
-second narration is an order of magnitude larger than the MP3 of it.
+**The header is the orchestrator's and the narration is the model's.** The
+header comes through `openings` in `scripts/write_headers.py`, with no
+listener name in it. The narration is read from `app/web/narrations.json`,
+where `scripts/freeze_narrations.py` put the words `openai/gpt-oss-120b`
+wrote once and `app/grounding.py` passed. It used to be `template_narration`,
+the fallback assembled out of the numbered facts, and that is what the hero
+samples in `scripts/tts_samples.py` still speak: those are for judging the
+voices, where the words only have to be representative. These are what judges
+hear, and what judges hear is the narration the system actually writes.
+
+Nothing is generated here. The frozen file is read, so a recording is still
+reproducible, and `tests/test_frozen_narrations.py` is what holds the words
+in it to the data rather than this script. The samples are WAV and live
+outside the repo. These are MP3 and are committed, because the site serves
+them: a WAV of a twenty second narration is an order of magnitude larger than
+the MP3 of it.
 
 **The character count is printed before anything is sent**, three ways, and
 `--budget` is set on the one IBM charges for. IBM counts SSML toward the
@@ -66,7 +74,6 @@ for _stream in (sys.stdout, sys.stderr):
     if hasattr(_stream, "reconfigure"):
         _stream.reconfigure(encoding="utf-8", errors="replace")
 
-from app.statsbomb_event_feed import StatsBombEventFeed  # noqa: E402
 from app.tts import (  # noqa: E402
     MP3_ACCEPT,
     SpeechRequest,
@@ -74,13 +81,17 @@ from app.tts import (  # noqa: E402
     billed_characters,
     without_markup,
 )
-from tts_samples import narration_for  # noqa: E402
 from write_headers import openings  # noqa: E402
 
 #: The site's copy, and where the recordings go beside it. The path written
 #: into `hero.audio` is relative to `app/web/`, which is what the player
 #: fetches against and what `tests/test_narration_player.py` resolves.
 MATCHES = ROOT / "app" / "web" / "matches.json"
+
+#: The frozen narrations, written by `scripts/freeze_narrations.py`. The same
+#: file the moment card reads, so what a fan hears and what they see under
+#: the grounding label are one text rather than two that have to agree.
+NARRATIONS = ROOT / "app" / "web" / "narrations.json"
 AUDIO_DIR = ROOT / "app" / "web" / "assets" / "audio"
 AUDIO_HREF = "assets/audio"
 
@@ -121,6 +132,25 @@ def listener_label(match: dict, allegiance: str) -> str:
     return "no side"
 
 
+def frozen_narrations() -> dict[int, str]:
+    """The frozen narration per match, by match id.
+
+    `text` and not `tagged_text`: the citation tags are the audit trail, and
+    `app/tts.py` refuses them outright rather than reading fact numbers aloud.
+    """
+    if not NARRATIONS.is_file():
+        raise SystemExit(
+            "{} does not exist, so there are no model narrations to speak. "
+            "Run scripts/freeze_narrations.py --confirm, which is a paid "
+            "watsonx run.".format(NARRATIONS.relative_to(ROOT))
+        )
+    doc = json.loads(NARRATIONS.read_text(encoding="utf-8"))
+    return {
+        int(match_id): entry["text"]
+        for match_id, entry in doc["narrations"].items()
+    }
+
+
 def recordings(backend: WatsonTextToSpeech) -> tuple[Recording, ...]:
     """Every recording the site needs, with the request each one would send.
 
@@ -130,16 +160,19 @@ def recordings(backend: WatsonTextToSpeech) -> tuple[Recording, ...]:
     derivation here could disagree with the one the browser reads.
     """
     doc = json.loads(MATCHES.read_text(encoding="utf-8"))
-    feed = StatsBombEventFeed()
     heroes = openings()
+    narrations = frozen_narrations()
     built = []
     for match in doc["matches"]:
         match_id = match["match_id"]
         hero = match["hero"]
         header = heroes[match_id]["header"]
-        narration = narration_for(
-            feed, match_id, hero["event"]["minute"], hero["event"]["second"]
-        )
+        if match_id not in narrations:
+            raise SystemExit(
+                "no frozen narration for match {}; a recording of the "
+                "template is not what this ships".format(match_id)
+            )
+        narration = narrations[match_id]
         seen = set()
         for allegiance, key in hero["voice_for"].items():
             if key in seen:

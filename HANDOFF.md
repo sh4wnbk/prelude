@@ -1821,6 +1821,134 @@ move, and hand Shawn the table above. Nothing else in the task is outstanding.
 
 `pytest -q` reports `680 passed` and all five gates pass.
 
+### Phase 5, task 6: the narrations are the model's, and they are frozen
+
+**Both goals were grounded on the first attempt, so the run cost 2 calls of
+the 6 it was allowed.** `scripts/freeze_narrations.py --plan` printed the
+count first: at most six generations, two goals at three attempts each, plus
+one IAM exchange. `--confirm` on 2026-10-30 needed one attempt per goal,
+`openai/gpt-oss-120b` through the chat endpoint at `reasoning_effort` low and
+`max_new_tokens` 2000. No retry, no fallback, one IAM exchange. The 1986
+narration passed on 33 claims and the 2022 one on 40.
+
+That matches what Task 4b measured rather than being luck: 33 of 33 narrations
+grounded on the first attempt is why this candidate is active.
+
+**What is frozen, in `app/web/narrations.json`.** 1986:
+
+> Peter Beardsley was dribbled past at 54:08. Terry Butcher was dribbled past
+> at 54:13. Terry Fenwick was dribbled past at 54:15. Peter Shilton was
+> dribbled past at 54:18. Diego Armando Maradona shot with his left foot from
+> open play at 54:18.
+
+2022:
+
+> Nahuel Molina Lucero passed at 35:12. Alexis Mac Allister received the ball
+> at 35:14. Ángel Fabián Di María Hernández received the ball at 35:22. Ángel
+> Fabián Di María Hernández shot at 35:22.
+
+Beside each: the tagged text the check passed, the facts it cited with the
+`event_id` each was read from, which sentence cited which, and the verdict.
+
+**The words are terser than the template's and carry more than it did.** The
+model dropped "Minute 54." and put a clock on every sentence instead, and it
+reached for `shot.body_part` and `play_pattern` on the 1986 goal: "with his
+left foot from open play" is in the facts and the template never said it. The
+2022 narration is four sentences where the buildup offers thirteen facts, and
+it does not name Messi or Álvarez, who are in the card's quote. That is the
+model's editing rather than a hole: a narration cites what it uses, and the
+check reads what it cites.
+
+**Neither narration says the goal went in,** and both are grounded anyway. The
+check's ending rule is that the last sentence cites the goal's own shot fact,
+which both do. The facts are built from one record each and a `Shot` record is
+a shot; the goal is in the header above the narration, which says the score.
+
+**The hero recordings now speak these words, and the price moved.**
+`scripts/tts_hero.py` reads `app/web/narrations.json` instead of calling
+`template_narration`, so what a judge hears and what a judge reads are one
+text. From `--plan`:
+
+| Count | Was | Now | What it is |
+| ----- | --: | --: | ---------- |
+| submitted | 2,070 | 2,268 | the text as sent, markup and spaces counted |
+| billed | 1,818 | 1,959 | the price: markup counted, whitespace not |
+| spoken | 1,530 | 1,746 | the words a listener hears |
+
+**The run clears the 2,000 budget by 41 characters.** That is thin enough to
+say out loud: one more pronunciation entry on a word either narration says
+would push it over, and `--budget` would refuse the run. Raising it is a
+decision, not a fix, so it is left at 2,000.
+
+**Spoken is now below billed, where it used to be above it.** Nothing changed
+in the counting. The frozen narrations carry more markup than the template
+did, because the 2022 one says "Di" twice and each costs a `<phoneme>`
+element, and markup is billed while the whitespace it displaces is not.
+
+**The vocabulary sweep now reads the frozen narrations,** because those words
+reach a voice and a model writes from a wider vocabulary than the template
+does. It found four words nobody had reviewed and one of them is a real
+heteronym.
+
+**`di` is the fourth entry in the pronunciation table.** The dictionary lists
+`D IY1` beside `D AY1`, and the second is the English "die" rather than an
+accent on a Spanish name. The 2022 recording says it twice and the 2022 moment
+card shows it, so it is `diː`. It is the second entry found by the dictionary
+rather than by a listener, after `close`, and the first found on a word the
+app speaks only because a model chose to write it: the template wrote the full
+recorded name in one breath and never said "Di" on its own.
+
+The other three went on `CHECKED_NO_ENTRY_NEEDED` with their reasons: `his`
+and `with` are function words with full and reduced forms, and `allister` is
+one name under the cot-caught vowel the voices merge.
+
+**Two things nobody has heard, and they are not the two that were owed.**
+`minute` is no longer in either hero recording: the model wrote clocks instead
+of "Minute 54", so the entry is still unheard but the hero recordings are no
+longer what would settle it. What they will settle instead is `di`, and a
+question no entry covers: **the narrations now read clock values aloud**,
+"at 54:08" and "at 35:22", and nothing here knows how an IBM Natural voice
+reads a colon between two numbers. It is not vocabulary, since a digit is not
+a word and no dictionary entry governs it, so no gate can flag it. It is the
+first thing to listen for after November 1.
+
+**The moment card shows the narration under the header** with the grounding
+label beside it, and the quote block is kept: it does not conflict. Both
+quotes name the same players in the same order as the facts their narration
+cites, and the 2022 quote names two more.
+
+**The card's one label moved rather than being duplicated.** It sat at the
+foot of the card beside the quote. Two copies of the same promise on one card
+reads as a defect rather than as a stronger guarantee, so the label is beside
+the narration, which is the only text on the screen a test re-checks.
+`NARRATION_FIELDS` in `scripts/scan_copy.py` gained `hero_narration`, which
+the file itself says to do when Phase 5 adds a narration element.
+
+**`scan_copy.py` caught two things worth it having caught.** It refuses the
+grounding label in a copy file, because a data file carries no markup that
+could place the label over anything, and both the `label` field in
+`narrations.json` and a comment in `match-content.js` were hits. The data file
+now records `"labelled": true`, the permission rather than the words, and the
+label is spelled in `app/narration.py` and in the markup and nowhere else.
+
+**Checked in Edge at 390px over a local server**, all three URLs reaching
+`data-match-rendered`: the default and `?match=3750191` show the 1986
+narration, `?match=3869685` shows the 2022 one, one label each, after the
+narration and inside its card, no horizontal scroll.
+
+**Not run, and still owed: the recordings.** The Text to Speech instance is
+disabled above its Lite cap until November 1, so `scripts/tts_hero.py
+--confirm` was not sent. Everything in front of it is ready and the price is
+1,959 billed characters.
+
+`pytest -q` reports `714 passed` and all five gates pass.
+
+**One thing was already red before this task started.** `check_docs.py` exited
+1 on `d0837ac`: that commit added `bob_sessions/phase5_task12_narrators.md`
+and left it on `DELIBERATELY_ABSENT` in `scripts/check_docs.py`, so the gate
+reported it as existing while listed as absent. The list is empty again
+(`d1757b3`). The suite was `694 passed` and the other four gates were green.
+
 ## Data-check findings
 
 Match `3750191`, Argentina 2-1 England, quarter-final, 1986-06-22. 2,748 events.
@@ -2822,7 +2950,7 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Bob task 13, then Claude Code Task 6; recordings on November 1)
+## Next first action (Bob task 13, then the recordings on November 1)
 
 **Bob task 13 in `docs/bob_brief.md` renames the persona id from `mate` to
 `buddy`**, Shawn's call on 2026-10-30, made before the hero recordings exist
@@ -2830,18 +2958,49 @@ because their filenames are built from the id. Live code, data and tests
 change; the past does not: `scripts/narration_eval.py`, `docs/narration_eval.md`,
 this file's history and `bob_sessions/` keep "Mate" for the runs made under that
 name. The docs that describe the current state are the follow-up's.
-`pytest -q` reports `4 failed, 694 passed`. Every failure is in
+`pytest -q` reports `4 failed, 714 passed`. Every failure is in
 `tests/test_buddy_rename.py`, whose last test lists each live line still to
 rename.
+
+**The rename comes first, and the recordings after it.** `scripts/tts_hero.py`
+names each file `<match_id>_<key>.mp3` from `hero.voice_for`, so the six
+recordings are `mate_scored` and `mate_conceded` today and `buddy_scored` and
+`buddy_conceded` once Task 13 lands. Recording before the rename would mean
+paying for the audio twice or renaming files the map is written from, and the
+Lite allowance is monthly.
+
+**Claude Code Task 6 is done and the words are settled.** The narrations are
+the model's, frozen in `app/web/narrations.json`, shown on the moment card and
+read by `scripts/tts_hero.py`. See "Phase 5, task 6" above for the run, both
+texts and the new price. The rename does not touch them: a narration is one
+text for every voice, and the id appears nowhere in it.
+
+**Then one command, and it cannot run before November 1.** The Text to Speech
+instance is disabled above its Lite cap until the month turns:
+
+```
+.\.venv-prelude\Scripts\python.exe -I scripts	ts_hero.py --confirm
+```
+
+It costs 1,959 billed characters against a `--budget` of 2,000. Then commit
+the six MP3s and the `hero.audio` map, drive all three listeners on both
+matches to see the timer and the waveform move, and hand Shawn the file table
+in "Phase 5, task 5", with its keys renamed.
+
+**What to listen for has changed.** `minute` is no longer in either recording,
+because the model wrote clocks rather than "Minute 54". The two new things are
+`di` in "Di María", which has an entry nobody has heard, and the clock values
+themselves: the narrations say "at 54:08" and "at 35:22", and nothing here
+knows how a Natural voice reads a colon between two numbers. No gate can flag
+that, because a digit is not a word.
 
 ### Before Task 13
 
 **Bob task 12 is built and checked.** `35c91b6` made the four changes in the
 brief. In Chromium, Profile marked The Buddy for an England fan and The
 Storyteller for a neutral listener, showed the coming-soon note on tapping The
-Caller, and showed Change as an outline under the amber current card.
-`pytest -q` reports `694 passed` and all five gates pass. Its export is still to
-be committed.
+Caller, and showed Change as an outline under the amber current card. Its
+export is committed in `d0837ac`.
 
 ### Before Task 12
 

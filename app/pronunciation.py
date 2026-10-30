@@ -100,10 +100,24 @@ from typing import Mapping
 #: governs leaves no room for the other pronunciation. If the voices turn out
 #: to say it correctly, the entry costs 44 characters on a transition neither
 #: hero goal uses, which is the cheapest way to be wrong available here.
+#:
+#: `di` is the fourth, and it arrived with the frozen narrations: the 2022
+#: hero goal is Di María's, so the 2022 recording says the name four times
+#: and the moment card shows it. The dictionary lists `D IY1` beside `D AY1`,
+#: and those are two different words rather than two accents: `D AY1` is the
+#: English "die". The name is Spanish and the syllable is "dee", so it is
+#: `diː`. Nobody has heard it; it joins `minute` and `close` in waiting for
+#: Shawn's ear after November 1.
+#:
+#: It is the second entry found by the dictionary rather than by a listener,
+#: and the first found on a word the app speaks only because a model chose
+#: to write it. The template never said "Di": it wrote the full recorded name
+#: in one breath, and the sweep reads names as separate words.
 PRONUNCIATIONS: Mapping[str, str] = {
     "lead": "liːd",
     "minute": "ˈmɪnɪt",
     "close": "kloʊz",
+    "di": "diː",
 }
 
 #: Words the dictionary flags that were looked at and need no entry, each with
@@ -136,6 +150,12 @@ CHECKED_NO_ENTRY_NEEDED: Mapping[str, str] = {
     "it": "a stress variant only, IH1 T and IH0 T",
     "the": "thuh and thee, which a speaker picks by what follows",
     "was": "W AA1 Z and W AH0 Z are accent variants of one word",
+    "his": "full and reduced forms of one word, HH IH1 Z and HH IH0 Z",
+    "with": "voiced and voiceless th, and both are the same word",
+    # A name, from the frozen 2022 narration. Unlike "di" in the same name,
+    # the two listed forms here are one name said two ways: the first vowel
+    # is the cot-caught vowel, which the voices merge.
+    "allister": "AO1 L IH0 S T ER0 and AE1 L IH0 S T ER0 are one name",
     # Verbs from EVENT_VERBS, flagged on unstressed vowels. The syllable that
     # differs is the one nobody hears: "received" as R AH0 or R IH0 or R IY0
     # is the same word said by three people from three places.

@@ -98,8 +98,15 @@ Everything above it is structure.
 - `scripts/narration_compare.py`: the paid comparison of the two watsonx
   candidates, by persona. `--plan` prints the narrations, the calls and the
   estimated tokens and makes no call; `--confirm` has to name the same arms as
-  `--arms`; `--max-tokens` stops the run between narrations. It is the only
-  script in the repo that can spend money.
+  `--arms`; `--max-tokens` stops the run between narrations.
+- `scripts/freeze_narrations.py`: narrates both hero goals on watsonx with the
+  active model and writes the ones the grounding check passed to
+  `app/web/narrations.json`, with the facts each cited and the check's
+  verdict beside the text. A narration that reaches the template fallback is
+  not frozen: the run writes nothing and exits 1. `--plan` prints the call
+  count and makes no call; `--confirm` sends it. The moment card shows what it
+  writes and `scripts/tts_hero.py` speaks it, so a rerun changes the words in
+  both places and costs a paid call.
 - `scripts/tts_probe.py`: measures which delivery controls change the audio on
   each of the three candidate IBM voices, by synthesizing one fixed sentence
   per arm and reading the duration, the pitch and the bytes back. `--plan`
@@ -195,8 +202,11 @@ Everything above it is structure.
   paying for the rest, and `--confirm` sends it.
 - `scripts/tts_hero.py`: the recordings the site serves, one per listener per
   match, as MP3 under `app/web/assets/`, with `hero.audio` in
-  `app/web/matches.json` written from the files on disk. Same words as the
-  samples in a smaller format. `--plan` prints the character count three ways
+  `app/web/matches.json` written from the files on disk. The words are the
+  orchestrator's header and the frozen narration in `app/web/narrations.json`,
+  which a model wrote and the grounding check passed, so these speak what the
+  moment card shows rather than the template the samples speak.
+  `--plan` prints the character count three ways
   and makes no call, `--budget` refuses a run above the billed count,
   `--confirm` sends it, and `--map` rewrites the map alone. **No recording
   exists yet:** the service answered HTTP 403 to every request on

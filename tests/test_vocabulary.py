@@ -145,10 +145,14 @@ class TestTheTwoListsDoNotOverlap:
 
 
 class TestTheHeteronymsAreTheOnesInTheTable:
-    """Three entries, and each is a word whose two readings are two words."""
+    """Four entries, and each is a word whose two readings are two words."""
 
-    def test_the_table_holds_exactly_the_three(self):
-        assert set(PRONUNCIATIONS) == {"lead", "minute", "close"}
+    def test_the_table_holds_exactly_the_four(self):
+        """`di` is the fourth, from the frozen 2022 narration: the dictionary
+        lists `D IY1` beside `D AY1`, and the second is the English "die"
+        rather than an accent on the Spanish name.
+        """
+        assert set(PRONUNCIATIONS) == {"lead", "minute", "close", "di"}
 
     def test_every_entry_is_a_word_the_dictionary_flags(self, flagged):
         """An entry for a word with one listed pronunciation would be a
@@ -227,9 +231,17 @@ class TestWhatTheCollectorCollects:
     def test_no_source_enumerates_player_names(self, vocabulary):
         """A dictionary has nothing useful to say about a player's name, so no
         source here walks the squads. What a name needs is a listener.
+
+        A name still arrives when something the app actually speaks says it,
+        which is the rule rather than an exception to it: "beardsley" and
+        "shilton" are here because the frozen 1986 narration names them, and
+        the test below is the same point from the other side. "cuccittini" is
+        the one that shows the squads are not being walked: Messi is in both
+        matches and in the 2022 quote, and the 2022 narration does not name
+        him, so his name is not vocabulary.
         """
-        for word in ("beardsley", "cuccittini", "shilton"):
-            assert word not in vocabulary, word
+        assert "cuccittini" not in vocabulary
+        assert vocabulary["beardsley"] == {"the frozen narrations"}
 
     def test_a_name_inside_a_recorded_narration_is_collected(self, vocabulary):
         """The rule is the words in a recorded narration, whatever kind of
@@ -237,6 +249,13 @@ class TestWhatTheCollectorCollects:
 
         It is not flagged: the dictionary lists one pronunciation for it. A
         name that was flagged would be a review for a listener rather than a
-        table entry, and none has come up yet.
+        table entry, and `allister` is the first that has come up.
+
+        Two sources now, because the hero recordings stopped speaking the
+        template and started speaking the frozen narration, and both say his
+        name.
         """
-        assert vocabulary["maradona"] == {"tests/golden/tts_synthesize.json"}
+        assert vocabulary["maradona"] == {
+            "tests/golden/tts_synthesize.json",
+            "the frozen narrations",
+        }
