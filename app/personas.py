@@ -24,7 +24,7 @@ let each beat land, with a slightly longer one before the goal sentence. The
 numbers are set by ear in Phase 5, words per minute is measured from the real
 audio, and the measured ceiling goes into config.
 
-Each persona carries four things and five that are still empty:
+Each persona carries five things and four that are still empty:
 
 | Field | What it is | Where it is read |
 | ----- | ---------- | ---------------- |
@@ -32,7 +32,7 @@ Each persona carries four things and five that are still empty:
 | `name` | what the Profile screen calls it | Task 7 |
 | `profile` | one line describing the voice to a fan | Task 7 |
 | `fans_only` | whether a neutral listener may pick it | Task 7 |
-| `voice` | the IBM Text to Speech voice | Phase 5, and it is `None` |
+| `voice` | the IBM Text to Speech voice | Shawn's pick, and it is set |
 | `rate` | the SSML speaking rate | Phase 5, and it is `None` |
 | `pitch` | the SSML pitch | Phase 5, and it is `None` |
 | `sentence_break` | the pause between sentences | Phase 5, and it is `None` |
@@ -44,13 +44,20 @@ because the orchestrator picks a default persona and had to name them before
 this file existed. Importing them is what makes a typo here a failure at
 import rather than a persona nothing can select.
 
-**The five empty fields are empty on purpose.** A voice is picked by ear in
-Phase 5, by listening to each candidate say a narration and a name, and the
-prosody is set the same way; nothing in this repo has listened to one yet. A
-plausible value written down now would be a guess wearing the look of a
-decision, so the fields are empty and `voice_confirmed` and
-`prosody_confirmed` say why: a pair means "not chosen", and it is only a
-choice when both have moved.
+**The voices are Shawn's and the prosody is not set.** The three voice ids
+below are the three he named, so `voice_confirmed` is true: the flag says the
+value was chosen by somebody entitled to choose it, not that this repo
+listened to it. The four prosody fields are still `None` with
+`prosody_confirmed` false, because a plausible number written down now would
+be a guess wearing the look of a decision.
+
+**What a delivery can even be made of was measured first.** All three voices
+are IBM Natural voices, and `scripts/tts_probe.py` found that the `<prosody>`
+element is ignored on every one of them, which is what IBM documents for that
+family. `rate` and `pitch` here are therefore the `rate_percentage` and
+`pitch_percentage` request parameters rather than SSML attributes, pitch moves
+up but not down, and the two breaks exist on `en-AU_HeidiNatural` alone.
+`docs/VOICE.md` carries the numbers.
 
 **`profile` is app output.** It is a line a fan reads, so the rules
 `CLAUDE.md` puts on app output apply to it and
@@ -79,17 +86,24 @@ class Persona:
     side. It is the Mate and nothing else: a partisan voice told to a neutral
     listener would be telling them they support a team they did not choose.
 
-    `voice` is the IBM Text to Speech voice id. `rate` and `pitch` are SSML
-    prosody values as that markup writes them, such as a percentage; it is a
-    string because that is what goes into the attribute. `sentence_break` and
-    `goal_break` are pauses in milliseconds, so the one before the goal can be
-    read against the one between sentences rather than compared as text.
+    `voice` is the IBM Text to Speech voice id, and it is set: the three are
+    Shawn's picks.
 
-    All five are `None` until Phase 5 sets them by ear. `voice_confirmed`
-    covers the voice and `prosody_confirmed` covers the four prosody fields,
+    `rate` and `pitch` are percentages, written as the strings that go into
+    the request. They are the `rate_percentage` and `pitch_percentage` request
+    parameters and not SSML attributes, because `scripts/tts_probe.py` found
+    `<prosody>` ignored on all three of these voices. One value each, not one
+    per sentence: both parameters are per request. `sentence_break` and
+    `goal_break` are pauses in milliseconds, so the one before the goal can be
+    read against the one between sentences rather than compared as text, and
+    they reach only a voice whose breaks work.
+
+    The four prosody fields are `None` until Shawn sets them by ear.
+    `voice_confirmed` covers the voice and `prosody_confirmed` covers the four,
     which are set together in one sitting: a rate heard without the breaks
     around it is not a judgement anybody can make. A flag that is false says
-    the fields beside it are not chosen rather than overlooked.
+    the fields beside it are not chosen rather than overlooked, and a flag that
+    is true says somebody entitled to choose them did.
     """
 
     id: str
@@ -119,11 +133,18 @@ class Persona:
 #: far above the Storyteller's would cost a listener the names and the clock,
 #: which are the whole of what the narration carries, so Phase 5 gives this
 #: one a ceiling.
+#:
+#: **It is the only one that can pause.** `<break>` works on this voice and on
+#: neither of the other two, which `scripts/tts_probe.py` measured, so the two
+#: break fields are this persona's alone and the other two carry `None` in
+#: them for good rather than until somebody sets them.
 THE_CALLER = Persona(
     id=CALLER,
     name="The Caller",
     profile="Quick play-by-play, keeping up with the move.",
     fans_only=False,
+    voice="en-AU_HeidiNatural",
+    voice_confirmed=True,
 )
 
 #: The plainest of the three, and the closest to the voice `docs/VOICE.md`
@@ -135,6 +156,8 @@ THE_STORYTELLER = Persona(
     name="The Storyteller",
     profile="Calm documentary, unhurried and even.",
     fans_only=False,
+    voice="en-US_EmmaNatural",
+    voice_confirmed=True,
 )
 
 #: The only persona that needs to know who is listening. It is the fans'
@@ -148,6 +171,8 @@ THE_MATE = Persona(
     name="The Mate",
     profile="Warm, from the next seat.",
     fans_only=True,
+    voice="en-US_EthanNatural",
+    voice_confirmed=True,
 )
 
 #: The three, in the order the Profile screen lists them.

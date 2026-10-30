@@ -137,7 +137,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 501 tests in fourteen files, and all 501 pass, so any failure
+The suite is 503 tests in fourteen files, and all 503 pass, so any failure
 means something is wrong. It is run from the repo root:
 
 ```
@@ -162,7 +162,7 @@ No path setting is needed: `pyproject.toml` sets `pythonpath = ["."]` and
 | `tests/test_profile.py` | the Profile screen, the Profile tab and person icon leading to it, and the card reopening from it, built by Bob in Task 10 |
 | `tests/test_screen_copy.py` | the copy Shawn settled on 2026-10-29: the card's label, the Live helper after Heading out, the share title and texts, built by Bob in Task 7 |
 | `tests/test_orchestrator.py` | the greeting, the phase, the score state, the transition, the game focused header, the default persona and `opening`, against `app/orchestrator.py` |
-| `tests/test_personas.py` | the persona config: the three ids, the fields, the unconfirmed voice and prosody and the Profile copy |
+| `tests/test_personas.py` | the persona config: the three ids, the fields, the three picked voices, the unconfirmed prosody and the Profile copy |
 
 ### Two guards, on every test
 

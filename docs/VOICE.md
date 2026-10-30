@@ -345,11 +345,11 @@ That is a decision and not a simplification. The three measured sections at
 the end of this one are what it came out of: three ways of asking for three
 registers were tried, and each gave one register back.
 
-| Persona | Id | What it sounds like | Offered to |
-| ------- | -- | ------------------- | ---------- |
-| The Caller | `caller` | quick play-by-play, keeping up with the move | everyone |
-| The Storyteller | `storyteller` | calm documentary, unhurried and even | everyone |
-| The Mate | `mate` | warm, from the next seat | fans only |
+| Persona | Id | Voice | What it sounds like | Offered to |
+| ------- | -- | ----- | ------------------- | ---------- |
+| The Caller | `caller` | `en-AU_HeidiNatural` | quick play-by-play, keeping up with the move | everyone |
+| The Storyteller | `storyteller` | `en-US_EmmaNatural` | calm documentary, unhurried and even | everyone |
+| The Mate | `mate` | `en-US_EthanNatural` | warm, from the next seat | fans only |
 
 **Nothing in the narration text differs between them.** `app/grounding.py`
 reads a narration against the facts it cited whoever asked for it, and
@@ -359,24 +359,33 @@ all three. The prompt takes no persona at all:
 holds it to that, because an argument that changed nothing would read as a
 register still reaching the model.
 
+**The three voices are Shawn's picks and the config records them.** `voice` is
+set on all three and `voice_confirmed` is true, which says the value was chosen
+by somebody entitled to choose it rather than that this repo listened to it:
+`tests/test_personas.py::TestTheVoices`. The ids are pinned to the three the
+probe measured, because a voice nothing has measured has no known delivery
+controls
+(`tests/test_personas.py::TestTheVoices::test_every_voice_is_one_the_probe_measured`).
+
 **Comprehension comes first.** The Caller is the quick one, and its energy
 comes from emphasis and pitch rather than from speed: a rate far above the
 Storyteller's would cost a listener the names and the clock, which are the
 whole of what the narration carries. So the rate sits only modestly above the
 Storyteller's and has a ceiling. Breaks between sentences let each beat land,
-with a slightly longer one before the goal sentence. Shawn sets the numbers by
-ear in Phase 5, words per minute is measured from the real audio, and the
-measured ceiling goes into config.
+with a slightly longer one before the goal sentence, and the probe is why that
+is the Caller's alone: `<break>` works on its voice and on neither of the other
+two. Shawn sets the numbers by ear, words per minute is measured from the real
+audio, and the measured ceiling goes into config.
 
-**The fields that will hold all that are empty and marked unconfirmed.** Each
-persona carries `voice`, `rate`, `pitch`, `sentence_break` and `goal_break`,
-every one of them `None`, with `voice_confirmed` and `prosody_confirmed` false
-beside them. Nothing in this repo has listened to a voice yet, and a plausible
-value written down now would be a guess with the look of a decision:
-`tests/test_personas.py::TestTheVoicesAreNotChosenYet` and
-`tests/test_personas.py::TestTheProsodyIsNotSetYet`. The two breaks are
-milliseconds so the one before the goal can be read against the one between
-sentences; the rate and the pitch are SSML values as that markup writes them.
+**The four prosody fields are empty and marked unconfirmed.** Each persona
+carries `rate`, `pitch`, `sentence_break` and `goal_break`, every one of them
+`None`, with `prosody_confirmed` false beside them. Nobody has set them by ear
+yet, and a plausible value written down now would be a guess with the look of a
+decision: `tests/test_personas.py::TestTheProsodyIsNotSetYet`. The two breaks
+are milliseconds so the one before the goal can be read against the one
+between sentences; the rate and the pitch are percentages written as the
+strings the request carries, and they are request parameters rather than SSML,
+because `<prosody>` is ignored on all three of these voices.
 
 **Inspired by styles, never named after anybody.** Each name is what the
 persona does rather than who it resembles. Naming a real commentator would

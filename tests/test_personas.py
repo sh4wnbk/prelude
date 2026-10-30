@@ -11,9 +11,10 @@ Each test that is about all three personas loops over them and collects the
 ones that failed, rather than being parametrized, so a failure names the
 persona and the test keeps one node id a document can cite.
 
-Nothing here calls a model, and nothing here asserts that a persona sounds
-like anything. A voice and its prosody are judgements made by listening, which
-is Phase 5, and the fields that will hold them are empty until then.
+Nothing here calls a model or the speech service, and nothing here asserts
+that a persona sounds like anything. The voices are set, because they are
+Shawn's picks; the prosody is still empty, because it is a judgement made by
+listening and nobody has made it yet.
 """
 
 import dataclasses
@@ -143,21 +144,45 @@ class TestFansOnly:
         assert chosen in PERSONAS
 
 
-class TestTheVoicesAreNotChosenYet:
-    """Phase 5 picks a voice by ear. Until then the field is empty and says so."""
+class TestTheVoices:
+    """The three voices are Shawn's picks, and they are set and confirmed."""
 
-    def test_every_voice_is_null(self):
-        assert [p.id for p in PERSONAS if p.voice is not None] == []
+    def test_every_voice_is_set(self):
+        assert [p.id for p in PERSONAS if not (p.voice or "").strip()] == []
 
-    def test_every_voice_is_marked_unconfirmed(self):
-        assert [p.id for p in PERSONAS if p.voice_confirmed] == []
+    def test_every_voice_is_confirmed(self):
+        assert [p.id for p in PERSONAS if not p.voice_confirmed] == []
+
+    def test_no_two_personas_share_a_voice(self):
+        """Three voices for three personas, because the sound is the whole of
+        what separates them. Two personas on one voice would be two personas a
+        listener cannot tell apart, which is the thing Phase 5 exists to fix.
+        """
+        voices = [p.voice for p in PERSONAS]
+        assert len(set(voices)) == len(voices)
+
+    def test_every_voice_is_one_the_probe_measured(self):
+        """A voice nothing has measured has no known delivery controls.
+
+        `scripts/tts_probe.py` found `<prosody>` ignored on these three and
+        `<break>` working on one of them. A fourth voice swapped in here would
+        inherit a delivery table measured on a voice it is not, so the ids are
+        pinned to what was actually probed.
+        """
+        assert {p.voice for p in PERSONAS} == {
+            "en-AU_HeidiNatural",
+            "en-US_EmmaNatural",
+            "en-US_EthanNatural",
+        }
 
     def test_a_null_voice_is_never_confirmed(self):
         """The pair cannot say "confirmed nothing", which is the broken state.
 
         `voice_confirmed` is what stops an empty field being read as an
         oversight. A persona claiming a confirmed voice while holding none
-        would be the field saying the opposite of the truth.
+        would be the field saying the opposite of the truth. It is kept now
+        that every voice is set, because the state it refuses is the one a
+        half-finished edit to this config produces.
         """
         assert [
             p.id for p in PERSONAS if p.voice_confirmed and p.voice is None

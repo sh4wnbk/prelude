@@ -235,9 +235,15 @@ standing in for the service would be testing the stand-in. `tests/conftest.py`
 blocks the network in every test, so nothing in the suite can reach the
 service by accident.
 
+**The three voices are now recorded against the personas.** `app/personas.py`
+carries one each, with `voice_confirmed` true, which says Shawn chose them:
+the Caller is `en-AU_HeidiNatural`, the Storyteller `en-US_EmmaNatural` and
+the Mate `en-US_EthanNatural`
+(`tests/test_personas.py::TestTheVoices::test_every_voice_is_one_the_probe_measured`).
+The prosody fields are still empty and unconfirmed.
+
 **`TTS_VOICE` is still read by no code.** `.env.example` carries it as the
-working default from before the probe, and the three voices above are named in
-`scripts/tts_probe.py` rather than configured.
+working default from before the probe, and it names a voice no persona uses.
 
 **The final voice pick is Shawn's, by ear, and is not to be settled from a spec
 sheet.** `HANDOFF.md` records that, and that the two files in the gitignored

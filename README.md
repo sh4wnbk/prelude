@@ -158,13 +158,14 @@ Everything above it is structure.
 - `app/personas.py`: the three personas, each with an id, a name, a one-line
   Profile description of what it sounds like, and whether it is offered to fans
   only. They are separated by sound and not by text: the narration is one style
-  in every voice, and the IBM voice, rate, pitch and the two sentence breaks are
-  `None` and marked unconfirmed, because Phase 5 sets them by ear. Three
-  measured runs behind that decision are in `docs/narration_eval.md`. No screen
-  offers a choice yet.
-- `tests/test_personas.py`: 25 tests over the config's shape, the ids against
-  `app/orchestrator_contract.py`, the unconfirmed voice and prosody fields and
-  the Profile copy. All 25 pass.
+  in every voice, and each persona now carries the IBM voice Shawn picked for
+  it. The rate, the pitch and the two sentence breaks are still `None` and
+  marked unconfirmed, because Shawn sets them by ear. Three measured runs
+  behind that decision are in `docs/narration_eval.md`. No screen offers a
+  choice yet.
+- `tests/test_personas.py`: 27 tests over the config's shape, the ids against
+  `app/orchestrator_contract.py`, the three picked voices, the unconfirmed
+  prosody fields and the Profile copy. All 27 pass.
 - `app/narration.py`: narrates one moment. Generates, checks, regenerates up to
   twice, then falls back to the template, and records every attempt with the
   claims that failed. Nothing ungrounded is returned. The citation tags are

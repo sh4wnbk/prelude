@@ -821,7 +821,7 @@ At `11d0f8f`, `pytest -q` reported `299 passed`.
 
 **The persona config is committed and nothing reads the styles yet.**
 `app/personas.py` holds the three personas and `tests/test_personas.py` holds
-them to their shape, in 25 tests now and 22 at this commit. No prompt passes a
+them to their shape, in 27 tests now and 22 at this commit. No prompt passes a
 style to a model at this commit: that is task 6b, and the style field is gone
 again after "after task 6d" below.
 
@@ -853,12 +853,12 @@ which is what rule 7 of the prompt already does; scanning the styles for those
 words would refuse the instruction that keeps them out of the narration. Both
 are held to the no-em-dash rule.
 
-**The voices are `None` and marked unconfirmed.** Phase 5 picks them by ear,
-nothing in this repo has heard one, and a plausible voice id written down now
-would be a guess with the look of a decision. `voice` and `voice_confirmed`
-together say "not chosen", and
-`tests/test_personas.py::TestTheVoicesAreNotChosenYet::test_a_null_voice_is_never_confirmed`
-refuses the state where one says otherwise.
+**The voices were `None` and marked unconfirmed at this commit.** Phase 5
+picked them by ear later; a plausible voice id written down here would have
+been a guess with the look of a decision, so `voice` and `voice_confirmed`
+together said "not chosen". Phase 5 task 1 step 2 set all three, and the test
+that refuses a confirmed null voice survived the change:
+`tests/test_personas.py::TestTheVoices::test_a_null_voice_is_never_confirmed`.
 
 **One cross-check earns its place.** `default_persona` in
 `app/orchestrator.py` returns an id and reads nothing in this config, so a
