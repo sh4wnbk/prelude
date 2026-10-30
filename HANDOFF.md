@@ -2487,9 +2487,12 @@ The rules Shawn settled for them, before any of it is built:
 built the Profile screen to the brief. Driven in Chromium it showed "Shawn |
 Argentina", Change reopened the card on Live with Argentina pressed and the
 name filled, the new answer held without reopening on reload, and Profile then
-showed "Olivia | Just here for the game". One correction: `asked()` matched
-"ask" anywhere in the query, and now reads `ask=1` as a parameter. `pytest -q`
-reports `500 passed` and all four gates pass. The Task 7 plan's persona cards
+showed "Olivia | Just here for the game". Two corrections: `asked()` matched
+"ask" anywhere in the query, and now reads `ask=1` as a parameter; and the
+screen carried its own Tailwind config instead of the shared one, with a dark
+`primary-container`, so its amber looked disabled on Shawn's phone. The shared
+head is restored and a test now holds every screen to one config. `pytest -q`
+reports `501 passed` and all four gates pass. The Task 7 plan's persona cards
 on Profile move to Phase 5, once there are voices to pick.
 
 ### Bob task 10, as it was briefed

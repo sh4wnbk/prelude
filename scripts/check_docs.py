@@ -72,9 +72,7 @@ DOCS = [
 # it was committed in `76e0d15`, and Task 8's after it. The list is empty:
 # every path the docs name now exists. Add a path here when a doc names one
 # before it is written.
-DELIBERATELY_ABSENT: set[str] = {
-    "bob_sessions/phase4_task10_profile.md",  # Bob's task 10 export
-}
+DELIBERATELY_ABSENT: set[str] = set()
 
 PATH_IN_BACKTICKS = re.compile(
     r"`((?:app|docs|scripts|tests|bob_sessions)/[A-Za-z0-9_./-]+)`"

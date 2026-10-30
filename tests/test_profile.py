@@ -93,6 +93,21 @@ class TestTheProfileScreen:
         assert "Verified from play data" not in profile()
 
 
+    def test_it_uses_the_same_design_tokens_as_every_other_screen(self):
+        """Bob's Task 10 wrote its own Tailwind config instead of keeping the
+        one every screen shares, with `primary-container` at `#5c3d00` rather
+        than `#ffb703` and an older label scale, so the whole screen's amber
+        read as disabled. Every screen now has to carry the same config."""
+        def config(markup):
+            found = re.search(r'<script id="tailwind-config">(.*?)</script>', markup, re.S)
+            assert found, "no tailwind-config script"
+            return found.group(1)
+
+        expected = config((WEB / "prelude_04_moments.html").read_text(encoding="utf-8"))
+        for page in sorted(WEB.glob("prelude_*.html")):
+            assert config(page.read_text(encoding="utf-8")) == expected, page.name
+
+
 class TestTheNavLeadsToIt:
     @pytest.mark.parametrize("name", NAVVED)
     def test_the_profile_tab_is_a_link(self, name):

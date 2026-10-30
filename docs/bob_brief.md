@@ -122,7 +122,7 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-500 passed
+501 passed
 ```
 
 The total covers far more than this module now. Phase 4 added the narration
@@ -1045,7 +1045,14 @@ forgotten:
 
 ## Task 10: the Profile screen
 
-**Status: built, in `4ef3aa0`.** One correction in the follow-up: `asked()`
+**Status: built, in `4ef3aa0`.** Two corrections in the follow-ups. The new
+screen did not keep the head of `prelude_04_moments.html` as the brief said:
+it carried its own Tailwind config, with `primary-container` at `#5c3d00` in
+place of `#ffb703` and an older label scale, so every amber element on it read
+as disabled. Shawn noticed the Change button looked greyed out on his phone.
+The head was restored and
+`tests/test_profile.py::TestTheProfileScreen::test_it_uses_the_same_design_tokens_as_every_other_screen`
+now requires every screen to carry the same config. And `asked()`
 matched the letters "ask" anywhere in the query, so `?task=1` would also have
 reopened the card; it now reads `ask=1` as a whole parameter.
 
@@ -1118,8 +1125,8 @@ nothing.
 
 ### The tests to pass
 
-`tests/test_profile.py`, 24 tests, all passing now; all 24 failed until this
-was built. Then the
+`tests/test_profile.py`, 25 tests, all passing now. The 24 written with the
+brief failed until this was built; the 25th was added in the follow-up. Then the
 full suite, target 0 failed, and the four gates. `check_docs.py` failing on the
 quoted pytest result in this brief, and on `app/web/prelude_07_profile.html`
 being listed as absent, is expected and is the follow-up's; report any other
