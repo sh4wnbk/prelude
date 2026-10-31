@@ -156,6 +156,79 @@ NARRATION_STYLE = (
 )
 
 
+#: StatsBomb's pitch is 120 by 80, and x always runs towards the goal the team
+#: the record belongs to is attacking. A defensive record is mirrored, which is
+#: why these two lines can be read the same way for either team: Beardsley's
+#: `Pressure` at x 64.9 and Maradona's `Carry` at x 55.2 are the same spot on
+#: the pitch seen from the two ends.
+#:
+#: So `x < 60` is the recorded player's own half, and `x >= 102` is inside the
+#: box they are attacking. Both numbers are the pitch's own geometry: the
+#: halfway line, and the eighteen yard line at 120 minus 18.
+HALFWAY_X = 60.0
+BOX_X = 102.0
+
+#: A pass this long is what the game calls a long ball, in StatsBomb's yards.
+#:
+#: It is a threshold and not a reading of a record, which makes it the one
+#: number in this module somebody could argue with. It is set at thirty
+#: because that is what separates the two hero passages rather than a judgement
+#: about football in general: the five passes of the 2022 counter are 20.1,
+#: 11.6, 11.5, 38.5 and 26.0 yards, and the one a commentator calls a long ball
+#: forward is the 38.5. Above twenty-six and below thirty-eight is the whole
+#: room the data gives, so the middle of it is as defensible as either edge.
+LONG_PASS_YARDS = 30.0
+
+
+@dataclass(frozen=True)
+class Spot:
+    """One recorded location on the pitch, as the record writes it.
+
+    Two questions get asked of a spot, and both are the pitch's geometry rather
+    than anybody's reading of the play: which half it is in, and whether it is
+    inside the box. A narration saying "in his own half" or "into the box" is
+    making a claim this can answer.
+    """
+
+    x: float
+    y: float
+
+    @property
+    def in_own_half(self) -> bool:
+        return self.x < HALFWAY_X
+
+    @property
+    def in_the_box(self) -> bool:
+        return self.x >= BOX_X
+
+
+def spot(location) -> Spot | None:
+    """A raw `[x, y]` pair as a `Spot`, or `None` where the record has none.
+
+    A `Pressure` carries a location and a `Ball Receipt*` carries one; a
+    `Dribbled Past` carries one too. Nothing is defaulted, because a spot this
+    function invented is a spot a position claim would then be checked against.
+    """
+    if not location or len(location) < 2:
+        return None
+    return Spot(x=float(location[0]), y=float(location[1]))
+
+
+def timestamp_seconds(timestamp: str) -> float | None:
+    """A StatsBomb `timestamp` ("00:09:02.383") as seconds into the period.
+
+    The minute and second fields floor the clock, so two events a second and a
+    half apart can carry the same second. The timestamp is what the feed
+    records to the millisecond, and it is what a duration has to be read off:
+    "in under ten seconds" is a claim about the passage, and 35:12 to 35:22 is
+    anything from nine seconds to eleven if the floored fields are all there is.
+    """
+    if not timestamp:
+        return None
+    hours, minutes, seconds = timestamp.split(":")
+    return int(hours) * 3600 + int(minutes) * 60 + float(seconds)
+
+
 @dataclass(frozen=True)
 class Beat:
     """One recorded event, reduced to what a narration could say about it.
@@ -163,6 +236,15 @@ class Beat:
     A beat is not a new source of truth. Every field is copied out of one raw
     record, and `event_id` is kept so any beat can be pointed back at the
     record it came from in `data/raw/`.
+
+    **The fields after `nickname` are the ones the framework in
+    `docs/VOICE.md` says out loud.** A goal call says "under pressure", "a long
+    ball forward", "he set up Di María", "first time", "into the box" and "in
+    his own half", and every one of those is a claim about a recorded field
+    rather than colour: `under_pressure`, `pass_length`, `goal_assist`,
+    `first_time`, and the two locations. They are copied, never derived, with
+    one exception that is arithmetic rather than judgement: `Spot.in_own_half`
+    and `Spot.in_the_box` read a coordinate against the pitch's own geometry.
     """
 
     index: int
@@ -178,10 +260,50 @@ class Beat:
     #: so a beat built without the lineups file is the full recorded name, as
     #: every beat was before the file was fetched.
     nickname: str | None = None
+    #: The feed's millisecond timestamp, "00:09:02.383". `minute` and `second`
+    #: floor the clock; this does not, and a duration is read off it.
+    timestamp: str = ""
+    #: `play_pattern.name`: how the possession this record belongs to started.
+    #: "From Counter" on every record of both hero passages, which is what
+    #: "the counter was on" is a claim about.
+    play_pattern: str | None = None
+    #: `under_pressure` on the record itself, which StatsBomb sets when an
+    #: opponent's `Pressure` overlaps it.
+    under_pressure: bool = False
+    #: Where the record happened, and where it ended for a carry, a pass or a
+    #: shot. `None` where the record carries neither.
+    start: Spot | None = None
+    end: Spot | None = None
+    #: `pass.recipient.name`, the full recorded name of the player a pass was
+    #: played to. This is what makes a chain ("Molina to MacAllister")
+    #: checkable rather than two names with a preposition between them.
+    recipient: str | None = None
+    #: `pass.length`, in StatsBomb's yards.
+    pass_length: float | None = None
+    #: `pass.goal_assist`, which StatsBomb sets on the pass that set the goal
+    #: up. "He set up Di María" is a claim about this field.
+    goal_assist: bool = False
+    #: `shot.first_time`, set when the shot was struck without a touch to
+    #: control it first.
+    first_time: bool = False
+    #: `pass.body_part.name` or `shot.body_part.name`, whichever the record
+    #: carries. `Facts.body_part` is the goal's, which is the one a narration
+    #: says; this is per record.
+    body_part: str | None = None
 
     @property
     def clock(self) -> str:
         return f"{self.minute}:{self.second:02d}"
+
+    @property
+    def seconds(self) -> float | None:
+        """The timestamp as seconds into the period, or `None` without one."""
+        return timestamp_seconds(self.timestamp)
+
+    @property
+    def long_pass(self) -> bool:
+        """Whether this record is a pass the game would call a long ball."""
+        return self.pass_length is not None and self.pass_length >= LONG_PASS_YARDS
 
     @property
     def name(self) -> str:
@@ -262,6 +384,36 @@ class Facts:
     @property
     def goal_beat(self) -> Beat:
         return self.goal_fact.beat
+
+    @property
+    def play_patterns(self) -> frozenset[str]:
+        """How the possessions in this passage started, by `play_pattern`.
+
+        Both hero passages are "From Counter" throughout, which is what a goal
+        call means by "Argentina were on the counter". It is a set rather than
+        one value because a set-piece buildup reaches back a possession and the
+        two can have started differently.
+        """
+        return frozenset(
+            beat.play_pattern for beat in self.beats if beat.play_pattern
+        )
+
+    @property
+    def seconds(self) -> float | None:
+        """How long the passage took, first timestamp to last.
+
+        Computed rather than recorded: StatsBomb carries a `duration` per
+        record and no span for a possession, so the span is the difference
+        between the two ends of it. `None` when a timestamp is missing, so a
+        duration claim is refused rather than measured against a guess.
+
+        A buildup never crosses a period boundary (`app/event_feed.py` says
+        so), so subtracting two timestamps in one period is the whole of it.
+        """
+        stamps = [beat.seconds for beat in self.beats]
+        if not stamps or any(stamp is None for stamp in stamps):
+            return None
+        return max(stamps) - min(stamps)
 
 
 @dataclass(frozen=True)
@@ -389,6 +541,47 @@ def fact_text(beat: Beat) -> str:
     return f"{beat.name} ({beat.team}) {verb}, {beat.clock}"
 
 
+def _beat(event: RawEvent, nicknames: Mapping[str, str]) -> Beat:
+    """One raw record as a `Beat`, every field copied and none derived.
+
+    The three nested blocks a record can carry are read where they are: `pass`
+    holds the recipient, the length, the assist flag and a body part, `shot`
+    holds `first_time` and its own body part, and `carry` holds only an end
+    location. A record with none of them keeps the defaults, which say the
+    field was not recorded rather than that it was false.
+    """
+    passed = event.get("pass") or {}
+    shot = event.get("shot") or {}
+    carry = event.get("carry") or {}
+    recipient = passed.get("recipient") or {}
+    body_part = (passed.get("body_part") or shot.get("body_part") or {})
+    end = (
+        passed.get("end_location")
+        or shot.get("end_location")
+        or carry.get("end_location")
+    )
+    return Beat(
+        index=event["index"],
+        minute=event["minute"],
+        second=event["second"],
+        player=event["player"]["name"],
+        team=event["team"]["name"],
+        action=event["type"]["name"],
+        event_id=event["id"],
+        nickname=nicknames.get(event["player"]["name"]),
+        timestamp=event.get("timestamp", ""),
+        play_pattern=(event.get("play_pattern") or {}).get("name"),
+        under_pressure=bool(event.get("under_pressure")),
+        start=spot(event.get("location")),
+        end=spot(end),
+        recipient=recipient.get("name"),
+        pass_length=passed.get("length"),
+        goal_assist=bool(passed.get("goal_assist")),
+        first_time=bool(shot.get("first_time")),
+        body_part=body_part.get("name"),
+    )
+
+
 def facts_from_buildup(
     buildup: Buildup, nicknames: Mapping[str, str] | None = None
 ) -> Facts:
@@ -407,20 +600,8 @@ def facts_from_buildup(
     guessing at a surname.
     """
     short = nicknames or {}
-    beats = tuple(
-        Beat(
-            index=event["index"],
-            minute=event["minute"],
-            second=event["second"],
-            player=event["player"]["name"],
-            team=event["team"]["name"],
-            action=event["type"]["name"],
-            event_id=event["id"],
-            nickname=short.get(event["player"]["name"]),
-        )
-        for event in buildup.events
-        if event.get("player")
-    )
+    beats = tuple(_beat(event, short) for event in buildup.events
+                  if event.get("player"))
 
     facts = tuple(
         Fact(number=number, beat=beat, text=fact_text(beat))

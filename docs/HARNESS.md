@@ -175,7 +175,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 924 tests in twenty-seven files, of which 916 pass and eight fail.
+The suite is 939 tests in twenty-seven files, of which 931 pass and eight fail.
 
 The eight failures are on purpose, and they are all in one file.
 `tests/test_reference_narrations.py` writes the narration framework in

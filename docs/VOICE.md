@@ -455,6 +455,48 @@ nothing would have been measured. The style a narrator is shown is worked
 through an invented match with invented players instead, which is planned as
 Task 9c.
 
+### The recorded fields a goal call says out loud
+
+**Half of the framework is a claim about a field nothing used to read.** "Under
+pressure", "a long ball forward", "he set up Di María", "first time", "into the
+box", "in his own half" and "in under ten seconds" are not colour: each one is
+a StatsBomb field, and a check that cannot see the field cannot hold a
+narration to it. So `Beat` in `app/narration_prompt.py` carries them, copied
+from the record and never derived:
+
+| Said | Field | What the two hero passages hold |
+| ---- | ----- | ------------------------------- |
+| "on the counter" | `play_pattern` | "From Counter" on every record of both |
+| "under pressure" | `under_pressure` | all nine of Maradona's records from his first touch; nothing in the 2022 counter |
+| "Molina to MacAllister" | `pass.recipient` | the full recorded name of the player each of the five 2022 passes reached |
+| "a long ball forward" | `pass.length` | 20.1, 11.6, 11.5, 38.5 and 26.0 yards in 2022; the 38.5 is the long ball |
+| "he set up Di María" | `pass.goal_assist` | one pass per passage: Enrique's in 1986, MacAllister's in 2022 |
+| "first time", "with one touch" | `shot.first_time` | true on the 2022 shot, absent on the 1986 one |
+| "with his left foot" | `shot.body_part` | Left Foot on both goals |
+
+Two of them are arithmetic rather than a copy, and the arithmetic is the
+pitch's own rather than a reading of the play. **Field position** is one
+coordinate against one line: StatsBomb's pitch is 120 by 80 and `x` runs
+towards the goal the record's own team is attacking, so `x < 60` is that
+player's own half and `x >= 102` is inside the box, and a defensive record is
+mirrored so the same two lines read correctly for either side. Maradona
+received it at `x` 55.2, which is "just inside his own half" by under five
+yards, and the carry that ends his run ends at 112.8, which is "into the box".
+
+**Duration** is the difference between two timestamps. The `minute` and
+`second` fields floor the clock, so the 2022 counter reads as exactly ten
+seconds by them and "in under ten seconds" would be false; the timestamps say
+00:35:12.890 to 00:35:22.647, which is 9.757. The 1986 run is 15.7 seconds,
+which no reference says, because what is worth saying about that passage is who
+was beaten.
+
+`LONG_PASS_YARDS` is the one number here somebody could argue with, because it
+is a threshold and not a record. It is thirty, which is in the gap between the
+26.0 yard assist and the 38.5 yard ball a commentator calls long, so it
+separates these two passages rather than settling what a long ball is in
+general. Every field above has a test of its own in
+`tests/test_narration_prompt.py::TestTheRecordedFieldsTheFrameworkSaysOutLoud`.
+
 **They do not pass yet, and the file says so.** The check reads a sentence
 against the fact numbers that sentence cited, and a goal call cites nothing, so
 all eight are refused today as `untagged`. Nothing else in them is refused:

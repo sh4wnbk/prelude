@@ -17,6 +17,9 @@ import pytest
 
 from app.grounding import sentences
 from app.narration_prompt import (
+    BOX_X,
+    HALFWAY_X,
+    LONG_PASS_YARDS,
     Beat,
     Fact,
     Facts,
@@ -35,7 +38,9 @@ from app.narration_prompt import (
     touched_the_ball,
     fact_list,
     facts_from_buildup,
+    spot,
     template_narration,
+    timestamp_seconds,
 )
 from app.recorded_names import recorded_nicknames
 from app.statsbomb_event_feed import StatsBombEventFeed
@@ -993,3 +998,217 @@ class TestTheNamesTheFactsPrint:
         ):
             facts = self.facts(feed, match_id, clock)
             assert "—" not in build_prompt(facts, hero=True)
+
+
+class TestTheRecordedFieldsTheFrameworkSaysOutLoud:
+    """The fields a goal call says, read off the records one at a time.
+
+    The framework in `docs/VOICE.md` says "under pressure", "a long ball
+    forward", "he set up Di María", "first time", "into the box", "in his own
+    half" and "in under ten seconds". Each of those is a claim about a recorded
+    field rather than colour, and `app/grounding.py` can only hold a narration
+    to one it can read. So each field gets a test here, against the two hero
+    buildups, with the expected value written down from a run over `data/raw/`.
+
+    `facts_for` above passes no nicknames, which is the full recorded name on
+    every beat. That is right for these tests: a field is read off a record,
+    and what the player is called does not change it.
+    """
+
+    def hero_1986(self, feed):
+        return facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+
+    def hero_2022(self, feed):
+        return facts_for(feed, MATCH_2022, HERO_2022["clock"])
+
+    def beat(self, facts, number):
+        return facts.facts[number - 1].beat
+
+    def test_play_pattern_is_from_counter_on_both_hero_passages(self, feed):
+        """"Argentina were on the counter" is a claim about this field.
+
+        Both passages are one possession that started the same way, so each
+        reports one pattern rather than a mixture.
+        """
+        assert self.hero_1986(feed).play_patterns == frozenset({"From Counter"})
+        assert self.hero_2022(feed).play_patterns == frozenset({"From Counter"})
+        assert self.beat(self.hero_1986(feed), 1).play_pattern == "From Counter"
+
+    def test_under_pressure_is_on_the_scorers_records_and_not_the_run_up(
+        self, feed
+    ):
+        """"He carried it forward under pressure" is about the 1986 run.
+
+        Every one of Maradona's records from his first touch onwards carries
+        it, and none of the seven run-up records before it does, which is what
+        makes the word worth saying about this passage.
+        """
+        facts = self.hero_1986(feed)
+        pressed = {
+            fact.number for fact in facts.facts if fact.beat.under_pressure
+        }
+        assert pressed == {8, 11, 12, 15, 16, 18, 19, 22, 23}
+        assert all(not self.beat(facts, n).under_pressure for n in range(1, 8))
+
+    def test_nothing_in_the_2022_counter_is_under_pressure(self, feed):
+        """Which is why no 2022 reference says the words."""
+        facts = self.hero_2022(feed)
+        assert not any(fact.beat.under_pressure for fact in facts.facts)
+
+    def test_a_pass_carries_its_recipient_by_full_recorded_name(self, feed):
+        """A chain ("Molina to MacAllister") is this field and nothing else.
+
+        The recipient is recorded as the full name, whatever the lineups file
+        records the player under, so a chain is resolved to a full name before
+        it is compared.
+        """
+        facts = self.hero_2022(feed)
+        assert self.beat(facts, 1).recipient == "Alexis Mac Allister"
+        assert self.beat(facts, 3).recipient == "Lionel Andrés Messi Cuccittini"
+        assert self.beat(facts, 6).recipient == "Julián Álvarez"
+        assert self.beat(facts, 9).recipient == "Alexis Mac Allister"
+        assert (
+            self.beat(facts, 11).recipient
+            == "Ángel Fabián Di María Hernández"
+        )
+        # A receipt, a carry and a shot are nobody's pass.
+        assert self.beat(facts, 2).recipient is None
+        assert self.beat(facts, 13).recipient is None
+
+    def test_one_pass_in_the_2022_counter_is_a_long_ball(self, feed):
+        """"A long ball forward to MacAllister again" is fact 9 and no other.
+
+        The five passes are 20.1, 11.6, 11.5, 38.5 and 26.0 yards, and
+        `LONG_PASS_YARDS` sits in the gap between the 26.0 and the 38.5.
+        """
+        facts = self.hero_2022(feed)
+        lengths = [
+            round(fact.beat.pass_length, 1)
+            for fact in facts.facts
+            if fact.beat.pass_length is not None
+        ]
+        assert lengths == [20.1, 11.6, 11.5, 38.5, 26.0]
+        assert [
+            fact.number for fact in facts.facts if fact.beat.long_pass
+        ] == [9]
+        assert 26.0 < LONG_PASS_YARDS < 38.5
+
+    def test_no_pass_in_the_1986_buildup_is_a_long_ball(self, feed):
+        facts = self.hero_1986(feed)
+        assert not any(fact.beat.long_pass for fact in facts.facts)
+
+    def test_goal_assist_is_on_one_pass_in_each_passage(self, feed):
+        """"He set up Di María" is a claim about `goal_assist`.
+
+        One pass per passage carries it: Enrique's to Maradona in 1986, and
+        MacAllister's to Di María in 2022. Both are the pass before the shot,
+        which is not what makes them the assist; the field is.
+        """
+        for facts, number, player in (
+            (self.hero_1986(feed), 6, "Héctor Adolfo Enrique"),
+            (self.hero_2022(feed), 11, "Alexis Mac Allister"),
+        ):
+            assisted = [
+                fact.number for fact in facts.facts if fact.beat.goal_assist
+            ]
+            assert assisted == [number]
+            assert self.beat(facts, number).player == player
+
+    def test_first_time_is_on_the_2022_shot_and_not_the_1986_one(self, feed):
+        """"First time" and "with one touch" are this field.
+
+        Di María struck it without a touch to control it and the record says
+        so. Maradona's shot does not carry the flag, which is why no 1986
+        reference says the words.
+        """
+        assert self.beat(self.hero_2022(feed), 13).first_time is True
+        assert self.beat(self.hero_1986(feed), 24).first_time is False
+
+    def test_the_body_part_is_on_the_record_as_well_as_on_the_goal(self, feed):
+        """"With his left foot" is the goal's body part, which `Facts` already
+        carried. A pass carries one too, and the two are not the same claim:
+        MacAllister's assist was right footed and the finish was left."""
+        facts = self.hero_2022(feed)
+        assert facts.body_part == "Left Foot"
+        assert self.beat(facts, 13).body_part == "Left Foot"
+        assert self.beat(facts, 11).body_part == "Right Foot"
+        assert self.beat(self.hero_1986(feed), 24).body_part == "Left Foot"
+
+    def test_a_spot_reads_its_own_half_and_the_box_off_the_coordinate(self):
+        """The two field positions are arithmetic on one number.
+
+        `x` runs towards the goal the record's own team is attacking, so the
+        same two lines read correctly for either side. Nothing here is a
+        reading of the play: the halfway line is 60 and the eighteen yard line
+        is 102 on a pitch 120 long.
+        """
+        assert HALFWAY_X == 60.0
+        assert BOX_X == 102.0
+        assert spot([55.2, 55.6]).in_own_half is True
+        assert spot([55.2, 55.6]).in_the_box is False
+        assert spot([60.0, 40.0]).in_own_half is False
+        assert spot([101.9, 40.0]).in_the_box is False
+        assert spot([102.0, 40.0]).in_the_box is True
+        assert spot([112.8, 49.4]).in_the_box is True
+        assert spot(None) is None
+        assert spot([]) is None
+
+    def test_the_scorer_received_it_in_his_own_half_in_1986(self, feed):
+        """"Enrique played it to Maradona just inside his own half".
+
+        Fact 7 is the receipt, at x 55.2, which is inside his own half by
+        under five yards. Every record of the run-up is in it too, and the
+        carry that ends the run is not: fact 19 ends at x 112.8.
+        """
+        facts = self.hero_1986(feed)
+        assert self.beat(facts, 7).start.in_own_half is True
+        assert round(self.beat(facts, 7).start.x, 1) == 55.2
+        assert self.beat(facts, 19).end.in_the_box is True
+        assert self.beat(facts, 19).start.in_the_box is False
+
+    def test_the_2022_goal_was_set_up_into_the_box(self, feed):
+        """"He set up Di María in the box": the assist ends at x 111.8, and
+        the receipt and the shot are both recorded there."""
+        facts = self.hero_2022(feed)
+        assert self.beat(facts, 11).end.in_the_box is True
+        assert self.beat(facts, 12).start.in_the_box is True
+        assert self.beat(facts, 13).start.in_the_box is True
+        # MacAllister played it from outside the box, four yards short of it.
+        assert self.beat(facts, 11).start.in_the_box is False
+        assert round(self.beat(facts, 11).start.x, 1) == 99.3
+
+    def test_a_timestamp_reads_as_seconds_into_the_period(self):
+        """The minute and second fields floor the clock; this does not.
+
+        Two records a second and a half apart can carry the same second, so a
+        duration read off the floored fields is anything up to two seconds
+        out, which is the difference between "under ten seconds" being true
+        and being a guess.
+        """
+        assert timestamp_seconds("00:35:12.890") == pytest.approx(2112.890)
+        assert timestamp_seconds("00:09:02.383") == pytest.approx(542.383)
+        assert timestamp_seconds("") is None
+
+    def test_the_passage_duration_is_computed_from_the_timestamps(self, feed):
+        """"In under ten seconds" is the 2022 counter, and it is 9.757.
+
+        The 1986 run is 15.7 seconds, which no reference says, because the
+        thing worth saying about that passage is who was beaten rather than
+        how long it took.
+        """
+        assert self.hero_2022(feed).seconds == pytest.approx(9.757)
+        assert self.hero_1986(feed).seconds == pytest.approx(15.7)
+
+    def test_the_floored_clock_would_have_got_the_duration_wrong(self, feed):
+        """Which is why the span is read off the timestamps and not the clock.
+
+        35:12 to 35:22 is ten seconds by the floored fields, and "in under ten
+        seconds" would be false by that reading and is true by the record.
+        """
+        facts = self.hero_2022(feed)
+        first, last = facts.facts[0].beat, facts.goal_beat
+        floored = (last.minute * 60 + last.second) - (
+            first.minute * 60 + first.second
+        )
+        assert floored == 10
+        assert facts.seconds < 10
