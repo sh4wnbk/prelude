@@ -837,12 +837,20 @@ class TestTheOneNarrationStyle:
         caller would read it as a register reaching the model, which is the
         thing three runs measured and did not find.
 
-        `hero` is not a voice. It asks for a fuller telling of the move and a
-        different clock rule, and it reads the same whoever is listening, so
-        the narration it produces is still one text for all three personas.
+        `hero` is not a voice, and neither is `target_characters`. One asks
+        for a fuller telling of the move and a different clock rule, the other
+        for a length the recording budget can pay for, and both read the same
+        whoever is listening: the narration is still one text for all three
+        personas.
         """
         taken = set(inspect.signature(build_prompt).parameters)
-        assert taken == {"facts", "sentences", "beats", "hero"}
+        assert taken == {
+            "facts",
+            "sentences",
+            "beats",
+            "hero",
+            "target_characters",
+        }
         assert "persona" not in taken
         assert "side" not in taken
 

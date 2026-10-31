@@ -2970,72 +2970,107 @@ the two would leave one moment card speaking a narration chosen on the
 evidence and the other speaking one chosen before it. The slot numbers are the
 asked-for slots and have gaps: 1986 kept 3 and 5, not 1 and 2.
 
-**The 2022 goal is solved and the 1986 one is thin on choice.** Five of five
-2022 candidates passed, all seven sentences, all five players who touched the
-ball named, one clock, and a last sentence saying it scored: the three things
-Task 7 asked for. They differ only in whether the body part and play pattern
-are in the last line and in how "carried the ball" is phrased, and they cost
-1,488 to 1,605 billed characters. The 1986 goal kept two of five. One of them
-is usable and the other is not.
+**The 1986 goal was rerun with the fixed prompt and a length target, and it
+went from two usable candidates to five.** Every one of the five is grounded,
+eight sentences, one clock, ends on a sentence saying it scored, names seven of
+the eight recorded players (all three who touched the ball, and the four
+defenders beaten; Reid only pressed and no candidate names him, which is
+right), and covers five of five key beats. None was dropped for its price.
+`--match 3750191 --alongside 3869685=4` spent 12 generations of the 15 it was
+allowed, plus one IAM exchange.
+
+**They are five slots but two narrations.** Slots 1, 2 and 3 are one text of
+447 characters at 1,458 billed, ending "Diego Armando Maradona shot and
+scored". Slots 4 and 5 are one text of 466 characters at 1,503 billed, ending
+"shot with his left foot and scored", which reaches the body part the earlier
+1986 candidate never did. The length target is what converged them: asked for
+about 450 characters, the model wrote the same telling over and over.
+
+**Slot 5 carries a `NARROW NO-BREAK SPACE` (U+202F) inside "Terry Butcher",
+so slot 4 is the one to pick of that pair.** It is the second invisible
+character a candidate has arrived with, after the `NON-BREAKING HYPHEN` in the
+run before it, and both passed `app/grounding.py` correctly: a narrow space is
+whitespace, so the name either side of it still matched, and a hyphen is not a
+name, an action, a clock or a number. `odd_characters` in
+`scripts/hero_candidates.py` now reports any character that is neither plain
+ASCII nor a letter, so the review file names them. It reports rather than
+refuses: what may be labelled is `app/grounding.py`'s to say, and extending
+its rules is a decision rather than a fix.
+
+**The length target is 450 characters, and it is a price rather than a style.**
+`HERO_TARGET_CHARACTERS` in `app/narration_prompt.py`, stated in the hero
+prompt in characters and in words, with the reasoning on the constant: the
+usable 1986 candidate before it came to 459 characters and 1,491 billed, and
+the one that spelled every clock out in words came to 988 and 4,299, more than
+the whole run may spend. `scripts/hero_candidates.py` is what enforces a
+price, by dropping a grounded candidate whose recordings would not fit, since
+nothing in a prompt can make a model count.
+
+**What a pair now costs, and what it leaves for 2022.** The cheaper 1986 text
+at 1,458 billed leaves 1,542 of the 3,000 budget for the other goal; the one
+naming the left foot at 1,503 leaves 1,497. Both are comfortable: the five
+2022 candidates of the first run came to between 1,488 and 1,605, so a 2022
+rerun has room, though not unlimited room. Of those five, three fitted beside
+the cheaper 1986 text and two fitted beside the longer one. That arithmetic is
+a guide to what a rerun should aim at rather than a live option, because those
+candidates no longer exist: see the mistake below.
+
+**One mistake, and it cost the 2022 candidates.** The candidates document is
+named by the day, and the 1986 rerun wrote that filename again, so the file
+went from holding both goals to holding 1986 alone. The five 2022 candidates
+in it are gone, and with them their `tagged_text`, which is the only copy of
+the citations the model wrote and what a freeze re-reads before committing
+anything. Their plain text survives in this file's history and in the session
+report; the citations do not, and writing them by hand would make them this
+repo's rather than the model's. So **freezing a 2022 narration now needs the
+2022 goal rerun**, which is 15 generations, and the Task 6 narration it would
+replace is still what `app/web/narrations.json` holds, so nothing is broken
+while that waits.
+
+`merged` in `scripts/hero_candidates.py` is why it cannot happen again: a
+rerun carries across every goal it did not narrate, keeping that goal's own
+provenance, and `tests/test_hero_candidates.py::TestMergingARerunIntoTheDocument`
+holds it. A rerun of 2022 would therefore leave the 1986 five in place.
+
+**`scripts/hero_candidates.py --refresh` remeasures without calling a model.**
+The report has gained two columns since the first run (the narration's length,
+and the unusual characters), and a review file written before a measurement
+existed cannot be read against it. Refresh recomputes the price, the coverage
+and the check from `data/raw/` for every candidate already written, and
+refuses to rewrite the file if any of them has stopped passing.
 
 **The 1986 run found a real prompt problem, and it is fixed.** Three of the
-five slots failed all three attempts the same way: the model wrote one sentence
-per defender in the form "Peter Beardsley was dribbled past and Diego Armando
-Maradona carried the ball", and the check refuses it, correctly, because no
-cited fact records a `Carry` involving Beardsley and rule 4 asks for one action
-a line. The hero block was what invited it: a step for the scorer printed as
-"dribbled, carried the ball" beside a beat naming Beardsley. It now prints as
-"dribbled past Peter Beardsley", citing all three facts (the defender beaten,
-the dribble, the carry), which names one action and both players and is the
-shape the one candidate that passed wrote. A note under the step list says so
-too. `tests/test_narration_prompt.py::TestTheTwoDefectsTheLiveRunFound` holds
-it.
+five slots in the first run failed all three attempts the same way: the model
+wrote one sentence per defender in the form "Peter Beardsley was dribbled past
+and Diego Armando Maradona carried the ball", and the check refuses it,
+correctly, because no cited fact records a `Carry` involving Beardsley and
+rule 4 asks for one action a line. The hero block was what invited it: a step
+for the scorer printed as "dribbled, carried the ball" beside a beat naming
+Beardsley. It now prints as "dribbled past Peter Beardsley", citing all three
+facts, and a note under the step list says a dribble step is one sentence. The
+rerun's five for five is that fix measured.
 
-**Candidate 5 for 1986 is grounded and unusable, and that rule is fixed too.**
-Rule 6 for the hero use said no digits besides the one clock, and the model
-obeyed by spelling every clock out in words instead: "at minute fifty-four
-seconds two" on each of twelve sentences. Nothing in `app/grounding.py`
-objects, since a clock written as words carries no digits and makes no number
-claim, so it passed the check, cost 4,299 billed characters on its own, more
-than the whole raised budget, and carried a `NON-BREAKING HYPHEN` (U+2011) in
-"fifty-four" that the check does not refuse and no gate would catch. The rule
-now names the shape it wants rather than forbidding digits: the clock is
-written as the fact writes it, digits and colon, with the first fact's own
-clock shown as the example, and the time is not to be written in words
-anywhere. `app/grounding.py` is still unchanged; closing the loophole in the
-prompt removes the thing that produced the hyphen.
+**The clock rule is fixed too.** It said no digits besides the one clock, and
+one candidate obeyed by spelling every clock out in words instead: "at minute
+fifty-four seconds two" on each of twelve sentences. Nothing in
+`app/grounding.py` objects, since a clock in words carries no digits and makes
+no number claim, so it passed, cost 4,299 billed, and carried the non-breaking
+hyphen. The rule now says the clock is written as the fact writes it, digits
+and colon, with that fact's own clock as the example, and refuses the time in
+words anywhere. `app/grounding.py` is unchanged by either fix.
 
-**Both fixes landed after the candidates were generated.** The seven
-candidates in the review file were written by the prompt as it stood on
-2026-10-30, before either fix, so a rerun would not reproduce them. That costs
-nothing for the 2022 goal, where five of five passed and the pick is open. For
-1986 it means a rerun is now worth more than it was: the failure that took
-three of the five slots is the one that has been fixed, so a second run should
-come back with more than one usable candidate to choose from.
-
-**Only two of the ten pairs fit the raised budget.** `--budget` is now 3,000
-billed characters and the arithmetic is tight: 1986 candidate 3 with 2022
-candidate 3 is 2,985, and with 2022 candidate 4 it is 2,979. Every other pair
-is over, because 1986 candidate 3 alone is 1,491. So the pick is effectively
-1986 candidate 3 plus 2022 candidate 3 or 4, unless the budget goes up again
-or the 1986 goal is rerun for a shorter telling. Raising it further is a
-decision rather than a fix: November's allowance is 10,000 and the six
-recordings are the only thing spending it.
-
-**The run cost 23 generations of the 30 it was allowed**, plus one IAM
-exchange: `openai/gpt-oss-120b` through the chat endpoint at `reasoning_effort`
-low, decoding pinned to temperature 0.8, top_p 0.9, top_k 40. The decoding is
-pinned because watsonx decodes greedily unset, and five greedy candidates are
-one candidate five times. Nine of the twenty-three attempts were grounded.
+**The run cost 23 generations of the 30 allowed on the first run and 12 of 15
+on the rerun**, plus one IAM exchange each: `openai/gpt-oss-120b` through the
+chat endpoint at `reasoning_effort` low, decoding pinned to temperature 0.8,
+top_p 0.9, top_k 40. The decoding is pinned because watsonx decodes greedily
+unset, and five greedy candidates are one candidate five times.
 
 **Still owed after the pick: the recordings.** The Text to Speech instance is
 disabled above its Lite cap until November 1, so `scripts/tts_hero.py
---confirm` has not been sent and `hero.audio` is still `{}`. What to listen for
-has changed again: a candidate that says "at 35:12" once still reads a colon
-between two numbers aloud, which nothing here knows the sound of, and `di` in
-"Di Maria" is still unheard.
-
-### Before the pick: Task 7, as it was run
+--confirm` has not been sent and `hero.audio` is still `{}`. What to listen
+for: a candidate that says "at 54:02" once still reads a colon between two
+numbers aloud, which nothing here knows the sound of, and `di` in "Di Maria"
+is still unheard.
 
 **Task 7's brief, and the state it started from.**
 

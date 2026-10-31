@@ -26,14 +26,20 @@ from pathlib import Path
 
 import pytest
 
+from app.grounding import strip_citations
 from app.narration_prompt import facts_from_buildup, touched_the_ball
 from app.statsbomb_event_feed import StatsBombEventFeed
 from app.tts import speech_text
 from scripts.tts_hero import DEFAULT_BUDGET
 from scripts.hero_candidates import (
     DEFAULT_OUT,
-    DEFAULT_PER_GOAL,
     HEROES,
+    alongside_billed,
+    goals_to_run,
+    merged,
+    odd_characters,
+    refreshed,
+    DEFAULT_PER_GOAL,
     billed_for_match,
     coverage,
     distinctive_parts,
@@ -368,6 +374,292 @@ class TestCoverage:
         cover = coverage(text, "[13] " + text, facts)
         assert cover["touched_not_named"] == ()
         assert len(cover["touched_and_named"]) == len(touched_the_ball(facts))
+
+
+class TestWhichGoalsRun:
+    """`--match`, so one goal can be rerun while the other is settled."""
+
+    def test_no_match_given_runs_both(self):
+        assert goals_to_run([]) == HEROES
+
+    def test_one_match_runs_one_goal(self):
+        assert [hero[1] for hero in goals_to_run([MATCH_1986])] == [MATCH_1986]
+
+    def test_the_order_is_the_hero_order_not_the_argument_order(self):
+        both = goals_to_run([MATCH_2022, MATCH_1986])
+        assert [hero[1] for hero in both] == [MATCH_1986, MATCH_2022]
+
+    def test_a_match_that_is_not_a_hero_is_refused(self):
+        with pytest.raises(SystemExit) as raised:
+            goals_to_run([999])
+        assert "not one of the hero goals" in str(raised.value)
+
+
+class TestTheCounterpartsPrice:
+    """`--alongside`, which turns a settled goal into an allowance."""
+
+    def test_it_reads_the_billed_count_off_the_candidate(self, tmp_path, frozen):
+        text = frozen[str(MATCH_2022)]["text"]
+        path = tmp_path / "hero_candidates_2026-10-30.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "model": "m",
+                    "provider": "p",
+                    "generated_on": "2026-10-30",
+                    "goals": [
+                        {
+                            "match_id": MATCH_2022,
+                            "candidates": [{"slot": 4, "text": text}],
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        match_id, slot, billed = alongside_billed("3869685=4", path)
+        assert (match_id, slot) == (MATCH_2022, 4)
+        # Recomputed from the text, not read out of the file, so it is the
+        # same arithmetic scripts/tts_hero.py will do on the day.
+        assert billed == billed_for_match(MATCH_2022, text)
+
+    @pytest.mark.parametrize("value", ["3869685", "3869685=4=1", "x=4"])
+    def test_a_malformed_argument_is_refused(self, value, tmp_path):
+        with pytest.raises(SystemExit):
+            alongside_billed(value, tmp_path / "nothing.json")
+
+    def test_a_missing_file_is_refused(self, tmp_path):
+        with pytest.raises(SystemExit) as raised:
+            alongside_billed("3869685=4", tmp_path / "nothing.json")
+        assert "does not exist" in str(raised.value)
+
+    def test_a_slot_that_is_not_there_is_refused(self, tmp_path):
+        path = tmp_path / "hero_candidates_2026-10-30.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "goals": [
+                        {
+                            "match_id": MATCH_2022,
+                            "candidates": [{"slot": 4, "text": "x"}],
+                        }
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        with pytest.raises(SystemExit) as raised:
+            alongside_billed("3869685=9", path)
+        assert "has no candidate 9" in str(raised.value)
+
+
+class TestMergingARerunIntoTheDocument:
+    """The bug this exists for, and it cost real data once.
+
+    The candidates document is named by the day. On 2026-10-30 a run narrated
+    both goals and then a rerun of the 1986 goal alone wrote the same filename
+    again, so the file held 1986 only and the five 2022 candidates were gone:
+    their `tagged_text` with them, which is the only copy of the citations the
+    model wrote and the thing a freeze re-reads. A rerun now carries across
+    every goal it did not narrate.
+    """
+
+    def goal(self, match_id, slots, **extra):
+        one = {
+            "match_id": match_id,
+            "year": 1986 if match_id == MATCH_1986 else 2022,
+            "candidates": [{"slot": slot} for slot in slots],
+        }
+        one.update(extra)
+        return one
+
+    def test_a_goal_this_run_did_not_narrate_is_carried_across(
+        self, tmp_path, capsys
+    ):
+        path = tmp_path / "hero_candidates_2026-10-30.json"
+        path.write_text(
+            json.dumps(
+                {"goals": [self.goal(MATCH_2022, [1, 2, 3, 4, 5])]}
+            ),
+            encoding="utf-8",
+        )
+        out = merged([self.goal(MATCH_1986, [1, 2])], path)
+        assert [one["match_id"] for one in out] == [MATCH_1986, MATCH_2022]
+        carried = next(
+            one for one in out if one["match_id"] == MATCH_2022
+        )
+        assert len(carried["candidates"]) == 5
+
+    def test_a_goal_this_run_did_narrate_replaces_its_older_self(
+        self, tmp_path
+    ):
+        path = tmp_path / "hero_candidates_2026-10-30.json"
+        path.write_text(
+            json.dumps({"goals": [self.goal(MATCH_1986, [1, 2])]}),
+            encoding="utf-8",
+        )
+        out = merged([self.goal(MATCH_1986, [7, 8, 9])], path)
+        assert len(out) == 1
+        assert [one["slot"] for one in out[0]["candidates"]] == [7, 8, 9]
+
+    def test_no_file_yet_means_nothing_to_carry(self, tmp_path):
+        goals = [self.goal(MATCH_1986, [1])]
+        assert merged(goals, tmp_path / "nothing.json") == goals
+
+    def test_a_bare_list_from_the_first_run_is_still_read(self, tmp_path):
+        """The shape the very first run wrote, before the document had
+        provenance. A rerun must not drop its goals either."""
+        path = tmp_path / "hero_candidates_2026-10-30.json"
+        path.write_text(
+            json.dumps([self.goal(MATCH_2022, [1, 2])]), encoding="utf-8"
+        )
+        out = merged([self.goal(MATCH_1986, [1])], path)
+        assert [one["match_id"] for one in out] == [MATCH_1986, MATCH_2022]
+
+    def test_the_carried_goal_keeps_its_own_provenance(self, tmp_path):
+        """A merged document holds goals from two runs, so a reader and the
+        freeze can tell which model wrote which."""
+        path = tmp_path / "hero_candidates_2026-10-30.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "goals": [
+                        self.goal(
+                            MATCH_2022,
+                            [1],
+                            generated_on="2026-10-30",
+                            model="openai/gpt-oss-120b",
+                        )
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        out = merged(
+            [self.goal(MATCH_1986, [1], generated_on="2026-10-31")], path
+        )
+        carried = next(one for one in out if one["match_id"] == MATCH_2022)
+        assert carried["generated_on"] == "2026-10-30"
+        assert carried["model"] == "openai/gpt-oss-120b"
+
+
+class TestOddCharacters:
+    """Characters a model reached for that nothing in the pipeline asked for.
+
+    Two candidates have arrived carrying one and neither was visible. Both
+    passed the grounding check, correctly, and both would have been sent to
+    the speech service as written.
+    """
+
+    def test_a_narrow_no_break_space_is_reported(self):
+        """Candidate 5 of the 1986 rerun put one inside "Terry Butcher"."""
+        found = odd_characters("Terry Butcher")
+        assert [name for _, name in found] == ["NARROW NO-BREAK SPACE"]
+
+    def test_a_non_breaking_hyphen_is_reported(self):
+        """The 4,299-character candidate wrote "fifty-four" with one."""
+        found = odd_characters("fifty‑four")
+        assert [name for _, name in found] == ["NON-BREAKING HYPHEN"]
+
+    def test_an_accented_name_is_not_reported(self):
+        """A recorded name carries accents: that is how the data spells it."""
+        assert odd_characters(
+            "Ángel Fabián Di María Hernández, "
+            "José Luis Cuciuffo, Héctor Adolfo Enrique, "
+            "Julián Álvarez"
+        ) == ()
+
+    def test_plain_ascii_is_not_reported(self):
+        assert odd_characters(
+            "Maradona shot and scored at 54:18; nobody else touched it."
+        ) == ()
+
+    def test_an_em_dash_is_reported(self):
+        """`app/grounding.py` already refuses this one, so it should never
+        reach a candidate. Reported anyway, because the report is what catches
+        the characters no rule names."""
+        assert [name for _, name in odd_characters("a — b")] == ["EM DASH"]
+
+    def test_each_character_is_reported_once(self):
+        found = odd_characters("a b c d")
+        assert len(found) == 1
+
+    def test_the_kept_candidates_carry_it_in_their_coverage(self, feed):
+        facts = facts_for(feed, MATCH_1986, GOAL_1986)
+        clean = coverage(
+            "Maradona scored.", "[24] Maradona scored.", facts
+        )
+        assert clean["odd_characters"] == []
+        dirty = coverage(
+            "Terry Butcher was dribbled past.",
+            "[14] Terry Butcher was dribbled past.",
+            facts,
+        )
+        assert dirty["odd_characters"][0]["codepoint"] == "U+202F"
+
+
+class TestRefreshing:
+    """`--refresh`, which remeasures written candidates and calls no model."""
+
+    def document(self, feed, text=None, tagged=None):
+        facts = facts_for(feed, MATCH_1986, GOAL_1986)
+        tagged = tagged or "[24] Diego Armando Maradona shot and scored."
+        text = text if text is not None else strip_citations(tagged)
+        return {
+            "model": "openai/gpt-oss-120b",
+            "provider": "watsonx",
+            "generated_on": "2026-10-30",
+            "goals": [
+                {
+                    "year": 1986,
+                    "match_id": MATCH_1986,
+                    "minute": 54,
+                    "second": 18,
+                    "player": "Diego Armando Maradona",
+                    "team": "Argentina",
+                    "facts": len(facts.facts),
+                    "recorded_players": tuple(
+                        dict.fromkeys(f.beat.player for f in facts.facts)
+                    ),
+                    "players_who_touched_the_ball": touched_the_ball(facts),
+                    "candidates": [
+                        {
+                            "slot": 1,
+                            "text": text,
+                            "tagged_text": tagged,
+                            "attempt": 1,
+                            "first_attempt_grounded": True,
+                            "claims_checked": 0,
+                            "billed_characters": 0,
+                            "coverage": {},
+                        }
+                    ],
+                    "dropped": [],
+                    "over_budget": [],
+                    "allowance": None,
+                }
+            ],
+        }
+
+    def test_it_recomputes_the_price_and_the_coverage(self, feed):
+        out = refreshed(self.document(feed))
+        one = out["goals"][0]["candidates"][0]
+        assert one["billed_characters"] == billed_for_match(
+            MATCH_1986, one["text"]
+        )
+        assert one["claims_checked"] > 0
+        assert one["coverage"]["says_scored"] is True
+        assert "odd_characters" in one["coverage"]
+
+    def test_a_candidate_that_stopped_passing_refuses_the_refresh(self, feed):
+        """A refresh rewrites the file Shawn chooses from, so it does not
+        quietly carry forward a narration the data no longer supports."""
+        doc = self.document(
+            feed, tagged="[1] Diego Armando Maradona shot and scored."
+        )
+        with pytest.raises(SystemExit) as raised:
+            refreshed(doc)
+        assert "no longer passes the check" in str(raised.value)
 
 
 class TestTheRunRefusesToWriteIntoTheRepo:

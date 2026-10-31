@@ -110,6 +110,28 @@ FOUL = "foul"
 #: Sentences the prompt asks a model for.
 DEFAULT_SENTENCES = 4
 
+#: Characters the hero prompt asks a narration to come to, roughly.
+#:
+#: **It is a length the budget can pay for, not a style.** The recordings are
+#: three per match and a monthly allowance pays for them, so a narration's
+#: length is a price. The candidates of 2026-10-30 put the relation on
+#: measured ground: the 1986 one that was usable came to 459 characters and
+#: cost 1,491 billed for its three recordings, and the one that spelled every
+#: clock out in words came to 988 and cost 4,299, more than the whole run is
+#: allowed. So the target is set at about the length of the shorter one.
+#:
+#: It is a target and not a ceiling, because nothing here can make a model
+#: count. `scripts/hero_candidates.py` is what enforces a price, by dropping a
+#: candidate whose recordings would not fit the budget.
+HERO_TARGET_CHARACTERS = 450
+
+#: Characters per word in the narrations measured on 2026-10-30: 459
+#: characters in 68 words, and 367 in 58. The prompt states the target in
+#: words as well as characters, because a model counts words rather better
+#: than it counts characters, and this is what converts the one into the
+#: other. Nothing is load bearing in the sixth decimal place.
+CHARACTERS_PER_WORD = 6.75
+
 #: The one style every narration is written in, whatever persona was asked
 #: for. It was the Storyteller's style text in `app/personas.py` until the
 #: personas stopped carrying one.
@@ -698,7 +720,12 @@ def _rule(number: int, *paragraphs: str) -> str:
     )
 
 
-def rules_block(facts: Facts, sentences: int, hero: bool = False) -> str:
+def rules_block(
+    facts: Facts,
+    sentences: int,
+    hero: bool = False,
+    target_characters: int | None = None,
+) -> str:
     """The numbered rules, which are the rules `app/grounding.py` enforces.
 
     **Three of them read differently for the recording, and all three ask for
@@ -763,6 +790,19 @@ def rules_block(facts: Facts, sentences: int, hero: bool = False) -> str:
     per_step = (
         " One for each step of the move above, in that order." if hero else ""
     )
+    # The length, which is a price rather than a style: three recordings a
+    # match and a monthly allowance pays for them.
+    if hero and target_characters:
+        words = round(target_characters / CHARACTERS_PER_WORD)
+        length = (
+            " Aim at about {} characters in all, which is roughly {} words."
+            " This narration gets recorded and a monthly character allowance"
+            " pays for it, so a shorter telling of the whole move is better"
+            " than a longer one. Do not drop a step to get there: say each"
+            " one plainly instead.".format(target_characters, words)
+        )
+    else:
+        length = ""
 
     return "\n".join(
         (
@@ -824,8 +864,8 @@ def rules_block(facts: Facts, sentences: int, hero: bool = False) -> str:
             _rule(
                 10,
                 f"Write {sentences} sentences of plain past-tense commentary,"
-                f" one per line.{per_step} Output those lines only, with no"
-                " preamble, heading or explanation.",
+                f" one per line.{per_step}{length} Output those lines only,"
+                " with no preamble, heading or explanation.",
             ),
         )
     )
@@ -836,6 +876,7 @@ def build_prompt(
     sentences: int = DEFAULT_SENTENCES,
     beats: bool = True,
     hero: bool = False,
+    target_characters: int | None = None,
 ) -> str:
     """The prompt for one goal.
 
@@ -904,7 +945,14 @@ def build_prompt(
     # include the dribbles past a defender, so this is not added to `covered`:
     # it is the other floor, and the larger of the two wins.
     sentences = max(sentences, len(move))
-    rules = rules_block(facts, sentences, hero=hero)
+    # The target applies to the recording and nowhere else, so it is the
+    # hero default rather than a default of the prompt.
+    target = target_characters
+    if hero and target is None:
+        target = HERO_TARGET_CHARACTERS
+    rules = rules_block(
+        facts, sentences, hero=hero, target_characters=target
+    )
 
     return f"""You are writing the narration for one goal in a football match.
 The app this is for says only what the match data proves, so you may use the

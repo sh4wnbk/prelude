@@ -374,8 +374,11 @@ def freeze_picked(doc: dict, path: Path, picks: Sequence[str]) -> dict:
             "text": candidate["text"],
             "tagged_text": candidate["tagged_text"],
             "source": MODEL,
-            "model": doc["model"],
-            "provider": doc["provider"],
+            # A merged candidates document holds goals from more than one
+            # run, so the model that wrote these words is the goal's own
+            # where it is recorded, and the document's only as a fallback.
+            "model": goal.get("model") or doc["model"],
+            "provider": goal.get("provider") or doc["provider"],
             "attempt": candidate["attempt"],
             "first_attempt_grounded": candidate["first_attempt_grounded"],
             "labelled": True,
@@ -384,7 +387,8 @@ def freeze_picked(doc: dict, path: Path, picks: Sequence[str]) -> dict:
             # because it was the first that passed, and the file says which.
             "picked": {
                 "from": path.name,
-                "generated_on": doc["generated_on"],
+                "generated_on": goal.get("generated_on")
+                or doc["generated_on"],
                 "slot": candidate["slot"],
                 # How many of the asked-for slots came back grounded for this
                 # goal, which is not the slot number: a slot that reached the
