@@ -92,6 +92,16 @@ HEROES: tuple[tuple[int, int, int, int], ...] = (
     (2022, 3869685, 35, 22),
 )
 
+_NOTE = (
+    "Candidate narrations for the two hero goals, written by the model named "
+    "here and each one passed by the grounding check in app/grounding.py. "
+    "None of these is frozen: app/web/narrations.json is what the app reads, "
+    "and scripts/freeze_narrations.py --pick is what writes a candidate from "
+    "this file into it. Regenerate with scripts/hero_candidates.py --confirm, "
+    "which is a paid watsonx run. tagged_text is what the check passed and "
+    "text is what a card would show and a voice would read."
+)
+
 #: Candidates asked for per goal. Five is what Shawn asked to choose from.
 DEFAULT_PER_GOAL = 5
 
@@ -452,6 +462,33 @@ def review(goals: Sequence[dict], model: str, provider: str) -> str:
     return "\n".join(out) + "\n"
 
 
+def document(goals: Sequence[dict], backend: WatsonxProvider) -> dict:
+    """The candidates with the provenance a freeze needs beside them.
+
+    `scripts/freeze_narrations.py --pick` writes one of these candidates into
+    `app/web/narrations.json`, and what it records there has to say which
+    model wrote the words and how it was asked. A bare list of candidates
+    would make the freeze guess that, or reach for `ACTIVE_CANDIDATE` and
+    record the model active when the pick is made rather than the one that
+    wrote the text.
+    """
+    return {
+        "_note": _NOTE,
+        "generated_on": date.today().isoformat(),
+        "model": backend.model,
+        "provider": backend.name,
+        "chat": ACTIVE_CANDIDATE.chat,
+        "reasoning_effort": ACTIVE_CANDIDATE.reasoning_effort,
+        "max_new_tokens": COMPARISON_MAX_NEW_TOKENS,
+        "decoding": {
+            "temperature": COMPARISON_DECODING.temperature,
+            "top_p": COMPARISON_DECODING.top_p,
+            "top_k": COMPARISON_DECODING.top_k,
+        },
+        "goals": list(goals),
+    }
+
+
 def main(argv: Sequence[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
@@ -535,7 +572,7 @@ def main(argv: Sequence[str]) -> int:
     )
     data = out_dir / "hero_candidates_{}.json".format(date.today().isoformat())
     data.write_text(
-        json.dumps(goals, indent=2, ensure_ascii=False) + "\n",
+        json.dumps(document(goals, backend), indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
         newline="\n",
     )

@@ -2952,12 +2952,23 @@ The rules Shawn settled for them, before any of it is built:
 
 ## Next first action (Shawn picks one candidate per hero goal)
 
-**Task 7 is run and nothing is frozen.** The candidates are in
-`C:\Users\shawn\prelude-review\hero_candidates_2026-10-30.md`, with the same
-data beside it as JSON. Shawn picks one per goal; `scripts/freeze_narrations.py
---confirm` is then what writes those two into `app/web/narrations.json`, and it
-needs the hero prompt passed to `narrate` the way
-`scripts/hero_candidates.py` does.
+**Task 7 is run, nothing is frozen, and the freeze is one command away.** The
+candidates are in `C:\Users\shawn\prelude-review\hero_candidates_2026-10-30.md`,
+with the same data beside it as JSON. Shawn picks one per goal and then:
+
+```
+.\.venv-prelude\Scripts\python.exe -I scripts\freeze_narrations.py --pick 3750191=3 --pick 3869685=4 --confirm
+```
+
+That path calls no model: the words already exist, so it reads them out of the
+candidates document, re-runs the grounding check against `data/raw/`, and
+writes `app/web/narrations.json` with the model that wrote them and which
+candidate it was. Without `--confirm` it prints the pick and writes nothing.
+It refuses a slot that is not in the file, a goal picked twice, a goal that is
+not a hero, and a pick that leaves one hero unpicked, because freezing one of
+the two would leave one moment card speaking a narration chosen on the
+evidence and the other speaking one chosen before it. The slot numbers are the
+asked-for slots and have gaps: 1986 kept 3 and 5, not 1 and 2.
 
 **The 2022 goal is solved and the 1986 one is thin on choice.** Five of five
 2022 candidates passed, all seven sentences, all five players who touched the

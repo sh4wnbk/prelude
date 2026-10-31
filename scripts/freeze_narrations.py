@@ -50,7 +50,7 @@ for _stream in (sys.stdout, sys.stderr):
     if hasattr(_stream, "reconfigure"):
         _stream.reconfigure(encoding="utf-8", errors="replace")
 
-from app.grounding import check, sentences  # noqa: E402
+from app.grounding import check, sentences, strip_citations  # noqa: E402
 from app.narration import MAX_RETRIES, MODEL, narrate  # noqa: E402
 from app.narration_config import ACTIVE_CANDIDATE  # noqa: E402
 from app.narration_prompt import facts_from_buildup  # noqa: E402
@@ -210,6 +210,205 @@ def freeze(backend: WatsonxProvider) -> dict:
     return {"_note": _NOTE, "narrations": frozen}
 
 
+#: Where `scripts/hero_candidates.py` writes the candidates a pick comes from.
+#: Outside the repo, because a candidate is not a narration the app may speak
+#: until it has been picked.
+CANDIDATES_DIR = Path.home() / "prelude-review"
+
+
+def newest_candidates(directory: Path) -> Path:
+    """The most recent candidates document in `directory`, or a refusal."""
+    found = sorted(directory.glob("hero_candidates_*.json"))
+    if not found:
+        raise SystemExit(
+            "no hero_candidates_*.json in {}, so there is nothing to pick "
+            "from. Run scripts/hero_candidates.py --confirm, which is a paid "
+            "watsonx run.".format(directory)
+        )
+    return found[-1]
+
+
+def read_candidates(path: Path) -> dict:
+    """The candidates document, checked for the provenance a freeze records."""
+    if not path.is_file():
+        raise SystemExit("{} does not exist".format(path))
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(doc, dict) or "goals" not in doc:
+        raise SystemExit(
+            "{} is not a candidates document: it carries no goals, and a "
+            "freeze records which model wrote the words it writes".format(path)
+        )
+    for field in ("model", "provider", "generated_on"):
+        if not doc.get(field):
+            raise SystemExit(
+                "{} records no {}, and a frozen narration says which model "
+                "wrote it".format(path, field)
+            )
+    return doc
+
+
+def parse_pick(value: str) -> tuple[int, int]:
+    """One `--pick` argument, as `match_id=slot`."""
+    if value.count("=") != 1:
+        raise SystemExit(
+            "--pick takes match_id=slot, as in --pick 3750191=3; got "
+            "{!r}".format(value)
+        )
+    left, right = value.split("=")
+    try:
+        return int(left), int(right)
+    except ValueError:
+        raise SystemExit(
+            "--pick takes two whole numbers, match_id=slot; got "
+            "{!r}".format(value)
+        )
+
+
+def chosen(doc: dict, picks: Sequence[str]) -> list[tuple[dict, dict]]:
+    """Each picked candidate with the goal it belongs to, in `HEROES` order.
+
+    Refuses a pick naming a goal that is not a hero, a goal picked twice, a
+    slot that is not in the file, and any hero left unpicked. A half-frozen
+    pair would leave one moment card speaking a narration chosen on the
+    evidence and the other speaking one chosen before it.
+    """
+    wanted: dict[int, int] = {}
+    for value in picks:
+        match_id, slot = parse_pick(value)
+        if match_id in wanted:
+            raise SystemExit(
+                "match {} is picked twice; one narration is frozen per "
+                "goal".format(match_id)
+            )
+        wanted[match_id] = slot
+
+    heroes = [match_id for _, match_id, _, _ in HEROES]
+    for match_id in wanted:
+        if match_id not in heroes:
+            raise SystemExit(
+                "match {} is not one of the hero goals ({})".format(
+                    match_id, ", ".join(str(one) for one in heroes)
+                )
+            )
+    missing = [one for one in heroes if one not in wanted]
+    if missing:
+        raise SystemExit(
+            "no pick for match {}; both hero goals are frozen together, so "
+            "one card does not end up speaking a narration chosen before the "
+            "other".format(", ".join(str(one) for one in missing))
+        )
+
+    by_match = {goal["match_id"]: goal for goal in doc["goals"]}
+    out = []
+    for match_id in heroes:
+        goal = by_match.get(match_id)
+        if goal is None:
+            raise SystemExit(
+                "the candidates file holds nothing for match {}".format(
+                    match_id
+                )
+            )
+        slot = wanted[match_id]
+        candidate = next(
+            (one for one in goal["candidates"] if one["slot"] == slot), None
+        )
+        if candidate is None:
+            available = ", ".join(
+                str(one["slot"]) for one in goal["candidates"]
+            )
+            raise SystemExit(
+                "match {} has no candidate {}; it has {}".format(
+                    match_id, slot, available or "none"
+                )
+            )
+        out.append((goal, candidate))
+    return out
+
+
+def freeze_picked(doc: dict, path: Path, picks: Sequence[str]) -> dict:
+    """Build the frozen document from picked candidates, with no model call.
+
+    **The check is run again here, against `data/raw/`.** The candidate file
+    records a verdict, and a verdict read out of a file is not a verdict: the
+    words are about to be committed as the ones a judge hears under "Verified
+    from play data", so they are re-read against the events rather than
+    trusted. A candidate that no longer passes stops the freeze.
+    """
+    feed = StatsBombEventFeed()
+    frozen: dict[str, dict] = {}
+    for year, match_id, minute, second in HEROES:
+        goal, candidate = next(
+            (g, c)
+            for g, c in chosen(doc, picks)
+            if g["match_id"] == match_id
+        )
+        moment = moment_at(feed, match_id, minute, second)
+        facts = facts_from_buildup(feed.buildup(match_id, moment))
+        print("{} match {} {}:{:02d}: candidate {}".format(
+            year, match_id, minute, second, candidate["slot"]
+        ))
+        print("  | {}".format(candidate["text"]))
+        result = check(candidate["tagged_text"], facts)
+        if not result.grounded:
+            raise SystemExit(
+                "candidate {} for match {} does not pass the check against "
+                "data/raw/, so it is not what gets committed: {}".format(
+                    candidate["slot"], match_id, result.summary
+                )
+            )
+        if strip_citations(candidate["tagged_text"]) != candidate["text"]:
+            raise SystemExit(
+                "candidate {} for match {} has a text that is not its tagged "
+                "text with the citations taken off, so the words checked and "
+                "the words spoken are two different texts".format(
+                    candidate["slot"], match_id
+                )
+            )
+        records, per_sentence = cited_facts(candidate["tagged_text"], facts)
+        frozen[str(match_id)] = {
+            "match_id": match_id,
+            "minute": minute,
+            "second": second,
+            "player": moment.player,
+            "team": moment.team,
+            "text": candidate["text"],
+            "tagged_text": candidate["tagged_text"],
+            "source": MODEL,
+            "model": doc["model"],
+            "provider": doc["provider"],
+            "attempt": candidate["attempt"],
+            "first_attempt_grounded": candidate["first_attempt_grounded"],
+            "labelled": True,
+            # Which candidate this was, and out of what. A frozen narration
+            # chosen from several is a different claim from one accepted
+            # because it was the first that passed, and the file says which.
+            "picked": {
+                "from": path.name,
+                "generated_on": doc["generated_on"],
+                "slot": candidate["slot"],
+                # How many of the asked-for slots came back grounded for this
+                # goal, which is not the slot number: a slot that reached the
+                # template fallback yields no candidate, so the kept ones are
+                # not numbered one to five.
+                "kept_for_this_goal": len(goal["candidates"]),
+            },
+            "check": {
+                "grounded": result.grounded,
+                "claims_checked": result.checked,
+                "failures": [str(failure) for failure in result.failures],
+                "summary": result.summary,
+            },
+            "cited_facts": records,
+            "citations_by_sentence": {
+                str(number): cites for number, cites in sorted(per_sentence.items())
+            },
+            "frozen_on": date.today().isoformat(),
+        }
+        print("  kept: {}".format(result.summary))
+        print()
+    return {"_note": _NOTE, "narrations": frozen}
+
+
 def main(argv: Sequence[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
@@ -220,8 +419,60 @@ def main(argv: Sequence[str]) -> int:
     parser.add_argument(
         "--confirm", action="store_true", help="send them; this is the paid path"
     )
+    parser.add_argument(
+        "--pick",
+        action="append",
+        default=[],
+        metavar="MATCH_ID=SLOT",
+        help="freeze a candidate from a hero_candidates file instead of "
+             "generating, as --pick 3750191=3; one per hero goal, and no "
+             "model is called",
+    )
+    parser.add_argument(
+        "--candidates",
+        type=Path,
+        default=None,
+        help="the candidates document to pick from (default: the newest in "
+             "{})".format(CANDIDATES_DIR),
+    )
     args = parser.parse_args(argv)
 
+    # The pick path calls no model: the words already exist and were already
+    # checked once. It still takes --confirm, because it overwrites a file the
+    # repo commits and the app reads.
+    if args.pick:
+        path = args.candidates or newest_candidates(CANDIDATES_DIR)
+        doc = read_candidates(path)
+        print("picking  from {}".format(path))
+        print("written  {} on {}, {}".format(
+            doc["model"], doc["generated_on"], doc["provider"]
+        ))
+        print("calls    none: the narrations are already written and are "
+              "re-checked against data/raw/ here")
+        print("goals    {}".format(len(HEROES)))
+        print()
+        picked = chosen(doc, args.pick)
+        for goal, candidate in picked:
+            print("  match {}: candidate {}, one of the {} kept for this "
+                  "goal, {} billed".format(
+                      goal["match_id"],
+                      candidate["slot"],
+                      len(goal["candidates"]),
+                      candidate["billed_characters"],
+                  ))
+            print("    | {}".format(candidate["text"]))
+        print()
+        if args.plan or not args.confirm:
+            print("nothing was written. --confirm is what writes it.")
+            return 0
+        document = freeze_picked(doc, path, args.pick)
+        NARRATIONS.write_text(
+            json.dumps(document, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        print("wrote {}".format(NARRATIONS.relative_to(ROOT)))
+        return 0
     attempts = MAX_RETRIES + 1
     print("model     {} ({})".format(
         ACTIVE_CANDIDATE.model_id, ACTIVE_CANDIDATE.label
