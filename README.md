@@ -287,11 +287,21 @@ Everything above it is structure.
   length, the assist, the first-time flag, the body part, the two field
   positions read off a coordinate and the duration read off the timestamps.
   All pass.
-- `tests/test_grounding.py`: 104 tests over the grounding check, one per way a
-  narration can be wrong or can look wrong and be fine, including the
-  misdescription it refuses by pairing a name with an action and the first
-  person, which only the Mate may use and only over its own side's facts.
-  All pass.
+- `tests/test_grounding.py`: 104 tests over the cited reading of the grounding
+  check, one per way a narration can be wrong or can look wrong and be fine,
+  including the misdescription it refuses by pairing a name with an action and
+  the first person, which only the Mate may use and only over its own side's
+  facts. All pass.
+- `tests/test_narration_grammar.py`: 49 tests over the goal-call reading in
+  `app/narration_grammar.py`, one mechanism at a time: the name parts that
+  pick out one player, the pronoun that means the player with the ball, the
+  chains, which name owns a claim, "past X" as a dribble past X, the field
+  positions, the shape of a run and the recorded fields a goal call says out
+  loud. All pass.
+- `tests/test_reference_narrations.py`: 19 tests holding the narration
+  standard: the eight reference narrations in `docs/VOICE.md`, checked word
+  for word with the narrator and the listener side given, and the eleven
+  lines the check has to keep refusing. All pass.
 - `tests/test_narration.py`: 28 tests over the pipeline, covering the retries,
   the fallback, the citation stripping, the failure log, the first-attempt pass
   rate and the characters made plain as a model's text arrives. All pass, and

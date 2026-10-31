@@ -175,15 +175,8 @@ generating anything:
 
 ## The test harness
 
-The suite is 939 tests in twenty-seven files, of which 931 pass and eight fail.
-
-The eight failures are on purpose, and they are all in one file.
-`tests/test_reference_narrations.py` writes the narration framework in
-`docs/VOICE.md` down as eight reference narrations, and the grounding check
-cannot read them until Task 9b teaches it the grammar. Any failure outside that
-file means something is wrong.
-
-The suite is run from the repo root:
+The suite is 988 tests in twenty-eight files, and all 988 pass, so any failure
+means something is wrong. It is run from the repo root:
 
 ```
 .\.venv-prelude\Scripts\python.exe -m pytest
@@ -199,7 +192,8 @@ No path setting is needed: `pyproject.toml` sets `pythonpath = ["."]` and
 | `tests/test_recorded_names.py` | the `player_nickname` reader, and what the two lineups files record |
 | `tests/test_plain_characters.py` | the disguised spaces and hyphens rewritten plainly, and the dashes left alone |
 | `tests/test_grounding.py` | one test per way a narration can be wrong or look wrong and be fine |
-| `tests/test_reference_narrations.py` | the eight reference narrations that are the narration standard, and the lines the check has to keep refusing; the eight references fail until Task 9b |
+| `tests/test_reference_narrations.py` | the eight reference narrations that are the narration standard, and the lines the check has to keep refusing |
+| `tests/test_narration_grammar.py` | the goal-call grammar one mechanism at a time: the names, the pronoun, the chains, the actor of a claim, "past X", the field positions, the shape of the run and the recorded fields |
 | `tests/test_narration.py` | the pipeline: generate, check, retry, fall back, record |
 | `tests/test_narration_provider.py` | the model config and both backends |
 | `tests/test_credentials.py` | where the credentials file lives, and what is refused |

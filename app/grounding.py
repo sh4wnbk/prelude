@@ -6,15 +6,39 @@ is what decides that. It takes a narration and the `Facts` it was written from,
 pulls out the claims each sentence makes, and reports the ones that cannot be
 pointed at.
 
-**The narration cites its facts.** `app/narration_prompt.py` gives the model a
+**There are two readings, and the narration's own shape picks one.**
+
+The first is the cited reading. `app/narration_prompt.py` gives the model a
 numbered list, one plain fact per recorded event, and the prompt requires every
 sentence to carry the numbers of the facts it used:
 
     [14, 15] Maradona dribbled past Terry Butcher.
 
-Those numbers are what this module checks against. A sentence is read against
-the facts it cited, not against the buildup as a lump, and
+Those numbers are what the cited reading checks against. A sentence is read
+against the facts it cited, not against the buildup as a lump, and
 `strip_citations` takes the tags off again before anything is shown or voiced.
+
+The second is the goal-call reading, for a narration that carries no tag at
+all. `docs/VOICE.md` settles that a Prelude narration is the recap stage of a
+goal call, and a goal call has no numbers in it:
+
+    Cuciuffo's recovery started the counter, and Enrique played it to Maradona
+    just inside his own half, who carried it forward under pressure past
+    Beardsley, Butcher and Fenwick and took it into the box, where he went
+    around Peter Shilton and scored with his left foot.
+
+So the sentence itself is read, by `app/narration_grammar.py`: the names, the
+pronoun that means the player with the ball, the chains ("Molina to
+MacAllister"), "past X", and the recorded fields a goal call says out loud. The
+eight narrations that are the standard are in
+`tests/test_reference_narrations.py`.
+
+`check` picks the reading by looking for a citation tag, which is a property of
+the text rather than an argument, so one narration is never read both ways.
+Both readings refuse the same nicknames, epithets, outcome claims, dashes and
+markup, hold the same present-tense rule, and hold the same rule about where an
+exclamation mark may stand; what they differ on is how a claim is traced to a
+record, and on the clock, which the goal call does not carry at all.
 
 **A persona changes the delivery and not the rules.** `check` takes the
 persona the narration was asked for and the side the listener is on, and the
@@ -53,6 +77,12 @@ confirm or refuse:
 | `banned` | a nickname, a verdict, a dash, markup | never; these are refused outright |
 | `first person` | "we", "our", "us" | never, unless the persona is partisan |
 | `side` | a partisan "we" | a cited fact is recorded against the listener's side |
+| `cheer` | "!" | only on the last sentence, and only from the Caller or the scoring side's Buddy |
+
+The goal-call reading adds `chain`, `past`, `position`, `straight` and
+`duration` to that list and drops `untagged` and `citation`, which a narration
+with no numbers in it cannot commit. `docs/VERIFICATION.md` has the table for
+both, one test per kind.
 
 A narration that makes **no** name, number or clock claim is refused too, as
 `unverifiable`. Prose that names nobody and quotes no clock has nothing tracing
@@ -102,12 +132,13 @@ Standard library only, like the rest of `app/`.
 """
 
 import re
-import unicodedata
 from dataclasses import dataclass
 from typing import Mapping, Sequence
 
+from app.narration_grammar import Move, Reader, bare, fold, support, why
 from app.narration_prompt import Fact, Facts
 from app.plain_characters import plain
+from app.orchestrator_contract import CALLER
 from app.personas import Persona
 
 
@@ -201,6 +232,16 @@ ACTION_CLAIMS: Mapping[str, frozenset[str]] = {
     "miscontrolled": frozenset({"Miscontrol"}),
     "shot": _SHOT,
     "scored": _SHOT,
+    # The three words a goal call lands the finish with. "finished" is the
+    # game's own word for a shot and means nothing else on a football pitch;
+    # "hit" can be a shot or a pass, so it grounds against either and the
+    # player it is paired with does the rest. "score" is here as the bare
+    # infinitive, which is what "set him up to score" is: the third person
+    # "scores" is a present-tense narration and stays in `PRESENT_TENSE`.
+    "finished": _SHOT,
+    "finish": _SHOT,
+    "hit": frozenset({"Shot", "Pass"}),
+    "score": _SHOT,
 }
 
 #: Present-tense verbs, and the past-tense form the facts use instead. A buildup
@@ -453,22 +494,11 @@ _SENTENCE = re.compile(r"[^.!?\n]+[.!?]*")
 #: sees as a sentence holding one number.
 _ENUMERATOR = re.compile(r"\d+\s*[.)]?")
 
-#: A possessive ending. The word pattern keeps apostrophes so a name like
-#: O'Brien survives, which also means "Argentina's" arrives with its ending
-#: attached and matches no recorded name. The first live run failed twice on
-#: exactly that, so the ending comes off before any lookup.
-_POSSESSIVE = re.compile(r"(?:['’]s|['’])$")
-
-
-def bare(folded_word: str) -> str:
-    """Drop a possessive ending, so "Argentina's" matches "Argentina"."""
-    return _POSSESSIVE.sub("", folded_word)
-
-
-def fold(text: str) -> str:
-    """Lowercase and strip accents, so "Hector" matches "Héctor"."""
-    decomposed = unicodedata.normalize("NFKD", text)
-    return "".join(c for c in decomposed if not unicodedata.combining(c)).lower()
+#: `bare` and `fold` live in `app/narration_grammar.py`, which is the module
+#: about reading the words of a narration, and are re-exported here because
+#: this is where callers and tests have always imported them from. One
+#: definition, two import paths: two copies of the accent folding would
+#: eventually disagree about a name.
 
 
 @dataclass(frozen=True)
@@ -756,6 +786,26 @@ def check(
             f"the {persona.name} writes as the listener's side, so a "
             "narration in that voice cannot be checked without one"
         )
+    if _TAG.search(text):
+        return _cited_reading(text, facts, persona, side, partisan)
+    return _goal_call(text, facts, persona, side, partisan)
+
+
+def _cited_reading(
+    text: str,
+    facts: Facts,
+    persona: Persona | None,
+    side: str | None,
+    partisan: bool,
+) -> GroundingResult:
+    """The cited reading: every sentence against the fact numbers it named.
+
+    This is the whole of what `check` used to be, and it is still what the
+    pipeline in `app/narration.py` produces: `build_prompt` asks a model for a
+    citation on every line, the fallback writes them, and
+    `scripts/freeze_narrations.py` records which `event_id` in `data/raw/`
+    stands behind each sentence. A narration written this way is read this way.
+    """
     listener_side = fold(side) if side else None
 
     by_number = {fact.number: fact for fact in facts.facts}
@@ -1030,3 +1080,280 @@ def check(
     return GroundingResult(
         grounded=not failures, failures=tuple(failures), checked=checked
     )
+
+
+#: A clause, for the one rule that is about a clause rather than a sentence.
+#: The first person stands over the play in the clause it was said in: "We won
+#: it back through Cuciuffo and Enrique gave it to Maradona" is Argentina's all
+#: the way through, and an England listener saying it would be claiming
+#: somebody else's recovery. A comma, a semicolon or a colon ends a clause,
+#: which is rough and is the shape a goal call is written in.
+_CLAUSE_BREAK = re.compile(r"[,;:]")
+
+#: Where the listener would cheer, which is the end and nowhere else.
+_CHEER = "!"
+
+
+def _clause(text: str, at: int) -> tuple[int, int]:
+    """The clause the character at `at` sits in, as a span of `text`."""
+    before = [match.end() for match in _CLAUSE_BREAK.finditer(text, 0, at)]
+    start = before[-1] if before else 0
+    after = _CLAUSE_BREAK.search(text, at)
+    return start, after.start() if after else len(text)
+
+
+def _may_cheer(persona: Persona | None, facts: Facts, side: str | None) -> bool:
+    """Whether this listener's narration may end on an exclamation mark.
+
+    The ball going in is the only moment of a recap a listener cheers at, and
+    two voices do not cheer at all: the Storyteller is a documentary register
+    whoever scored, and a Buddy sitting with the side that conceded is not
+    celebrating the goal it just conceded. A narration with no narrator has
+    nobody to cheer either, so it gets no mark.
+    """
+    if persona is None:
+        return False
+    if persona.fans_only:
+        return bool(side) and fold(side) == fold(facts.moment.team)
+    return persona.id == CALLER
+
+
+def _cheer_failures(
+    parsed: Sequence[Sentence],
+    persona: Persona | None,
+    facts: Facts,
+    side: str | None,
+) -> list[Claim]:
+    """Every exclamation mark that is not where the listener would cheer.
+
+    Two rules, and they are the framework's rather than the data's: the mark
+    belongs on the last sentence, because that is where the ball goes in, and
+    it belongs only to the Caller and to the Buddy of the side that scored.
+    This runs under both readings: it is a rule about what the app says out
+    loud, and a citation has nothing to do with it.
+    """
+    allowed = _may_cheer(persona, facts, side)
+    whose = persona.name if persona else "a narration with no narrator"
+    failures: list[Claim] = []
+    for sentence in parsed:
+        if _CHEER not in sentence.text and _CHEER not in sentence.raw:
+            continue
+        if sentence is not parsed[-1]:
+            failures.append(
+                Claim(
+                    "cheer",
+                    "an exclamation mark on a sentence that is not the last; "
+                    "the listener cheers when the ball goes in and not before",
+                    sentence.number,
+                    sentence.raw,
+                )
+            )
+        elif not allowed:
+            failures.append(
+                Claim(
+                    "cheer",
+                    f"an exclamation mark from {whose}, which does not cheer "
+                    f"this goal: {facts.moment.team} scored it",
+                    sentence.number,
+                    sentence.raw,
+                )
+            )
+    return failures
+
+
+def _goal_call(
+    text: str,
+    facts: Facts,
+    persona: Persona | None,
+    side: str | None,
+    partisan: bool,
+) -> GroundingResult:
+    """The goal-call reading: a narration that cites nothing, read as prose.
+
+    `docs/VOICE.md` settles that a Prelude narration is the recap stage of a
+    goal call, and a goal call carries no fact numbers. So the sentence itself
+    has to be read, which `app/narration_grammar.py` does: it turns each
+    sentence into the moves it makes, in order, following the ball from one to
+    the next, and says which records hold each one. A move no record holds is a
+    refusal here.
+
+    **What this reading adds to the cited one.** Chains, the pronoun that means
+    the player with the ball, a name part that has to pick out one player,
+    action before name, "past X" as a dribble past X, and the recorded fields a
+    goal call says out loud: the counter, the pressure, the long ball, the
+    assist, the first-time finish, the body part, the two field positions and
+    the duration.
+
+    **What it takes away.** The clock. The framework asks for no clock in a
+    narration at all, in digits or in words, so a goal call carries no digit
+    anywhere: the header already says when the goal came, and a colon between
+    two numbers is read aloud as a colon between two numbers.
+
+    **The first person stands over the clause it was said in.** A partisan
+    Buddy may say "we" where that clause's own records are the listener side's.
+    The France fan's Buddy cannot say it about the 2022 counter at all, because
+    all thirteen records in that passage are Argentina's.
+    """
+    listener_side = fold(side) if side else None
+    reader = Reader(
+        facts=facts,
+        not_a_name=NOT_A_NAME,
+        demonyms=TEAM_DEMONYMS,
+        actions=ACTION_CLAIMS,
+    )
+    failures: list[Claim] = []
+    claims_made = 0
+    checked = 0
+    parsed = sentences(text)
+    said_the_goal = False
+
+    for sentence in parsed:
+        folded = fold(sentence.text)
+
+        def failed(kind: str, value: str) -> None:
+            failures.append(Claim(kind, value, sentence.number, sentence.raw))
+
+        for label, pattern in BANNED_PATTERNS:
+            for hit in re.findall(pattern, folded):
+                checked += 1
+                failed(label, hit if isinstance(hit, str) else sentence.text)
+
+        for phrase, past in PRESENT_TENSE_PHRASES.items():
+            if phrase in folded:
+                checked += 1
+                failed(
+                    "tense",
+                    f"{phrase!r} is present tense; the facts say {past!r}",
+                )
+
+        for word in _WORD.findall(sentence.text):
+            folded_word = bare(fold(word))
+            if folded_word in PRESENT_TENSE:
+                checked += 1
+                failed(
+                    "tense",
+                    f"{word!r} is present tense; the facts say "
+                    f"{PRESENT_TENSE[folded_word]!r}",
+                )
+
+        # No clock, and so no digit. This is the one rule the goal-call
+        # reading is stricter about than the cited one, and it is the
+        # framework's: a recap does not say when it happened.
+        for written in _CLOCK.finditer(sentence.text):
+            checked += 1
+            failed(
+                "clock",
+                f"{written.group(0)!r}: a goal call carries no clock, and the "
+                "header already says when the goal came",
+            )
+        for written in _NUMBER.findall(_CLOCK.sub(" ", sentence.text)):
+            checked += 1
+            failed(
+                "number",
+                f"{written!r}: a goal call writes no digit, so a minute, a "
+                "second and a count are all out",
+            )
+
+        moves = reader.read(sentence.text)
+        held: list[tuple[Move, tuple]] = []
+        for move in moves:
+            checked += 1
+            if move.kind in ("name", "team"):
+                claims_made += 1
+            backing = support(move, facts)
+            if backing:
+                held.append((move, backing))
+            else:
+                failed(_FAILED_AS.get(move.kind, move.kind), why(move, facts))
+
+        # The first person, which is the one thing a narrator changes. A voice
+        # that is not partisan has nobody to mean by "we"; a partisan one has
+        # to be saying it over its own side's play, in the clause it said it
+        # in.
+        for pattern in FIRST_PERSON:
+            for hit in re.finditer(pattern, folded):
+                checked += 1
+                if not partisan:
+                    failed(
+                        "first person",
+                        f"{hit.group(0)!r}: this narration is not written as "
+                        "either side, so there is nobody for the first person "
+                        "to be",
+                    )
+                    continue
+                start, end = _clause(sentence.text, hit.start())
+                teams = {
+                    beat.team
+                    for move, backing in held
+                    if start <= move.at < end
+                    for beat in backing
+                }
+                if not any(fold(team) == listener_side for team in teams):
+                    said = sentence.text[start:end].strip()
+                    held_by = ", ".join(sorted(teams)) or "nothing"
+                    failed(
+                        "side",
+                        f"{hit.group(0)!r} in {said!r}, whose play the records "
+                        f"put on {held_by} and not on {side}, so the first "
+                        "person has nothing to stand on",
+                    )
+
+        if any(
+            move.kind == "action"
+            and "Shot" in (move.detail or ())
+            and facts.goal_beat in backing
+            for move, backing in held
+        ):
+            said_the_goal = True
+            if sentence is not parsed[-1]:
+                checked += 1
+                failed(
+                    "ending",
+                    "the narration says the goal and then keeps talking; it "
+                    "ends on the finish and nothing follows it",
+                )
+
+    if parsed and not said_the_goal:
+        checked += 1
+        failures.append(
+            Claim(
+                "ending",
+                "no sentence says the shot that scored, and the narration "
+                "lands the finish: the last thing it says is that the ball "
+                "went in",
+                parsed[-1].number,
+                parsed[-1].raw,
+            )
+        )
+
+    failures += _cheer_failures(parsed, persona, facts, side)
+
+    if not claims_made:
+        checked += 1
+        failures.append(
+            Claim(
+                "unverifiable",
+                "the narration names no player or team from the records, so "
+                "nothing in it traces back to the data",
+                0,
+                text.strip(),
+            )
+        )
+
+    return GroundingResult(
+        grounded=not failures, failures=tuple(failures), checked=checked
+    )
+
+
+#: How a failed move is reported, where the move's own kind is not the word a
+#: reader of the report wants. The rest are reported under their own kind, so
+#: a refusal says "chain", "past" or "position" and a retry has something to
+#: work with.
+_FAILED_AS: Mapping[str, str] = {
+    "unknown_name": "name",
+    "ambiguous_name": "name",
+    "long_pass": "action",
+    "touch": "action",
+    "pressured": "action",
+    "first_time": "shot_type",
+}

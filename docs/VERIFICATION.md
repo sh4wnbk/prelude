@@ -30,11 +30,19 @@ non-zero on a mismatch or a code that will not decode.
 ## Verifying narration
 
 `app/grounding.py` decides whether a narration may carry "Verified from play
-data". It reads each sentence against the numbered facts that sentence cited,
-which `app/narration_prompt.py` builds by code out of the records. `docs/VOICE.md`
-is the voice; this is the checking.
+data". `docs/VOICE.md` is the voice; this is the checking.
 
-One test per kind of claim, and one per kind of mistake:
+**It has two readings, and the narration's own shape picks one.** A narration
+carrying a citation tag is read against the numbered facts each sentence cited,
+which `app/narration_prompt.py` builds by code out of the records. A narration
+carrying none is a goal call, which is what the framework in `docs/VOICE.md`
+asks for, and `app/narration_grammar.py` reads the sentence itself: the names,
+the pronoun that means the player with the ball, the chains, "past X", and the
+recorded fields a goal call says out loud. Both readings refuse the same
+nicknames, epithets, outcome claims, dashes and markup, and both hold the same
+rule about where an exclamation mark may stand.
+
+One test per kind of claim, and one per kind of mistake. The cited reading:
 
 | Claim kind | Refused when | Test |
 | ---------- | ------------ | ---- |
@@ -63,6 +71,30 @@ One test per kind of claim, and one per kind of mistake:
 | banned | a line addressed to the fan | `tests/test_grounding.py::TestEnding::test_a_closing_line_addressed_to_the_fan_is_refused` |
 | banned | an em dash | `tests/test_grounding.py::TestNotGrounded::test_an_em_dash` |
 | banned | markup, which is any angle bracket | `tests/test_grounding.py::TestNotGrounded::test_markup` |
+
+And the goal-call reading, whose tests are in
+`tests/test_narration_grammar.py` and `tests/test_reference_narrations.py`:
+
+| Claim kind | Refused when | Test |
+| ---------- | ------------ | ---- |
+| `name` | the name fits no player the passage records | `tests/test_narration_grammar.py::TestTheNamesAGoalCallMaySay::test_an_invented_name_is_reported_rather_than_skipped` |
+| `name` | the name fits two players, so it names neither | `tests/test_narration_grammar.py::TestTheNamesAGoalCallMaySay::test_a_forename_two_players_share_fits_neither` |
+| `chain` | no pass from the first player to the second is recorded | `tests/test_narration_grammar.py::TestTheChain::test_a_pass_the_records_do_not_hold_is_refused` |
+| `chain` | "set up" over a pass that is not the recorded assist | `tests/test_narration_grammar.py::TestTheChain::test_set_up_has_to_be_the_recorded_assist` |
+| `chain` | "a long ball" over a pass under `LONG_PASS_YARDS` | `tests/test_narration_grammar.py::TestTheChain::test_a_pass_that_is_not_long_enough_is_refused_as_a_long_ball` |
+| `past` | "past X" where no dribble past X is recorded | `tests/test_narration_grammar.py::TestPastAndAround::test_a_player_who_was_only_pressed_past_is_refused` |
+| `action` | "picked it up" where no record puts the ball at their feet | `tests/test_narration_grammar.py::TestTheRecordedFieldsSaidOutLoud::test_picked_it_up_is_any_recorded_touch` |
+| `action` | "under pressure" where no record of theirs carries it | `tests/test_narration_grammar.py::TestTheRecordedFieldsSaidOutLoud::test_under_pressure_is_refused_where_nothing_records_it` |
+| `position` | "in his own half" or "in the box" over a coordinate that is not | `tests/test_narration_grammar.py::TestWhereOnThePitch::test_a_pass_the_player_did_not_follow_is_not_his_position` |
+| `straight` | a run called straight that strays from the line | `tests/test_narration_grammar.py::TestTheShapeOfTheRun::test_the_claim_is_refused_over_the_1986_carries` |
+| `shot_type` | "first time" over a shot not recorded as struck first time | `tests/test_narration_grammar.py::TestTheRecordedFieldsSaidOutLoud::test_first_time_is_the_2022_shot_and_not_the_1986_one` |
+| `body_part` | the body part is not the goal's | `tests/test_narration_grammar.py::TestTheRecordedFieldsSaidOutLoud::test_the_body_part_is_the_goals` |
+| `duration` | a span the timestamps do not give | `tests/test_narration_grammar.py::TestTheRecordedFieldsSaidOutLoud::test_a_duration_the_passage_did_not_take` |
+| `clock` | any clock at all, which a goal call does not carry | `tests/test_reference_narrations.py::TestNoClockReachesTheNarration` |
+| `number` | any digit at all, for the same reason | `tests/test_reference_narrations.py::TestNoClockReachesTheNarration` |
+| `ending` | no sentence says the shot that scored | `tests/test_reference_narrations.py::TestTheReferences` |
+| `side` | a partisan "we" over a clause recording the other team | `tests/test_reference_narrations.py::TestTheFirstPersonNeedsTheListenersOwnPlay` |
+| `cheer` | an exclamation mark where the listener would not cheer | `tests/test_reference_narrations.py::TestWhereAnExclamationMarkMayStand` |
 
 **The verdict is whole-narration.** `CLAUDE.md` gives no partial credit, so a
 narration passes or fails together; `app/grounding.py` returns every failing

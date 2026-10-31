@@ -497,22 +497,19 @@ separates these two passages rather than settling what a long ball is in
 general. Every field above has a test of its own in
 `tests/test_narration_prompt.py::TestTheRecordedFieldsTheFrameworkSaysOutLoud`.
 
-**They do not pass yet, and the file says so.** The check reads a sentence
-against the fact numbers that sentence cited, and a goal call cites nothing, so
-all eight are refused today as `untagged`. Nothing else in them is refused:
-no banned word, no tense slip, no ungrounded name. Teaching the check the
-grammar these lines are written in is planned as Task 9b, and what it has to
-learn is the list under "What it does" above: a name part that identifies one
-player, "he" and "his" resolved to the player being followed, a chain read as a
-recorded pass, an action named before its player, "past X" as a dribble past X,
-"we" over the listener side's own recorded actions, and where an exclamation
-mark may stand.
+**All eight pass, and the check reads them as prose.** A goal call carries no
+fact numbers, so `app/grounding.py` has two readings now and the narration's
+own shape picks one: a sentence with a citation tag is read against the facts
+it cited, and a narration with no tag anywhere is read as a goal call by
+`app/narration_grammar.py`. What that grammar reads is the list under "What it
+does" above, and the section after this one is how each piece of it works.
 
 The other half of the standard is the lines the check has to keep refusing. Each
-is one of the references with one thing changed, and each of those tests passes
-today for the same reason the references fail: an uncited line is refused
-whatever is in it. What they are for is Task 9b, where a line the grammar can
-finally read has to come out refused anyway.
+is one of the references with one thing changed, and every one of them is now
+refused by the grammar reading the change rather than by the narration citing
+nothing: the refusal names the chain, the shared forename, the curve in the
+carries, the side the records put the play on, the exclamation mark or the
+clock.
 
 | Refused | Why | Test |
 | ------- | --- | ---- |
@@ -523,6 +520,78 @@ finally read has to come out refused anyway.
 | "!" before the last sentence, or from the Storyteller, or from a conceding Buddy | nobody cheers there | `TestWhereAnExclamationMarkMayStand` |
 | any clock | the framework has none | `TestNoClockReachesTheNarration` |
 
+### How the grammar reads a goal call
+
+`app/narration_grammar.py` turns a sentence into the moves it makes, in the
+order it makes them, and `app/grounding.py` refuses any move no record holds.
+Six decisions in it are worth reading twice.
+
+**A short name has to pick out one player.** Every contiguous run of words of
+every recorded spelling is a name the narration may use, so "Shilton", "Peter
+Shilton", "MacAllister" and "Di María" all resolve, and a run that fits two
+players resolves to neither: "Terry" is Butcher and Fenwick, and "Peter" is
+Beardsley, Reid and Shilton. That is the price of short names, and the narration
+pays it rather than the listener
+(`tests/test_narration_grammar.py::TestTheNamesAGoalCallMaySay`).
+
+**"He" is the player with the ball.** It resolves to the most recently named
+player with a recorded touch, which is the player the move is following. The
+plainer rule, the most recently named player of any kind, gets the
+Storyteller's own line wrong: "past Beardsley, Butcher and Fenwick and took it
+into the box, where he went around Peter Shilton" names three defenders between
+Maradona and the "he" that means him, and none of the three has a touch in the
+passage. Being beaten is not having the ball
+(`tests/test_narration_grammar.py::TestThePlayerAPronounMeans`).
+
+**A chain is a recorded pass, in whichever words it was said.** "Molina to
+MacAllister", "played it to", "gave it to", "moved it on to" and "found" are
+one claim: a `Pass` by the first player whose recorded recipient is the second.
+"Set up" is the same claim with `goal_assist` on it, and "a long ball" beside a
+chain is folded into it, so one record has to be both long and the pass to that
+player (`tests/test_narration_grammar.py::TestTheChain`).
+
+**Which player owns a claim is read from the words around it.** A name before
+it owns it, two names before it both own it ("Beardsley and Reid closed him
+down" is two `Pressure` records), a name after it owns it when none came
+before, which is the framework's action before name, and with no name either
+side it belongs to the player with the ball. A name on the other side of a
+comma owns nothing: without that, "picked it up in his own half, and though
+Beardsley and Reid closed him down" puts Beardsley in his own half, where this
+passage never records him
+(`tests/test_narration_grammar.py::TestTheActorOfAClaim`).
+
+**"Past X" is two records, paired by the clock.** A `Dribbled Past` on the
+defender and a `Dribble` by the player following the move, at the same minute
+and second. That is the misdescription rule the cited reading already had, said
+in the goal call's own words: "past Peter Reid" is refused because Reid's one
+record in the passage is a `Pressure`
+(`tests/test_narration_grammar.py::TestPastAndAround`).
+
+**A position is where the player was, not where the ball went.** The start of
+each of their records, and the end of each of their carries, because a carry is
+the one record that moves the player rather than the ball alone. MacAllister's
+assist ends inside the box and he played it from four yards outside it, so
+counting a pass's end would put him in the box
+(`tests/test_narration_grammar.py::TestWhereOnThePitch`).
+
+**And "straight" is refusable, which is the one claim about a shape.** The
+largest distance from the line between where a run started and where it ended:
+Maradona's five carries stray sixteen yards from it, out towards the touchline
+and back, so "straight into the box" is refused over a run that curves
+(`tests/test_narration_grammar.py::TestTheShapeOfTheRun`).
+
+**What it still cannot read.** Direction. "Forward" is prose here, so a
+narration that said "backward" would not be refused for it, and the same goes
+for "turned", "advanced" and "the whole way": the lexicon is narrow on purpose,
+like `ACTION_CLAIMS`, and a word that is not in it is checked against nothing.
+The pairing is blunt in the same way the cited reading's is: a clause with two
+claims and two free names pairs both with both. And one rule is specified and
+unexercised, because this data cannot exercise it: `play_pattern` belongs to
+the possession, so every record of a passage carries the same one and both hero
+passages are "From Counter" throughout, which leaves no false pattern claim to
+make
+(`tests/test_narration_grammar.py::TestTheRecordedFieldsSaidOutLoud::test_no_pattern_claim_can_be_refused_with_this_data`).
+
 ### What is still one style in the code
 
 `NARRATION_STYLE` in `app/narration_prompt.py` is the Storyteller's text and is
@@ -531,7 +600,8 @@ printed under "THE STYLE" in every prompt, whoever is listening, and
 (`tests/test_narration_prompt.py::TestTheOneNarrationStyle::test_the_prompt_takes_no_persona_and_no_side`).
 That is the code as it stands, not the standard: a style per narrator is
 planned as Task 9c, and until it lands the prompt asks for one register and
-the four slots above exist only in this document and in the references.
+the four slots above exist only in this document, in the references and in what
+the check will now accept.
 
 The three measured sections further down are why one style was the rule before
 this one, and they are worth reading before a style per narrator is written:
