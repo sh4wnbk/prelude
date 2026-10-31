@@ -35,6 +35,7 @@ import pytest
 
 from app import narration_config as config
 from app.narration_provider import (
+    AnsweredWithoutContent,
     BACKENDS,
     COMPARISON_MAX_NEW_TOKENS,
     DEFAULT_MAX_NEW_TOKENS,
@@ -660,3 +661,98 @@ class TestTheShippedSettings:
             assert candidate_for(candidate.model_id) is candidate
         assert candidate_for(None) is config.ACTIVE_CANDIDATE
         assert candidate_for("some/other-model") is None
+
+
+class TestAnAnswerThatIsAllReasoning:
+    """A reasoning model that runs out of budget before it writes anything.
+
+    `openai/gpt-oss-120b` at `reasoning_effort` high does this whenever the
+    cap is too small: `choices[0].message` carries `reasoning`, no `content`,
+    and `finish_reason` "length". It is an attempt that produced no
+    narration, so the pipeline logs it and retries; it used to raise out of
+    the retry loop and end the run, which on a paid run of six slots throws
+    away every candidate already written. `COMPARISON_MAX_NEW_TOKENS` holds
+    the measurements that found it.
+    """
+
+    def answer(self, completion=2000, finish="length", message=None):
+        return {
+            "model_id": "openai/gpt-oss-120b",
+            "usage": {
+                "prompt_tokens": 2746,
+                "completion_tokens": completion,
+                "total_tokens": 2746 + completion,
+            },
+            "choices": [
+                {
+                    "index": 0,
+                    "finish_reason": finish,
+                    "message": message
+                    if message is not None
+                    else {
+                        "role": "assistant",
+                        "reasoning": "We need to narrate the move. " * 40,
+                    },
+                }
+            ],
+        }
+
+    def chat_provider(self, answer):
+        golden = read_json(WATSONX_GOLDEN)
+        feed = WatsonxProvider(
+            env=golden["env"], chat=True, reasoning_effort="high"
+        )
+        return WatsonxProvider(
+            env=golden["env"],
+            chat=True,
+            reasoning_effort="high",
+            max_new_tokens=2000,
+            transport=Replay(
+                {
+                    IAM_TOKEN_URL: golden["iam"]["response"],
+                    feed.url: answer,
+                }
+            ),
+        )
+
+    def test_it_is_raised_as_its_own_failure(self):
+        feed = self.chat_provider(self.answer())
+        with pytest.raises(AnsweredWithoutContent) as raised:
+            feed.narrate("the prompt")
+        said = str(raised.value)
+        assert "reasoning and no narration" in said
+        assert "'length'" in said
+        assert "2000 completion token(s) of a 2000 cap" in said
+
+    def test_it_is_a_narration_provider_error_too(self):
+        """So a caller that only knows the base class still catches it."""
+        assert issubclass(AnsweredWithoutContent, NarrationProviderError)
+
+    def test_a_message_with_neither_content_nor_reasoning_is_the_old_error(
+        self,
+    ):
+        """A chat answer with no message fields at all is a backend saying
+        something unreadable, which is a different thing from a model
+        thinking for too long."""
+        feed = self.chat_provider(
+            self.answer(message={"role": "assistant"})
+        )
+        with pytest.raises(NarrationProviderError) as raised:
+            feed.narrate("the prompt")
+        assert not isinstance(raised.value, AnsweredWithoutContent)
+
+    def test_an_answer_with_content_is_read_as_usual(self):
+        feed = self.chat_provider(
+            self.answer(
+                completion=295,
+                finish="stop",
+                message={
+                    "role": "assistant",
+                    "reasoning": "Thinking.",
+                    "content": "Cuciuffo recovered and Maradona scored.",
+                },
+            )
+        )
+        assert feed.narrate("the prompt").text == (
+            "Cuciuffo recovered and Maradona scored."
+        )

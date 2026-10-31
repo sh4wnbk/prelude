@@ -60,7 +60,11 @@ from app.narration_prompt import (
     facts_from_buildup,
     template_narration,
 )
-from app.narration_provider import NarrationProvider, provider as default_provider
+from app.narration_provider import (
+    AnsweredWithoutContent,
+    NarrationProvider,
+    provider as default_provider,
+)
 from app.plain_characters import plain
 from app.recorded_names import recorded_nicknames
 from app.personas import Persona
@@ -257,7 +261,23 @@ def narrate(
         # the attempt log, shown on a screen and read by a voice is one text.
         # See `app/plain_characters.py` for the two candidates that made this
         # necessary and for why it reaches no dash.
-        text = plain(chosen.narrate(prompt).text).strip()
+        try:
+            text = plain(chosen.narrate(prompt).text).strip()
+        except AnsweredWithoutContent as nothing:
+            # An attempt that wrote no narration is a failed attempt, not a
+            # broken backend, so it is logged and retried like an ungrounded
+            # one. Raising here would end a paid run of several slots over one
+            # answer; see `AnsweredWithoutContent`.
+            attempts.append(
+                Attempt(
+                    number=number,
+                    source=MODEL,
+                    text="",
+                    grounded=False,
+                    failures=(Claim("no answer", str(nothing), 0, ""),),
+                )
+            )
+            continue
         result = check(text, facts, persona=persona, side=side)
         attempts.append(
             Attempt(

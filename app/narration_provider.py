@@ -111,6 +111,23 @@ class NarrationProviderError(RuntimeError):
     """A provider could not be built, or answered with something unreadable."""
 
 
+class AnsweredWithoutContent(NarrationProviderError):
+    """The model spent its whole budget before it wrote an answer.
+
+    `openai/gpt-oss-120b` at `reasoning_effort` high answers with
+    `choices[0].message` holding a `reasoning` field, no `content` and
+    `finish_reason` "length" when the cap stops it mid-thought. That is an
+    attempt that produced no narration, not a backend that is broken, so
+    `app/narration.py` records it as a failed attempt and retries, the way it
+    does an ungrounded one. Before this existed, one such answer raised out of
+    the retry loop and ended the run, which on a paid run of six slots throws
+    away every candidate already written.
+
+    The cause is a cap too small for the effort; `COMPARISON_MAX_NEW_TOKENS`
+    has the measurements.
+    """
+
+
 class MissingCredentials(NarrationProviderError):
     """A backend needs credentials that are not set.
 
@@ -480,7 +497,17 @@ class WatsonxProvider:
     def _read_chat(self, body: Mapping[str, Any]) -> Narration:
         """The chat endpoint's answer, which nests the text one level deeper."""
         choices = body.get("choices") or []
-        message = (choices[0] or {}).get("message") if choices else None
+        choice = (choices[0] or {}) if choices else {}
+        message = choice.get("message")
+        if message and "content" not in message and "reasoning" in message:
+            usage = body.get("usage") or {}
+            raise AnsweredWithoutContent(
+                "watsonx answered with reasoning and no narration: "
+                f"finish_reason {choice.get('finish_reason')!r}, "
+                f"{usage.get('completion_tokens')} completion token(s) of a "
+                f"{self.max_new_tokens} cap, all of them before it wrote "
+                "anything"
+            )
         if not message or "content" not in message:
             raise NarrationProviderError(
                 "watsonx chat answered without choices[0].message.content; "

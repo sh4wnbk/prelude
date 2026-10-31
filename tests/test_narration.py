@@ -31,7 +31,7 @@ from app.narration import (
 )
 from app.grounding import strip_citations
 from app.narration_prompt import facts_from_buildup, template_narration
-from app.narration_provider import Narration
+from app.narration_provider import AnsweredWithoutContent, Narration
 from app.statsbomb_event_feed import StatsBombEventFeed
 
 MATCH_1986 = 3750191
@@ -355,3 +355,75 @@ class TestTheModelsTextIsMadePlain:
         narrated, _ = narrate_with(feed, moment, GROUNDED)
         assert narrated.text == GROUNDED_SHOWN
         assert narrated.tagged_text == GROUNDED
+
+
+class Thinking:
+    """A provider whose first answers are reasoning with no narration in them.
+
+    `openai/gpt-oss-120b` at `reasoning_effort` high answers this way whenever
+    the cap stops it mid-thought, which is what `AnsweredWithoutContent` is.
+    The pipeline has to log it and retry rather than let it out: a paid run of
+    six slots that raises on one answer loses every candidate written before
+    it.
+    """
+
+    name = "thinking"
+    model = "thinking"
+
+    def __init__(self, silences: int, *lines: str):
+        self._silences = silences
+        self._lines = list(lines)
+        self.prompts: list[str] = []
+
+    def narrate(self, prompt: str) -> Narration:
+        self.prompts.append(prompt)
+        if self._silences:
+            self._silences -= 1
+            raise AnsweredWithoutContent(
+                "watsonx answered with reasoning and no narration: "
+                "finish_reason 'length', 2000 completion token(s) of a 2000 "
+                "cap, all of them before it wrote anything"
+            )
+        if not self._lines:
+            raise AssertionError("more attempts than expected")
+        return Narration(
+            text=self._lines.pop(0), provider=self.name, model=self.model
+        )
+
+
+class TestAnAttemptThatWroteNothing:
+    """An answer with no narration in it is a failed attempt, not a crash."""
+
+    def test_it_is_retried_like_an_ungrounded_attempt(self, feed, moment):
+        provider = Thinking(1, GROUNDED)
+        narrated = narrate(
+            feed, MATCH_1986, moment, narration_provider=provider
+        )
+        assert narrated.text == GROUNDED_SHOWN
+        assert narrated.source == MODEL
+        assert len(provider.prompts) == 2
+
+    def test_the_silent_attempt_is_in_the_log(self, feed, moment):
+        provider = Thinking(1, GROUNDED)
+        narrated = narrate(
+            feed, MATCH_1986, moment, narration_provider=provider
+        )
+        first = narrated.attempts[0]
+        assert not first.grounded
+        assert first.text == ""
+        assert [one.kind for one in first.failures] == ["no answer"]
+        assert "reasoning and no narration" in first.summary
+        assert not narrated.first_attempt_grounded
+
+    def test_every_attempt_silent_falls_back_rather_than_raising(
+        self, feed, moment
+    ):
+        """Three silences spend the retry budget, and the fallback is what the
+        pipeline has for exactly that."""
+        provider = Thinking(MAX_RETRIES + 1)
+        narrated = narrate(
+            feed, MATCH_1986, moment, narration_provider=provider
+        )
+        assert narrated.used_fallback
+        assert len(provider.prompts) == MAX_RETRIES + 1
+        assert len(narrated.failure_log) == MAX_RETRIES + 1
