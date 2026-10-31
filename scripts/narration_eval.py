@@ -94,6 +94,7 @@ from app.narration_prompt import (  # noqa: E402
 )
 from app.narration_provider import Transport, post, provider  # noqa: E402
 from app.personas import PERSONAS, Persona, persona as persona_by_id  # noqa: E402
+from app.recorded_names import recorded_nicknames  # noqa: E402
 from app.statsbomb_event_feed import StatsBombEventFeed  # noqa: E402
 
 #: The two demo matches, in the order the app lists them.
@@ -502,7 +503,9 @@ def measure(
     loop this long dying on goal eight and reporting nothing would be the worst
     of both: the time spent and no evidence.
     """
-    facts = facts_from_buildup(feed.buildup(match_id, moment))
+    facts = facts_from_buildup(
+        feed.buildup(match_id, moment), recorded_nicknames(match_id)
+    )
     beats = key_beats(facts)
     started = time.perf_counter()
     recorder.take()

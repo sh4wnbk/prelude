@@ -73,6 +73,7 @@ from app.narration_provider import (  # noqa: E402
     COMPARISON_MAX_NEW_TOKENS,
     WatsonxProvider,
 )
+from app.recorded_names import recorded_nicknames  # noqa: E402
 from app.statsbomb_event_feed import StatsBombEventFeed  # noqa: E402
 from scripts.narration_eval import (  # noqa: E402
     NO_PERSONA,
@@ -239,7 +240,9 @@ def prompt_for(
     voice: Voice,
     no_block: bool,
 ) -> str:
-    facts = facts_from_buildup(feed.buildup(match_id, moment))
+    facts = facts_from_buildup(
+        feed.buildup(match_id, moment), recorded_nicknames(match_id)
+    )
     # The prompt is the same in every voice, so `voice` changes nothing
     # here. It stays in the signature because an arm names one and the
     # estimate is per narration, which is per voice.
@@ -300,7 +303,9 @@ def run_smoke(feed: StatsBombEventFeed, chat: bool) -> int:
     """
     match_id, clock = GOALS_3[0]
     moment = moment_for(feed, match_id, clock)
-    facts = facts_from_buildup(feed.buildup(match_id, moment))
+    facts = facts_from_buildup(
+        feed.buildup(match_id, moment), recorded_nicknames(match_id)
+    )
     prompt = build_prompt(facts)
     failures = 0
 

@@ -37,6 +37,7 @@ from app.narration_prompt import (
     facts_from_buildup,
     template_narration,
 )
+from app.recorded_names import recorded_nicknames
 from app.statsbomb_event_feed import StatsBombEventFeed
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -875,3 +876,120 @@ class TestTheOneNarrationStyle:
     def test_no_prompt_has_an_em_dash(self, feed):
         for _, _, facts in every_goal(feed):
             assert "—" not in build_prompt(facts)
+
+
+class TestTheNamesTheFactsPrint:
+    """The facts print the recorded nickname wherever the lineups file has one.
+
+    The facts are what a model writes its names out of, so this is what
+    decides whether a recording says "Lionel Messi" or "Lionel Andrés Messi
+    Cuccittini" six times over. The mapping comes from
+    `app/recorded_names.py`, which reads `data/raw/lineups/`; nothing here
+    shortens a name the file does not shorten.
+
+    `facts_for` above passes no mapping, which is the full recorded name on
+    every beat, so these tests build their own facts.
+    """
+
+    def facts(self, feed, match_id, clock):
+        moment = next(
+            m
+            for m in feed.defining_moments(match_id)
+            if (m.minute, m.second) == clock
+        )
+        return facts_from_buildup(
+            feed.buildup(match_id, moment), recorded_nicknames(match_id)
+        )
+
+    def test_the_fact_list_uses_the_recorded_nicknames(self, feed):
+        """The 2022 hero goal, where four of the five players have one."""
+        facts = self.facts(feed, MATCH_2022, HERO_2022["clock"])
+        printed = fact_list(facts)
+        assert "Lionel Messi (Argentina) passed, 35:15" in printed
+        assert "Ángel Di María (Argentina) shot, 35:22" in printed
+        assert "Alexis MacAllister (Argentina) passed, 35:14" in printed
+        assert "Nahuel Molina (Argentina) passed, 35:12" in printed
+        assert "Lionel Andrés Messi Cuccittini" not in printed
+        assert "Ángel Fabián Di María Hernández" not in printed
+
+    def test_a_player_with_no_nickname_keeps_their_full_name(self, feed):
+        """Julián Álvarez has none recorded, and so is printed in full."""
+        facts = self.facts(feed, MATCH_2022, HERO_2022["clock"])
+        assert "Julián Álvarez (Argentina) passed, 35:17" in fact_list(facts)
+
+    def test_the_1986_facts_still_say_maradona_in_full(self, feed):
+        """There is no nickname recorded for him, so there is nothing to use.
+
+        This is the goal the project is built around and the one the length
+        target is set on, so the cost of the data not recording a short form
+        lands here. It is reported rather than worked around: a surname picked
+        out of a full name would be this repo's judgement about what a player
+        is called.
+        """
+        facts = self.facts(feed, MATCH_1986, GOAL_1986["clock"])
+        printed = fact_list(facts)
+        assert "Diego Armando Maradona (Argentina) shot, 54:18" in printed
+        assert "Héctor Enrique (Argentina) passed, 54:06" in printed
+        assert "Héctor Adolfo Enrique" not in printed
+
+    def test_the_hero_block_and_the_header_say_the_same_name(self, feed):
+        """One name per player across the whole prompt.
+
+        The steps, the list of everyone who touched the ball, the beats and
+        the scorer line are four places a name is printed. A prompt that
+        printed two spellings of one player would be asking for both.
+        """
+        facts = self.facts(feed, MATCH_2022, HERO_2022["clock"])
+        prompt = build_prompt(facts, hero=True)
+        assert "Scorer:     Ángel Di María" in prompt
+        assert "Ángel Fabián Di María Hernández" not in prompt
+        assert "Alexis Mac Allister" not in prompt
+        block = hero_block(facts)
+        assert "1. Nahuel Molina, from fact 1: passed" in block
+        assert "names every one of them" in flat(block)
+        assert (
+            "Nahuel Molina, Alexis MacAllister, Lionel Messi, "
+            "Julián Álvarez, Ángel Di María" in flat(block)
+        )
+
+    def test_a_dribble_beat_names_the_defender_as_recorded(self, feed):
+        """None of the four England defenders has a recorded nickname, so the
+        1986 beats are unchanged by any of this."""
+        facts = self.facts(feed, MATCH_1986, GOAL_1986["clock"])
+        labels = [beat.label for beat in key_beats(facts)]
+        assert "dribbled past Terry Butcher" in labels
+        assert "the shot by Diego Armando Maradona" in labels
+
+    def test_the_fallback_uses_the_recorded_nicknames_too(self, feed):
+        """It is assembled out of the facts, so it says what they say.
+
+        Both are the data's own spellings, so the fallback still introduces no
+        judgement call about what a player is called.
+        """
+        facts = self.facts(feed, MATCH_2022, HERO_2022["clock"])
+        text = template_narration(facts)
+        assert "Ángel Di María shot and scored for Argentina." in text
+        assert "Lionel Messi passed." in text
+        assert "Cuccittini" not in text
+
+    def test_the_facts_keep_the_name_on_the_event_record(self, feed):
+        """`Beat.player` is still the full recorded name, and `Facts.players`
+        is still keyed by it.
+
+        The nickname is a second recorded spelling, not a replacement: a
+        coverage count, a report and a freeze all identify a player by the
+        name the event record carries.
+        """
+        facts = self.facts(feed, MATCH_2022, HERO_2022["clock"])
+        assert "Lionel Andrés Messi Cuccittini" in facts.players
+        assert facts.goal_beat.player == "Ángel Fabián Di María Hernández"
+        assert facts.goal_beat.nickname == "Ángel Di María"
+        assert facts.goal_beat.name == "Ángel Di María"
+
+    def test_no_nicknamed_prompt_has_an_em_dash(self, feed):
+        for match_id, clock in (
+            (MATCH_1986, GOAL_1986["clock"]),
+            (MATCH_2022, HERO_2022["clock"]),
+        ):
+            facts = self.facts(feed, match_id, clock)
+            assert "—" not in build_prompt(facts, hero=True)

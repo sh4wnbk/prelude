@@ -89,6 +89,15 @@ Accents are normalised before matching, so "Hector" matches the recorded
 invented player, and failing it would report a hallucination that did not
 happen.
 
+**A player has two recorded names and both are grounded.** The event feed
+carries the full name and the lineups file carries a `player_nickname` beside
+it, so `Lionel Andrés Messi Cuccittini` and `Lionel Messi` are the same
+player read out of the same match's data. A sentence naming either is naming
+somebody the records name. A short form the files do not record is not: "Leo"
+is refused as an unknown name, exactly like an invented player, and a player
+the lineups file records no nickname for has only their full name to be named
+by.
+
 Standard library only, like the rest of `app/`.
 """
 
@@ -519,9 +528,15 @@ def name_parts(facts: Facts) -> frozenset[str]:
     What this answers is "is this name in the passage at all", which is what
     tells an invented player from a miscited one. Whether a name is grounded is
     a question about the facts one sentence cited; see `fact_names`.
+
+    The recorded nicknames are in it for the same reason they are in
+    `fact_names`: a player recorded twice over is one player, and a sentence
+    naming them by either recorded spelling is naming somebody who is there.
     """
     parts: set[str] = set()
-    for name in list(facts.players) + list(facts.teams):
+    names = list(facts.players) + list(facts.teams)
+    names += [beat.nickname for beat in facts.beats if beat.nickname]
+    for name in names:
         for part in _WORD.findall(name):
             parts.add(fold(part))
     return frozenset(parts)
@@ -532,9 +547,21 @@ def fact_names(fact: Fact) -> frozenset[str]:
 
     Narration shortens "Diego Armando Maradona" to "Maradona", so the parts are
     what a sentence can be matched against rather than the whole name.
+
+    **Both recorded spellings of a player count.** StatsBomb records a full
+    name on the event and a `player_nickname` on the lineup, and
+    `app/narration_prompt.py` prints the nickname in the facts where there is
+    one, so that is the spelling a narration is being asked for. Usually the
+    nickname's words are already words of the full name and this adds nothing;
+    sometimes they are not, and "Alexis MacAllister" is the case in this data,
+    one word where the full name has two. Accepting it is not a loosening: the
+    nickname is read out of `data/raw/`, exactly like the full name, and a
+    short form the file does not record is still refused.
     """
     parts: set[str] = set()
-    for name in (fact.beat.player, fact.beat.team):
+    for name in (fact.beat.player, fact.beat.nickname, fact.beat.team):
+        if not name:
+            continue
         for part in _WORD.findall(name):
             parts.add(fold(part))
     return frozenset(parts)

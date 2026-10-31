@@ -80,6 +80,7 @@ from app.narration_provider import (  # noqa: E402
     COMPARISON_MAX_NEW_TOKENS,
     WatsonxProvider,
 )
+from app.recorded_names import recorded_nicknames  # noqa: E402
 from app.statsbomb_event_feed import StatsBombEventFeed  # noqa: E402
 from app.tts import speech_text  # noqa: E402
 from scripts.tts_hero import DEFAULT_BUDGET  # noqa: E402
@@ -149,12 +150,20 @@ def distinctive_parts(facts: Facts) -> dict[str, frozenset[str]]:
     A player sharing every part of their name with another is not in this
     data; if one ever is, they get all their parts and the count is reported
     as the generous reading rather than silently as a miss.
+
+    Both recorded names count, because the narration may use either: the
+    lineups file writes "Alexis Mac Allister" as "Alexis MacAllister", which
+    is one word where the full name has two, and a narration saying only that
+    word is naming the player.
     """
-    players = sorted({fact.beat.player for fact in facts.facts})
-    parts = {
-        player: {fold(word) for word in player.replace("-", " ").split()}
-        for player in players
-    }
+    spoken: dict[str, set[str]] = {}
+    for fact in facts.facts:
+        words = spoken.setdefault(fact.beat.player, set())
+        for name in (fact.beat.player, fact.beat.nickname):
+            if not name:
+                continue
+            words |= {fold(word) for word in name.replace("-", " ").split()}
+    parts = {player: set(words) for player, words in sorted(spoken.items())}
     out: dict[str, frozenset[str]] = {}
     for player, mine in parts.items():
         shared: set[str] = set()
@@ -370,7 +379,9 @@ def gather(
     goals: list[dict] = []
     for year, match_id, minute, second in heroes:
         moment = moment_at(feed, match_id, minute, second)
-        facts = facts_from_buildup(feed.buildup(match_id, moment))
+        facts = facts_from_buildup(
+            feed.buildup(match_id, moment), recorded_nicknames(match_id)
+        )
         print("{} match {} {}:{:02d}: {} ({}), {} facts, {} players".format(
             year, match_id, minute, second, moment.player, moment.team,
             len(facts.facts), len(touched_the_ball(facts)),
@@ -732,7 +743,9 @@ def refreshed(doc: dict) -> dict:
         moment = moment_at(
             feed, match_id, goal["minute"], goal["second"]
         )
-        facts = facts_from_buildup(feed.buildup(match_id, moment))
+        facts = facts_from_buildup(
+            feed.buildup(match_id, moment), recorded_nicknames(match_id)
+        )
         for candidate in goal["candidates"]:
             result = check(candidate["tagged_text"], facts)
             if not result.grounded:

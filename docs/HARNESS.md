@@ -45,6 +45,12 @@ which is gitignored. Two matches: the 1986 Argentina vs England quarter-final
 the competition and match indexes rather than remembered). `HANDOFF.md` records
 the file sizes from the run that fetched them.
 
+**Each match is two files, not one.** The event feed carries the play, and the
+lineups file carries `player_nickname`, which is the only place the data says
+a player's name in short. `app/recorded_names.py` reads it, and the facts a
+narration is written from use it where there is one. It is the same open data
+from the same repo for the same match, not a fourth input.
+
 **Nothing in the suite stands in for the event data.** The EventFeed tests, the
 fact tests and the grounding tests all read `data/raw/` through
 `app/statsbomb_event_feed.py`:
@@ -56,6 +62,7 @@ fact tests and the grounding tests all read `data/raw/` through
 | a buildup holds raw source records | `tests/test_event_feed.py::TestBuildup::test_buildup_events_are_raw_source_records` |
 | every fact leads back to one record by id | `tests/test_narration_prompt.py::TestFactList::test_every_fact_leads_back_to_one_record` |
 | every beat matches its source record field by field | `tests/test_narration_prompt.py::TestFacts::test_every_beat_is_a_real_event` |
+| a nickname is read from the lineups file, never invented | `tests/test_recorded_names.py::TestWhatTheFilesRecord::test_maradona_has_none` |
 
 **A fresh clone has no data, and the suite says so rather than failing
 obscurely.** The session-scoped autouse `raw_data_present` fixture in
@@ -168,7 +175,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 838 tests in twenty-four files, and all 838 pass, so any failure
+The suite is 861 tests in twenty-five files, and all 861 pass, so any failure
 means something is wrong. It is run from the repo root:
 
 ```
@@ -181,7 +188,8 @@ No path setting is needed: `pyproject.toml` sets `pythonpath = ["."]` and
 | File | What it covers |
 | ---- | -------------- |
 | `tests/test_event_feed.py` | the `EventFeed` contract, moments, event windows and buildups |
-| `tests/test_narration_prompt.py` | the facts, the numbered fact list, the prompt, the fallback |
+| `tests/test_narration_prompt.py` | the facts, the numbered fact list, the prompt, the fallback, and the recorded names the facts print |
+| `tests/test_recorded_names.py` | the `player_nickname` reader, and what the two lineups files record |
 | `tests/test_grounding.py` | one test per way a narration can be wrong or look wrong and be fine |
 | `tests/test_narration.py` | the pipeline: generate, check, retry, fall back, record |
 | `tests/test_narration_provider.py` | the model config and both backends |

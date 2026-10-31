@@ -80,7 +80,9 @@ Everything above it is structure.
 **Runs today:**
 
 - `scripts/fetch_statsbomb.py`: downloads the StatsBomb open-data files the
-  project uses into `data/raw/` (gitignored, reproducible).
+  project uses into `data/raw/` (gitignored, reproducible): the competition and
+  match indexes, both matches' event feeds, and both matches' lineups, which
+  are what record a player's `player_nickname`.
 - `scripts/data_check.py`: reads the 1986 Argentina vs England event feed,
   lists every goal and the shot counts per team, and writes
   [`docs/data_check.md`](docs/data_check.md) from that output.
@@ -143,16 +145,28 @@ Everything above it is structure.
   `socket.socket.connect` with functions that raise, for every test in the
   suite.
 - `app/narration_prompt.py`: turns one buildup into a numbered list of plain
-  past-tense facts, one per recorded event, built by code out of the records;
+  past-tense facts, one per recorded event, built by code out of the records
+  and naming each player by the recorded nickname where there is one;
   the prompt that asks a model to narrate from that list in the past tense, cite
   the facts each sentence used, and stop on the goal; `NARRATION_STYLE`, the one
   style every narration is written in, printed into that prompt in every voice;
   and the fallback narration, one sentence per fact, assembled with no model.
+- `app/recorded_names.py`: reads `player_nickname` out of
+  `data/raw/lineups/<match_id>.json` and maps it to the full name the event
+  feed records, so a narration can say "Lionel Messi" rather than "Lionel
+  Andrés Messi Cuccittini". It is a reader and not a chooser: there is no
+  fallback that shortens a name the file does not shorten, so a player with no
+  recorded nickname keeps their full recorded name. Maradona is one of those,
+  so the 1986 narration says his name in full.
+- `tests/test_recorded_names.py`: 7 tests over the reader and over what the two
+  lineups files record, including the four nicknames the 2022 hero buildup has
+  and the nickname the 1986 file does not record for the scorer. All 7 pass.
 - `app/grounding.py`: decides whether a narration's claims trace back to the
   data, sentence by sentence, against the facts that sentence cited. Refuses
   invented names, numbers, clocks and actions; a name or action in the passage
   but not in the cited facts; a name paired with an action no single cited fact
-  records; a sentence that cites nothing or cites a fact that does not exist; a
+  records; a short form of a player's name that neither the event feed nor the
+  lineups file records, while accepting either of the two names they do; a sentence that cites nothing or cites a fact that does not exist; a
   present-tense verb, in a passage that already happened; a narration that does
   not end on the goal's own shot; a wrong shot type or body part; verdict
   nicknames, editorial epithets, claims about the result, lines addressed to the
@@ -252,11 +266,11 @@ Everything above it is structure.
   fake credentials file into a temporary directory; none reads the real one,
   and `tests/conftest.py` points `PRELUDE_ENV_FILE` at an absent path for the
   whole suite so none can.
-- `tests/test_narration_prompt.py`: 71 tests over the facts, the numbered fact
+- `tests/test_narration_prompt.py`: 79 tests over the facts, the numbered fact
   list, the prompt, the one narration style printed in it, the key beats of a
   passage, the move the hero prompt prints as steps and the fallback
   narration, which has to reach every one of those beats. All pass.
-- `tests/test_grounding.py`: 96 tests over the grounding check, one per way a
+- `tests/test_grounding.py`: 104 tests over the grounding check, one per way a
   narration can be wrong or can look wrong and be fine, including the
   misdescription it refuses by pairing a name with an action and the first
   person, which only the Mate may use and only over its own side's facts.

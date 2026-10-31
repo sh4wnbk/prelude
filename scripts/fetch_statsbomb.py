@@ -1,11 +1,15 @@
 """Download the StatsBomb open-data files this project needs into data/raw/.
 
-Fetches two matches and their event feeds:
+Fetches two matches, their event feeds and their lineups:
 
   * 1986 World Cup, Argentina vs England (quarter-final). The match id is
     pinned, since that is the game the project is built around.
   * 2022 World Cup final, resolved at runtime by reading the competition
     and match indexes, so no remembered id is baked in here.
+
+The lineups file is what records a player's `player_nickname`, which the
+narration uses wherever one is recorded: the event feed carries only the full
+name, so "Diego Armando Maradona" is all an events-only pipeline can say.
 
 Raw data is gitignored; re-run this script instead of committing it.
 """
@@ -79,6 +83,7 @@ def main():
         f"{pinned['away_team']['away_team_name']} ({pinned['competition_stage']['name']}, {pinned['match_date']})"
     )
     fetch(f"events/{ARGENTINA_ENGLAND_1986}.json")
+    fetch(f"lineups/{ARGENTINA_ENGLAND_1986}.json")
 
     # 2022 final: season and match id both read from the data.
     season_2022 = find_season_id(competitions, WORLD_CUP_COMPETITION_ID, "2022")
@@ -90,6 +95,7 @@ def main():
         f"{final['away_team']['away_team_name']} (match_id {final['match_id']}, {final['match_date']})"
     )
     fetch(f"events/{final['match_id']}.json")
+    fetch(f"lineups/{final['match_id']}.json")
 
     print(f"\ndone -> {DATA_RAW}")
     return 0

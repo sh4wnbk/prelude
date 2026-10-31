@@ -172,10 +172,26 @@ class Beat:
     team: str
     action: str
     event_id: str
+    #: The shorter name the lineups file records for this player, or `None`
+    #: where it records none. Copied from `player_nickname`, like every other
+    #: field here, and read by `app/recorded_names.py`. It defaults to `None`
+    #: so a beat built without the lineups file is the full recorded name, as
+    #: every beat was before the file was fetched.
+    nickname: str | None = None
 
     @property
     def clock(self) -> str:
         return f"{self.minute}:{self.second:02d}"
+
+    @property
+    def name(self) -> str:
+        """What a narration calls this player: the nickname where one is
+        recorded, and the full recorded name where none is.
+
+        Both are the data's own spellings. Nothing here shortens a name the
+        lineups file does not shorten; see `app/recorded_names.py`.
+        """
+        return self.nickname or self.player
 
 
 @dataclass(frozen=True)
@@ -320,7 +336,7 @@ def key_beats(facts: Facts) -> tuple[KeyBeat, ...]:
             KeyBeat(
                 kind=DRIBBLE,
                 numbers=numbers,
-                label=f"dribbled past {fact.beat.player}",
+                label=f"dribbled past {fact.beat.name}",
             )
         )
 
@@ -342,7 +358,7 @@ def key_beats(facts: Facts) -> tuple[KeyBeat, ...]:
         KeyBeat(
             kind=SHOT,
             numbers=(goal.number,),
-            label=f"the shot by {goal.beat.player}",
+            label=f"the shot by {goal.beat.name}",
         )
     )
     return tuple(sorted(beats, key=lambda beat: min(beat.numbers)))
@@ -358,6 +374,11 @@ def fact_text(beat: Beat) -> str:
 
     The phrasing comes from `EVENT_VERBS`, so a fact a model reads and the
     fallback narration say the same event the same way.
+
+    The player is `Beat.name`, which is the recorded nickname where the
+    lineups file records one. The facts are what a model writes its names out
+    of, so this is what decides whether a narration says "Lionel Messi" or
+    "Lionel Andrés Messi Cuccittini".
     """
     verb = EVENT_VERBS.get(beat.action)
     if verb is None:
@@ -365,16 +386,27 @@ def fact_text(beat: Beat) -> str:
         # naming the type: a reader can look a type up, an invented verb points
         # at nothing.
         verb = f"is recorded with a {beat.action} event"
-    return f"{beat.player} ({beat.team}) {verb}, {beat.clock}"
+    return f"{beat.name} ({beat.team}) {verb}, {beat.clock}"
 
 
-def facts_from_buildup(buildup: Buildup) -> Facts:
+def facts_from_buildup(
+    buildup: Buildup, nicknames: Mapping[str, str] | None = None
+) -> Facts:
     """Read the facts a narration may use out of one buildup.
 
     Every value is copied from a raw record. Nothing is counted, ranked,
     summarised or inferred, because a fact this function invents is a fact the
     grounding check would then happily approve.
+
+    `nicknames` maps a full recorded player name to the shorter name the
+    lineups file records for them, from `app/recorded_names.py`. It is
+    optional because the event feed alone cannot answer it, and a caller
+    without the lineups file gets what every caller got before it was
+    fetched: the full recorded name on every beat. A player the mapping does
+    not hold keeps their full name too, which is not a gap to be filled by
+    guessing at a surname.
     """
+    short = nicknames or {}
     beats = tuple(
         Beat(
             index=event["index"],
@@ -384,6 +416,7 @@ def facts_from_buildup(buildup: Buildup) -> Facts:
             team=event["team"]["name"],
             action=event["type"]["name"],
             event_id=event["id"],
+            nickname=short.get(event["player"]["name"]),
         )
         for event in buildup.events
         if event.get("player")
@@ -441,7 +474,7 @@ def cited_line(fact: Fact) -> str:
     verb = EVENT_VERBS.get(
         fact.beat.action, f"is recorded with a {fact.beat.action} event"
     )
-    return f"[{fact.number}] {fact.beat.player} {verb}."
+    return f"[{fact.number}] {fact.beat.name} {verb}."
 
 
 def beats_block(facts: Facts) -> str:
@@ -566,12 +599,25 @@ def touched_the_ball(facts: Facts) -> tuple[str, ...]:
 
     Named once each, however many touches they had, because this is the list
     the hero prompt asks a narration to name in full.
+
+    These are the full recorded names, which is the identity a player is
+    counted under. What a narration calls them is `Beat.name`, and
+    `spoken_names` is that list for printing.
     """
     seen: list[str] = []
     for step in move_steps(facts):
         if step.player not in seen:
             seen.append(step.player)
     return tuple(seen)
+
+
+def spoken_names(facts: Facts) -> Mapping[str, str]:
+    """Full recorded name to the name a narration calls that player by.
+
+    `Beat.name` answers it one beat at a time; this is the whole passage, for
+    the places that hold a recorded name and have to print the spoken one.
+    """
+    return {fact.beat.player: fact.beat.name for fact in facts.facts}
 
 
 def hero_block(facts: Facts) -> str:
@@ -596,7 +642,8 @@ def hero_block(facts: Facts) -> str:
     refuses on truth alone.
     """
     steps = move_steps(facts)
-    players = touched_the_ball(facts)
+    spoken = spoken_names(facts)
+    players = [spoken[player] for player in touched_the_ball(facts)]
     by_number = {fact.number: fact for fact in facts.facts}
     # The dribble beats, by the facts that record them, so a step that beat a
     # defender can be printed as that rather than as its own verbs. The live
@@ -637,7 +684,7 @@ def hero_block(facts: Facts) -> str:
         plural = "facts" if len(numbers) > 1 else "fact"
         last = " (the goal)" if index == len(steps) else ""
         lines.append(
-            f"  {index}. {step.player}, from {plural} {printed}: "
+            f"  {index}. {spoken[step.player]}, from {plural} {printed}: "
             f"{said}{last}"
         )
     beat_note = (
@@ -960,7 +1007,7 @@ facts below and nothing else. Anything you add from memory will be rejected.
 
 THE GOAL
   Team:       {moment.team}
-  Scorer:     {moment.player}
+  Scorer:     {facts.goal_beat.name}
   Clock:      minute {moment.minute}, second {moment.second}
   Shot type:  {set_piece}
   Body part:  {body_part}
@@ -992,9 +1039,11 @@ def template_narration(facts: Facts) -> str:
     This is the fallback for when a model cannot stay inside the data. It is
     grounded by construction: every name, clock and action in it is copied out
     of one fact, and each sentence cites that fact. It reads plainly rather than
-    well, which is the trade being made, and it uses the full recorded player
-    names rather than shortening them, because a fallback should not be the
-    thing that introduces a judgement call about what a player is called.
+    well, which is the trade being made, and it writes each player's name as
+    the facts write it: the recorded nickname where the lineups file records
+    one, and the full recorded name where it records none. Both are the data's
+    own spellings, so the fallback still introduces no judgement call about
+    what a player is called.
 
     One sentence per fact is also what keeps it inside the pairing rule: a
     sentence that cites one fact and names one player cannot pair a name with an
@@ -1072,7 +1121,7 @@ def template_narration(facts: Facts) -> str:
     lines = [f"[{goal.number}] Minute {goal.beat.minute}."]
     lines += [cited_line(fact) for fact in middle]
     lines.append(
-        f"[{goal.number}] {goal.beat.player} shot and scored for "
+        f"[{goal.number}] {goal.beat.name} shot and scored for "
         f"{goal.beat.team}."
     )
     return "\n".join(lines)

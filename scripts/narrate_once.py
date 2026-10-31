@@ -29,6 +29,7 @@ sys.path.insert(0, str(ROOT))
 from app.narration import narrate  # noqa: E402
 from app.narration_prompt import facts_from_buildup  # noqa: E402
 from app.narration_provider import provider  # noqa: E402
+from app.recorded_names import recorded_nicknames  # noqa: E402
 from app.statsbomb_event_feed import StatsBombEventFeed  # noqa: E402
 
 DEFAULT_MATCH = 3750191
@@ -67,7 +68,9 @@ def main(argv) -> int:
             f"{clock[0]}:{clock[1]:02d}; expected exactly one"
         )
     moment = moments[0]
-    facts = facts_from_buildup(feed.buildup(match_id, moment))
+    facts = facts_from_buildup(
+        feed.buildup(match_id, moment), recorded_nicknames(match_id)
+    )
     backend = provider()
 
     print(f"match     {match_id}")

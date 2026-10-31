@@ -42,6 +42,7 @@ from app.narration_prompt import (
     template_narration,
 )
 from app.personas import THE_BUDDY, THE_CALLER, THE_STORYTELLER
+from app.recorded_names import recorded_nicknames
 from app.statsbomb_event_feed import StatsBombEventFeed
 
 MATCH_1986 = 3750191
@@ -147,6 +148,27 @@ def facts_hero_2022(feed):
         if (m.minute, m.second) == HERO_2022
     )
     return facts_from_buildup(feed.buildup(MATCH_2022, moment))
+
+
+@pytest.fixture(scope="module")
+def facts_nicknamed_2022(feed):
+    """The 35:22 buildup with the recorded nicknames on it.
+
+    The other fixtures here carry no nickname, which is the full recorded name
+    on every beat and is what the 1986 hero goal really looks like: that
+    lineups file records no nickname for Maradona. This one is the other case.
+    Four of its five players have one (Nahuel Molina, Alexis MacAllister,
+    Lionel Messi and Ángel Di María) and Julián Álvarez has none, so he keeps
+    the full name he is recorded under.
+    """
+    moment = next(
+        m for m in feed.defining_moments(MATCH_2022)
+        if (m.minute, m.second) == HERO_2022
+    )
+    return facts_from_buildup(
+        feed.buildup(MATCH_2022, moment),
+        recorded_nicknames(MATCH_2022),
+    )
 
 
 def kinds(result: GroundingResult) -> set[str]:
@@ -1226,3 +1248,169 @@ class TestResult:
         assert not result.grounded
         assert "Valdano" in result.summary
         assert result.failures
+
+
+class TestRecordedNicknames:
+    """A player has two recorded names, and both of them ground a sentence.
+
+    The event feed carries the full name and the lineups file carries
+    `player_nickname` beside it, so "Lionel Andrés Messi Cuccittini" and
+    "Lionel Messi" are two spellings of one player in one match's data.
+    `app/narration_prompt.py` prints the nickname in the facts wherever there
+    is one, so it is the spelling the prompt asks for and the one a candidate
+    will use.
+
+    The fixtures above carry no nickname, which is not a stale configuration:
+    the 1986 lineups file records none for Maradona, so the facts for the hero
+    goal this repo is built around say the full name on every line of it.
+    `facts_nicknamed_2022` is the other case.
+
+    What the nickname does not do is loosen the check. The names it adds are
+    read out of `data/raw/` exactly as the full names are, and a short form the
+    files do not record is refused like any invented player.
+    """
+
+    def test_a_sentence_with_the_recorded_nickname_is_grounded(
+        self, facts_nicknamed_2022
+    ):
+        """"Lionel Messi" over fact 6, which is his pass.
+
+        The full name grounds it too, and does so without the lineups file.
+        This is the spelling the prompt now asks for.
+        """
+        result = check(
+            "[6] Lionel Messi passed.\n"
+            "[13] Ángel Di María shot and scored for Argentina.",
+            facts_nicknamed_2022,
+        )
+        assert result.grounded, result.summary
+
+    def test_the_whole_move_in_recorded_nicknames(self, facts_nicknamed_2022):
+        """Every one of the five named the way the facts now print them.
+
+        "Alexis MacAllister" is the one that needs the lineups file: it is one
+        word where the full recorded name has two, so no part of the event feed
+        holds it.
+        """
+        result = check(
+            "[1] Nahuel Molina passed.\n"
+            "[3] Alexis MacAllister passed.\n"
+            "[6] Lionel Messi passed.\n"
+            "[9] Julián Álvarez passed.\n"
+            "[11] Alexis MacAllister passed.\n"
+            "[13] Ángel Di María shot and scored for Argentina.",
+            facts_nicknamed_2022,
+        )
+        assert result.grounded, result.summary
+
+    def test_an_invented_short_form_is_refused(self, facts_nicknamed_2022):
+        """"Leo" is what everybody calls him and nothing records it.
+
+        The lineups file says "Lionel Messi", so that is what is grounded. A
+        short form read off neither file is an unknown name, which is the same
+        failure an invented player gets.
+        """
+        result = check(
+            "[6] Leo passed.\n"
+            "[13] Ángel Di María shot and scored for Argentina.",
+            facts_nicknamed_2022,
+        )
+        assert not result.grounded
+        assert "name" in kinds(result)
+        assert "Leo" in result.summary
+
+    def test_a_player_with_no_recorded_nickname_needs_the_full_name(
+        self, facts_nicknamed_2022
+    ):
+        """Julián Álvarez has no `player_nickname`, so there is no short form.
+
+        His full recorded name is two words and both of them ground a
+        sentence, as any word of a recorded name does. What does not is a
+        contraction of them: nothing in the data writes him as "JAlvarez", and
+        the nickname mapping does not reach him.
+        """
+        full = check(
+            "[9] Julián Álvarez passed.\n"
+            "[13] Ángel Di María shot and scored for Argentina.",
+            facts_nicknamed_2022,
+        )
+        assert full.grounded, full.summary
+
+        made_up = check(
+            "[9] JAlvarez passed.\n"
+            "[13] Ángel Di María shot and scored for Argentina.",
+            facts_nicknamed_2022,
+        )
+        assert not made_up.grounded
+        assert "JAlvarez" in made_up.summary
+
+    def test_the_nickname_is_what_admits_its_spelling(
+        self, facts_hero_2022, facts_nicknamed_2022
+    ):
+        """The same sentence, with and without the lineups file.
+
+        "Alexis MacAllister" is grounded only where the nickname was read.
+        This is the test that says the check gained one recorded spelling
+        rather than a tolerance for names that are nearly right.
+        """
+        sentence = (
+            "[3] Alexis MacAllister passed.\n"
+            "[13] Ángel Fabián Di María Hernández shot and scored "
+            "for Argentina."
+        )
+        assert check(sentence, facts_nicknamed_2022).grounded
+        assert not check(sentence, facts_hero_2022).grounded
+
+    def test_the_full_name_is_grounded_where_a_nickname_exists(
+        self, facts_nicknamed_2022
+    ):
+        """Reading the nickname does not retire the name on the event record.
+
+        The frozen Task 6 narrations are written in full names, and they are
+        re-checked whenever `scripts/freeze_narrations.py` or a refresh reads
+        them. They have to keep passing.
+        """
+        result = check(
+            "[6] Lionel Andrés Messi Cuccittini passed.\n"
+            "[13] Ángel Fabián Di María Hernández shot and scored "
+            "for Argentina.",
+            facts_nicknamed_2022,
+        )
+        assert result.grounded, result.summary
+
+    def test_maradona_has_no_recorded_nickname(self, feed):
+        """The 1986 goal is the case where there is nothing shorter to say.
+
+        This is a fact about `data/raw/lineups/3750191.json` rather than a
+        preference: the file records no `player_nickname` for him, so the facts
+        for the goal this project is built around print the full name, and no
+        rule here invents "Maradona" as a name of its own. He is still
+        grounded by it, because it is a word of the name the event record
+        carries.
+        """
+        nicknames = recorded_nicknames(MATCH_1986)
+        assert "Diego Armando Maradona" not in nicknames
+
+        moment = next(
+            m for m in feed.defining_moments(MATCH_1986)
+            if (m.minute, m.second) == GOAL_1986
+        )
+        facts = facts_from_buildup(
+            feed.buildup(MATCH_1986, moment), nicknames
+        )
+        assert facts.goal_beat.nickname is None
+        assert facts.goal_beat.name == "Diego Armando Maradona"
+
+    def test_name_parts_holds_both_recorded_spellings(
+        self, facts_nicknamed_2022
+    ):
+        """`name_parts` answers "is this name in the passage at all".
+
+        A narration naming a player by either recorded spelling is naming
+        somebody who is there, so the report that tells an invented player
+        from a miscited one has to know both.
+        """
+        parts = name_parts(facts_nicknamed_2022)
+        assert fold("Cuccittini") in parts
+        assert fold("MacAllister") in parts
+        assert fold("Leo") not in parts

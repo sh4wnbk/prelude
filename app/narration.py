@@ -45,6 +45,7 @@ from app.narration_prompt import (
     template_narration,
 )
 from app.narration_provider import NarrationProvider, provider as default_provider
+from app.recorded_names import recorded_nicknames
 from app.personas import Persona
 
 #: Regenerations allowed after the first attempt, so three attempts at most.
@@ -173,6 +174,13 @@ def narrate(
     of those are things `app/grounding.py` already accepted, which
     `tests/test_grounding.py::TestTheHeroShape` holds it to.
 
+    **The names are the recorded ones, short where a short one is recorded.**
+    The facts print `player_nickname` from the lineups file wherever it holds
+    one, so the prompt asks for "Lionel Messi" rather than "Lionel Andrés
+    Messi Cuccittini". A player the file records no nickname for keeps their
+    full name: see `app/recorded_names.py`, which also says why no surname is
+    picked out of a full name here.
+
     `beats` prints the key beats of the passage in the prompt. It is true
     everywhere but in one arm of the paid comparison, which measures what the
     block costs on a model that may not need it: Task 4c added it because
@@ -187,7 +195,9 @@ def narrate(
     `scripts/narration_eval.py` counts a fallback as a failure for that
     reason rather than as a narration the model produced.
     """
-    facts = facts_from_buildup(feed.buildup(match_id, moment))
+    facts = facts_from_buildup(
+        feed.buildup(match_id, moment), recorded_nicknames(match_id)
+    )
     chosen = narration_provider or default_provider()
     prompt = build_prompt(
         facts, sentences=sentences, beats=beats, hero=hero
