@@ -16,6 +16,11 @@ What happens then:
    by construction, and it is checked anyway.
 4. Nothing ungrounded is ever returned as narration or labelled.
 
+The model's text is made plain before step 1: `app/plain_characters.py`
+rewrites a disguised space or hyphen as the plain one, because a narration
+carrying an invisible character passes the check honestly and then reaches a
+speech service as written.
+
 Every attempt is recorded, with the claims that failed, so a model that drifts
 leaves a trace. `Narrated.first_attempt_grounded` is the one a pass rate should
 be measured on: counting retries would hide how often the first attempt was
@@ -45,6 +50,7 @@ from app.narration_prompt import (
     template_narration,
 )
 from app.narration_provider import NarrationProvider, provider as default_provider
+from app.plain_characters import plain
 from app.recorded_names import recorded_nicknames
 from app.personas import Persona
 
@@ -205,7 +211,11 @@ def narrate(
 
     attempts: list[Attempt] = []
     for number in range(1, max_retries + 2):
-        text = chosen.narrate(prompt).text.strip()
+        # Made plain as it arrives, so the text that is checked, recorded in
+        # the attempt log, shown on a screen and read by a voice is one text.
+        # See `app/plain_characters.py` for the two candidates that made this
+        # necessary and for why it reaches no dash.
+        text = plain(chosen.narrate(prompt).text).strip()
         result = check(text, facts, persona=persona, side=side)
         attempts.append(
             Attempt(

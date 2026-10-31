@@ -175,7 +175,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 861 tests in twenty-five files, and all 861 pass, so any failure
+The suite is 905 tests in twenty-six files, and all 905 pass, so any failure
 means something is wrong. It is run from the repo root:
 
 ```
@@ -190,6 +190,7 @@ No path setting is needed: `pyproject.toml` sets `pythonpath = ["."]` and
 | `tests/test_event_feed.py` | the `EventFeed` contract, moments, event windows and buildups |
 | `tests/test_narration_prompt.py` | the facts, the numbered fact list, the prompt, the fallback, and the recorded names the facts print |
 | `tests/test_recorded_names.py` | the `player_nickname` reader, and what the two lineups files record |
+| `tests/test_plain_characters.py` | the disguised spaces and hyphens rewritten plainly, and the dashes left alone |
 | `tests/test_grounding.py` | one test per way a narration can be wrong or look wrong and be fine |
 | `tests/test_narration.py` | the pipeline: generate, check, retry, fall back, record |
 | `tests/test_narration_provider.py` | the model config and both backends |

@@ -307,3 +307,51 @@ class TestPassRate:
         assert retried.text == GROUNDED_SHOWN
         assert not retried.first_attempt_grounded
         assert pass_rate([retried]) == (0, 1)
+
+
+class TestTheModelsTextIsMadePlain:
+    """A disguised space or hyphen is rewritten as the model's text arrives.
+
+    Two live candidates of 2026-10-30 carried one, invisibly, and both passed
+    the check honestly: a narrow space is whitespace and a hyphen is not a
+    claim. The rewrite is here rather than only in the check because the
+    narration the check passed is also the narration a screen shows and a
+    voice reads, and those have to be one text. See
+    `tests/test_plain_characters.py` for the characters themselves.
+    """
+
+    def test_the_text_shown_carries_no_narrow_space(self, feed, moment):
+        """Slot 5 of the live rerun wrote a player's name like this."""
+        written = (
+            "[14] Terry Butcher was dribbled past.\n"
+            "[24] Maradona shot and scored for Argentina."
+        )
+        narrated, _ = narrate_with(feed, moment, written)
+        assert narrated.source == MODEL
+        assert " " not in narrated.text
+        assert " " not in narrated.tagged_text
+        assert "Terry Butcher" in narrated.text
+
+    def test_the_attempt_log_records_the_plain_text(self, feed, moment):
+        """The log is what a reader audits a drifting model with, so it holds
+        the text as the check read it rather than as it arrived."""
+        written = (
+            "[24] Maradona shot at fifty‑four and scored for Argentina."
+        )
+        narrated, _ = narrate_with(feed, moment, written)
+        assert "‑" not in narrated.attempts[0].text
+        assert "fifty-four" in narrated.attempts[0].text
+
+    def test_an_em_dash_from_the_model_still_falls_back(self, feed, moment):
+        """The rewrite is not a way past the ban: an em dash is still an em
+        dash, so the narration is refused and the pipeline falls back."""
+        written = "[24] Maradona shot—and scored for Argentina."
+        narrated, _ = narrate_with(feed, moment, written, written, written)
+        assert narrated.source == TEMPLATE
+        assert all(not a.grounded for a in narrated.attempts[:-1])
+        assert "—" not in narrated.text
+
+    def test_a_plain_narration_is_unchanged(self, feed, moment):
+        narrated, _ = narrate_with(feed, moment, GROUNDED)
+        assert narrated.text == GROUNDED_SHOWN
+        assert narrated.tagged_text == GROUNDED

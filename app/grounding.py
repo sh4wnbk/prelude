@@ -107,6 +107,7 @@ from dataclasses import dataclass
 from typing import Mapping, Sequence
 
 from app.narration_prompt import Fact, Facts
+from app.plain_characters import plain
 from app.personas import Persona
 
 
@@ -737,7 +738,18 @@ def check(
     A partisan persona with no side raises `NoSideForAPartisanVoice` rather
     than quietly checking the narration as though nobody were partisan. This
     is the only place that raises it: the prompt takes no persona.
+
+    **The text is made plain first.** `app/plain_characters.py` rewrites a
+    disguised space or hyphen as the plain one: two candidates have arrived
+    carrying a `NARROW NO-BREAK SPACE` inside a player's name and a
+    `NON-BREAKING HYPHEN` inside a number written out in words. Reading the
+    text as written is what let them through, since a narrow space is
+    whitespace and a hyphen is not a claim. The check runs on the plain text
+    so that the words it reads are the words a voice would say, and the
+    rewrite reaches no dash: the em dash and the en dash are refused below and
+    turning either into a hyphen here would undo that.
     """
+    text = plain(text)
     partisan = persona is not None and persona.fans_only
     if partisan and not side:
         raise NoSideForAPartisanVoice(

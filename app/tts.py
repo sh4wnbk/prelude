@@ -96,6 +96,7 @@ from app.credentials import load as load_credentials
 from app.delivery import Delivery, delivery
 from app.grounding import strip_citations
 from app.personas import persona
+from app.plain_characters import plain
 from app.pronunciation import for_speech, spoken_text
 
 #: IBM's synthesis endpoint, and the two formats asked for. The probe found
@@ -283,8 +284,18 @@ def speech_text(
     Then the pronunciation table, and then the pauses if this persona's voice
     honours them.
 
+    **Both parts are made plain first**, by `app/plain_characters.py`: a
+    disguised space or hyphen becomes the plain one. `app/narration.py`
+    already does this to a model's narration as it arrives, and this is the
+    guard at the other end of the pipeline, because this function is the last
+    thing that touches the text before it is a paid request and nobody knows
+    what a Natural voice reads a `NARROW NO-BREAK SPACE` as. It changes no
+    dash and no word, so the counts a budget is set on move only by the width
+    of a removed zero-width character.
+
     Raises `CitationTagsInText` if either part still carries its tags.
     """
+    header, narration = plain(header), plain(narration)
     for name, part in (("header", header), ("narration", narration)):
         if strip_citations(part) != part:
             raise CitationTagsInText(

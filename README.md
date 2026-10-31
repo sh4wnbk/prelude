@@ -151,6 +151,19 @@ Everything above it is structure.
   the facts each sentence used, and stop on the goal; `NARRATION_STYLE`, the one
   style every narration is written in, printed into that prompt in every voice;
   and the fallback narration, one sentence per fact, assembled with no model.
+- `app/plain_characters.py`: rewrites a disguised space or hyphen as the plain
+  one: `NO-BREAK SPACE`, `NARROW NO-BREAK SPACE`, every other Unicode space
+  separator, `NON-BREAKING HYPHEN`, `MINUS SIGN` and the zero-width
+  characters, which are removed rather than replaced. Applied as a model's
+  narration arrives in `app/narration.py`, again in `app/grounding.py` before
+  a claim is read, and again in `app/tts.py` before a speech request is built.
+  A dash is left exactly as written: the em dash and the en dash are refused
+  by the check and banned from copy, so rewriting either as a hyphen would
+  undo a ban in the one place nobody would look.
+- `tests/test_plain_characters.py`: 40 tests over the rewrite, including the
+  two characters live candidates actually arrived with, the sixteen space
+  separators, the dashes left alone and the em dash still being refused after
+  it. All 40 pass.
 - `app/recorded_names.py`: reads `player_nickname` out of
   `data/raw/lineups/<match_id>.json` and maps it to the full name the event
   feed records, so a narration can say "Lionel Messi" rather than "Lionel
@@ -275,9 +288,10 @@ Everything above it is structure.
   misdescription it refuses by pairing a name with an action and the first
   person, which only the Mate may use and only over its own side's facts.
   All pass.
-- `tests/test_narration.py`: 24 tests over the pipeline, covering the retries,
-  the fallback, the citation stripping, the failure log and the first-attempt
-  pass rate. All pass, and no test calls a model.
+- `tests/test_narration.py`: 28 tests over the pipeline, covering the retries,
+  the fallback, the citation stripping, the failure log, the first-attempt pass
+  rate and the characters made plain as a model's text arrives. All pass, and
+  no test calls a model.
 - `tests/test_narration_eval.py`: 72 tests over the coverage measure, the
   token recorder and the goal selection in `scripts/narration_eval.py`,
   including the live thin narration that passes the grounding check and
