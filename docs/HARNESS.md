@@ -175,7 +175,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 1178 tests in twenty-nine files, and all 1178 pass, so any failure
+The suite is 1186 tests in twenty-nine files, and all 1186 pass, so any failure
 means something is wrong. It is run from the repo root:
 
 ```

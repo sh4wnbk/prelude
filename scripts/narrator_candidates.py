@@ -52,7 +52,7 @@ import json
 import sys
 from datetime import date
 from pathlib import Path
-from typing import Sequence
+from typing import Mapping, Sequence
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -67,6 +67,7 @@ from app.goal_call_prompt import (  # noqa: E402
     GOAL_CALL_CHARACTERS_PER_WORD,
     GOAL_CALL_TARGET_CHARACTERS,
     STYLES,
+    build_goal_call_prompt,
     shared_name_parts,
     situation_for,
     slot_key,
@@ -112,6 +113,15 @@ DEFAULT_PER_SLOT = 3
 #: candidate is not a narration the app may speak, and a file in the working
 #: tree is a file that gets committed by habit.
 DEFAULT_OUT = Path.home() / "prelude-review"
+
+#: Characters a token is worth, for the estimate the plan prints.
+#:
+#: It is an estimate and is labelled one everywhere it is printed. Counting
+#: the tokens exactly would mean sending the prompt to watsonx's tokenization
+#: endpoint, which is a call to the paid service in order to find out what the
+#: paid service will cost. Four characters a token is the usual figure for
+#: English prose and is close enough to decide whether a run fits a budget.
+CHARACTERS_A_TOKEN = 4.0
 
 _NOTE = (
     "Goal-call candidate narrations, three per recorded slot, written by the "
@@ -251,6 +261,55 @@ def slot_coverage(text: str, facts: Facts) -> dict:
             }
             for character, name in odd_characters(text)
         ],
+    }
+
+
+def prompt_characters(
+    facts: Facts, key: str, per_slot: int
+) -> tuple[int, ...]:
+    """The prompt for each candidate of one slot, in characters.
+
+    One figure per candidate, because the prompt grows: `avoid` carries the
+    candidates already kept for this slot, so the second prompt holds one
+    narration and the third holds two. They are measured with filler of the
+    length the prompt asks a narration to be, since the real ones do not
+    exist until the run has made them.
+    """
+    filler = "x" * GOAL_CALL_TARGET_CHARACTERS
+    return tuple(
+        len(build_goal_call_prompt(facts, key, avoid=[filler] * number))
+        for number in range(per_slot)
+    )
+
+
+def token_estimate(
+    slots: Sequence[tuple[int, str]],
+    characters: Mapping[tuple[int, str], tuple[int, ...]],
+    attempts: int,
+    max_new_tokens: int,
+) -> dict[str, int]:
+    """What this run is expected to spend, and what it could spend at most.
+
+    Two figures, because they are far apart and only one of them is a
+    prediction. The ceiling has every candidate failing the check until its
+    last attempt and every answer running to the length cap. The first-attempt
+    figure has every candidate grounded the first time, which is what 15 of
+    the 18 did on 2026-10-31.
+
+    Input is counted once per call and output at the cap, because a reasoning
+    model writes its reasoning into the same budget and `reasoning_effort`
+    high is a request for more of it.
+    """
+    one_pass = sum(sum(characters[slot]) for slot in slots)
+    first_attempt_in = round(one_pass / CHARACTERS_A_TOKEN)
+    calls_first = sum(len(characters[slot]) for slot in slots)
+    return {
+        "calls_at_most": calls_first * attempts,
+        "calls_if_first_attempt": calls_first,
+        "input_if_first_attempt": first_attempt_in,
+        "output_if_first_attempt": calls_first * max_new_tokens,
+        "at_most": (first_attempt_in + calls_first * max_new_tokens) * attempts,
+        "if_first_attempt": first_attempt_in + calls_first * max_new_tokens,
     }
 
 
@@ -414,7 +473,13 @@ def gather(
     return goals
 
 
-def review(goals: Sequence[dict], model: str, provider: str) -> str:
+def review(
+    goals: Sequence[dict],
+    model: str,
+    provider: str,
+    reasoning_effort: str | None,
+    max_new_tokens: int,
+) -> str:
     """The review file: every candidate, grouped by slot, with its price.
 
     Markdown, because a person reads it aloud and chooses from it. It is
@@ -428,10 +493,12 @@ def review(goals: Sequence[dict], model: str, provider: str) -> str:
         date.today().isoformat()
     ))
     out.append("")
-    out.append("Model {} on {}, chat endpoint, reasoning effort {}, decoding "
-               "pinned to temperature {}, top_p {}, top_k {}.".format(
+    out.append("Model {} on {}, chat endpoint, reasoning effort {} for this "
+               "run, {} max new tokens, decoding pinned to temperature {}, "
+               "top_p {}, top_k {}.".format(
                    model, provider,
-                   ACTIVE_CANDIDATE.reasoning_effort or "not set",
+                   reasoning_effort or "not set",
+                   max_new_tokens,
                    COMPARISON_DECODING.temperature,
                    COMPARISON_DECODING.top_p,
                    COMPARISON_DECODING.top_k,
@@ -594,9 +661,9 @@ def document(goals: Sequence[dict], backend: WatsonxProvider) -> dict:
         "generated_on": date.today().isoformat(),
         "model": backend.model,
         "provider": backend.name,
-        "chat": ACTIVE_CANDIDATE.chat,
-        "reasoning_effort": ACTIVE_CANDIDATE.reasoning_effort,
-        "max_new_tokens": COMPARISON_MAX_NEW_TOKENS,
+        "chat": backend.chat,
+        "reasoning_effort": backend.reasoning_effort,
+        "max_new_tokens": backend.max_new_tokens,
         "decoding": {
             "temperature": COMPARISON_DECODING.temperature,
             "top_p": COMPARISON_DECODING.top_p,
@@ -667,6 +734,25 @@ def main(argv: Sequence[str]) -> int:
              ),
     )
     parser.add_argument(
+        "--reasoning-effort",
+        default=ACTIVE_CANDIDATE.reasoning_effort,
+        choices=("low", "medium", "high"),
+        help="how much the model thinks before it writes, for this run only "
+             "(default {}, which is what app/narration_config.py ships on the "
+             "active candidate)".format(
+                 ACTIVE_CANDIDATE.reasoning_effort or "not set"
+             ),
+    )
+    parser.add_argument(
+        "--max-new-tokens",
+        type=int,
+        default=COMPARISON_MAX_NEW_TOKENS,
+        help="the length cap sent to watsonx, which a reasoning model writes "
+             "its reasoning into as well (default {})".format(
+                 COMPARISON_MAX_NEW_TOKENS
+             ),
+    )
+    parser.add_argument(
         "--out",
         type=Path,
         default=DEFAULT_OUT,
@@ -687,10 +773,17 @@ def main(argv: Sequence[str]) -> int:
     heroes = goals_to_run(args.match)
     feed = StatsBombEventFeed()
     slots: list[tuple[int, str]] = []
+    characters: dict[tuple[int, str], tuple[int, ...]] = {}
     for _, match_id, minute, second in heroes:
         moment = moment_at(feed, match_id, minute, second)
+        facts = facts_from_buildup(
+            feed.buildup(match_id, moment), recorded_nicknames(match_id)
+        )
         for key, _side in slots_for(match_id, moment.team, args.slot):
             slots.append((match_id, key))
+            characters[(match_id, key)] = prompt_characters(
+                facts, key, args.per_slot
+            )
 
     # Every recording comes out of one monthly allowance and there are six of
     # them, so what one may cost is the budget divided by the slots it is
@@ -709,8 +802,11 @@ def main(argv: Sequence[str]) -> int:
     print("endpoint  {}".format(
         "chat" if ACTIVE_CANDIDATE.chat else "generation"
     ))
-    print("effort    {}".format(ACTIVE_CANDIDATE.reasoning_effort or "not set"))
-    print("tokens    {} max new".format(COMPARISON_MAX_NEW_TOKENS))
+    print("effort    {} (this run; app/narration_config.py ships {})".format(
+        args.reasoning_effort or "not set",
+        ACTIVE_CANDIDATE.reasoning_effort or "not set",
+    ))
+    print("tokens    {} max new".format(args.max_new_tokens))
     print("decoding  temperature {}, top_p {}, top_k {} (pinned, because "
           "watsonx decodes greedily unset and three greedy candidates are "
           "one candidate three times)".format(
@@ -739,6 +835,26 @@ def main(argv: Sequence[str]) -> int:
               len(slots) * args.per_slot * attempts,
               len(slots), args.per_slot, attempts,
           ))
+    spend = token_estimate(
+        slots, characters, attempts, args.max_new_tokens
+    )
+    print("prompts   {} to {} characters a prompt; the second and third "
+          "candidate of a slot carry the ones already kept".format(
+              min(min(one) for one in characters.values()),
+              max(max(one) for one in characters.values()),
+          ))
+    print("tokens    about {:,} expected ({} calls, every candidate grounded "
+          "on its first attempt: {:,} in, {:,} out at the cap)".format(
+              spend["if_first_attempt"],
+              spend["calls_if_first_attempt"],
+              spend["input_if_first_attempt"],
+              spend["output_if_first_attempt"],
+          ))
+    print("          about {:,} at most ({} calls, every candidate failing "
+          "until its last attempt), estimated at {:.0f} characters a "
+          "token".format(
+              spend["at_most"], spend["calls_at_most"], CHARACTERS_A_TOKEN,
+          ))
     print("review    {}".format(out_dir))
     print("freezes   nothing: app/web/narrations.json is not written here")
     print()
@@ -746,9 +862,15 @@ def main(argv: Sequence[str]) -> int:
         print("nothing was sent. --confirm is what sends it.")
         return 0
 
+    # The effort is this run's and not the module's. It is the one request
+    # setting that changes what the answers are worth rather than how they are
+    # addressed, so it belongs to the run that chose it: Task 9d asked for
+    # high, and `ACTIVE_CANDIDATE` still ships low because that is what the
+    # pipeline a fan waits on uses.
     backend = WatsonxProvider(
-        max_new_tokens=COMPARISON_MAX_NEW_TOKENS,
+        max_new_tokens=args.max_new_tokens,
         decoding=COMPARISON_DECODING,
+        reasoning_effort=args.reasoning_effort,
     )
     goals = gather(
         backend,
@@ -767,7 +889,13 @@ def main(argv: Sequence[str]) -> int:
     produced = goals
     goals = merged(goals, data)
     path.write_text(
-        review(goals, backend.model, backend.name),
+        review(
+            goals,
+            backend.model,
+            backend.name,
+            backend.reasoning_effort,
+            backend.max_new_tokens,
+        ),
         encoding="utf-8",
         newline="\n",
     )

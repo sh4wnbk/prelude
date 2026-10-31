@@ -46,6 +46,7 @@ from app.narration_prompt import HERO_TARGET_CHARACTERS, facts_from_buildup
 from app.personas import THE_BUDDY, THE_CALLER, THE_STORYTELLER
 from app.recorded_names import recorded_nicknames
 from app.statsbomb_event_feed import StatsBombEventFeed
+from app.narration_config import ACTIVE_CANDIDATE
 from scripts.narrator_candidates import (
     DEFAULT_PER_SLOT,
     merged,
@@ -53,9 +54,11 @@ from scripts.narrator_candidates import (
     goals_to_run,
     main,
     narrator_for,
+    prompt_characters,
     review,
     slot_coverage,
     slots_for,
+    token_estimate,
 )
 from scripts.tts_hero import DEFAULT_BUDGET
 import tests.test_reference_narrations as references
@@ -707,7 +710,7 @@ class TestTheReviewFile:
                 ],
             }
         ]
-        text = review(goals, "openai/gpt-oss-120b", "watsonx")
+        text = review(goals, "openai/gpt-oss-120b", "watsonx", "high", 2000)
         assert "## 1986 (54:18, Diego Armando Maradona)" in text
         assert "### buddy_scored" in text
         assert "Written for a fan of Argentina." in text
@@ -741,7 +744,7 @@ class TestTheReviewFile:
                 ],
             }
         ]
-        text = review(goals, "m", "p")
+        text = review(goals, "m", "p", "high", 2000)
         assert "No candidate for this slot passed." in text
         assert "none" in text
 
@@ -913,3 +916,94 @@ class TestAskingForDifferentTellings:
                 if len(text) < 60:
                     continue
                 assert text[:25] not in prompt, name
+
+
+class TestTheReasoningEffortIsThisRunsChoice:
+    """How much the model thinks is a setting of the run, not of the module.
+
+    `app/narration_config.py` ships `low` on the active candidate, which is
+    what the pipeline a fan waits on uses: at its default effort
+    `openai/gpt-oss-120b` spent most of its budget reasoning before writing
+    anything. A candidate run is not a fan waiting, so Task 9d asked for
+    `high`, and the run that chose it is what records it.
+    """
+
+    def test_the_default_is_still_what_the_active_candidate_ships(self, capsys):
+        main(["--plan"])
+        printed = capsys.readouterr().out
+        assert "effort    {} (this run; app/narration_config.py ships {})".format(
+            ACTIVE_CANDIDATE.reasoning_effort, ACTIVE_CANDIDATE.reasoning_effort
+        ) in printed
+
+    def test_the_plan_prints_the_effort_it_would_send(self, capsys):
+        main(["--plan", "--reasoning-effort", "high"])
+        printed = capsys.readouterr().out
+        assert "effort    high (this run" in printed
+        assert "ships low" in printed
+
+    def test_an_effort_the_service_has_no_name_for_is_refused(self):
+        with pytest.raises(SystemExit):
+            main(["--plan", "--reasoning-effort", "maximum"])
+
+    def test_the_review_file_records_what_the_run_used(self):
+        """Not what the module ships: the two differ on a run like this one,
+        and the file is the provenance of the words in it."""
+        goals = [
+            {
+                "year": 2022,
+                "match_id": 3869685,
+                "minute": 35,
+                "second": 22,
+                "player": "Ángel Di María",
+                "records": 13,
+                "players_who_touched_the_ball": ("Ángel Di María",),
+                "shared_name_parts": (),
+                "slots": [],
+            }
+        ]
+        text = review(goals, "m", "p", "high", 2000)
+        assert "reasoning effort high for this run" in text
+        assert "2000 max new tokens" in text
+
+
+class TestWhatTheRunIsExpectedToSpend:
+    """The call count and the tokens, printed before anything is sent.
+
+    Two figures and only one of them is a prediction, because they are far
+    apart: a run where every candidate is grounded first time sends a third of
+    the calls of one where every candidate fails until its last attempt.
+    """
+
+    def test_the_prompt_grows_with_what_is_already_kept(self, facts_2022):
+        sizes = prompt_characters(facts_2022, BUDDY_SCORED, 3)
+        assert len(sizes) == 3
+        assert sizes[0] < sizes[1] < sizes[2]
+
+    def test_the_first_prompt_of_a_slot_carries_no_avoid_block(
+        self, facts_2022
+    ):
+        assert prompt_characters(facts_2022, BUDDY_SCORED, 1) == (
+            len(build_goal_call_prompt(facts_2022, BUDDY_SCORED)),
+        )
+
+    def test_the_ceiling_is_the_attempts_times_the_first_pass(self):
+        characters = {(1, "a"): (4000, 4400), (2, "b"): (4000, 4400)}
+        spend = token_estimate(
+            [(1, "a"), (2, "b")], characters, attempts=3, max_new_tokens=2000
+        )
+        assert spend["calls_if_first_attempt"] == 4
+        assert spend["calls_at_most"] == 12
+        assert spend["input_if_first_attempt"] == 4200
+        assert spend["output_if_first_attempt"] == 8000
+        assert spend["if_first_attempt"] == 12200
+        assert spend["at_most"] == 36600
+
+    def test_the_plan_states_the_call_count_and_the_tokens(self, capsys):
+        main(["--plan", "--reasoning-effort", "high"])
+        printed = capsys.readouterr().out
+        assert "calls     at most 54 generations" in printed
+        assert "tokens    about" in printed
+        assert "expected (18 calls" in printed
+        assert "at most (54 calls" in printed
+        assert "4 characters a token" in printed
+        assert "nothing was sent" in printed
