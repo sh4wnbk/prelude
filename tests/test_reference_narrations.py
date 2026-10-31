@@ -225,6 +225,78 @@ class TestTheReferences:
         assert result.grounded, f"{slot}: {result.summary}"
 
 
+class TestTheFinishMayBeSaidPlainly:
+    """"And the ball went in" lands the finish, and the check accepts it.
+
+    The references all say "scored" or "finished". The live run of 2026-10-31
+    showed that was the whole of what the check would take: every one of the
+    nine candidates it dropped ended on the ball going in, which is the
+    framework's own words for the last thing a narration says. This is the
+    standard widened to the words a commentator actually lands on, and it is
+    still a claim about the goal's own record.
+    """
+
+    def test_the_storyteller_may_land_on_the_ball_going_in(self, facts_1986):
+        text = (
+            "Cuciuffo's recovery started the counter, and Enrique played it "
+            "to Maradona just inside his own half, who carried it forward "
+            "under pressure past Beardsley, Butcher and Fenwick and took it "
+            "into the box, where he went around Peter Shilton and the ball "
+            "went in."
+        )
+        result = check(text, facts_1986, THE_STORYTELLER, None)
+        assert result.grounded, result.summary
+
+    def test_the_body_part_lands_the_finish_whatever_the_verb_was(
+        self, facts_1986
+    ):
+        """Which is the rule rather than a list of verbs.
+
+        The live run of 2026-10-31 wrote "firing", "struck", "smashed it home"
+        and "blasting it home", and refusing all four taught nothing except
+        that the verb list was short. The body part is read off the goal shot
+        itself, so a sentence claiming it is a sentence about the shot that
+        scored.
+        """
+        text = (
+            "We won it back through Cuciuffo, who carried it and found "
+            "Enrique; he carried forward and set up Maradona, who dribbled "
+            "past Beardsley, Butcher, Fenwick and Shilton before firing with "
+            "his left foot!"
+        )
+        result = check(text, facts_1986, THE_BUDDY, "Argentina")
+        assert result.grounded, result.summary
+
+    def test_the_wrong_body_part_lands_nothing(self, facts_1986):
+        """The claim still has to be true: a right foot is refused twice over,
+        once as the body part and once as a finish that never came."""
+        text = (
+            "We won it back through Cuciuffo, who found Enrique; he set up "
+            "Maradona, who dribbled past Beardsley, Butcher, Fenwick and "
+            "Shilton before firing with his right foot!"
+        )
+        result = check(text, facts_1986, THE_BUDDY, "Argentina")
+        assert not result.grounded, result.summary
+        assert {failure.kind for failure in result.failures} == {
+            "body_part",
+            "ending",
+        }
+
+    def test_a_narration_that_lands_on_nothing_is_still_refused(
+        self, facts_2022
+    ):
+        """The rule did not go away: a narration that stops before the finish
+        has not landed it."""
+        text = (
+            "Argentina were on the counter when Molina picked it up and "
+            "found MacAllister, who played it to Messi, and Messi moved it "
+            "on to Álvarez, whose long ball forward found MacAllister again."
+        )
+        result = check(text, facts_2022, THE_STORYTELLER, None)
+        assert not result.grounded, result.summary
+        assert {failure.kind for failure in result.failures} == {"ending"}
+
+
 class TestAChainTheRecordsDoNotHold:
     """A chain is a recorded pass from the first name to the second.
 

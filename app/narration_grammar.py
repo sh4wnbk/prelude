@@ -163,6 +163,16 @@ PHRASES: Sequence[tuple[str, str, object]] = (
     # player's feet.
     (r"picked it up", "touch", None),
     (r"picks it up", "touch", None),
+    # The ball going in, which is the plainest English for the finish and
+    # was a false refusal until the live run of 2026-10-31 found it. Nine of
+    # eighteen candidates were dropped and this was in every one of the nine:
+    # "shot with his left foot and the ball went in" passed because "shot" is
+    # a Shot claim, and "and the ball went in" alone did not, although the
+    # moment is a goal and the record says `outcome` Goal. The framework in
+    # `docs/VOICE.md` asks a narration to land the finish, so refusing the
+    # words it lands on was this module's mistake.
+    (r"(?:the ball |it )?went in", "action", ("Shot",)),
+    (r"found the net", "action", ("Shot",)),
     # The shot struck without a touch to control it first.
     (r"with one touch", "first_time", None),
     (r"one touch", "first_time", None),

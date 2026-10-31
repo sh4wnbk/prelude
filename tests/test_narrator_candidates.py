@@ -16,6 +16,7 @@ import pytest
 
 from app.goal_call_prompt import (
     BUDDY_CONCEDED,
+    catalyst_and_finish,
     BUDDY_SCORED,
     CALLER_NEUTRAL,
     GOAL_CALL_CHARACTERS_PER_WORD,
@@ -39,6 +40,7 @@ from app.recorded_names import recorded_nicknames
 from app.statsbomb_event_feed import StatsBombEventFeed
 from scripts.narrator_candidates import (
     DEFAULT_PER_SLOT,
+    merged,
     billed_for_slot,
     goals_to_run,
     main,
@@ -358,6 +360,40 @@ class TestTheRulesMatchTheCheck:
         assert len(text) <= GOAL_CALL_TARGET_CHARACTERS * 1.5
 
 
+class TestWhatTheLiveRunOfTheThirtyFirstChanged:
+    """Two prompt fixes, each one a thing the model got wrong three times.
+
+    Nine of eighteen candidates were dropped on 2026-10-31. Two of the nine
+    were the check and are fixed in `app/narration_grammar.py`; these two are
+    the prompt.
+    """
+
+    def test_the_prompt_says_where_the_narration_starts(
+        self, facts_1986, facts_2022
+    ):
+        """The worked example opens on a recovery and the 2022 counter does
+        not, and the model opened it "we won it back through Molina" three
+        times over. Molina's first record in that passage is a pass.
+        """
+        assert "Cuciuffo recovered the ball" in catalyst_and_finish(facts_1986)
+        anchor = catalyst_and_finish(facts_2022)
+        assert "Nahuel Molina passed" in anchor
+        assert "recovered" not in anchor
+        assert "Ángel Di María scored" in anchor
+
+    def test_the_prompt_names_the_one_pass_that_is_the_assist(
+        self, facts_1986, facts_2022
+    ):
+        """Rule 6 said "the pass marked the assist", and the model called
+        three other passes a set-up. It now says which pass that is."""
+        rule = flat(build_goal_call_prompt(facts_1986, BUDDY_SCORED))
+        assert '"Set up" is for one pass and no other: Héctor Enrique to ' \
+               "Diego Armando Maradona" in rule
+        other = flat(build_goal_call_prompt(facts_2022, BUDDY_SCORED))
+        assert '"Set up" is for one pass and no other: Alexis MacAllister ' \
+               "to Ángel Di María" in other
+
+
 class TestTheSixRecordedSlots:
     """Which slots a run generates for, read off `hero.voice_for`."""
 
@@ -536,6 +572,86 @@ class TestWhatACandidateIsMeasuredOn:
         assert slot_coverage(
             references.STORYTELLER_2022, facts_2022
         )["cheers"] == 0
+
+
+class TestMergingASlotRerunIntoTheDocument:
+    """A rerun of one slot keeps the other five.
+
+    `--slot` exists so that a slot can be rerun after a check or a prompt fix
+    without spending calls on five that are already good, and that is only
+    worth having if the document survives it. `scripts/hero_candidates.py`
+    lost a goal that way once, on 2026-10-30.
+    """
+
+    def goal(self, slots, **extra):
+        one = {
+            "year": 1986,
+            "match_id": MATCH_1986,
+            "minute": 54,
+            "second": 18,
+            "player": "Diego Armando Maradona",
+            "team": "Argentina",
+            "records": 24,
+            "recorded_players": (),
+            "players_who_touched_the_ball": (),
+            "shared_name_parts": (),
+            "generated_on": "2026-10-31",
+            "slots": slots,
+        }
+        one.update(extra)
+        return one
+
+    def slot(self, key, texts):
+        return {
+            "slot": key,
+            "label": STYLES[key].label,
+            "narrator": "buddy" if key.startswith("buddy") else "storyteller",
+            "side": "Argentina" if key == BUDDY_SCORED else None,
+            "candidates": [{"candidate": n, "text": text}
+                           for n, text in enumerate(texts, start=1)],
+            "dropped": [],
+        }
+
+    def write(self, tmp_path, goals):
+        path = tmp_path / "narrator_candidates_2026-10-31.json"
+        path.write_text(
+            json.dumps({"goals": goals}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        return path
+
+    def test_a_slot_this_run_did_not_touch_is_carried_over(self, tmp_path):
+        path = self.write(tmp_path, [self.goal([
+            self.slot(BUDDY_SCORED, ["old scored"]),
+            self.slot(STORYTELLER_NEUTRAL, ["old neutral"]),
+        ])])
+        fresh = [self.goal([self.slot(BUDDY_SCORED, ["new scored"])])]
+        out = merged(fresh, path)
+        assert len(out) == 1
+        keys = [slot["slot"] for slot in out[0]["slots"]]
+        assert keys == [BUDDY_SCORED, STORYTELLER_NEUTRAL]
+        texts = {
+            slot["slot"]: slot["candidates"][0]["text"]
+            for slot in out[0]["slots"]
+        }
+        assert texts[BUDDY_SCORED] == "new scored"
+        assert texts[STORYTELLER_NEUTRAL] == "old neutral"
+
+    def test_a_goal_this_run_did_not_touch_is_carried_over_whole(
+        self, tmp_path
+    ):
+        older = self.goal([self.slot(BUDDY_SCORED, ["old"])])
+        other = dict(older, match_id=MATCH_2022, year=2022)
+        path = self.write(tmp_path, [older, other])
+        out = merged(
+            [self.goal([self.slot(BUDDY_SCORED, ["new"])])], path
+        )
+        assert [goal["match_id"] for goal in out] == [MATCH_1986, MATCH_2022]
+        assert out[1]["slots"][0]["candidates"][0]["text"] == "old"
+
+    def test_with_no_earlier_document_the_run_stands_alone(self, tmp_path):
+        fresh = [self.goal([self.slot(BUDDY_SCORED, ["new"])])]
+        assert merged(fresh, tmp_path / "absent.json") == fresh
 
 
 class TestTheReviewFile:

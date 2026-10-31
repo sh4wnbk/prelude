@@ -1437,8 +1437,27 @@ over, and the app gets out of the way.** A closer would also be the one sentence
 in the narration that no fact could ground, which is the opposite of what the
 label over it promises.
 
-What the check can hold is where the narration stops: the last sentence has to
-cite the goal's own shot fact, so a sentence after the goal is refused.
+What the check can hold is where the narration stops. Under the cited reading
+that is the last sentence citing the goal's own shot fact, so a sentence after
+the goal is refused.
+
+**Under the goal-call reading it is what the last sentence claims, not which
+verb it used.** A narration lands the finish when it makes a claim the goal's
+own record holds: the `Shot` itself, the body part, or the first-time flag. The
+live run of 2026-10-31 is why it is a rule rather than a verb list. Nine of
+eighteen candidates were refused on this one rule, and every one of the nine
+ended "with his left foot", after "firing", "struck", "smashed it home" or
+"blasting it home". None of those four words is in `ACTION_CLAIMS`, so none of
+them claimed a shot, so the check decided a narration that said the goal was
+scored with the left foot had not reached the goal. Adding the four would have
+worked for the four and found four more on the next run.
+
+So the body part counts, the first-time flag counts, and "the ball went in"
+counts, which is a `Shot` claim in `app/narration_grammar.py` now and was not
+before. `FINISH_KINDS` in `app/grounding.py` is the list, and what it cannot
+catch is in the comment beside it: a last sentence naming the body part without
+saying the ball went in lands the finish by this rule and does not say it in
+words (`tests/test_reference_narrations.py::TestTheFinishMayBeSaidPlainly`).
 
 | Narration | Verdict | Test |
 | --------- | ------- | ---- |

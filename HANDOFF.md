@@ -2659,8 +2659,9 @@ Tasks 3d through Phase 7, as agreed with Shawn, copied here so a fresh session
 has the whole arc rather than one task at a time.
 
 **Everything in this section is planned work except where a task is marked
-done.** Tasks 3d, 4a, 4b, 4c, 5, 6a, 6b and 6c are built, and so are Bob's task
-4 and task 5 and the follow-up after it; nothing below them exists. Paths a doc
+done.** Tasks 3d, 4a, 4b, 4c, 5, 6a, 6b, 6c, 6d, 7, 8 and 9 are built, and so
+are Bob's tasks through task 13; what is left is the pick, the freeze and the
+recordings, and then Phases 6 and 7. Paths a doc
 names before they are written go on `DELIBERATELY_ABSENT` in
 `scripts/check_docs.py`, so the docs gate fails if one appears and this section
 was not updated with it. That list is empty now:
@@ -2889,6 +2890,28 @@ for Shawn to read.
 Exit when: the report compares both models by pass rate, coverage, cost and
 speed, per persona; this file records which leads; and Shawn picks the model.
 
+### Task 9: the narration framework, as the standard and then as a check (done)
+
+**9a, `198f368`.** The framework into `docs/VOICE.md`, replacing one style for
+every persona, and `tests/test_reference_narrations.py` with the eight
+reference narrations in it as failing tests. They failed only on the citation
+regime, which is what 9b replaced.
+
+**9b, `8e9a79c` and `d3f1ba0`.** Step 1 put the recorded fields a goal call
+says out loud on `Beat` in `app/narration_prompt.py`: the play pattern, the
+pressure, the pass recipient and length, the assist, the first-time flag, the
+body part, the two locations as `Spot` and the millisecond timestamp, with the
+field positions and the duration computed by code. Step 2 added
+`app/narration_grammar.py`, which reads a narration that cites nothing, and
+gave `app/grounding.py` two readings picked off the narration's own shape.
+
+**9c, `e76ea63` and what follows it.** `app/goal_call_prompt.py` holds a style
+per narrator and situation, shown through an invented match with invented
+players, and `scripts/narrator_candidates.py` generates three candidates for
+each of the six recorded slots. `scripts/tts_hero.py --budget` went to 3,500,
+because six narrations replace two spoken three ways each. The run and its
+numbers are in "Next first action" above.
+
 ### Phase 5: voice and audio
 
 **This is where the personas are, now that the narration text is one text.**
@@ -2950,7 +2973,84 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Shawn picks one candidate per hero goal)
+## Next first action (Shawn reads eighteen candidates aloud and picks six)
+
+**Task 9 is run end to end, nothing is frozen, and there are eighteen
+candidates to choose from.** They are in
+`C:\Users\shawn\prelude-review\narrator_candidates_2026-10-31.md`, with the
+same data beside it as JSON. Three per slot, six slots, and every one of them
+was written by `openai/gpt-oss-120b` and passed the grounding check reading it
+as a goal call.
+
+**What changed, in one line: the narration read like a log file and now it
+reads like a recap.** The framework Shawn settled on 2026-10-30 is in
+`docs/VOICE.md`: Prelude is the recap stage of a goal call, so a narration
+starts at the catalyst, tells the decisive part and lands the finish, with
+chains, action before name, short names and "he", repetition that builds, past
+tense and football idiom. No clock, no verdict, no backstory, no crowd, no
+opener two goals share. **Each narrator has its own text**, so there are six
+narrations rather than two, and "!" goes only where the listener would cheer.
+
+**The standard is eight reference narrations and they are Shawn's words, not a
+model's.** `tests/test_reference_narrations.py` holds them, two hero goals by
+four narrator-and-side slots, and they pass the check word for word. They never
+go into a prompt for the two goals they describe: the style a model is shown is
+worked through an invented match (Harbour Town against Kestrel Bay) with
+invented players, which `tests/test_narrator_candidates.py::TestTheExampleIsInvented`
+holds the whole prompt to.
+
+**The check learned the grammar rather than the words.**
+`app/narration_grammar.py` reads a narration that cites nothing: a name part
+that picks out one player, "he" resolved to the player with the ball, a chain
+as a recorded pass, action before name, "past X" as a dribble past X, "we" over
+the listener side's own play, and where an exclamation mark may stand.
+`app/grounding.py` picks the reading off the narration's own shape, so the
+cited pipeline is untouched: a tag anywhere means the old reading.
+
+**Two rules were wrong and the live run found both.** The first run of
+2026-10-31 refused nine of eighteen candidates and both reasons were the
+check's rather than the model's. "The ball went in" claimed no shot, so a
+narration that landed the finish in the plainest English was refused; it is a
+`Shot` claim now. And the ending rule wanted a verb from a list, so nine
+candidates ending "with his left foot" after "firing", "struck", "smashed it
+home" or "blasting it home" were refused although the body part is read off
+the goal shot itself. `FINISH_KINDS` in `app/grounding.py` is the rule that
+replaced the list: a narration lands the finish when its last sentence makes a
+claim the goal's own record holds.
+
+**What the run cost and what it kept.** Three runs, because two of them found
+those two rules: 54 generations at most each for the first two and 18 for the
+third, which reran the two `buddy_scored` slots alone once the ending rule was
+right. The third run carried the other four slots across rather than throwing
+them away, which is what `merged` in `scripts/narrator_candidates.py` is for.
+Eighteen of eighteen kept on the last pass, fifteen of them on the first
+attempt.
+
+**Every set of six fits the budget with room to spare.**
+`scripts/tts_hero.py --budget` is 3,500 now, up from 3,000: the length did not
+change, the count did, because six narrations replace two spoken three ways
+each. The cheapest set of six bills 1,739 and the most expensive 1,847, against
+583 a recording. The 1986 candidates run 271 to 297 billed and the 2022 ones
+300 to 353.
+
+**Still owed after the pick.** Three things, and the first is Shawn's:
+
+1. Shawn picks one candidate per slot, six in all, reading them aloud.
+2. The freeze. `scripts/freeze_narrations.py` writes one narration per goal and
+   `app/web/narrations.json` holds one per goal, so writing six picks into it is
+   a change to both and is not built. `scripts/narrator_candidates.py` freezes
+   nothing on purpose.
+3. The recordings. The Text to Speech instance was disabled above its Lite cap
+   until November 1, so `scripts/tts_hero.py --confirm` has not been sent and
+   `hero.audio` is still `{}`.
+
+**The Caller has a style and no recording.** `hero.voice_for` sends no listener
+to it, so nothing generated for it and there are six slots rather than eight.
+Its style is in `app/goal_call_prompt.py` and its two reference narrations are
+in `tests/test_reference_narrations.py`, so adding the recording later is a
+change to `hero.voice_for` and not to the writing.
+
+### Task 8: the candidate run Task 9 replaced
 
 **Task 8 is run, nothing is frozen, and the freeze is one command away.** The
 candidates are in `C:\Users\shawn\prelude-review\hero_candidates_2026-10-30.md`,

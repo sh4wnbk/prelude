@@ -448,6 +448,52 @@ class TestWhereOnThePitch:
         assert not support(position, facts_2022)
 
 
+class TestTheFinish:
+    """The words a goal call lands on, which the check refused once.
+
+    The live run of 2026-10-31 dropped nine of eighteen candidates and every
+    one of the nine ended "and the ball went in". That is the plainest English
+    for the thing the framework asks a narration to land on, and the moment is
+    a goal, so refusing it was this module's mistake rather than the model's.
+    """
+
+    @pytest.mark.parametrize(
+        "said",
+        [
+            "and the ball went in",
+            "and it went in",
+            "and went in",
+            "and found the net",
+        ],
+    )
+    def test_the_finish_can_be_said_without_a_verb_for_the_shot(
+        self, said, facts_2022
+    ):
+        found = moves(facts_2022, "MacAllister set up Di María, {}.".format(said))
+        shot = next(
+            move
+            for move in found
+            if move.kind == "action" and "Shot" in (move.detail or ())
+        )
+        assert shot.actor == DI_MARIA
+        assert support(shot, facts_2022)
+        assert not ungrounded(facts_2022, found)
+
+    def test_it_is_still_the_scorers_shot_and_nobody_elses(self, facts_2022):
+        """So it is a claim about a record rather than a phrase waved through.
+
+        MacAllister has four records in this passage and none is a `Shot`.
+        """
+        found = moves(facts_2022, "Molina passed to MacAllister, who went in.")
+        shot = next(
+            move
+            for move in found
+            if move.kind == "action" and "Shot" in (move.detail or ())
+        )
+        assert shot.actor == MAC_ALLISTER
+        assert not support(shot, facts_2022)
+
+
 class TestTheShapeOfTheRun:
     """"Straight" is a claim the start and end of every carry can refuse."""
 

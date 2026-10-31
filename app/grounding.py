@@ -1298,12 +1298,7 @@ def _goal_call(
                         "person has nothing to stand on",
                     )
 
-        if any(
-            move.kind == "action"
-            and "Shot" in (move.detail or ())
-            and facts.goal_beat in backing
-            for move, backing in held
-        ):
+        if any(_is_the_finish(move, backing, facts) for move, backing in held):
             said_the_goal = True
             if sentence is not parsed[-1]:
                 checked += 1
@@ -1318,8 +1313,8 @@ def _goal_call(
         failures.append(
             Claim(
                 "ending",
-                "no sentence says the shot that scored, and the narration "
-                "lands the finish: the last thing it says is that the ball "
+                "the narration does not land the finish: nothing in it is a "
+                "claim the goal's own record holds, so it never says the ball "
                 "went in",
                 parsed[-1].number,
                 parsed[-1].raw,
@@ -1343,6 +1338,41 @@ def _goal_call(
     return GroundingResult(
         grounded=not failures, failures=tuple(failures), checked=checked
     )
+
+
+#: The kinds of move that can be the finish: a claim the goal's own record
+#: holds. Three of them, and the list is a rule rather than a vocabulary.
+#:
+#: **It used to be the Shot action alone, and that was a vocabulary.** The
+#: live run of 2026-10-31 refused nine of eighteen candidates on this rule and
+#: every one of the nine ended "with his left foot", after "firing", "struck",
+#: "smashed it home" or "blasting it home". None of those four words is in
+#: `ACTION_CLAIMS`, so none of them claimed a `Shot`, so the check decided a
+#: narration that said the goal was scored with the left foot had not reached
+#: the goal. Extending the verb list would have worked for those four and
+#: found four more on the next run, which is the chase `ACTION_CLAIMS`
+#: documents itself as not being in.
+#:
+#: So the rule is what the words assert rather than which words they are: the
+#: body part and the first-time flag are read off the goal shot itself, so a
+#: sentence claiming either is a sentence about the shot that scored, whatever
+#: verb it used to get there.
+#:
+#: **What it cannot catch.** A last sentence naming the body part without
+#: saying the ball went in: "he went around Shilton with his left foot" lands
+#: the finish by this rule and does not say it in words. The prompt asks for
+#: the finish plainly, and this is the shape of the gap rather than a reason
+#: to go back to a verb list.
+FINISH_KINDS = frozenset({"action", "body_part", "first_time"})
+
+
+def _is_the_finish(move: Move, backing: Sequence, facts: Facts) -> bool:
+    """Whether this move is a claim about the shot that scored."""
+    if move.kind not in FINISH_KINDS:
+        return False
+    if move.kind == "action" and "Shot" not in (move.detail or ()):
+        return False
+    return facts.goal_beat in backing
 
 
 #: How a failed move is reported, where the move's own kind is not the word a

@@ -320,6 +320,38 @@ def records_block(facts: Facts) -> str:
     return "\n".join(lines)
 
 
+def catalyst_and_finish(facts: Facts) -> str:
+    """Where this narration starts and what it lands on, said plainly.
+
+    The framework says start at the catalyst and land the finish, and the live
+    run of 2026-10-31 showed why the records have to say which: the worked
+    example opens on a recovery, and the model opened the 2022 counter with
+    "we won it back through Molina" three times over. Molina's first record in
+    that passage is a pass. The example taught the shape and the records were
+    where the shape had to come from, so now they say so.
+    """
+    steps = move_steps(facts)
+    spoken = spoken_names(facts)
+    first, last = steps[0], steps[-1]
+    opening = [
+        EVENT_VERBS.get(
+            fact.beat.action, fact.beat.action
+        )
+        for fact in facts.facts
+        if fact.number == first.numbers[0]
+    ]
+    return (
+        "Start on the first step and land on the last. The first thing that"
+        " happened is that {} {}, and that is where the narration starts;"
+        " nothing before it. The last thing is that {} scored, and that is"
+        " where it stops.".format(
+            spoken[first.player],
+            opening[0] if opening else "had the ball",
+            spoken[last.player],
+        )
+    )
+
+
 def steps_block(facts: Facts) -> str:
     """The move as the steps a narration tells, in order.
 
@@ -443,8 +475,7 @@ def rules(
                 "Write a pass as a chain, \"X to Y\", or as \"X played it to"
                 " Y\", \"found Y\", \"gave it to Y\" or \"set up Y\". Only"
                 " for a pass the records show from X to Y: both names being"
-                " up there is not enough. \"Set up\" is for the pass marked"
-                " the assist and no other.",
+                " up there is not enough. {}".format(_assist_rule(facts)),
             ),
             _rule(
                 7,
@@ -476,6 +507,30 @@ def rules(
                     target_characters, words
                 ),
             ),
+        )
+    )
+
+
+def _assist_rule(facts: Facts) -> str:
+    """Which pass "set up" may be said about, named rather than described.
+
+    One pass per passage carries `goal_assist`, and the live run of
+    2026-10-31 had the model calling three other passes a set-up. Rule 6 said
+    "the pass marked the assist"; it now says which pass that is.
+    """
+    spoken = spoken_names(facts)
+    assist = next(
+        (fact.beat for fact in facts.facts if fact.beat.goal_assist), None
+    )
+    if assist is None or not assist.recipient:
+        return (
+            "No pass in this passage is recorded as the assist, so nothing in"
+            " it may be called a set-up."
+        )
+    return (
+        "\"Set up\" is for one pass and no other: {} to {}. Every other pass"
+        " is a chain, so write it as \"X to Y\" or \"found Y\".".format(
+            assist.name, spoken.get(assist.recipient, assist.recipient)
         )
     )
 
@@ -551,6 +606,8 @@ The same records as the steps a narration tells. Take them in this order and
 reach all of them; the numbers are for reading and never for writing.
 {steps}
 
+{anchor}
+
 {who_had_it}
 
 WRITE IT LIKE THIS
@@ -578,6 +635,7 @@ RULES
         records=records_block(facts),
         extra=_wrapped(" ".join(extra)),
         steps=steps_block(facts),
+        anchor=_wrapped(catalyst_and_finish(facts)),
         who_had_it=_wrapped(
             "Every player in that list had the ball: "
             + ", ".join(players)

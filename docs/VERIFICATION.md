@@ -92,7 +92,7 @@ And the goal-call reading, whose tests are in
 | `duration` | a span the timestamps do not give | `tests/test_narration_grammar.py::TestTheRecordedFieldsSaidOutLoud::test_a_duration_the_passage_did_not_take` |
 | `clock` | any clock at all, which a goal call does not carry | `tests/test_reference_narrations.py::TestNoClockReachesTheNarration` |
 | `number` | any digit at all, for the same reason | `tests/test_reference_narrations.py::TestNoClockReachesTheNarration` |
-| `ending` | no sentence says the shot that scored | `tests/test_reference_narrations.py::TestTheReferences` |
+| `ending` | nothing in the narration is a claim the goal's own record holds | `tests/test_reference_narrations.py::TestTheFinishMayBeSaidPlainly::test_a_narration_that_lands_on_nothing_is_still_refused` |
 | `side` | a partisan "we" over a clause recording the other team | `tests/test_reference_narrations.py::TestTheFirstPersonNeedsTheListenersOwnPlay` |
 | `cheer` | an exclamation mark where the listener would not cheer | `tests/test_reference_narrations.py::TestWhereAnExclamationMarkMayStand` |
 

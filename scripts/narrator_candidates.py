@@ -132,7 +132,11 @@ def match_record(match_id: int) -> dict:
     )
 
 
-def slots_for(match_id: int, scoring_team: str) -> tuple[tuple[str, str | None], ...]:
+def slots_for(
+    match_id: int,
+    scoring_team: str,
+    only: Sequence[str] = (),
+) -> tuple[tuple[str, str | None], ...]:
     """The recorded slots of one match, and the side each is written as.
 
     Read off `hero.voice_for` rather than written down, so a slot added to the
@@ -160,7 +164,15 @@ def slots_for(match_id: int, scoring_team: str) -> tuple[tuple[str, str | None],
                     match_id, key, ", ".join(sorted(sides))
                 )
             )
-    return tuple((key, sides[key]) for key in keys)
+    for key in only:
+        if key not in keys:
+            raise SystemExit(
+                "{!r} is not a recorded slot of match {}; its slots are "
+                "{}".format(key, match_id, ", ".join(keys))
+            )
+    return tuple(
+        (key, sides[key]) for key in keys if not only or key in only
+    )
 
 
 def narrator_for(key: str):
@@ -247,6 +259,7 @@ def gather(
     per_slot: int,
     heroes: Sequence[tuple[int, int, int, int]] = HEROES,
     allowance: int | None = None,
+    only: Sequence[str] = (),
 ) -> list[dict]:
     """Narrate every slot of every goal `per_slot` times and keep what passed."""
     feed = StatsBombEventFeed()
@@ -264,7 +277,7 @@ def gather(
             ", ".join(shared_name_parts(facts)) or "none"
         ))
         slots: list[dict] = []
-        for key, side in slots_for(match_id, moment.team):
+        for key, side in slots_for(match_id, moment.team, only):
             persona = narrator_for(key)
             style = STYLES[slot_key(
                 persona.id, situation_for(side, moment.team)
@@ -294,6 +307,21 @@ def gather(
                         {
                             "candidate": number,
                             "attempts": attempts - 1,
+                            # The words as well as the verdict. The run of
+                            # 2026-10-31 dropped nine candidates and the
+                            # document held only the refusals, so working out
+                            # whether the model or the check was wrong meant
+                            # reading the console log. Two of those nine were
+                            # the check.
+                            "refused": [
+                                {
+                                    "attempt": one.number,
+                                    "text": one.text,
+                                    "summary": one.summary,
+                                }
+                                for one in narrated.attempts
+                                if not one.grounded
+                            ],
                             "failures": [
                                 one.summary
                                 for one in narrated.attempts
@@ -500,6 +528,58 @@ def review(goals: Sequence[dict], model: str, provider: str) -> str:
     return "\n".join(out) + "\n"
 
 
+def merged(goals: Sequence[dict], path: Path) -> list[dict]:
+    """This run's slots, plus any slot in `path` this run did not generate.
+
+    A rerun of one slot used to throw the other five away, which is the same
+    mistake `scripts/hero_candidates.py` made with one goal and the other, on
+    2026-10-30. `--slot buddy_scored` exists so that a slot can be rerun after
+    a check or a prompt fix without spending calls on five that are already
+    good, and that is only true if the document survives it.
+
+    A slot this run produced replaces its older self. A slot it did not touch
+    is carried across with the provenance it was written with, so a reader can
+    tell which run each candidate came from.
+    """
+    if not path.is_file():
+        return list(goals)
+    existing = json.loads(path.read_text(encoding="utf-8"))
+    older = existing["goals"] if isinstance(existing, dict) else existing
+    by_match = {goal["match_id"]: goal for goal in goals}
+    out: list[dict] = []
+    for one in older:
+        match_id = one["match_id"]
+        fresh = by_match.pop(match_id, None)
+        if fresh is None:
+            print("  carried over match {} whole from the earlier document: "
+                  "{} slot(s)".format(match_id, len(one["slots"])))
+            out.append(one)
+            continue
+        produced = {slot["slot"] for slot in fresh["slots"]}
+        carried = [
+            slot for slot in one["slots"] if slot["slot"] not in produced
+        ]
+        for slot in carried:
+            print("  carried over match {} {} from the earlier document: "
+                  "{} candidate(s), written {}".format(
+                      match_id, slot["slot"], len(slot["candidates"]),
+                      one.get("generated_on", "date not recorded"),
+                  ))
+        fresh = dict(fresh)
+        fresh["slots"] = sorted(
+            list(fresh["slots"]) + carried, key=lambda slot: slot["slot"]
+        )
+        out.append(fresh)
+    out += list(by_match.values())
+    order = [match_id for _, match_id, _, _ in HEROES]
+    return sorted(
+        out,
+        key=lambda goal: order.index(goal["match_id"])
+        if goal["match_id"] in order
+        else len(order),
+    )
+
+
 def document(goals: Sequence[dict], backend: WatsonxProvider) -> dict:
     """The candidates with the provenance a later freeze will need."""
     return {
@@ -563,6 +643,14 @@ def main(argv: Sequence[str]) -> int:
         help="narrate only this hero goal; repeatable, and the default is both",
     )
     parser.add_argument(
+        "--slot",
+        action="append",
+        default=[],
+        metavar="SLOT",
+        help="generate only this slot; repeatable, and the default is all "
+             "three of each goal",
+    )
+    parser.add_argument(
         "--budget",
         type=int,
         default=DEFAULT_BUDGET,
@@ -594,7 +682,7 @@ def main(argv: Sequence[str]) -> int:
     slots: list[tuple[int, str]] = []
     for _, match_id, minute, second in heroes:
         moment = moment_at(feed, match_id, minute, second)
-        for key, _side in slots_for(match_id, moment.team):
+        for key, _side in slots_for(match_id, moment.team, args.slot):
             slots.append((match_id, key))
 
     # Every recording comes out of one monthly allowance and there are six of
@@ -655,12 +743,22 @@ def main(argv: Sequence[str]) -> int:
         max_new_tokens=COMPARISON_MAX_NEW_TOKENS,
         decoding=COMPARISON_DECODING,
     )
-    goals = gather(backend, args.per_slot, heroes=heroes, allowance=allowance)
+    goals = gather(
+        backend,
+        args.per_slot,
+        heroes=heroes,
+        allowance=allowance,
+        only=args.slot,
+    )
 
     out_dir.mkdir(parents=True, exist_ok=True)
     stamp = date.today().isoformat()
     path = out_dir / "narrator_candidates_{}.md".format(stamp)
     data = out_dir / "narrator_candidates_{}.json".format(stamp)
+    # Merged before either file is written, so the review file and the data
+    # file describe the same set of slots.
+    produced = goals
+    goals = merged(goals, data)
     path.write_text(
         review(goals, backend.model, backend.name),
         encoding="utf-8",
@@ -672,11 +770,19 @@ def main(argv: Sequence[str]) -> int:
         encoding="utf-8",
         newline="\n",
     )
+    # This run's own tally, not the merged document's: a slot carried over
+    # from an earlier run was not asked for here.
     kept = sum(
-        len(slot["candidates"]) for goal in goals for slot in goal["slots"]
+        len(slot["candidates"]) for goal in produced for slot in goal["slots"]
     )
     print("kept {} of the {} candidates asked for".format(
         kept, args.per_slot * len(slots)
+    ))
+    held = sum(
+        len(slot["candidates"]) for goal in goals for slot in goal["slots"]
+    )
+    print("the document now holds {} candidate(s) over {} slot(s)".format(
+        held, sum(len(goal["slots"]) for goal in goals)
     ))
     print("wrote {}".format(path))
     print("wrote {}".format(data))
