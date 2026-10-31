@@ -95,6 +95,22 @@ NARRATIONS = ROOT / "app" / "web" / "narrations.json"
 AUDIO_DIR = ROOT / "app" / "web" / "assets" / "audio"
 AUDIO_HREF = "assets/audio"
 
+#: The billed characters a run may cost before `--budget` refuses it.
+#:
+#: **Raised from 2,000 to 3,000 for Task 7.** The Task 6 narrations cost 1,959
+#: and cleared 2,000 by 41 characters, which was close enough that one more
+#: pronunciation entry on a word either of them says would have pushed the run
+#: over. Task 7 asks for fuller narrations, which tell the whole move and name
+#: every player who touched the ball, so they are longer: the candidates in
+#: `scripts/hero_candidates.py` run 1,488 to 1,605 billed characters for one
+#: match, where the frozen pair cost 918 and 1,041.
+#:
+#: It is a guard against a run that is unexpectedly large rather than a
+#: forecast of the next one. The monthly Lite allowance is 10,000 characters,
+#: so this is a fraction of it, and `--budget` takes a number for a run that
+#: is meant to be bigger.
+DEFAULT_BUDGET = 3000
+
 
 @dataclass(frozen=True)
 class Recording:
@@ -296,8 +312,9 @@ def main(argv: Sequence[str]) -> int:
     parser.add_argument(
         "--budget",
         type=int,
-        default=2000,
-        help="refuse to send if the billed count is above this",
+        default=DEFAULT_BUDGET,
+        help="refuse to send if the billed count is above this "
+             "(default {})".format(DEFAULT_BUDGET),
     )
     args = parser.parse_args(argv)
 

@@ -1113,12 +1113,21 @@ the same way, so it is the account and not the request. `HANDOFF.md` holds the
 evidence, the three character counts and what each recording will say under
 "Phase 5, task 5" and "Phase 5, task 6".
 
-**A run costs 1,959 characters**, which is the figure IBM bills: it counts the
-SSML and not the whitespace, so the price is the submitted 2,268 less its
-spaces. `billed_characters` in `app/tts.py` is that number and `--budget` is
-set on it, at a default of 2,000: the run clears it by 41 characters, which is
-close enough that another pronunciation entry on a word either hero narration
-says would push it over.
+**The run of the Task 6 narrations costs 1,959 characters**, which is the
+figure IBM bills: it counts the SSML and not the whitespace, so the price is
+the submitted 2,268 less its spaces. `billed_characters` in `app/tts.py` is
+that number and `--budget` is set on it.
+
+**The default budget is 3,000, raised from 2,000 for Task 7.** The Task 6
+narrations cleared 2,000 by 41 characters, which was close enough that one
+more pronunciation entry on a word either of them says would have pushed it
+over. Task 7 asks for fuller narrations: they tell the whole move and name
+every player who touched the ball, so they are longer, and the candidates
+measured in `scripts/hero_candidates.py` run 1,488 to 1,605 billed characters
+for a match against the 918 and 1,041 the frozen pair cost. The monthly Lite
+allowance is 10,000, so 3,000 is still a fraction of it; the budget exists to
+refuse a run that is unexpectedly large, not to be the smallest number that
+fits.
 
 **The spoken count is now below the billed one**, 1,746 against 1,959, where
 it used to be above it. Nothing changed in how either is counted: the frozen

@@ -29,6 +29,7 @@ import pytest
 from app.narration_prompt import facts_from_buildup, touched_the_ball
 from app.statsbomb_event_feed import StatsBombEventFeed
 from app.tts import speech_text
+from scripts.tts_hero import DEFAULT_BUDGET
 from scripts.hero_candidates import (
     DEFAULT_OUT,
     DEFAULT_PER_GOAL,
@@ -53,8 +54,9 @@ HERO_2022 = (35, 22)
 
 # What the three recordings of each match are billed for the frozen narration,
 # and the total, which `HANDOFF.md` records as the price of the run that
-# scripts/tts_hero.py --plan reported: 1,959 billed characters against a
-# budget of 2,000. Read off the frozen text rather than restated from the doc.
+# scripts/tts_hero.py --plan reported: 1,959 billed characters, which cleared
+# the budget of 2,000 that Task 7 then raised to 3,000. Read off the frozen
+# text rather than restated from the doc.
 BILLED_1986 = 918
 BILLED_2022 = 1041
 BILLED_BOTH = 1959
@@ -272,6 +274,61 @@ class TestBilledCharacters:
         assert billed_for_match(MATCH_1986, longer) > billed_for_match(
             MATCH_1986, short
         )
+
+
+class TestTheRecordingBudget:
+    """`--budget` in `scripts/tts_hero.py`, which Task 7 raised.
+
+    The budget is the one guard between a run and the monthly allowance, and
+    its default is the number a run uses when nobody passes one, so it is
+    worth a test rather than only a docstring.
+    """
+
+    def test_the_default_is_three_thousand(self):
+        """Raised from 2,000 for Task 7: the fuller narrations are longer, and
+        the Task 6 pair cleared 2,000 by only 41 characters."""
+        assert DEFAULT_BUDGET == 3000
+
+    def test_the_frozen_run_still_fits_under_it(self, feed, frozen):
+        """Raising a budget must not be what makes the current run pass: it
+        passed under 2,000 too, at 1,959."""
+        billed = sum(
+            billed_for_match(match_id, frozen[str(match_id)]["text"])
+            for match_id in (MATCH_1986, MATCH_2022)
+        )
+        assert billed == BILLED_BOTH
+        assert billed <= DEFAULT_BUDGET
+
+    def test_a_fuller_pair_of_narrations_can_still_exceed_it(self, feed):
+        """Why the number is worth reading before freezing: a candidate that
+        tells the whole move costs about 1,500 for its match, so two of them
+        land near 3,000 rather than comfortably under it. The arithmetic is
+        done here on text written in the test, not on a live run."""
+        full_1986 = (
+            "Jos\u00e9 Luis Cuciuffo recovered the ball, carried the ball and "
+            "passed at 54:02. H\u00e9ctor Adolfo Enrique received the ball, "
+            "carried the ball and passed. Diego Armando Maradona received the "
+            "ball and carried the ball. Diego Armando Maradona dribbled past "
+            "Peter Beardsley. Diego Armando Maradona dribbled past Terry "
+            "Butcher. Diego Armando Maradona dribbled past Terry Fenwick. "
+            "Diego Armando Maradona dribbled past Peter Shilton. Diego "
+            "Armando Maradona shot and scored."
+        )
+        full_2022 = (
+            "Nahuel Molina Lucero passed at 35:12. Alexis Mac Allister "
+            "received the ball and passed. Lionel Andr\u00e9s Messi "
+            "Cuccittini received the ball, carried the ball and passed. "
+            "Juli\u00e1n \u00c1lvarez received the ball, carried the ball and "
+            "passed. Alexis Mac Allister received the ball and passed. "
+            "\u00c1ngel Fabi\u00e1n Di Mar\u00eda Hern\u00e1ndez received the "
+            "ball. \u00c1ngel Fabi\u00e1n Di Mar\u00eda Hern\u00e1ndez shot "
+            "with his left foot from open play and scored."
+        )
+        together = billed_for_match(MATCH_1986, full_1986) + billed_for_match(
+            MATCH_2022, full_2022
+        )
+        assert together > BILLED_BOTH
+        assert together > DEFAULT_BUDGET
 
 
 class TestCoverage:
