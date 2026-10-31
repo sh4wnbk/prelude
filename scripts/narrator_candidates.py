@@ -955,6 +955,15 @@ def main(argv: Sequence[str]) -> int:
     print("wrote {}".format(path))
     print("wrote {}".format(data))
     print("IAM exchanges: {}".format(backend.iam_exchanges))
+    print("billed by watsonx: {:,} tokens in all, {:,} prompt and {:,} "
+          "completion, read off the usage object on every answer".format(
+              backend.total_tokens,
+              backend.prompt_tokens,
+              backend.completion_tokens,
+          ))
+    print("the plan estimated {:,} expected and {:,} at most".format(
+        spend["if_first_attempt"], spend["at_most"]
+    ))
     print()
     print("Nothing is frozen. Shawn reads these aloud and picks six.")
     return 0

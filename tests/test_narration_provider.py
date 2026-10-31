@@ -812,3 +812,119 @@ class TestTheTimeoutIsThisRunsChoice:
 
     def test_the_default_is_documented_as_too_short_for_a_high_effort(self):
         assert DEFAULT_TIMEOUT == 300.0
+
+
+class TestWhatTheRunWasBilled:
+    """The tokens watsonx says it charged, summed over a run.
+
+    Task 9d states an estimate before a run sends anything, and an estimate
+    is worth checking against the bill. The figures come off the `usage`
+    object on every answer rather than from a character count.
+    """
+
+    def answers(self, golden, *usages):
+        documented = golden["generation"]
+        feed = WatsonxProvider(
+            env=golden["env"],
+            model=documented["request"]["payload"]["model_id"],
+            chat=False,
+        )
+        bodies = [
+            dict(documented["response"], usage=usage) for usage in usages
+        ]
+
+        def transport(url, body, headers):
+            if url == IAM_TOKEN_URL:
+                return golden["iam"]["response"]
+            return bodies.pop(0)
+
+        return WatsonxProvider(
+            env=golden["env"],
+            model=documented["request"]["payload"]["model_id"],
+            chat=False,
+            transport=transport,
+        )
+
+    def test_the_tally_adds_up_over_the_calls(self):
+        golden = read_json(WATSONX_GOLDEN)
+        feed = self.answers(
+            golden,
+            {
+                "prompt_tokens": 2746,
+                "completion_tokens": 14141,
+                "total_tokens": 16887,
+            },
+            {
+                "prompt_tokens": 2800,
+                "completion_tokens": 300,
+                "total_tokens": 3100,
+            },
+        )
+        feed.narrate("one")
+        feed.narrate("two")
+        assert feed.prompt_tokens == 5546
+        assert feed.completion_tokens == 14441
+        assert feed.total_tokens == 19987
+
+    def test_an_answer_with_no_usage_adds_nothing(self):
+        """Rather than a guess: the golden fixture carries no usage object,
+        and a run against it reports nothing billed instead of a number
+        nobody measured."""
+        golden = read_json(WATSONX_GOLDEN)
+        documented = golden["generation"]
+        assert "usage" not in documented["response"]
+        feed = WatsonxProvider(
+            env=golden["env"],
+            model=documented["request"]["payload"]["model_id"],
+            chat=False,
+            transport=Replay(
+                {
+                    IAM_TOKEN_URL: golden["iam"]["response"],
+                    WatsonxProvider(
+                        env=golden["env"],
+                        model=documented["request"]["payload"]["model_id"],
+                        chat=False,
+                    ).url: documented["response"],
+                }
+            ),
+        )
+        feed.narrate(golden["prompt"])
+        assert feed.total_tokens == 0
+
+    def test_a_call_that_wrote_nothing_is_billed_all_the_same(self):
+        """So the tally is the bill and not the output: an answer that was
+        all reasoning cost its tokens whether or not a narration came out."""
+        golden = read_json(WATSONX_GOLDEN)
+        feed = WatsonxProvider(
+            env=golden["env"],
+            chat=True,
+            reasoning_effort="high",
+            max_new_tokens=16000,
+            transport=Replay(
+                {
+                    IAM_TOKEN_URL: golden["iam"]["response"],
+                    WatsonxProvider(
+                        env=golden["env"], chat=True
+                    ).url: {
+                        "usage": {
+                            "prompt_tokens": 2746,
+                            "completion_tokens": 16000,
+                            "total_tokens": 18746,
+                        },
+                        "choices": [
+                            {
+                                "index": 0,
+                                "finish_reason": "length",
+                                "message": {
+                                    "role": "assistant",
+                                    "reasoning": "Thinking. " * 50,
+                                },
+                            }
+                        ],
+                    },
+                }
+            ),
+        )
+        with pytest.raises(AnsweredWithoutContent):
+            feed.narrate("the prompt")
+        assert feed.total_tokens == 18746

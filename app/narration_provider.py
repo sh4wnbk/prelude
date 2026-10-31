@@ -378,6 +378,15 @@ class WatsonxProvider:
         #: Counted so a paid run can report what it spent on authorisation
         #: rather than estimate it.
         self.iam_exchanges = 0
+        #: The tokens watsonx says it billed, summed over every call this
+        #: provider made, read off the `usage` object the service returns.
+        #: Counted for the same reason as `iam_exchanges`: Task 9d stated an
+        #: estimate before the run, and an estimate is worth checking against
+        #: what the run actually cost. A response without a `usage` object
+        #: adds nothing rather than a guess.
+        self.prompt_tokens = 0
+        self.completion_tokens = 0
+        self.total_tokens = 0
 
     @property
     def url(self) -> str:
@@ -474,9 +483,25 @@ class WatsonxProvider:
             prompt,
             self.max_new_tokens if max_new_tokens is None else max_new_tokens,
         )
+        self._count(body)
         if self.chat:
             return self._read_chat(body)
         return self._read_generation(body)
+
+    def _count(self, body: Mapping[str, Any]) -> None:
+        """Add what this call billed to the run's tally.
+
+        Counted before the answer is read, so a call that answered with
+        reasoning and no narration is counted too: it was billed whether or
+        not it produced a line. Nothing is inferred from a response carrying
+        no `usage` object.
+        """
+        usage = body.get("usage")
+        if not isinstance(usage, Mapping):
+            return
+        self.prompt_tokens += int(usage.get("prompt_tokens") or 0)
+        self.completion_tokens += int(usage.get("completion_tokens") or 0)
+        self.total_tokens += int(usage.get("total_tokens") or 0)
 
     def _send(self, prompt: str, max_new_tokens: int) -> Mapping[str, Any]:
         encoded = json.dumps(self.payload(prompt, max_new_tokens)).encode("utf-8")
