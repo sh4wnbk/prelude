@@ -35,10 +35,21 @@ eight narrations that are the standard are in
 
 `check` picks the reading by looking for a citation tag, which is a property of
 the text rather than an argument, so one narration is never read both ways.
-Both readings refuse the same nicknames, epithets, outcome claims, dashes and
-markup, hold the same present-tense rule, and hold the same rule about where an
-exclamation mark may stand; what they differ on is how a claim is traced to a
-record, and on the clock, which the goal call does not carry at all.
+Both readings refuse the same nicknames, epithets, force words, outcome claims,
+dashes and markup, and hold the same present-tense rule. What they differ on is
+how a claim is traced to a record, the clock, which the goal call does not
+carry at all, the rule about where an exclamation mark may stand, which is the
+goal call's, and the reaction layer, which only the goal call has.
+
+**A goal call has two layers and this checks one of them.** The play is
+traced to the records, claim by claim, and is the whole of what the eight
+references are. The reaction is the narrator feeling the moment ("Oh,
+lovely!", "What a finish!", and for the side that conceded "Ah, no."), it
+stands once and only at the goal, and nothing in it is traced to a record
+because nothing in it points at one: `REACTION_WORDS` has the shape test and
+the reasoning. Every other rule here still applies to it, so a verdict, a
+force word, "you", a clock or a cheer from a voice that does not cheer is
+refused in a reaction exactly as in the play.
 
 **A persona changes the delivery and not the rules.** `check` takes the
 persona the narration was asked for and the side the listener is on, and the
@@ -77,7 +88,8 @@ confirm or refuse:
 | `banned` | a nickname, a verdict, force, a dash, markup | never; these are refused outright |
 | `first person` | "we", "our", "us" | never, unless the persona is partisan |
 | `side` | a partisan "we" | a cited fact is recorded against the listener's side |
-| `cheer` | "!" | only on the last sentence, and only from the Caller or the scoring side's Buddy |
+| `cheer` | "!" | only on the finish or the reaction after it, and only from the Caller or the scoring side's Buddy |
+| `reaction` | a reaction away from the goal | never; it stands once, at the goal, after the finish has landed |
 
 The goal-call reading adds `chain`, `past`, `position`, `straight`,
 `duration`, `direction`, `run` and `carry_delivery` to that list and drops
@@ -135,7 +147,15 @@ import re
 from dataclasses import dataclass
 from typing import Mapping, Sequence
 
-from app.narration_grammar import Move, Reader, bare, fold, support, why
+from app.narration_grammar import (
+    PRONOUNS,
+    Move,
+    Reader,
+    bare,
+    fold,
+    support,
+    why,
+)
 from app.narration_prompt import Fact, Facts
 from app.plain_characters import plain
 from app.orchestrator_contract import CALLER
@@ -466,6 +486,14 @@ FIRST_PERSON: Sequence[str] = (
 #: when the check fails, so a false positive here costs a good narration and
 #: makes a model look worse than it is. When the failure log shows an ordinary
 #: word being reported as a name, the word belongs here.
+#:
+#: **The last group is the reaction's own.** A reaction is a fragment, so its
+#: first word is capitalised and `_name_hits` reads a capitalised word as a
+#: name: "Oh, lovely!" was reported as a player called Oh. The words a
+#: reaction opens with are therefore listed, which also keeps the opening a
+#: closed set rather than anything a model feels like starting with, and a
+#: recorded name inside a reaction still makes it play. `REACTION_WORDS` has
+#: the two layers written out.
 NOT_A_NAME = frozenset(
     """
     a about above across after afterwards again against all almost along already
@@ -495,6 +523,7 @@ NOT_A_NAME = frozenset(
     was we well what when where which while who whom whose why with within
     without
     yard yards yet you your
+    ah beautiful dear goodness hey lovely oh ooh phew poor wow
     """.split()
 )
 
@@ -1127,8 +1156,61 @@ def _cited_reading(
 #: which is rough and is the shape a goal call is written in.
 _CLAUSE_BREAK = re.compile(r"[,;:]")
 
-#: Where the listener would cheer, which is the end and nowhere else.
+#: Where the listener would cheer, which is the finish and the reaction after
+#: it, and nowhere else.
 _CHEER = "!"
+
+#: The longest a reaction may be, in words.
+#:
+#: **A narration has two layers and only one of them is checked.** Shawn
+#: settled this on 2026-10-31: the play (who, what, where, how it finished) is
+#: grounded strictly, and the reaction (the narrator feeling the moment: "Oh,
+#: lovely!", "What a finish!", and for the side that conceded "Ah, no.") is
+#: the narrator's own voice. It follows the listener's side, it claims nothing
+#: about the data, and so there is nothing in it for the records to hold or
+#: refuse. "Verified from play data" still means every event happened as told,
+#: because the reaction tells no event.
+#:
+#: Eight words is what keeps that true by shape rather than by trust. A clause
+#: this short with no name, no pronoun, no digit and no claim about a recorded
+#: field has nowhere to put a misdescription: it can be wrong about how a
+#: narrator feels, which is not a thing the data has a view on.
+REACTION_WORDS = 8
+
+#: The move kinds a reaction may still make, which is the one that asserts
+#: nothing once nobody is named.
+#:
+#: "What a finish!" is one of Shawn's three examples of a reaction and
+#: "finish" is in `ACTION_CLAIMS`, so an action word cannot be what rules a
+#: reaction out. With no name and no pronoun in the sentence there is nobody
+#: for the word to be about: it points at no record, so no record can refuse
+#: it. Everything else a goal call can say is about a specific record, and a
+#: sentence making one of those claims is play and is read as play, however
+#: short it is.
+REACTION_MOVES = frozenset({"action"})
+
+#: The pronouns that make a sentence play rather than reaction. A pronoun
+#: means the player with the ball, so "He scored." is the finish said shortly
+#: and not a reaction, which is the case this rule exists for.
+_PRONOUN_WORDS = frozenset(PRONOUNS)
+
+
+def _is_a_reaction(text: str, moves: Sequence[Move]) -> bool:
+    """Whether this sentence is the narrator's reaction rather than the play.
+
+    Four things, and all of them are about the shape of the sentence rather
+    than about what it happens to say: it is at most `REACTION_WORDS` words,
+    it holds no digit, it names nobody (no player, no team, no pronoun), and
+    every move in it is in `REACTION_MOVES`.
+    """
+    words = _WORD.findall(text)
+    if not words or len(words) > REACTION_WORDS:
+        return False
+    if _NUMBER.search(text):
+        return False
+    if any(bare(fold(word)) in _PRONOUN_WORDS for word in words):
+        return False
+    return all(move.kind in REACTION_MOVES for move in moves)
 
 
 def _clause(text: str, at: int) -> tuple[int, int]:
@@ -1160,14 +1242,18 @@ def _cheer_failures(
     persona: Persona | None,
     facts: Facts,
     side: str | None,
+    may_stand_on: frozenset[int],
 ) -> list[Claim]:
     """Every exclamation mark that is not where the listener would cheer.
 
     Two rules, and they are the framework's rather than the data's: the mark
-    belongs on the last sentence, because that is where the ball goes in, and
-    it belongs only to the Caller and to the Buddy of the side that scored.
-    This runs under both readings: it is a rule about what the app says out
-    loud, and a citation has nothing to do with it.
+    belongs where the ball goes in, which is the sentence that lands the
+    finish and the reaction that may follow it, and it belongs only to the
+    Caller and to the Buddy of the side that scored. `may_stand_on` is those
+    one or two sentence numbers, worked out by the reading. This is a rule
+    about what the app says out loud, so it is the goal-call reading's rather
+    than the data's; the cited reading has no reaction layer and asks for no
+    exclamation mark anywhere.
     """
     allowed = _may_cheer(persona, facts, side)
     whose = persona.name if persona else "a narration with no narrator"
@@ -1175,12 +1261,13 @@ def _cheer_failures(
     for sentence in parsed:
         if _CHEER not in sentence.text and _CHEER not in sentence.raw:
             continue
-        if sentence is not parsed[-1]:
+        if sentence.number not in may_stand_on:
             failures.append(
                 Claim(
                     "cheer",
-                    "an exclamation mark on a sentence that is not the last; "
-                    "the listener cheers when the ball goes in and not before",
+                    "an exclamation mark on a sentence that is neither the "
+                    "finish nor the reaction after it; the listener cheers "
+                    "when the ball goes in and not before",
                     sentence.number,
                     sentence.raw,
                 )
@@ -1230,6 +1317,16 @@ def _goal_call(
     Buddy may say "we" where that clause's own records are the listener side's.
     The France fan's Buddy cannot say it about the 2022 counter at all, because
     all thirteen records in that passage are Argentina's.
+
+    **The last sentence may be a reaction, and a reaction is not checked.**
+    `_is_a_reaction` is the shape test, `REACTION_WORDS` says why it is safe,
+    and what it exempts is the support of the moves. Everything a reaction
+    could be refused for it is still refused for: the banned verdicts, the
+    force words, "you", a clock, a digit, the present tense, the first person
+    with nothing to stand on, and an exclamation mark from a voice that does
+    not cheer. It is allowed once, it is allowed only as the last sentence,
+    and it is allowed only once the play has landed the finish, so a reaction
+    anywhere else is a refusal of its own.
     """
     listener_side = fold(side) if side else None
     reader = Reader(
@@ -1244,8 +1341,29 @@ def _goal_call(
     parsed = sentences(text)
     said_the_goal = False
 
-    for sentence in parsed:
+    # Read in one pass and in order, because the reader follows the ball
+    # across a full stop, and then decide which sentences are reactions. The
+    # decision has to be made before the sentences are checked: it is what
+    # says whether a sentence is read as play at all.
+    read = [reader.read(sentence.text) for sentence in parsed]
+    reactions = frozenset(
+        index
+        for index, sentence in enumerate(parsed)
+        if _is_a_reaction(sentence.text, read[index])
+    )
+    last = len(parsed) - 1
+    the_reaction = last if last in reactions else None
+    # Where the play ends: the last sentence, or the one before the reaction.
+    last_play = last if the_reaction is None else the_reaction - 1
+    may_cheer_on = frozenset(
+        index + 1
+        for index in (last_play, the_reaction)
+        if index is not None and index >= 0
+    )
+
+    for index, sentence in enumerate(parsed):
         folded = fold(sentence.text)
+        reaction = index in reactions
 
         def failed(kind: str, value: str) -> None:
             failures.append(Claim(kind, value, sentence.number, sentence.raw))
@@ -1291,17 +1409,36 @@ def _goal_call(
                 "second and a count are all out",
             )
 
-        moves = reader.read(sentence.text)
         held: list[tuple[Move, tuple]] = []
-        for move in moves:
+        if reaction:
+            # The one thing a reaction is exempt from: the moves in it are not
+            # traced to a record, because a sentence naming nobody points at
+            # none. What it is not exempt from is where it may stand.
             checked += 1
-            if move.kind in ("name", "team"):
-                claims_made += 1
-            backing = support(move, facts)
-            if backing:
-                held.append((move, backing))
-            else:
-                failed(_FAILED_AS.get(move.kind, move.kind), why(move, facts))
+            if index != the_reaction:
+                failed(
+                    "reaction",
+                    f"{sentence.text.strip()!r} is a reaction, and a reaction "
+                    "stands at the goal with nothing after it: this one comes "
+                    + (
+                        "before the finish"
+                        if index < last_play
+                        else "after another reaction"
+                    ),
+                )
+        else:
+            for move in read[index]:
+                checked += 1
+                if move.kind in ("name", "team"):
+                    claims_made += 1
+                backing = support(move, facts)
+                if backing:
+                    held.append((move, backing))
+                else:
+                    failed(
+                        _FAILED_AS.get(move.kind, move.kind),
+                        why(move, facts),
+                    )
 
         # The first person, which is the one thing a narrator changes. A voice
         # that is not partisan has nobody to mean by "we"; a partisan one has
@@ -1337,12 +1474,13 @@ def _goal_call(
 
         if any(_is_the_finish(move, backing, facts) for move, backing in held):
             said_the_goal = True
-            if sentence is not parsed[-1]:
+            if index != last_play:
                 checked += 1
                 failed(
                     "ending",
                     "the narration says the goal and then keeps talking; it "
-                    "ends on the finish and nothing follows it",
+                    "ends on the finish, and the only thing that may follow "
+                    "it is the narrator's reaction",
                 )
 
     if parsed and not said_the_goal:
@@ -1358,7 +1496,9 @@ def _goal_call(
             )
         )
 
-    failures += _cheer_failures(parsed, persona, facts, side)
+    failures += _cheer_failures(
+        parsed, persona, facts, side, may_cheer_on
+    )
 
     if not claims_made:
         checked += 1

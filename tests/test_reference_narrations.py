@@ -40,7 +40,15 @@ facts come off `data/raw/`.
 
 import pytest
 
-from app.grounding import check
+from app.grounding import (
+    ACTION_CLAIMS,
+    NOT_A_NAME,
+    TEAM_DEMONYMS,
+    _is_a_reaction,
+    check,
+    sentences,
+)
+from app.narration_grammar import Reader
 from app.narration_prompt import facts_from_buildup
 from app.personas import THE_BUDDY, THE_CALLER, THE_STORYTELLER
 from app.recorded_names import recorded_nicknames
@@ -555,3 +563,187 @@ class TestAVerdictAboutHistory:
         assert "verdict about history" in {
             failure.kind for failure in result.failures
         }
+
+
+class TestTheReactionLayer:
+    """The second layer: the narrator feeling the moment, which is not checked.
+
+    Shawn settled this on 2026-10-31. A narration has a play layer, which is
+    grounded strictly, and a reaction, which is the narrator's own voice: "Oh,
+    lovely!", "What a finish!", and for the side that conceded "Ah, no.". It
+    follows the listener's side, it claims nothing about the data, and so
+    there is nothing in it for the records to hold. "Verified from play data"
+    still means every event happened as told, because the reaction tells no
+    event.
+
+    What holds the two apart is the shape of the sentence rather than trust:
+    at most `REACTION_WORDS` words, no player or team name, no pronoun, no
+    digit, and no claim about a recorded field.
+    """
+
+    def test_the_scoring_buddy_may_cheer_the_goal_and_then_react(
+        self, facts_2022
+    ):
+        text = BUDDY_2022_ARGENTINA.replace(
+            "and scored!", "and scored! Oh, lovely!"
+        )
+        result = check(text, facts_2022, THE_BUDDY, "Argentina")
+        assert result.grounded, result.summary
+
+    def test_the_caller_may_too(self, facts_2022):
+        text = CALLER_2022 + " Oh, lovely!"
+        result = check(text, facts_2022, THE_CALLER, None)
+        assert result.grounded, result.summary
+
+    def test_an_action_word_with_nobody_named_is_still_a_reaction(
+        self, facts_2022
+    ):
+        """"What a finish!" is one of Shawn's three examples and "finish" is
+        in `ACTION_CLAIMS`. With no name and no pronoun in the sentence there
+        is nobody for the word to be about, so it points at no record."""
+        text = BUDDY_2022_ARGENTINA.replace(
+            "and scored!", "and scored! What a finish!"
+        )
+        result = check(text, facts_2022, THE_BUDDY, "Argentina")
+        assert result.grounded, result.summary
+
+    def test_a_verdict_about_history_is_refused_in_the_reaction_too(
+        self, facts_2022
+    ):
+        """The reaction is the narrator's feeling, and where a goal stands
+        among every other goal is not a feeling: it is a claim about the
+        record books, which are not one of the three inputs."""
+        text = BUDDY_2022_ARGENTINA.replace(
+            "and scored!", "and scored! The best goal of all time!"
+        )
+        result = check(text, facts_2022, THE_BUDDY, "Argentina")
+        assert not result.grounded, result.summary
+        assert {failure.kind for failure in result.failures} == {
+            "verdict about history"
+        }
+
+    def test_the_fan_is_still_never_addressed(self, facts_2022):
+        text = BUDDY_2022_ARGENTINA.replace(
+            "and scored!", "and scored! Oh, lucky you!"
+        )
+        result = check(text, facts_2022, THE_BUDDY, "Argentina")
+        assert not result.grounded, result.summary
+        assert {failure.kind for failure in result.failures} == {
+            "address to the reader"
+        }
+
+    def test_a_reaction_before_the_finish_is_refused(self, facts_2022):
+        """It sits at the goal, so there is nothing for it to react to yet."""
+        text = "Oh, lovely! " + BUDDY_2022_ARGENTINA
+        result = check(text, facts_2022, THE_BUDDY, "Argentina")
+        assert not result.grounded, result.summary
+        assert "reaction" in {failure.kind for failure in result.failures}
+
+    def test_a_second_reaction_is_refused(self, facts_2022):
+        """Allowed once: the first of the two is a sentence after the goal
+        that is not the reaction standing at it."""
+        text = BUDDY_2022_ARGENTINA.replace(
+            "and scored!", "and scored! Oh, lovely! What a finish!"
+        )
+        result = check(text, facts_2022, THE_BUDDY, "Argentina")
+        assert not result.grounded, result.summary
+        assert "reaction" in {failure.kind for failure in result.failures}
+
+    def test_a_reaction_naming_a_player_is_checked_as_play(self, facts_2022):
+        """So the exemption cannot be reached by writing a name into it: a
+        sentence naming somebody is play, and play after the finish is a
+        narration that said the goal and kept talking."""
+        text = BUDDY_2022_ARGENTINA.replace(
+            "and scored!", "and scored! Lovely, Di María!"
+        )
+        result = check(text, facts_2022, THE_BUDDY, "Argentina")
+        assert not result.grounded, result.summary
+        assert "ending" in {failure.kind for failure in result.failures}
+
+    def test_a_reaction_naming_nobody_the_records_know_is_play_as_well(
+        self, facts_2022
+    ):
+        """An unrecorded name is knowledge from outside the moment, so the
+        sentence is play and the name is refused like any other invention."""
+        text = BUDDY_2022_ARGENTINA.replace(
+            "and scored!", "and scored! Pure Pelé, that!"
+        )
+        result = check(text, facts_2022, THE_BUDDY, "Argentina")
+        assert not result.grounded, result.summary
+        assert "name" in {failure.kind for failure in result.failures}
+
+    def test_a_short_last_sentence_of_play_is_not_a_reaction(
+        self, facts_2022
+    ):
+        """"He scored." is the finish said shortly. The pronoun means the
+        player with the ball, so the sentence points at a record and is read
+        as one."""
+        text = (
+            "Argentina were on the counter when Molina picked it up and found "
+            "MacAllister, who played it to Messi, and Messi moved it on to "
+            "Álvarez, whose long ball forward found MacAllister again. He set "
+            "it up for Di María. He scored."
+        )
+        result = check(text, facts_2022, THE_STORYTELLER, None)
+        assert result.grounded, result.summary
+
+    def test_a_reaction_too_long_to_be_one_is_play(self, facts_2022):
+        """Nine words, so it is read as play, and as play it asserts nothing
+        the records hold after a finish that has already landed."""
+        text = BUDDY_2022_ARGENTINA.replace(
+            "and scored!",
+            "and scored! Well now that really was a very fine thing!",
+        )
+        result = check(text, facts_2022, THE_BUDDY, "Argentina")
+        assert not result.grounded, result.summary
+
+    def test_the_storyteller_reaction_ends_on_a_full_stop(self, facts_2022):
+        text = STORYTELLER_2022 + " Oh, lovely."
+        result = check(text, facts_2022, THE_STORYTELLER, None)
+        assert result.grounded, result.summary
+
+    def test_the_storyteller_reaction_may_not_cheer(self, facts_2022):
+        text = STORYTELLER_2022 + " Oh, lovely!"
+        result = check(text, facts_2022, THE_STORYTELLER, None)
+        assert not result.grounded, result.summary
+        assert {failure.kind for failure in result.failures} == {"cheer"}
+
+    def test_the_conceding_buddy_reaction_is_subdued(self, facts_1986):
+        text = BUDDY_1986_ENGLAND + " Ah, no."
+        result = check(text, facts_1986, THE_BUDDY, "England")
+        assert result.grounded, result.summary
+
+    def test_the_conceding_buddy_reaction_may_not_cheer(self, facts_1986):
+        text = BUDDY_1986_ENGLAND + " Ah, no!"
+        result = check(text, facts_1986, THE_BUDDY, "England")
+        assert not result.grounded, result.summary
+        assert {failure.kind for failure in result.failures} == {"cheer"}
+
+    def test_a_reaction_on_its_own_lands_no_finish(self, facts_2022):
+        """The play layer is what has to land it, so a narration that is only
+        a reaction has not said the ball went in."""
+        result = check("Oh, lovely!", facts_2022, THE_BUDDY, "Argentina")
+        assert not result.grounded, result.summary
+        assert {failure.kind for failure in result.failures} == {
+            "ending",
+            "unverifiable",
+        }
+
+    def test_the_eight_references_hold_no_reaction(
+        self, facts_1986, facts_2022
+    ):
+        """So the layer is an addition and not a change: every reference is
+        play from its first word to its last, and each one still passes."""
+        for slot, goal, narrator, side, text in REFERENCES:
+            facts = _facts(goal, facts_1986, facts_2022)
+            parsed = sentences(text)
+            reader = Reader(
+                facts=facts,
+                not_a_name=NOT_A_NAME,
+                demonyms=TEAM_DEMONYMS,
+                actions=ACTION_CLAIMS,
+            )
+            for sentence in parsed:
+                assert not _is_a_reaction(
+                    sentence.text, reader.read(sentence.text)
+                ), f"{slot}: {sentence.text!r} read as a reaction"

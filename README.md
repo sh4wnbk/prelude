@@ -299,12 +299,13 @@ Everything above it is structure.
   positions, the shape of a run, which way the ball went, a run with yards in
   it, the carry that is asked to deliver the ball and the recorded fields a
   goal call says out loud. All pass.
-- `tests/test_reference_narrations.py`: 41 tests holding the narration
+- `tests/test_reference_narrations.py`: 58 tests holding the narration
   standard: the eight reference narrations in `docs/VOICE.md`, checked word
   for word with the narrator and the listener side given, the eleven lines the
   check has to keep refusing, the words a narration may land the finish on,
-  the force words it may not and the verdicts about history it may not. All
-  pass.
+  the force words it may not, the verdicts about history it may not, and the
+  reaction layer: where a reaction may stand, who may cheer in one and what
+  makes a short sentence play instead. All pass.
 - `tests/test_narrator_candidates.py`: 86 tests over `app/goal_call_prompt.py`
   and `scripts/narrator_candidates.py`: the four styles, one per narrator and
   situation, the invented match their examples are shown through, the records

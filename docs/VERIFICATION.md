@@ -42,6 +42,18 @@ way the ball went, and the recorded fields a goal call says out loud. Both readi
 nicknames, epithets, outcome claims, dashes and markup, and both hold the same
 rule about where an exclamation mark may stand.
 
+**A goal call has two layers, and the check reads one of them.** The play
+(who, what, where, how it finished) is traced to the records, claim by claim.
+The reaction (the narrator feeling the moment: "Oh, lovely!", "What a
+finish!", "Ah, no.") is the narrator's own voice: it may stand once, at the
+goal, after the play has landed the finish, and nothing in it is traced to a
+record, because a sentence of at most `REACTION_WORDS` words with no name, no
+pronoun, no digit and no claim about a recorded field points at nothing the
+records could refuse. Everything else still applies to it: the banned
+verdicts, the force words, "you", the clock, the digits, the tense and who may
+cheer. "Verified from play data" means every event happened as told, and the
+reaction tells no event.
+
 One test per kind of claim, and one per kind of mistake. The cited reading:
 
 | Claim kind | Refused when | Test |
@@ -98,6 +110,7 @@ And the goal-call reading, whose tests are in
 | `ending` | nothing in the narration is a claim the goal's own record holds | `tests/test_reference_narrations.py::TestTheFinishMayBeSaidPlainly::test_a_narration_that_lands_on_nothing_is_still_refused` |
 | `side` | a partisan "we" over a clause recording the other team | `tests/test_reference_narrations.py::TestTheFirstPersonNeedsTheListenersOwnPlay` |
 | `cheer` | an exclamation mark where the listener would not cheer | `tests/test_reference_narrations.py::TestWhereAnExclamationMarkMayStand` |
+| `reaction` | a reaction before the finish, or a second one after it | `tests/test_reference_narrations.py::TestTheReactionLayer::test_a_reaction_before_the_finish_is_refused` |
 | banned | force the record does not hold, "smashed it home" | `tests/test_reference_narrations.py::TestTheForceIsNotInTheRecord` |
 | banned | a verdict about history, "the best of all time" | `tests/test_reference_narrations.py::TestAVerdictAboutHistory` |
 
