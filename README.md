@@ -308,7 +308,7 @@ Everything above it is structure.
   the force words it may not, the verdicts about history it may not, and the
   reaction layer: where a reaction may stand, who may cheer in one and what
   makes a short sentence play instead. All pass.
-- `tests/test_narrator_candidates.py`: 123 tests over
+- `tests/test_narrator_candidates.py`: 129 tests over
   `app/goal_call_prompt.py` and `scripts/narrator_candidates.py`: the four
   styles, one per narrator and situation, the invented match their examples
   are shown through and the reaction each example ends on, the records the

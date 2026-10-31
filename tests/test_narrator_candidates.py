@@ -1008,3 +1008,35 @@ class TestWhatTheRunIsExpectedToSpend:
         assert "at most (54 calls" in printed
         assert "4 characters a token" in printed
         assert "nothing was sent" in printed
+
+
+class TestTheRecordsSayWhatIsNotThereToo:
+    """One absence is worth printing, because the example teaches it.
+
+    The worked example opens on "won it back", which is a `Ball Recovery`.
+    The 2022 counter holds none: Molina's first record in it is a pass. The
+    model opened that passage with "we won it back through Molina" three
+    times in the run of 2026-10-31 and twice more in the run at effort high,
+    and the check refused every one of them.
+    """
+
+    def test_the_2022_passage_says_nothing_was_won_back(self, facts_2022):
+        assert not any(
+            fact.beat.action == "Ball Recovery" for fact in facts_2022.facts
+        )
+        said = flat(catalyst_and_finish(facts_2022))
+        assert "nothing in it was won back" in said
+
+    def test_the_1986_passage_does_not_say_it(self, facts_1986):
+        """Cuciuffo's recovery is fact 1, so the words are true there and the
+        prompt has no reason to say anything."""
+        assert any(
+            fact.beat.action == "Ball Recovery" for fact in facts_1986.facts
+        )
+        assert "won back" not in flat(catalyst_and_finish(facts_1986))
+
+    @pytest.mark.parametrize("key", sorted(STYLES))
+    def test_every_2022_prompt_carries_it(self, key, facts_2022):
+        assert "nothing in it was won back" in flat(
+            build_goal_call_prompt(facts_2022, key)
+        )

@@ -417,11 +417,31 @@ def catalyst_and_finish(facts: Facts) -> str:
         "Start on the first step and land on the last. The first thing that"
         " happened is that {} {}, and that is where the narration starts;"
         " nothing before it. The last thing is that {} scored, and that is"
-        " where it stops.".format(
+        " where it stops.{}".format(
             spoken[first.player],
             opening[0] if opening else "had the ball",
             spoken[last.player],
+            _nothing_won_back(facts),
         )
+    )
+
+
+def _nothing_won_back(facts: Facts) -> str:
+    """Said when the passage holds no recovery, because the example does.
+
+    The worked example opens on "won it back", which is a `Ball Recovery`,
+    and the 2022 counter holds none: Molina's first record in it is a pass.
+    The model wrote "we won it back through Molina" three times in the run of
+    2026-10-31 and twice more in the run at effort high, and `catalyst_and_
+    finish` saying which step comes first was not enough to stop it. So the
+    records say the thing that is not there as well as the thing that is.
+    """
+    if any(fact.beat.action == "Ball Recovery" for fact in facts.facts):
+        return ""
+    return (
+        " No record in this passage is a ball recovery, so nothing in it was"
+        " won back and nobody won the ball: the example below opens that way"
+        " and this move does not."
     )
 
 
