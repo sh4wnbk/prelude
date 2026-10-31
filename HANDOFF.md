@@ -2912,6 +2912,79 @@ each of the six recorded slots. `scripts/tts_hero.py --budget` went to 3,500,
 because six narrations replace two spoken three ways each. The run and its
 numbers are in "Next first action" above.
 
+### Task 9d: the play tightened, the reaction added, and the run at a high effort (done)
+
+**The candidates were plain, near copies of each other, and some of them said
+things the records contradict.** Shawn read the eighteen of Task 9c aloud and
+found three kinds of mistake that nothing could catch: Álvarez "carried it
+back to MacAllister" and "slipped it back" over a pass of 38 yards up the
+pitch, "drove forward" over carries of under a yard, and "smashed it home"
+over a shot record that says nothing about force.
+
+**9d step 1, `70e05a2`.** Four rules in the goal-call reading. "Forward" and
+"back" are a claim about the change in x on a pass or a carry, with
+`DIRECTION_YARDS` at 2.0: nothing in either hero passage moves the ball
+between 0.8 yards and 9.0, so the threshold sits in that gap. "Drove", "ran",
+"burst" and the words like them need a recorded carry of `RUN_YARDS`, 10.0:
+Maradona's three long carries are 34.9, 16.8 and 16.7 yards and every other
+carry in either passage is 1.1 or less. A carry never delivers the ball to
+another player, so a chain whose only verb is a carry is refused. And force
+words are refused outright, while the neutral finishes stay sayable:
+"struck", "fired" and "slotted" joined `ACTION_CLAIMS` as `Shot` claims.
+Re-read through the Task 9c candidates, eleven of the eighteen now fail.
+
+**9d step 2, `d607588`.** The reaction layer. Shawn settled on 2026-10-31
+that a narration has two layers: the play, grounded strictly, and the
+reaction, which is the narrator feeling the moment and claims nothing about
+the data. A reaction is at most `REACTION_WORDS` words, holds no digit, names
+no player, team or pronoun, and makes no claim about a recorded field; it
+stands once, at the goal, after the finish has landed. Everything else still
+applies to it, so a verdict about history, a force word, "you" or a cheer
+from a voice that does not cheer is refused in a reaction exactly as in the
+play. "!" has two places now rather than one, the finish and the reaction
+after it. The eight references hold no reaction and all eight still pass.
+
+**9d step 3, `9a1bca1`.** Both layers into `docs/VOICE.md`, and "The label,
+and the two layers under it" into `README.md`: the label claims that every
+event happened as told, and the reaction tells no event. Each of the four
+worked examples in `app/goal_call_prompt.py` is a full telling with one
+reaction, and the rules are thirteen. Rule 13 asks for tellings that differ
+in structure rather than in wording, and `build_goal_call_prompt` takes
+`avoid`, the candidates already kept for that slot, because three independent
+calls cannot differ on purpose unless each one is told what the others said.
+
+**9d step 4 is five commits, because the run found five things.** Reasoning
+effort, the length cap and the timeout are per-run settings now
+(`57f8940`), and the plan states the token estimate beside the call count.
+
+The run then taught the rest:
+
+| What happened | What it cost | What fixed it |
+| ------------- | -----------: | ------------- |
+| at effort high the model answered with reasoning and no narration | 4,718 | `--max-new-tokens`, measured at 16,000 (`5575853`) |
+| rule 12 asked for "about 230 characters" and it counted letters | 2 probes | rule 12 asks for words and says not to count (`5575853`) |
+| rule 3 did not say where the reaction goes, so both efforts wrote it first | 2 probes | rule 3 says it is the last thing written (`5575853`) |
+| one answer with no content ended the whole run | nothing yet | `AnsweredWithoutContent` is a failed attempt (`21c9795`) |
+| a call that never came back ended the run after one slot | about 72,000 | `--timeout`, and a lost call costs one candidate (`871115d`) |
+| "we won it back through Molina", twice more | 2 attempts | the records say no recovery is there (`e28fbd8`) |
+
+**What high effort costs, measured.** One goal-call prompt of 2,746 prompt
+tokens, the same prompt each time: at effort low the model answers in 295
+completion tokens, and at high it answers in 14,141 and returns nothing at
+all under a cap of 8,000. So high is about fifty times low on this prompt.
+The figures are in `app/narration_provider.py` beside
+`COMPARISON_MAX_NEW_TOKENS`, and `WatsonxProvider` counts what watsonx says
+it billed (`0aca40e`) so the next estimate can be checked against a bill
+rather than against another estimate.
+
+**9d step 4, the near copies, `f8d3ba1`.** `play_shape` in
+`scripts/narrator_candidates.py` reads a candidate with the goal-call grammar
+and keeps the kinds of move each sentence of the play makes. It reads kinds
+and not words, so two tellings differing only in a synonym are one shape and
+the second is dropped, and the reaction is left out of the shape. Shawn's
+four references for each hero goal come out as four shapes, so it is not
+over-eager. Applied to the eighteen this run produced it flags two.
+
 ### Phase 5: voice and audio
 
 **This is where the personas are, now that the narration text is one text.**
@@ -2975,80 +3048,81 @@ The rules Shawn settled for them, before any of it is built:
 
 ## Next first action (Shawn reads eighteen candidates aloud and picks six)
 
-**Task 9 is run end to end, nothing is frozen, and there are eighteen
+**Task 9d is run end to end, nothing is frozen, and there are eighteen
 candidates to choose from.** They are in
 `C:\Users\shawn\prelude-review\narrator_candidates_2026-10-31.md`, with the
-same data beside it as JSON. Three per slot, six slots, and every one of them
-was written by `openai/gpt-oss-120b` and passed the grounding check reading it
-as a goal call.
+same data beside it as JSON. Three per slot, six slots, every one written by
+`openai/gpt-oss-120b` at reasoning effort high, and every one passed the
+grounding check in `app/grounding.py` reading it as a goal call.
 
-**What changed, in one line: the narration read like a log file and now it
-reads like a recap.** The framework Shawn settled on 2026-10-30 is in
-`docs/VOICE.md`: Prelude is the recap stage of a goal call, so a narration
-starts at the catalyst, tells the decisive part and lands the finish, with
-chains, action before name, short names and "he", repetition that builds, past
-tense and football idiom. No clock, no verdict, no backstory, no crowd, no
-opener two goals share. **Each narrator has its own text**, so there are six
-narrations rather than two, and "!" goes only where the listener would cheer.
+**What changed, in one line: the narration now has two layers, and the play
+layer is read much harder than it was.** The play is who, what, where and how
+it finished, and "forward", "back", "drove", "ran" and a carry that hands the
+ball to somebody are claims it can be refused for. The reaction is the
+narrator feeling the moment ("Oh, lovely!", "What a finish!", "Ah, no.") and
+is not checked against the data, because it asserts nothing about it.
+`docs/VOICE.md` has both layers and `README.md` has what the label claims
+over them.
 
-**The standard is eight reference narrations and they are Shawn's words, not a
-model's.** `tests/test_reference_narrations.py` holds them, two hero goals by
-four narrator-and-side slots, and they pass the check word for word. They never
-go into a prompt for the two goals they describe: the style a model is shown is
-worked through an invented match (Harbour Town against Kestrel Bay) with
-invented players, which `tests/test_narrator_candidates.py::TestTheExampleIsInvented`
-holds the whole prompt to.
+**Sixteen of the eighteen are distinct tellings.** `play_shape` flags two as
+the same telling with other words in it: the third 1986 Storyteller candidate
+is the first one again, and the third 2022 scoring Buddy candidate is the
+first one again. The drop is in the run now, so a later run will not keep
+them; this document was not edited to match, because a review file assembled
+by hand is not a record of a run.
 
-**The check learned the grammar rather than the words.**
-`app/narration_grammar.py` reads a narration that cites nothing: a name part
-that picks out one player, "he" resolved to the player with the ball, a chain
-as a recorded pass, action before name, "past X" as a dribble past X, "we" over
-the listener side's own play, and where an exclamation mark may stand.
-`app/grounding.py` picks the reading off the narration's own shape, so the
-cited pipeline is untouched: a tag anywhere means the old reading.
+**Every set of six fits the budget with room to spare.** All eighteen are
+inside the 583 a recording the budget allows, the longest at 390. The
+cheapest set of six bills 1,920 and the most expensive 2,167, against
+`scripts/tts_hero.py --budget` of 3,500. The 1986 candidates run 294 to 357
+billed and the 2022 ones 317 to 390.
 
-**Two rules were wrong and the live run found both.** The first run of
-2026-10-31 refused nine of eighteen candidates and both reasons were the
-check's rather than the model's. "The ball went in" claimed no shot, so a
-narration that landed the finish in the plainest English was refused; it is a
-`Shot` claim now. And the ending rule wanted a verb from a list, so nine
-candidates ending "with his left foot" after "firing", "struck", "smashed it
-home" or "blasting it home" were refused although the body part is read off
-the goal shot itself. `FINISH_KINDS` in `app/grounding.py` is the rule that
-replaced the list: a narration lands the finish when its last sentence makes a
-claim the goal's own record holds.
+**What the run cost, and what is measured and what is not.** About 817,000
+tokens in all, of which 311,081 is counted off watsonx's own `usage` object
+and the rest is estimated at the 14,473 tokens a call the counted runs
+averaged. The counting was added part way through, which is why two of the
+four runs are an estimate:
 
-**What the run cost and what it kept.** Three runs, because two of them found
-those two rules: 54 generations at most each for the first two and 18 for the
-third, which reran the two `buddy_scored` slots alone once the ending rule was
-right. The third run carried the other four slots across rather than throwing
-them away, which is what `merged` in `scripts/narrator_candidates.py` is for.
-Eighteen of eighteen kept on the last pass, fifteen of them on the first
-attempt.
+| Run | Calls | Tokens |
+| --- | ----: | -----: |
+| the probes that measured what high effort needs | 9 | 65,038 counted |
+| six slots, lost to a read timeout after one slot | 5 | about 72,000 |
+| six slots, 16 of 18 kept | 30 | about 434,000 |
+| the two `buddy_scored` slots again | 11 | 154,821 counted |
+| the 2022 `buddy_scored` slot again | 6 | 91,222 counted |
 
-**Every set of six fits the budget with room to spare.**
-`scripts/tts_hero.py --budget` is 3,500 now, up from 3,000: the length did not
-change, the count did, because six narrations replace two spoken three ways
-each. The cheapest set of six bills 1,739 and the most expensive 1,847, against
-583 a recording. The 1986 candidates run 271 to 297 billed and the 2022 ones
-300 to 353.
+Shawn authorised up to 999,390 for the run at high effort after reading the
+measurement, which is what the ceiling in the plan says for 54 calls.
 
 **Still owed after the pick.** Three things, and the first is Shawn's:
 
 1. Shawn picks one candidate per slot, six in all, reading them aloud.
-2. The freeze. `scripts/freeze_narrations.py` writes one narration per goal and
-   `app/web/narrations.json` holds one per goal, so writing six picks into it is
-   a change to both and is not built. `scripts/narrator_candidates.py` freezes
-   nothing on purpose.
-3. The recordings. The Text to Speech instance was disabled above its Lite cap
-   until November 1, so `scripts/tts_hero.py --confirm` has not been sent and
-   `hero.audio` is still `{}`.
+2. The freeze. `scripts/freeze_narrations.py` writes one narration per goal
+   and `app/web/narrations.json` holds one per goal, so writing six picks
+   into it is a change to both and is not built.
+   `scripts/narrator_candidates.py` freezes nothing on purpose.
+3. The recordings. The Text to Speech instance was disabled above its Lite
+   cap until November 1, so `scripts/tts_hero.py --confirm` has not been sent
+   and `hero.audio` is still `{}`.
 
-**The Caller has a style and no recording.** `hero.voice_for` sends no listener
-to it, so nothing generated for it and there are six slots rather than eight.
-Its style is in `app/goal_call_prompt.py` and its two reference narrations are
-in `tests/test_reference_narrations.py`, so adding the recording later is a
-change to `hero.voice_for` and not to the writing.
+**Two things worth deciding before the next paid run.** Neither blocks the
+pick:
+
+- **Whether high effort is worth fifty times low.** The candidates at high
+  effort are not obviously better tellings than Task 9c's at low, and they
+  cost about 817,000 tokens against that run's three runs of 54 generations
+  at most. `--reasoning-effort` is a flag now, so the comparison is one run
+  each.
+- **The two near copies.** Rerunning those two slots would cost about 90,000
+  to 155,000 tokens each at high effort, going by the two runs that were
+  counted, and the drop is in the run now so a rerun would come back with
+  distinct tellings or with fewer candidates.
+
+**The Caller has a style and no recording.** `hero.voice_for` sends no
+listener to it, so nothing generated for it and there are six slots rather
+than eight. Its style is in `app/goal_call_prompt.py` and its two reference
+narrations are in `tests/test_reference_narrations.py`, so adding the
+recording later is a change to `hero.voice_for` and not to the writing.
 
 ### Task 8: the candidate run Task 9 replaced
 
