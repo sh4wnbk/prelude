@@ -2950,7 +2950,71 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Claude Code Task 7: better frozen narrations, chosen by Shawn)
+## Next first action (Shawn picks one candidate per hero goal)
+
+**Task 7 is run and nothing is frozen.** The candidates are in
+`C:\Users\shawn\prelude-review\hero_candidates_2026-10-30.md`, with the same
+data beside it as JSON. Shawn picks one per goal; `scripts/freeze_narrations.py
+--confirm` is then what writes those two into `app/web/narrations.json`, and it
+needs the hero prompt passed to `narrate` the way
+`scripts/hero_candidates.py` does.
+
+**The 2022 goal is solved and the 1986 one is thin on choice.** Five of five
+2022 candidates passed, all seven sentences, all five players who touched the
+ball named, one clock, and a last sentence saying it scored: the three things
+Task 7 asked for. They differ only in whether the body part and play pattern
+are in the last line and in how "carried the ball" is phrased, and they cost
+1,488 to 1,605 billed characters. The 1986 goal kept two of five. One of them
+is usable and the other is not.
+
+**The 1986 run found a real prompt problem, and it is in the check's pairing
+rule.** Three of the five slots failed all three attempts the same way: the
+model wrote one sentence per defender in the form "Peter Beardsley was
+dribbled past and Diego Armando Maradona carried the ball", and the check
+refuses it, correctly, because no cited fact records a `Carry` involving
+Beardsley. The hero block is what invites it: a step for the scorer prints as
+"dribbled, carried the ball", so a model joining that step to the defender's
+beat writes two actions and two players into one line, which rule 4 forbids.
+The surviving candidate 3 avoids it by dropping the carry and writing
+"dribbled past Peter Beardsley". Naming the carry separately, or leaving it
+off the step line, is the cheap fix if the 1986 goal needs rerunning.
+
+**Candidate 5 for 1986 is grounded and unusable, which is worth seeing once.**
+Rule 6 for the hero use says no digits besides the one clock, and the model
+obeyed by spelling every clock out in words: "at minute fifty-four seconds
+two" on each of twelve sentences. Nothing in `app/grounding.py` objects, since
+a clock written as words carries no digits and no number claim, and the result
+costs 4,299 billed characters on its own, more than the whole raised budget.
+It also carries a `NON-BREAKING HYPHEN` (U+2011) in "fifty-four", a character
+the check does not refuse and no gate would catch. If the clock rule is
+rewritten, it should say the clock is written as the fact writes it and
+nowhere else, rather than reaching for digits as the thing to forbid.
+
+**Only two of the ten pairs fit the raised budget.** `--budget` is now 3,000
+billed characters and the arithmetic is tight: 1986 candidate 3 with 2022
+candidate 3 is 2,985, and with 2022 candidate 4 it is 2,979. Every other pair
+is over, because 1986 candidate 3 alone is 1,491. So the pick is effectively
+1986 candidate 3 plus 2022 candidate 3 or 4, unless the budget goes up again
+or the 1986 goal is rerun for a shorter telling. Raising it further is a
+decision rather than a fix: November's allowance is 10,000 and the six
+recordings are the only thing spending it.
+
+**The run cost 23 generations of the 30 it was allowed**, plus one IAM
+exchange: `openai/gpt-oss-120b` through the chat endpoint at `reasoning_effort`
+low, decoding pinned to temperature 0.8, top_p 0.9, top_k 40. The decoding is
+pinned because watsonx decodes greedily unset, and five greedy candidates are
+one candidate five times. Nine of the twenty-three attempts were grounded.
+
+**Still owed after the pick: the recordings.** The Text to Speech instance is
+disabled above its Lite cap until November 1, so `scripts/tts_hero.py
+--confirm` has not been sent and `hero.audio` is still `{}`. What to listen for
+has changed again: a candidate that says "at 35:12" once still reads a colon
+between two numbers aloud, which nothing here knows the sound of, and `di` in
+"Di Maria" is still unheard.
+
+### Before the pick: Task 7, as it was run
+
+**Task 7's brief, and the state it started from.**
 
 **Bob task 13 is built and checked.** `4e61a10` renamed the id to `buddy` in
 every live file; both written files pass `--check`, and the follow-up updated
