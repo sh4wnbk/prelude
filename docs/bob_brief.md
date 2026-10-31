@@ -122,7 +122,7 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-905 passed
+8 failed, 916 passed
 ```
 
 The total covers far more than this module now. Phase 4 added the narration
@@ -130,7 +130,12 @@ provider, the prompt, the grounding check and the evaluation, each with its
 own tests; run `pytest tests/test_event_feed.py` to see this module's tests
 alone.
 
-**The suite is green, so any failure means something is actually wrong.**
+**The eight failures are on purpose and they are all in one file.**
+`tests/test_reference_narrations.py` writes down the narration framework in
+`docs/VOICE.md` as eight reference narrations, and the grounding check cannot
+read them until Task 9b teaches it the grammar. Everything else is green, so a
+failure anywhere else, and every failure in `tests/test_event_feed.py`, means
+something is actually wrong.
 
 The suite still guards the import, and three messages mean three different
 things if that changes. In `tests/test_event_feed.py`, every test that builds

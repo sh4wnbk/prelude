@@ -31,15 +31,26 @@ changes, the other changes with it.
 
 ## What it sounds like
 
-Plain past-tense commentary, four sentences by default. It describes the passage
-of play the data recorded, in the order it happened, and stops.
+**The recap stage of a goal call**: it starts at the catalyst, tells the
+decisive part, and lands the finish, in the past tense, in the words the game
+is talked about in. Chains for the passes, action before name, the shortest
+recorded name that picks out one player, and repetition where repetition is
+what a listener needs to hear. "The framework: Prelude is the recap stage of a
+goal call" below is the whole of it, with the eight reference narrations that
+are the standard.
+
+What the code writes today is the style that framework replaces: plain
+past-tense commentary, four sentences, one action each, in the order the events
+happened.
 
 > Maradona received the ball inside his own half. He dribbled past Beardsley. He
 > dribbled past Butcher and Fenwick. Maradona shot and scored for Argentina.
 
-Short sentences, one action each. Players named as the data names them, or
-shortened to a surname the data contains. No scene setting that the data did
-not record.
+Every word of that is grounded, and it reads like the log file it was assembled
+from. Players are named as the data names them, which does not change: the
+recorded name or the recorded nickname, and nothing shortened that the match
+did not shorten. No scene setting that the data did not record, which does not
+change either.
 
 ## Past tense, because it is playback
 
@@ -162,7 +173,12 @@ fixes.
 - **Clocks.** Written exactly as the cited fact writes it: "54:13" belongs to a
   sentence citing fact 14 or 15 and to no other. This is new with the numbered
   facts; before them, a per-second clock could not be grounded at all, and the
-  prompt had to hide the seconds to avoid failing a model for quoting them.
+  prompt had to hide the seconds to avoid failing a model for quoting them. The
+  framework below is narrower than this and asks for no clock in a narration at
+  all. `tests/test_reference_narrations.py::TestNoClockReachesTheNarration`
+  writes that down, and it passes today for the wrong reason: a clocked line is
+  refused as `untagged` like every other uncited line, not because the clock is
+  in it.
 - **Counts.** Written as words: "past two defenders", never "past 2 defenders".
   A bare digit is grounded only by the minute of a cited fact or by the second
   the goal was scored at. Every second a possession passes through is a number
@@ -331,19 +347,158 @@ and `PreludeOrchestrator.opening` says the new line. The 72 tests in
 gone from the contract. No screen shows a header yet; Task 7 puts it on the
 moment card.
 
-## The three personas, and the one style
+## The framework: Prelude is the recap stage of a goal call
 
-**There is one narration style and the personas are separated by sound.**
-`NARRATION_STYLE` in `app/narration_prompt.py` is the style every narration is
-written in, whoever is listening, and `build_prompt` prints it under "THE
-STYLE" in every prompt
-(`tests/test_narration_prompt.py::TestTheOneNarrationStyle`). A persona
-changes how that text is spoken, which is Phase 5: an IBM Text to Speech
-voice, a rate, a pitch, and the pauses between sentences.
+**The narration read like a log file, and that is what this section replaces.**
+Every sentence was true, every sentence cited its record, and the result was a
+list: "Maradona received the ball inside his own half. He dribbled past
+Beardsley. He dribbled past Butcher and Fenwick." Nothing in it is wrong.
+Nobody talks like that about a goal, and a fan who opens the app to hear what
+they missed is owed the thing a commentator would have said.
 
-That is a decision and not a simplification. The three measured sections at
-the end of this one are what it came out of: three ways of asking for three
-registers were tried, and each gave one register back.
+So the framework below is the standard, settled by Shawn on 2026-10-30 after
+researching how commentators actually call a goal. A commentator calling one
+live does three things in order: the build while the move is alive, the shout
+as it goes in, and then the recap, the move told back over the replay.
+**Prelude is the recap.** The app arrives after the ball is in the net, so the
+build and the shout are already behind it, and the stadium has the shout
+anyway.
+
+**Start at the catalyst, tell the decisive part, land the finish.** Three
+positions, in that order, and nothing before or after them. The catalyst is
+the touch the move came out of: a recovery, a counter starting. The decisive
+part is what a listener would have asked about, which is the run past four
+defenders in 1986 and the chain of five passes in 2022. The finish is the
+shot, and the last thing said is that it went in.
+
+### What it does
+
+| | |
+| --- | --- |
+| **Chains** | "Molina to MacAllister", the shortest way to say a pass. A move made of passes is said as its passes. |
+| **Action before name** | "a long ball from Álvarez", because the listener is watching the ball, not a team sheet. |
+| **Short names, and "he"** | the shortest recorded name that picks out one player, and a pronoun once that player is the one being followed. |
+| **Repetition that builds** | "past Beardsley, past Butcher, past Fenwick". The repeat is the point: it is how a listener hears four defenders rather than one. |
+| **Past tense** | the passage has already happened, which is the rule the rest of this document was written around. |
+| **Football idiom** | "finished with his left", "picked it up", "the counter was on". The words the game is talked about in. |
+
+### What it never does
+
+| | |
+| --- | --- |
+| **No clock times** | not "54:18", not "in minute 54", not spelled out. The header already says when; a colon between two numbers is read aloud as a colon between two numbers. |
+| **No verdicts** | unchanged from `CLAUDE.md`: no nicknames, no epithets, no ranking the goal or the players. |
+| **No backstory** | nothing about the match, the tournament or the player before this passage. |
+| **No crowd** | the stadium is in the room already. |
+| **No full names every time** | a name said in full six times is a document, not a call. |
+| **No filler repetition** | the repetition that builds is "past, past, past". Saying "received the ball" four times is not that. |
+| **No opener two goals share** | an opening line that would fit any goal is an opening line that says nothing about this one. |
+
+### How the sentences hold together
+
+Four rules, and they are about the prose rather than about the data:
+
+- **Each sentence carries its claim with its reason.** Not "he carried it
+  forward" and then, separately, "he was under pressure": "he carried it
+  forward under pressure".
+- **Clauses join.** The log file was one claim per full stop. A recap runs
+  clauses together, because the move ran together.
+- **Each sentence picks up the last one's thread.** The thing the previous
+  sentence ended on is what the next one starts from.
+- **Setup builds to payoff.** The order is not decoration: the catalyst exists
+  so that the finish lands.
+
+### Each narrator has its own text
+
+**This is the rule that replaces one style for every persona.** The text was
+one text from Task 6d, and the personas were separated by sound alone. They
+are not any more: a Storyteller recapping a move and a Buddy sitting beside a
+fan whose side just scored are not the same sentences spoken differently, and
+the four slots below are four pieces of writing.
+
+| Narrator and situation | What its text does |
+| ---------------------- | ------------------ |
+| The Storyteller | the move told evenly, start to finish, in the third person. |
+| The Buddy, the side that scored | the listener's own move, so "we" and "us" are the register, and the finish is the one place a listener cheers. |
+| The Buddy, the side that conceded | the same move told without cheering it, and without "we", because the passage records nothing the listener's side did. |
+| The Caller | quick, chained, the repetition at its most clipped, ending on the shot. |
+
+**"!" only where the listener would cheer.** That is the last sentence, and
+only for the Caller or for the Buddy of the side that scored. The Storyteller
+does not get one in any situation, and neither does a Buddy sitting with the
+side that conceded.
+
+### The eight references are the standard
+
+`tests/test_reference_narrations.py` holds eight narrations, the two hero goals
+by each of the four narrator-and-side slots, written to the framework above.
+They are what the standard means in practice, and the check is held to them
+word for word (`tests/test_reference_narrations.py::TestTheReferences`).
+
+The 1986 goal, as the Storyteller tells it:
+
+> Cuciuffo's recovery started the counter, and Enrique played it to Maradona
+> just inside his own half, who carried it forward under pressure past
+> Beardsley, Butcher and Fenwick and took it into the box, where he went around
+> Peter Shilton and scored with his left foot.
+
+and as the Buddy tells it to somebody who supports Argentina:
+
+> We won it back through Cuciuffo and Enrique gave it to Maradona in his own
+> half, and from there it was all him: past Beardsley, Butcher and Fenwick, on
+> into the box, around Shilton, and he scored with his left foot!
+
+**They are the standard, not the recordings.** Shawn's words, not a model's,
+and they never go into a prompt for the two goals they describe: a reference
+pasted into that prompt would be dictation, the model would hand it back, and
+nothing would have been measured. The style a narrator is shown is worked
+through an invented match with invented players instead, which is planned as
+Task 9c.
+
+**They do not pass yet, and the file says so.** The check reads a sentence
+against the fact numbers that sentence cited, and a goal call cites nothing, so
+all eight are refused today as `untagged`. Nothing else in them is refused:
+no banned word, no tense slip, no ungrounded name. Teaching the check the
+grammar these lines are written in is planned as Task 9b, and what it has to
+learn is the list under "What it does" above: a name part that identifies one
+player, "he" and "his" resolved to the player being followed, a chain read as a
+recorded pass, an action named before its player, "past X" as a dribble past X,
+"we" over the listener side's own recorded actions, and where an exclamation
+mark may stand.
+
+The other half of the standard is the lines the check has to keep refusing. Each
+is one of the references with one thing changed, and each of those tests passes
+today for the same reason the references fail: an uncited line is refused
+whatever is in it. What they are for is Task 9b, where a line the grammar can
+finally read has to come out refused anyway.
+
+| Refused | Why | Test |
+| ------- | --- | ---- |
+| "Molina to Messi" | Molina's one pass in that passage has MacAllister as its recipient | `TestAChainTheRecordsDoNotHold` |
+| "Terry", "Peter" | two and three players in the 1986 buildup answer to each | `TestANamePartTwoPlayersShare` |
+| "straight into the box" | the carries run out to the touchline and back | `TestAClaimAboutTheShapeOfTheCarry` |
+| "we" from the France fan's Buddy | all thirteen records in the 2022 passage are Argentina's | `TestTheFirstPersonNeedsTheListenersOwnPlay` |
+| "!" before the last sentence, or from the Storyteller, or from a conceding Buddy | nobody cheers there | `TestWhereAnExclamationMarkMayStand` |
+| any clock | the framework has none | `TestNoClockReachesTheNarration` |
+
+### What is still one style in the code
+
+`NARRATION_STYLE` in `app/narration_prompt.py` is the Storyteller's text and is
+printed under "THE STYLE" in every prompt, whoever is listening, and
+`build_prompt` still takes no persona
+(`tests/test_narration_prompt.py::TestTheOneNarrationStyle::test_the_prompt_takes_no_persona_and_no_side`).
+That is the code as it stands, not the standard: a style per narrator is
+planned as Task 9c, and until it lands the prompt asks for one register and
+the four slots above exist only in this document and in the references.
+
+The three measured sections further down are why one style was the rule before
+this one, and they are worth reading before a style per narrator is written:
+three ways of asking for three registers were tried against three models, and
+each gave one register back. What is different now is that the registers are
+written out as finished text rather than described to a model as an
+instruction.
+
+## The three personas and their voices
 
 | Persona | Id | Voice | What it sounds like | Offered to |
 | ------- | -- | ----- | ------------------- | ---------- |
@@ -351,13 +506,13 @@ registers were tried, and each gave one register back.
 | The Storyteller | `storyteller` | `en-US_EmmaNatural` | calm documentary, unhurried and even | everyone |
 | The Buddy | `mate` | `en-US_EthanNatural` | warm, from the next seat | fans only |
 
-**Nothing in the narration text differs between them.** `app/grounding.py`
-reads a narration against the facts it cited whoever asked for it, and
-`BANNED_PATTERNS` refuses the same nicknames, epithets and outcome claims in
-all three. The prompt takes no persona at all:
-`tests/test_narration_prompt.py::TestTheOneNarrationStyle::test_the_prompt_takes_no_persona_and_no_side`
-holds it to that, because an argument that changed nothing would read as a
-register still reaching the model.
+**What does not differ between them is what is refused.** The text is four
+texts now, and `app/grounding.py` holds all four to the same records:
+`BANNED_PATTERNS` refuses the same nicknames, epithets and outcome claims
+whoever is listening, and no narrator may say a name, an action or a body part
+the data does not hold. A narrator picks the words; it never widens what the
+words may claim, because "Verified from play data" cannot mean one thing for a
+fan and another for a neutral listener.
 
 **The three voices are Shawn's picks and the config records them.** `voice` is
 set on all three and `voice_confirmed` is true, which says the value was chosen
@@ -413,22 +568,36 @@ covers the disagreement that would not otherwise show up: `default_persona` in
 default that was fans only would hand a neutral listener a persona the Profile
 screen then refuses to show them.
 
-### The first person is refused in the prompt and guarded in the check
+### The first person belongs to the Buddy, over the listener's own play
 
-No narration says "we", "our" or "us" any more, because the prompt rejects the
-first person in the one voice it has
-(`tests/test_narration_prompt.py::TestTheOneNarrationStyle::test_the_prompt_refuses_the_first_person_in_the_one_voice_it_has`).
-The Mate was written as the listener's side from Task 6b to Task 6d, which is
-the one thing that visibly separated it, and what a model wrote with that
-permission is below: "Our Peter Beardsley was dribbled past at 54:08." and
-"We were dribbled past, Peter Beardsley.", five times over. Partisan warmth is
-something a voice can carry and that prose could not.
+**"We" is the Buddy's register again, and it is earned record by record.** The
+framework gives the Buddy of the side that scored the listener's own move, so
+"We won it back through Cuciuffo" is the reference rather than a drift to be
+caught. What the word may stand on has not moved: the listener's side has to
+have done something the records hold, and the Buddy of the side that conceded
+gets no "we" in these two passages at all, because every record in the 2022
+counter is Argentina's
+(`tests/test_reference_narrations.py::TestTheFirstPersonNeedsTheListenersOwnPlay`).
 
-**The rule stays in `app/grounding.py` as a guard.** `check` still refuses
-"we", "our" and "us" from every persona but a partisan one, and from a
-partisan one unless a cited fact is recorded against the listener's side.
-Nothing asks a model for the word, so the rule now exists to catch a model
-that writes it anyway rather than to permit one that was told to.
+**The prompt still refuses it, and that is the gap.** `build_prompt` rejects
+the first person in the one voice it has
+(`tests/test_narration_prompt.py::TestTheOneNarrationStyle::test_the_prompt_refuses_the_first_person_in_the_one_voice_it_has`),
+which is the rule from Task 6d and not the framework above. A style per
+narrator, with the first person allowed to the one narrator that has a side, is
+planned as Task 9c.
+
+The word was taken out for a reason worth keeping in view. The Mate was written
+as the listener's side from Task 6b to Task 6d, and what a model wrote with
+that permission was "Our Peter Beardsley was dribbled past at 54:08." and "We
+were dribbled past, Peter Beardsley.", five times over. That is the first
+person attached to the wrong records, which is exactly what the side rule
+below refuses; the references show the same permission used on the right ones.
+
+**The guard in `app/grounding.py` is what the framework now leans on.** `check`
+refuses "we", "our" and "us" from every persona but a partisan one, and from a
+partisan one unless a cited fact is recorded against the listener's side. It
+was written as a guard behind a prompt that asked for less; it is the live rule
+now.
 
 | Voice | "we", "our", "us" | "you", "your" |
 | ----- | ----------------- | ------------- |
@@ -470,8 +639,8 @@ tell a listener they support a team they did not choose.
 
 ### Measured once: the three voices came back nearly the same
 
-The next three sections are the measurement behind the decision at the top of
-this one. All three ran against code that has since been removed: each persona
+The next three sections are the measurement behind one style for every
+persona, which is the rule "The framework" above replaced. All three ran against code that has since been removed: each persona
 carried a `style` that the prompt printed, and from Task 6d a worked `example`
 of its register as well. `docs/narration_eval.md` holds the numbers and labels
 every section of them the same way.
