@@ -33,6 +33,9 @@ for:
 | "on the counter" | `pattern` | `play_pattern` |
 | "in under ten seconds" | `duration` | the span between the first and last timestamp |
 | "straight into the box" | `straight` | the carries running straight, which in 1986 they do not |
+| "forward", "back", "ahead" | `direction` | the change in x on a pass or a carry of that player's |
+| "drove", "ran", "burst" | `run` | a carry of at least `RUN_YARDS` |
+| "carried it to Vance" | `carry_delivery` | nothing: a carry does not hand the ball to anybody |
 
 **The player a pronoun means is the one with the ball.** "He" is resolved to
 the most recently named player who has a recorded touch in this passage, which
@@ -51,13 +54,22 @@ before name), and with no name either side it belongs to the player with the
 ball ("and finished with his left"). A name taken as a chain's target or as the
 defender in "past X" is spoken for and does not become anybody's actor.
 
+**Which way the ball went is read now, and it used to be prose.** "Forward"
+and "back" are a claim about the change in x on a pass or a carry, "drove" and
+"ran" are a claim about a carry with yards in it, and a carry never delivers
+the ball to another player. The live run of 2026-10-31 wrote all three
+mistakes: a pass of 38 yards up the pitch called a carry back to the man who
+played it, and "drove forward" over a carry of 0.7 yards. Every one of them
+read as prose and passed.
+
 **What it cannot read.** The same blunt edge the cited reading has: nothing in
 the text says which name goes with which claim, so a clause with two claims and
-two free names pairs both with both. Direction survives, as it always has:
-"forward" is prose here and a narration that said "backward" would not be
-refused for it. And the lexicon is narrow on purpose, like `ACTION_CLAIMS`: a
-word that is not in the tables below is prose rather than a claim, so "turned",
-"advanced" and "the whole way" are checked against nothing.
+two free names pairs both with both. A direction is held by any pass or carry
+of that player's that went that way rather than by the one the words were said
+about, which is the same bluntness and the same price. And the lexicon is
+narrow on purpose, like `ACTION_CLAIMS`: a word that is not in the tables below
+is prose rather than a claim, so "turned", "advanced" and "the whole way" are
+checked against nothing.
 
 Standard library only, like the rest of `app/`.
 """
@@ -95,6 +107,28 @@ CLAUSE_BREAK = re.compile(r"[,;:]")
 #: carry drifting a yard or two is not called a curve and tight enough to
 #: refuse the 1986 run, which strays sixteen.
 STRAIGHT_TOLERANCE_YARDS = 5.0
+
+#: How far up or down the pitch the ball has to go before a narration may call
+#: it forward or back, in StatsBomb's yards of x.
+#:
+#: Two is a gap in the data rather than a view about football. Six records in
+#: the two hero passages move the ball less than a yard in x: five carries of
+#: 0.2 to 0.8 yards, where a player takes a touch and stands still, and
+#: Maradona's last carry of 0.6 before the shot. Nothing in either passage
+#: moves it between 0.8 and 9.0. So the threshold sits in that gap with room
+#: on both sides, and "he carried it forward" over a player standing still is
+#: refused while every pass and carry either passage would call forward is
+#: held.
+DIRECTION_YARDS = 2.0
+
+#: How long a carry has to be before a narration may call it a run, in
+#: StatsBomb's yards.
+#:
+#: Ten is Shawn's number and the data agrees with it: Maradona's three long
+#: carries are 34.9, 16.8 and 16.7 yards, and every other carry in either
+#: passage is 1.1 yards or less. The live run of 2026-10-31 wrote "drove
+#: forward" and "drove ahead" about Álvarez, whose one carry is 0.7 yards.
+RUN_YARDS = 10.0
 
 
 def bare(folded_word: str) -> str:
@@ -195,6 +229,31 @@ PHRASES: Sequence[tuple[str, str, object]] = (
     (r"the counter", "pattern", "From Counter"),
     # The shape of the run, which the start and end of every carry can refuse.
     (r"straight", "straight", None),
+    # Which way the ball went, which the two ends of a pass or a carry can
+    # refuse. StatsBomb mirrors a defensive record's coordinates, so x rising
+    # is the recorded player's own attacking direction whichever team they are
+    # on, and the change in x is what "forward" and "back" are about.
+    #
+    # "Back" is the word the live run of 2026-10-31 got wrong three times
+    # over, calling Álvarez's 38 yard ball up the pitch a ball back to
+    # MacAllister. The longer phrases that hold "back" sit above this one and
+    # swallow it, so "won it back" is still a recovery and "came back at him"
+    # is still pressure.
+    (r"forwards?", "direction", "forward"),
+    (r"upfield", "direction", "forward"),
+    (r"ahead", "direction", "forward"),
+    (r"backwards?", "direction", "back"),
+    (r"back", "direction", "back"),
+    # A run: a carry with yards in it rather than a touch on the spot. These
+    # words say a player covered ground, which is a claim about how long a
+    # recorded carry was.
+    (
+        r"(?:drove|driving|drives|drive|ran|running|runs|burst|bursting"
+        r"|bursts|charged|charging|surged|surging|raced|racing|sprinted"
+        r"|sprinting|stormed|storming|powered|powering)",
+        "run",
+        None,
+    ),
     # The body part, which is the goal's and not a pass's.
     (r"(?:with )?his left foot", "body_part", "Left Foot"),
     (r"(?:with )?his right foot", "body_part", "Right Foot"),
@@ -228,6 +287,18 @@ CHAIN_MARKERS: Sequence[tuple[str, bool]] = (
     (r"on to", False),
     (r"to", False),
 )
+
+#: The chain markers that carry no verb of their own, so the verb in front of
+#: them is the one that delivered the ball. "Molina to MacAllister" says the
+#: pass with the preposition alone; "carried it to MacAllister" says it with a
+#: carry, and a carry keeps the ball at the player's own feet.
+BARE_CHAIN_MARKERS = frozenset({"to", "on to"})
+
+#: A second verb between an action and a bare chain marker. "Carried and
+#: played it back to MacAllister" has one, so the carry is not what delivered
+#: the ball and only the "back" is wrong; "carried it back to MacAllister" has
+#: none, so the carry is being asked to do a pass's job.
+ANOTHER_VERB = re.compile(r"\b(?:and|then|before|who|which|that)\b", re.I)
 
 #: The prepositions that name a defender who was beaten. The player beaten is
 #: spoken for by the preposition, so they never become the actor of the next
@@ -529,9 +600,12 @@ class Reader:
 
         moves: list[Move] = []
         free: list[tuple[str, int]] = []
-        # (whether it has to be the assist, who played it, the words said)
-        pending_chain: tuple[bool, str | None, str] | None = None
+        # (whether it has to be the assist, who played it, the words said,
+        #  the carry being asked to deliver the ball or None)
+        pending_chain: tuple[bool, str | None, str, _Hit | None] | None = None
         past_open = False
+        #: The last action claim, for the rule about a carry that delivers.
+        recent_action: _Hit | None = None
 
         def claim(hit: _Hit, kind: str, detail: object = None) -> None:
             """A claim about somebody, with the actor read from the words.
@@ -571,7 +645,7 @@ class Reader:
                     continue
                 player = hit.players[0]
                 if pending_chain is not None:
-                    assist, source, marker = pending_chain
+                    assist, source, marker, carried = pending_chain
                     moves.append(
                         Move(
                             "chain",
@@ -583,7 +657,18 @@ class Reader:
                         )
                     )
                     self._merge_long(moves)
+                    if carried is not None:
+                        moves.append(
+                            Move(
+                                "carry_delivery",
+                                text[carried.at:hit.end],
+                                carried.at,
+                                actor=source,
+                                target=player,
+                            )
+                        )
                     pending_chain = None
+                    recent_action = None
                     free = []
                 elif past_open:
                     moves.append(
@@ -608,7 +693,12 @@ class Reader:
 
             elif hit.kind == "chain_marker":
                 source = free[-1][0] if free else self.tracked
-                pending_chain = (bool(hit.detail), source, hit.said)
+                pending_chain = (
+                    bool(hit.detail),
+                    source,
+                    hit.said,
+                    self._carry_delivering(text, hit, recent_action),
+                )
                 free = []
                 past_open = False
 
@@ -618,9 +708,13 @@ class Reader:
 
             elif hit.kind == "action":
                 claim(hit, "action", tuple(hit.detail or ()))
+                recent_action = hit
 
             elif hit.kind == "long_pass":
                 claim(hit, "long_pass")
+                # The long ball names the pass itself, so whatever verb came
+                # before it is not what delivered the ball.
+                recent_action = None
 
             elif hit.kind in (
                 "touch",
@@ -630,6 +724,8 @@ class Reader:
                 "pattern",
                 "straight",
                 "body_part",
+                "direction",
+                "run",
             ):
                 claim(hit, hit.kind, hit.detail)
 
@@ -661,6 +757,35 @@ class Reader:
             return str(nxt.detail)
         return None
 
+    @staticmethod
+    def _carry_delivering(
+        text: str, marker: _Hit, recent_action: _Hit | None
+    ) -> _Hit | None:
+        """The carry a bare chain marker is asking to deliver the ball, if any.
+
+        Three things have to hold. The marker carries no verb of its own, so
+        the verb in front of it is the one doing the work: "found MacAllister"
+        and "played it to MacAllister" say the pass themselves and are not
+        this. The action in front of it is a carry and nothing else, so "hit a
+        long ball to Vance" and "passed to Enrique" are not this either. And
+        it is in the same clause with no second verb between the two, so
+        "carried and played it back to MacAllister" is two verbs and only the
+        direction in it is wrong, while "carried it back to MacAllister" is a
+        carry being asked to do a pass's job.
+        """
+        if recent_action is None:
+            return None
+        if fold(marker.said) not in BARE_CHAIN_MARKERS:
+            return None
+        if set(recent_action.detail or ()) != {"Carry"}:
+            return None
+        start, _ = _clause_start(text, marker.at)
+        if recent_action.at < start:
+            return None
+        if ANOTHER_VERB.search(text, recent_action.end, marker.at):
+            return None
+        return recent_action
+
     def _merge_long(self, moves: list[Move]) -> None:
         """Fold "a long ball" into the chain it was said about.
 
@@ -668,6 +793,10 @@ class Reader:
         has to be both long and a pass to MacAllister. Left as two moves they
         could be satisfied by two different passes, which is the bluntness this
         one case can cheaply avoid.
+
+        The walk steps over a direction or a run on the way back, because
+        "forward" sits between the long ball and the chain in three of the
+        eight references and the two moves are still about the one pass.
         """
         if len(moves) < 2 or moves[-1].kind != "chain":
             return
@@ -687,7 +816,7 @@ class Reader:
                 )
                 moves.pop(index)
                 return
-            if earlier.kind not in ("name", "team"):
+            if earlier.kind not in ("name", "team", "direction", "run"):
                 return
 
 
@@ -724,6 +853,34 @@ def carry_path(facts: Facts, player: str) -> tuple[Spot, ...]:
     return tuple(path)
 
 
+def change_in_x(beat: Beat) -> float | None:
+    """How far up the pitch one record took the ball, or `None` without both
+    ends.
+
+    Positive is towards the goal the recorded player's team is attacking,
+    because StatsBomb mirrors a defensive record's coordinates. So this reads
+    the same way for either team and is what "forward" and "back" are a claim
+    about.
+    """
+    if beat.start is None or beat.end is None:
+        return None
+    return beat.end.x - beat.start.x
+
+
+def carry_yards(beat: Beat) -> float | None:
+    """How far one carry took the ball, or `None` for a record with no end.
+
+    The straight-line distance between the two ends, which is what "a ten
+    yard run" means. The path inside a single carry is not recorded, so there
+    is nothing longer to measure.
+    """
+    if beat.start is None or beat.end is None:
+        return None
+    return (
+        (beat.end.x - beat.start.x) ** 2 + (beat.end.y - beat.start.y) ** 2
+    ) ** 0.5
+
+
 def strays_from_straight(path: Sequence[Spot]) -> float | None:
     """How far a path strays from the straight line between its two ends.
 
@@ -746,6 +903,15 @@ def strays_from_straight(path: Sequence[Spot]) -> float | None:
         )
         worst = max(worst, cross / length)
     return worst
+
+
+def _went(change: float | None, sense: str) -> bool:
+    """Whether a change in x is forward or back by enough to be called it."""
+    if change is None:
+        return False
+    if sense == "forward":
+        return change >= DIRECTION_YARDS
+    return change <= -DIRECTION_YARDS
 
 
 def support(move: Move, facts: Facts) -> tuple[Beat, ...]:
@@ -797,6 +963,30 @@ def support(move: Move, facts: Facts) -> tuple[Beat, ...]:
         return tuple(
             beat for beat in beats if mine(beat) and beat.long_pass
         )
+
+    if kind == "direction":
+        return tuple(
+            beat
+            for beat in beats
+            if mine(beat)
+            and beat.action in ("Pass", "Carry")
+            and _went(change_in_x(beat), str(move.detail))
+        )
+
+    if kind == "run":
+        return tuple(
+            beat
+            for beat in beats
+            if mine(beat)
+            and beat.action == "Carry"
+            and (carry_yards(beat) or 0.0) >= RUN_YARDS
+        )
+
+    if kind == "carry_delivery":
+        # Never held, and not because the records were searched: a carry is
+        # the record of a player moving with the ball at his own feet, so
+        # there is no carry anywhere that gives it to somebody else.
+        return ()
 
     if kind == "past":
         beaten = [
@@ -915,6 +1105,48 @@ def why(move: Move, facts: Facts) -> str:
         return (
             f"{move.said!r}: no pass by {actor} reaches "
             f"{LONG_PASS_YARDS:.0f} yards"
+        )
+    if move.kind == "direction":
+        moved = [
+            change_in_x(beat)
+            for beat in facts.beats
+            if (move.actor is None or beat.player == move.actor)
+            and beat.action in ("Pass", "Carry")
+        ]
+        measured = [change for change in moved if change is not None]
+        if not measured:
+            return (
+                f"{move.said!r}: no pass or carry of {actor} in this passage "
+                "has both ends recorded, so there is nothing to measure"
+            )
+        furthest = max(measured, key=abs)
+        went = "forward" if furthest > 0 else "back"
+        return (
+            f"{move.said!r}: no pass or carry of {actor} takes the ball "
+            f"{move.detail} by {DIRECTION_YARDS:.0f} yards; the furthest any "
+            f"of them moves it is {abs(furthest):.0f} {went}"
+        )
+    if move.kind == "run":
+        carries = [
+            carry_yards(beat)
+            for beat in facts.beats
+            if (move.actor is None or beat.player == move.actor)
+            and beat.action == "Carry"
+        ]
+        measured = [yards for yards in carries if yards is not None]
+        if not measured:
+            return (
+                f"{move.said!r}: no carry by {actor} is recorded in this "
+                "passage, so he covered no ground with the ball"
+            )
+        return (
+            f"{move.said!r}: no carry by {actor} reaches "
+            f"{RUN_YARDS:.0f} yards; the longest is {max(measured):.0f}"
+        )
+    if move.kind == "carry_delivery":
+        return (
+            f"{move.said!r}: a carry keeps the ball at {actor}'s own feet, so "
+            f"it cannot deliver it to {move.target}; only a pass does that"
         )
     if move.kind == "pressured":
         return f"{move.said!r}: no record of {actor} is marked under pressure"

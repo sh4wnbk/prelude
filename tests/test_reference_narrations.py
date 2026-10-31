@@ -457,3 +457,101 @@ class TestNoClockReachesTheNarration:
         )
         result = check(text, facts_1986, THE_CALLER, None)
         assert not result.grounded, result.summary
+
+
+def _storyteller_1986(finish):
+    """The 1986 Storyteller reference with its last few words replaced."""
+    return (
+        "Cuciuffo's recovery started the counter, and Enrique played it to "
+        "Maradona just inside his own half, who carried it forward under "
+        "pressure past Beardsley, Butcher and Fenwick and took it into the "
+        "box, where he went around Peter Shilton and " + finish
+    )
+
+
+class TestTheForceIsNotInTheRecord:
+    """How hard the ball was struck is not a field on a shot.
+
+    A `Shot` carries who took it, which foot, where from, whether it was
+    first time and whether it went in. It carries nothing about force, so
+    "smashed it home" is a reading of the pictures and not of the data. The
+    live run of 2026-10-31 wrote it twice and "blasting it in" once, and all
+    three were grounded, because the force was prose and the body part beside
+    it was true.
+    """
+
+    @pytest.mark.parametrize(
+        "finish",
+        [
+            "smashed it home with his left foot.",
+            "blasted it in with his left foot.",
+            "hammered it in with his left foot.",
+            "rifled it in with his left foot.",
+            "thumped it in with his left foot.",
+            "lashed it in with his left foot.",
+            "drilled it in with his left foot.",
+            "crashed it in with his left foot.",
+        ],
+    )
+    def test_a_force_word_is_refused(self, finish, facts_1986):
+        result = check(
+            _storyteller_1986(finish), facts_1986, THE_STORYTELLER, None
+        )
+        assert not result.grounded, result.summary
+        assert "force the record does not hold" in {
+            failure.kind for failure in result.failures
+        }
+
+    @pytest.mark.parametrize(
+        "finish",
+        [
+            "finished with his left foot.",
+            "scored with his left foot.",
+            "struck it with his left foot.",
+            "fired it with his left foot.",
+            "hit it with his left foot.",
+            "slotted it with his left foot.",
+        ],
+    )
+    def test_a_neutral_finish_passes(self, finish, facts_1986):
+        result = check(
+            _storyteller_1986(finish), facts_1986, THE_STORYTELLER, None
+        )
+        assert result.grounded, result.summary
+
+    def test_a_neutral_finish_is_still_a_claim_about_a_shot(self, facts_2022):
+        """So the three new words are not a hole: MacAllister has four
+        records in the 2022 passage and none of them is a shot."""
+        text = (
+            "Molina picked it up and found MacAllister, who struck it with "
+            "his left foot."
+        )
+        result = check(text, facts_2022, THE_STORYTELLER, None)
+        assert not result.grounded, result.summary
+        assert "action" in {failure.kind for failure in result.failures}
+
+
+class TestAVerdictAboutHistory:
+    """Where a goal stands among every other goal is not in one passage.
+
+    "Historic" and "Goal of the Century" were refused already. "The best of
+    all time" was not, and it is the same claim: it needs the record books,
+    which are not one of the three inputs.
+    """
+
+    @pytest.mark.parametrize(
+        "finish",
+        [
+            "scored the best goal of all time with his left foot.",
+            "scored with his left foot, the finest goal there has been.",
+            "scored an all-time goal with his left foot.",
+        ],
+    )
+    def test_a_verdict_about_history_is_refused(self, finish, facts_1986):
+        result = check(
+            _storyteller_1986(finish), facts_1986, THE_STORYTELLER, None
+        )
+        assert not result.grounded, result.summary
+        assert "verdict about history" in {
+            failure.kind for failure in result.failures
+        }

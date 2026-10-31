@@ -37,8 +37,8 @@ carrying a citation tag is read against the numbered facts each sentence cited,
 which `app/narration_prompt.py` builds by code out of the records. A narration
 carrying none is a goal call, which is what the framework in `docs/VOICE.md`
 asks for, and `app/narration_grammar.py` reads the sentence itself: the names,
-the pronoun that means the player with the ball, the chains, "past X", and the
-recorded fields a goal call says out loud. Both readings refuse the same
+the pronoun that means the player with the ball, the chains, "past X", which
+way the ball went, and the recorded fields a goal call says out loud. Both readings refuse the same
 nicknames, epithets, outcome claims, dashes and markup, and both hold the same
 rule about where an exclamation mark may stand.
 
@@ -87,6 +87,9 @@ And the goal-call reading, whose tests are in
 | `action` | "under pressure" where no record of theirs carries it | `tests/test_narration_grammar.py::TestTheRecordedFieldsSaidOutLoud::test_under_pressure_is_refused_where_nothing_records_it` |
 | `position` | "in his own half" or "in the box" over a coordinate that is not | `tests/test_narration_grammar.py::TestWhereOnThePitch::test_a_pass_the_player_did_not_follow_is_not_his_position` |
 | `straight` | a run called straight that strays from the line | `tests/test_narration_grammar.py::TestTheShapeOfTheRun::test_the_claim_is_refused_over_the_1986_carries` |
+| `direction` | "forward" or "back" against the change in x on a pass or a carry | `tests/test_narration_grammar.py::TestWhichWayTheBallWent::test_the_same_pass_called_back_is_refused` |
+| `run` | "drove", "ran" or "burst" over a carry under `RUN_YARDS` | `tests/test_narration_grammar.py::TestARunHasYardsInIt::test_a_carry_under_a_yard_is_not_a_run` |
+| `carry_delivery` | a carry asked to hand the ball to another player | `tests/test_narration_grammar.py::TestACarryDoesNotDeliverTheBall::test_a_carry_asked_to_deliver_is_refused` |
 | `shot_type` | "first time" over a shot not recorded as struck first time | `tests/test_narration_grammar.py::TestTheRecordedFieldsSaidOutLoud::test_first_time_is_the_2022_shot_and_not_the_1986_one` |
 | `body_part` | the body part is not the goal's | `tests/test_narration_grammar.py::TestTheRecordedFieldsSaidOutLoud::test_the_body_part_is_the_goals` |
 | `duration` | a span the timestamps do not give | `tests/test_narration_grammar.py::TestTheRecordedFieldsSaidOutLoud::test_a_duration_the_passage_did_not_take` |
@@ -95,6 +98,8 @@ And the goal-call reading, whose tests are in
 | `ending` | nothing in the narration is a claim the goal's own record holds | `tests/test_reference_narrations.py::TestTheFinishMayBeSaidPlainly::test_a_narration_that_lands_on_nothing_is_still_refused` |
 | `side` | a partisan "we" over a clause recording the other team | `tests/test_reference_narrations.py::TestTheFirstPersonNeedsTheListenersOwnPlay` |
 | `cheer` | an exclamation mark where the listener would not cheer | `tests/test_reference_narrations.py::TestWhereAnExclamationMarkMayStand` |
+| banned | force the record does not hold, "smashed it home" | `tests/test_reference_narrations.py::TestTheForceIsNotInTheRecord` |
+| banned | a verdict about history, "the best of all time" | `tests/test_reference_narrations.py::TestAVerdictAboutHistory` |
 
 **The verdict is whole-narration.** `CLAUDE.md` gives no partial credit, so a
 narration passes or fails together; `app/grounding.py` returns every failing

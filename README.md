@@ -292,17 +292,19 @@ Everything above it is structure.
   including the misdescription it refuses by pairing a name with an action and
   the first person, which only the Mate may use and only over its own side's
   facts. All pass.
-- `tests/test_narration_grammar.py`: 54 tests over the goal-call reading in
+- `tests/test_narration_grammar.py`: 85 tests over the goal-call reading in
   `app/narration_grammar.py`, one mechanism at a time: the name parts that
   pick out one player, the pronoun that means the player with the ball, the
   chains, which name owns a claim, "past X" as a dribble past X, the field
-  positions, the shape of a run and the recorded fields a goal call says out
-  loud. All pass.
-- `tests/test_reference_narrations.py`: 23 tests holding the narration
+  positions, the shape of a run, which way the ball went, a run with yards in
+  it, the carry that is asked to deliver the ball and the recorded fields a
+  goal call says out loud. All pass.
+- `tests/test_reference_narrations.py`: 41 tests holding the narration
   standard: the eight reference narrations in `docs/VOICE.md`, checked word
   for word with the narrator and the listener side given, the eleven lines the
-  check has to keep refusing, and the words a narration may land the finish
-  on. All pass.
+  check has to keep refusing, the words a narration may land the finish on,
+  the force words it may not and the verdicts about history it may not. All
+  pass.
 - `tests/test_narrator_candidates.py`: 86 tests over `app/goal_call_prompt.py`
   and `scripts/narrator_candidates.py`: the four styles, one per narrator and
   situation, the invented match their examples are shown through, the records

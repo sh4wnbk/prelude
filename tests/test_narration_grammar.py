@@ -15,9 +15,13 @@ import pytest
 from app.grounding import ACTION_CLAIMS, NOT_A_NAME, TEAM_DEMONYMS
 from app.narration_grammar import (
     CLAUSE_BREAK,
+    DIRECTION_YARDS,
+    RUN_YARDS,
     STRAIGHT_TOLERANCE_YARDS,
     Reader,
     carry_path,
+    carry_yards,
+    change_in_x,
     name_keys,
     player_spots,
     recorded_spellings,
@@ -26,7 +30,7 @@ from app.narration_grammar import (
     touched,
     why,
 )
-from app.narration_prompt import Spot, facts_from_buildup
+from app.narration_prompt import Beat, Spot, facts_from_buildup
 from app.recorded_names import recorded_nicknames
 from app.statsbomb_event_feed import StatsBombEventFeed
 
@@ -628,3 +632,259 @@ class TestTheRecordedFieldsSaidOutLoud:
         touch = next(move for move in found if move.kind == "touch")
         assert not support(touch, facts_1986)
         assert "puts the ball at" in why(touch, facts_1986)
+
+
+def beat(action, start, end=None, player=MARADONA, team="Argentina"):
+    """One hand-built record, for the measuring functions on their own.
+
+    The two hero passages hold no pass or carry that takes the ball backwards
+    by more than 0.8 yards, so a backward record is one this data cannot
+    supply and `change_in_x` has to be shown both ways on records written
+    here. Everything downstream of it is tested against `data/raw/`.
+    """
+    return Beat(
+        index=0,
+        minute=0,
+        second=0,
+        player=player,
+        team=team,
+        action=action,
+        event_id="not-a-recorded-event",
+        start=Spot(*start),
+        end=Spot(*end) if end else None,
+    )
+
+
+class TestTheChangeInX:
+    """How far up the pitch a record took the ball, which is a signed number.
+
+    StatsBomb mirrors a defensive record's coordinates, so x rising is always
+    the recorded player's own attacking direction and the sign reads the same
+    way for either team.
+    """
+
+    def test_a_pass_up_the_pitch_is_positive(self):
+        assert change_in_x(
+            beat("Pass", (20.0, 40.0), (60.0, 40.0))
+        ) == pytest.approx(40.0)
+
+    def test_a_pass_the_other_way_is_negative(self):
+        assert change_in_x(
+            beat("Pass", (60.0, 40.0), (20.0, 40.0))
+        ) == pytest.approx(-40.0)
+
+    def test_a_record_with_no_end_cannot_be_measured(self):
+        assert change_in_x(beat("Ball Receipt*", (60.0, 40.0))) is None
+
+    def test_the_threshold_sits_in_the_gap_the_data_leaves(
+        self, facts_1986, facts_2022
+    ):
+        """Nothing in either passage moves the ball between 0.8 and 9.0 yards
+        of x, so `DIRECTION_YARDS` refuses a touch on the spot and holds every
+        pass and carry either passage would call forward."""
+        changes = [
+            abs(change_in_x(one))
+            for facts in (facts_1986, facts_2022)
+            for one in facts.beats
+            if one.action in ("Pass", "Carry")
+            and change_in_x(one) is not None
+        ]
+        standing = sorted(one for one in changes if one < DIRECTION_YARDS)
+        moving = sorted(one for one in changes if one >= DIRECTION_YARDS)
+        assert max(standing) == pytest.approx(0.8, abs=0.05)
+        assert min(moving) == pytest.approx(9.0, abs=0.05)
+
+
+class TestWhichWayTheBallWent:
+    """"Forward" and "back" are a claim, and they used to be prose.
+
+    Alvarez's ball to MacAllister is 38.5 yards and 36.1 of them are up the
+    pitch. The live run of 2026-10-31 called it a ball back to MacAllister
+    four times over, in four of the six 2022 slots, and every one of them was
+    grounded.
+    """
+
+    def test_forward_is_held_by_the_long_ball_up_the_pitch(self, facts_2022):
+        found = moves(
+            facts_2022,
+            "Álvarez hit a long ball forward to MacAllister, who set up Di "
+            "María to score.",
+        )
+        way = next(move for move in found if move.kind == "direction")
+        assert (way.actor, way.detail) == (ALVAREZ, "forward")
+        assert support(way, facts_2022)
+        assert not ungrounded(facts_2022, found)
+
+    def test_the_same_pass_called_back_is_refused(self, facts_2022):
+        found = moves(
+            facts_2022,
+            "Álvarez sent a long ball back to MacAllister, who set up Di "
+            "María to score.",
+        )
+        way = next(move for move in found if move.kind == "direction")
+        assert way.detail == "back"
+        assert not support(way, facts_2022)
+        assert "the furthest any of them moves it is 36 forward" in why(
+            way, facts_2022
+        )
+
+    def test_a_carry_up_the_pitch_is_forward(self, facts_1986):
+        """Maradona's long carries run 32.7, 10.0 and 15.7 yards of x."""
+        found = moves(
+            facts_1986,
+            "Maradona carried it forward past Beardsley and scored.",
+        )
+        way = next(move for move in found if move.kind == "direction")
+        assert way.actor == MARADONA
+        assert support(way, facts_1986)
+
+    def test_the_same_carry_called_back_is_refused(self, facts_1986):
+        found = moves(
+            facts_1986, "Maradona carried it back past Beardsley and scored."
+        )
+        way = next(move for move in found if move.kind == "direction")
+        assert not support(way, facts_1986)
+
+    @pytest.mark.parametrize(
+        "said, sense",
+        [
+            ("forward", "forward"),
+            ("forwards", "forward"),
+            ("upfield", "forward"),
+            ("ahead", "forward"),
+            ("back", "back"),
+            ("backwards", "back"),
+        ],
+    )
+    def test_each_word_reads_as_a_direction(self, said, sense, facts_1986):
+        found = moves(facts_1986, f"Maradona carried it {said} and scored.")
+        way = next(move for move in found if move.kind == "direction")
+        assert way.detail == sense
+
+    def test_the_longer_phrases_holding_back_still_win(self, facts_1986):
+        """"Won it back" is a recovery and "came back at him" is pressure, so
+        neither of them is read as a direction."""
+        found = moves(
+            facts_1986,
+            "We won it back through Cuciuffo, and though Butcher came back at "
+            "him Maradona scored.",
+        )
+        assert "direction" not in kinds(found)
+        assert not ungrounded(facts_1986, found)
+
+
+class TestARunHasYardsInIt:
+    """"Drove", "ran" and "burst" are a claim about how long a carry was."""
+
+    @pytest.mark.parametrize(
+        "said", ["drove", "ran", "burst", "raced", "surged", "charged"]
+    )
+    def test_each_word_reads_as_a_run(self, said, facts_1986):
+        found = moves(facts_1986, f"Maradona {said} past Beardsley and scored.")
+        assert kinds(found).count("run") == 1
+
+    def test_maradona_covered_the_ground(self, facts_1986):
+        """His three long carries are 34.9, 16.8 and 16.7 yards."""
+        found = moves(
+            facts_1986, "Maradona drove forward past Beardsley and scored."
+        )
+        run = next(move for move in found if move.kind == "run")
+        assert run.actor == MARADONA
+        assert support(run, facts_1986)
+
+    def test_a_carry_under_a_yard_is_not_a_run(self, facts_2022):
+        """Álvarez's one carry is 0.7 yards, and the live run of 2026-10-31
+        said he drove forward in four of the six 2022 slots."""
+        found = moves(
+            facts_2022,
+            "Álvarez drove forward and set up Di María, who scored.",
+        )
+        run = next(move for move in found if move.kind == "run")
+        assert run.actor == ALVAREZ
+        assert not support(run, facts_2022)
+        assert "the longest is 1" in why(run, facts_2022)
+
+    def test_the_threshold_sits_in_the_gap_the_data_leaves(
+        self, facts_1986, facts_2022
+    ):
+        """Three carries over ten yards and six under one and a half, with
+        nothing in between, so `RUN_YARDS` is not a close call on this data."""
+        carries = sorted(
+            carry_yards(one)
+            for facts in (facts_1986, facts_2022)
+            for one in facts.beats
+            if one.action == "Carry" and carry_yards(one) is not None
+        )
+        assert [round(one, 1) for one in carries if one < RUN_YARDS] == [
+            0.2,
+            0.6,
+            0.7,
+            1.0,
+            1.1,
+            1.1,
+        ]
+        assert [round(one, 1) for one in carries if one >= RUN_YARDS] == [
+            16.7,
+            16.8,
+            34.9,
+        ]
+
+
+class TestACarryDoesNotDeliverTheBall:
+    """A carry keeps the ball at the player's own feet; a pass gives it away.
+
+    "Who carried it back to MacAllister" was in two of the eighteen
+    candidates of 2026-10-31, over a 38 yard pass up the pitch.
+    """
+
+    def test_a_carry_asked_to_deliver_is_refused(self, facts_2022):
+        found = moves(
+            facts_2022,
+            "Álvarez carried it to MacAllister, who set up Di María to score.",
+        )
+        delivery = next(
+            move for move in found if move.kind == "carry_delivery"
+        )
+        assert (delivery.actor, delivery.target) == (ALVAREZ, MAC_ALLISTER)
+        assert delivery.said == "carried it to MacAllister"
+        assert not support(delivery, facts_2022)
+        assert "only a pass does that" in why(delivery, facts_2022)
+
+    def test_the_pass_itself_is_still_recorded(self, facts_2022):
+        """So the refusal is about the words and not about the move: the same
+        chain written as a pass passes."""
+        found = moves(
+            facts_2022,
+            "Álvarez passed to MacAllister, who set up Di María to score.",
+        )
+        assert "carry_delivery" not in kinds(found)
+        assert not ungrounded(facts_2022, found)
+
+    @pytest.mark.parametrize(
+        "said",
+        [
+            "carried and passed to MacAllister",
+            "carried and played it to MacAllister",
+            "carried it and found MacAllister",
+            "carried and sent a long ball to MacAllister",
+        ],
+    )
+    def test_a_second_verb_delivers_it_instead(self, said, facts_2022):
+        """A conjunction, a marker with its own verb or a long ball between
+        the carry and the name all say something else gave the ball away."""
+        found = moves(
+            facts_2022,
+            f"Álvarez {said}, who set up Di María to score.",
+        )
+        assert "carry_delivery" not in kinds(found)
+
+    def test_a_pass_that_delivers_is_not_touched_by_the_rule(self, facts_1986):
+        """Enrique's pass to Maradona, which is the shape every reference
+        opens with."""
+        found = moves(
+            facts_1986,
+            "Cuciuffo passed to Enrique, who played it to Maradona, and he "
+            "scored.",
+        )
+        assert "carry_delivery" not in kinds(found)
+        assert not ungrounded(facts_1986, found)

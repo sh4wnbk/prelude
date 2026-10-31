@@ -74,15 +74,15 @@ confirm or refuse:
 | `ending` | a last sentence not citing the goal | never; the narration ends on the goal |
 | `untagged` | a sentence citing nothing | never; every sentence cites its facts |
 | `citation` | a number that is not a fact | never |
-| `banned` | a nickname, a verdict, a dash, markup | never; these are refused outright |
+| `banned` | a nickname, a verdict, force, a dash, markup | never; these are refused outright |
 | `first person` | "we", "our", "us" | never, unless the persona is partisan |
 | `side` | a partisan "we" | a cited fact is recorded against the listener's side |
 | `cheer` | "!" | only on the last sentence, and only from the Caller or the scoring side's Buddy |
 
-The goal-call reading adds `chain`, `past`, `position`, `straight` and
-`duration` to that list and drops `untagged` and `citation`, which a narration
-with no numbers in it cannot commit. `docs/VERIFICATION.md` has the table for
-both, one test per kind.
+The goal-call reading adds `chain`, `past`, `position`, `straight`,
+`duration`, `direction`, `run` and `carry_delivery` to that list and drops
+`untagged` and `citation`, which a narration with no numbers in it cannot
+commit. `docs/VERIFICATION.md` has the table for both, one test per kind.
 
 A narration that makes **no** name, number or clock claim is refused too, as
 `unverifiable`. Prose that names nobody and quotes no clock has nothing tracing
@@ -242,6 +242,14 @@ ACTION_CLAIMS: Mapping[str, frozenset[str]] = {
     "finish": _SHOT,
     "hit": frozenset({"Shot", "Pass"}),
     "score": _SHOT,
+    # The other neutral finishes. Each one says a shot was struck and says
+    # nothing about how hard: that is the line Task 9d draws, with the force
+    # words in `BANNED_PATTERNS` on the other side of it. They are claims
+    # rather than prose now, so "MacAllister struck it" is refused in a
+    # passage where MacAllister has four records and no shot.
+    "struck": _SHOT,
+    "fired": _SHOT,
+    "slotted": _SHOT,
 }
 
 #: Present-tense verbs, and the past-tense form the facts use instead. A buildup
@@ -322,6 +330,15 @@ BANNED_PATTERNS: Sequence[tuple[str, str]] = (
     ("verdict nickname", r"\bcontrovers\w*"),
     ("verdict nickname", r"\bwonder goal\b"),
     ("verdict nickname", r"\bgreatest\b"),
+    # A verdict about history, which needs knowledge from outside the moment.
+    # Nothing in one passage of event data says where a goal stands among
+    # every other goal, so the ranking is the narrator's and not a finding.
+    # It is refused in the reaction too: the reaction is the narrator's
+    # feeling, and "the best of all time" is a claim about the record books.
+    ("verdict about history", r"\bof all time\b"),
+    ("verdict about history", r"\ball[- ]time\b"),
+    ("verdict about history", r"\bbest\b"),
+    ("verdict about history", r"\bfinest\b"),
     # Editorial epithets. `CLAUDE.md` asks for neutral language describing what
     # the data shows, and these are judgements the data did not make. The first
     # live run that got past the name checks still called the goal "this
@@ -365,6 +382,26 @@ BANNED_PATTERNS: Sequence[tuple[str, str]] = (
     ("outcome claim", r"\btrophy\b"),
     ("outcome claim", r"\bscoreline\b"),
     ("unearned authority", r"\bofficial\w*"),
+    # Force the record does not hold. A shot record carries who struck it,
+    # with which foot, from where and whether it went in; it carries nothing
+    # about how hard, so "smashed it home" is a reading of the pictures rather
+    # than of the data. The live run of 2026-10-31 wrote "smashed it home"
+    # twice and "blasting it in" once, and all three were grounded, because
+    # the force was prose and the body part beside it was true.
+    #
+    # The neutral finishes stay sayable and are in `ACTION_CLAIMS`:
+    # "finished", "scored", "struck", "fired", "hit" and "slotted" each say a
+    # shot was taken and nothing about the manner of it.
+    ("force the record does not hold", r"\bsmash\w*"),
+    ("force the record does not hold", r"\bblast\w*"),
+    ("force the record does not hold", r"\bhammer\w*"),
+    ("force the record does not hold", r"\brifl\w*"),
+    ("force the record does not hold", r"\bthump\w*"),
+    ("force the record does not hold", r"\blash\w*"),
+    ("force the record does not hold", r"\bwallop\w*"),
+    ("force the record does not hold", r"\bdrill\w*"),
+    ("force the record does not hold", r"\bthunder\w*"),
+    ("force the record does not hold", r"\bcrash\w*"),
     # Addressing the fan. The narration ends on the goal and says nothing after
     # it, so there is no line spoken to the reader for second person to belong
     # to. The `ending` rule holds where the narration stops, which a closing
