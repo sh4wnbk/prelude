@@ -139,9 +139,10 @@ Everything above it is structure.
   every attempt, the claims the check refused, and whether the first attempt
   was grounded. Defaults to the 1986 goal at 54:18; takes a match id and a
   clock for any other. It needs a local Ollama server and writes nothing.
-- `tests/test_narration_provider.py`: 54 tests over the config and both
-  backends, including the answer that is all reasoning and no narration. All
-  54 pass, and none of them opens a connection:
+- `tests/test_narration_provider.py`: 57 tests over the config and both
+  backends, including the answer that is all reasoning and no narration and
+  the timeout a run sets for itself. All 57 pass, and none of them opens a
+  connection:
   `tests/conftest.py` replaces `urllib.request.urlopen` and
   `socket.socket.connect` with functions that raise, for every test in the
   suite.

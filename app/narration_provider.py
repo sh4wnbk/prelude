@@ -65,6 +65,13 @@ IAM_GRANT_TYPE = "urn:ibm:params:oauth:grant-type:apikey"
 WATSONX_ENV_VARS = ("WATSONX_API_KEY", "WATSONX_PROJECT_ID", "WATSONX_URL")
 
 #: A CPU-only generation is slow, so the timeout is generous.
+#:
+#: It is not generous enough for a reasoning model at `reasoning_effort`
+#: high. The candidate run of 2026-10-31 read one slot and then lost a call to
+#: `TimeoutError` after five minutes: a call that writes 14,000 completion
+#: tokens before it answers takes longer than a call that writes 300.
+#: `WatsonxProvider` takes a `timeout` for that reason, and
+#: `scripts/narrator_candidates.py --timeout` is how a run sets one.
 DEFAULT_TIMEOUT = 300.0
 
 #: Length cap sent to watsonx. Ollama has no equivalent default worth setting.
@@ -312,6 +319,7 @@ class WatsonxProvider:
         chat: bool | None = None,
         max_new_tokens: int = DEFAULT_MAX_NEW_TOKENS,
         reasoning_effort: str | None = None,
+        timeout: float | None = None,
     ) -> None:
         env = load_credentials() if env is None else env
         missing = [name for name in WATSONX_ENV_VARS if not env.get(name)]
@@ -334,7 +342,18 @@ class WatsonxProvider:
         self.api_version = api_version
         self._api_key = env["WATSONX_API_KEY"]
         self._project_id = env["WATSONX_PROJECT_ID"]
-        self._transport = transport
+        # A timeout is the transport's argument rather than this class's, so a
+        # run that needs a longer one gets it by wrapping the transport it was
+        # given. Only when one is asked for: the recorded transports in the
+        # tests take three arguments and are never handed a fourth.
+        self.timeout = timeout
+        if timeout is None:
+            self._transport = transport
+        else:
+            def with_timeout(url, body, headers, inner=transport):
+                return inner(url, body, headers, timeout=timeout)
+
+            self._transport = with_timeout
         self.decoding = decoding
         self.chat = (
             (candidate.chat if candidate else False) if chat is None else chat

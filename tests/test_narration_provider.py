@@ -39,6 +39,7 @@ from app.narration_provider import (
     BACKENDS,
     COMPARISON_MAX_NEW_TOKENS,
     DEFAULT_MAX_NEW_TOKENS,
+    DEFAULT_TIMEOUT,
     IAM_GRANT_TYPE,
     IAM_TOKEN_URL,
     MissingCredentials,
@@ -756,3 +757,58 @@ class TestAnAnswerThatIsAllReasoning:
         assert feed.narrate("the prompt").text == (
             "Cuciuffo recovered and Maradona scored."
         )
+
+
+class TestTheTimeoutIsThisRunsChoice:
+    """How long one call may take, which the effort decides.
+
+    A call that writes 14,000 completion tokens before it answers takes
+    longer than one that writes 300. The candidate run of 2026-10-31 read one
+    slot at effort high and then lost a call to `TimeoutError` at five
+    minutes, which ended the run and threw away three candidates already
+    written and paid for.
+    """
+
+    def recording(self, **kwargs):
+        golden = read_json(WATSONX_GOLDEN)
+        documented = golden["generation"]
+        feed = WatsonxProvider(
+            env=golden["env"],
+            model=documented["request"]["payload"]["model_id"],
+            chat=False,
+        )
+        calls: list[dict] = []
+
+        def transport(url, body, headers, timeout=None):
+            calls.append({"url": url, "timeout": timeout})
+            return (
+                golden["iam"]["response"]
+                if url == IAM_TOKEN_URL
+                else documented["response"]
+            )
+
+        return WatsonxProvider(
+            env=golden["env"],
+            model=documented["request"]["payload"]["model_id"],
+            chat=False,
+            transport=transport,
+            **kwargs,
+        ), calls
+
+    def test_a_run_that_asks_for_one_gets_it_on_every_call(self):
+        feed, calls = self.recording(timeout=900.0)
+        feed.narrate("the prompt")
+        assert feed.timeout == 900.0
+        assert [one["timeout"] for one in calls] == [900.0, 900.0]
+
+    def test_a_run_that_asks_for_none_leaves_the_transport_alone(self):
+        """The recorded transports in these tests take three arguments and
+        are never handed a fourth, so nothing is wrapped unless a timeout was
+        asked for."""
+        feed, calls = self.recording()
+        feed.narrate("the prompt")
+        assert feed.timeout is None
+        assert [one["timeout"] for one in calls] == [None, None]
+
+    def test_the_default_is_documented_as_too_short_for_a_high_effort(self):
+        assert DEFAULT_TIMEOUT == 300.0

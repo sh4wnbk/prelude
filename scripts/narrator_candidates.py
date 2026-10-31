@@ -87,6 +87,8 @@ from app.narration_prompt import (  # noqa: E402
 )
 from app.narration_provider import (  # noqa: E402
     COMPARISON_MAX_NEW_TOKENS,
+    DEFAULT_TIMEOUT,
+    NarrationProviderError,
     WatsonxProvider,
 )
 from app.personas import THE_BUDDY, THE_STORYTELLER  # noqa: E402
@@ -351,17 +353,38 @@ def gather(
                 # independent calls at temperature 0.8 produced three near
                 # copies on 2026-10-31, which is what rule 13 and this are
                 # for.
-                narrated = narrate(
-                    feed,
-                    match_id,
-                    moment,
-                    narration_provider=backend,
-                    max_retries=MAX_RETRIES,
-                    persona=persona,
-                    side=side,
-                    goal_call=True,
-                    avoid=[one["text"] for one in kept],
-                )
+                try:
+                    narrated = narrate(
+                        feed,
+                        match_id,
+                        moment,
+                        narration_provider=backend,
+                        max_retries=MAX_RETRIES,
+                        persona=persona,
+                        side=side,
+                        goal_call=True,
+                        avoid=[one["text"] for one in kept],
+                    )
+                except (OSError, NarrationProviderError) as lost:
+                    # A call that never came back costs this candidate and
+                    # not the run. The run of 2026-10-31 read the first slot
+                    # at effort high, lost the next call to a read timeout
+                    # and ended, which threw away three candidates that had
+                    # already been written and paid for. Nothing is written
+                    # to the review file until the last slot is done, so a
+                    # raise here is the whole run.
+                    print("    candidate {}: the call did not come back, "
+                          "dropped: {}".format(number, lost))
+                    dropped.append(
+                        {
+                            "candidate": number,
+                            "attempts": 0,
+                            "lost": str(lost),
+                            "refused": [],
+                            "failures": [],
+                        }
+                    )
+                    continue
                 attempts = len(narrated.attempts)
                 if narrated.source != MODEL:
                     print("    candidate {}: no model narration after {} "
@@ -753,6 +776,13 @@ def main(argv: Sequence[str]) -> int:
              ),
     )
     parser.add_argument(
+        "--timeout",
+        type=float,
+        default=DEFAULT_TIMEOUT,
+        help="seconds to wait for one call, which a reasoning model at a high "
+             "effort needs more of (default {:.0f})".format(DEFAULT_TIMEOUT),
+    )
+    parser.add_argument(
         "--out",
         type=Path,
         default=DEFAULT_OUT,
@@ -807,6 +837,8 @@ def main(argv: Sequence[str]) -> int:
         ACTIVE_CANDIDATE.reasoning_effort or "not set",
     ))
     print("tokens    {} max new".format(args.max_new_tokens))
+    print("timeout   {:.0f} seconds a call; a call that does not come back "
+          "costs that candidate and not the run".format(args.timeout))
     print("decoding  temperature {}, top_p {}, top_k {} (pinned, because "
           "watsonx decodes greedily unset and three greedy candidates are "
           "one candidate three times)".format(
@@ -871,6 +903,7 @@ def main(argv: Sequence[str]) -> int:
         max_new_tokens=args.max_new_tokens,
         decoding=COMPARISON_DECODING,
         reasoning_effort=args.reasoning_effort,
+        timeout=args.timeout,
     )
     goals = gather(
         backend,
