@@ -523,8 +523,10 @@ def rules(
                 " THE REACTION is you feeling the moment, and it is not"
                 " checked, because it says nothing about the match: \"Oh,"
                 " lovely!\", \"What a finish!\", \"Ah, no.\". One reaction at"
-                " most, standing at the goal with nothing after it, at most"
-                " eight words, and it may hold no player or team name, no"
+                " most, and it is the last thing you write: it comes after"
+                " the sentence that lands the finish, never before the play"
+                " and never in the middle of it, and nothing follows it. At"
+                " most eight words, and it may hold no player or team name, no"
                 " \"he\" or \"his\", no number, and nothing about where the"
                 " ball was or what anybody did. A reaction that names"
                 " somebody is read as play and checked as play.",
@@ -602,13 +604,15 @@ def rules(
             _rule(
                 12,
                 "One or two sentences of play, clauses joined rather than one"
-                " claim per full stop, coming to about {} characters in all,"
-                " which is roughly {} words, with the reaction on top if you"
-                " write one. This gets recorded and a monthly character"
-                " allowance pays for it, so a shorter telling of the whole"
-                " move is better than a longer one. Do not drop a step to get"
-                " there. Output the narration only, with no preamble, heading"
-                " or explanation.".format(target_characters, words),
+                " claim per full stop, coming to about {} words, with the"
+                " reaction on top if you write one. Do not count the"
+                " characters and do not count the words out: about is as"
+                " exact as this needs to be, and a line this length is"
+                " several seconds of speech. This gets recorded and a monthly"
+                " character allowance pays for it, so a shorter telling of"
+                " the whole move is better than a longer one. Do not drop a"
+                " step to get there. Output the narration only, with no"
+                " preamble, heading or explanation.".format(words),
             ),
             _rule(
                 13,

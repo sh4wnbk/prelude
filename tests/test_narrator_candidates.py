@@ -829,7 +829,8 @@ class TestEachWorkedExampleCarriesAReaction:
         prompt = flat(build_goal_call_prompt(facts_1986, key))
         assert "THE PLAY" in prompt
         assert "THE REACTION" in prompt
-        assert "at most eight words" in prompt
+        assert "at most eight words" in prompt.lower()
+        assert "it is the last thing you write" in prompt
 
 
 class TestTheRecordsSayWhichWayAndHowFar:

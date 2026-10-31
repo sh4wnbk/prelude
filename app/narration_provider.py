@@ -81,6 +81,24 @@ DEFAULT_MAX_NEW_TOKENS = 200
 #: It lives here rather than in `app/narration_config.py` because that file is
 #: held to carrying no variable name that could hide a credential, and this
 #: one is a request parameter in a module that already sends them.
+#:
+#: **It is enough at `reasoning_effort` low and nowhere near enough at high.**
+#: Measured on 2026-10-31, one goal-call prompt of 2,746 prompt tokens, the
+#: same prompt both times:
+#:
+#: | Effort | Completion tokens | Finish | Answer |
+#: | ------ | ----------------: | ------ | ------ |
+#: | low | 295 | stop | 194 characters |
+#: | high | 2,000 | length | none, all of it reasoning |
+#: | high | 4,000 | length | none |
+#: | high | 6,000 | length | none |
+#: | high | 8,000 | length | none |
+#: | high | 14,141 (cap 16,000) | stop | 269 characters |
+#:
+#: So high effort costs about fifty times what low costs on this prompt and
+#: needs a cap around 16,000 to answer at all. `--max-new-tokens` on
+#: `scripts/narrator_candidates.py` is how a run raises it, because the cap a
+#: run needs is a property of the effort that run chose.
 COMPARISON_MAX_NEW_TOKENS = 2000
 
 #: Seconds before an IAM token's stated expiry that it is treated as expired.
