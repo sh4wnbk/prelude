@@ -2952,12 +2952,13 @@ The rules Shawn settled for them, before any of it is built:
 
 ## Next first action (Shawn picks one candidate per hero goal)
 
-**Task 7 is run, nothing is frozen, and the freeze is one command away.** The
+**Task 8 is run, nothing is frozen, and the freeze is one command away.** The
 candidates are in `C:\Users\shawn\prelude-review\hero_candidates_2026-10-30.md`,
-with the same data beside it as JSON. Shawn picks one per goal and then:
+with the same data beside it as JSON. Both goals were rerun, so both are this
+run's. Shawn picks one per goal and then:
 
 ```
-.\.venv-prelude\Scripts\python.exe -I scripts\freeze_narrations.py --pick 3750191=3 --pick 3869685=4 --confirm
+.\.venv-prelude\Scripts\python.exe -I scripts\freeze_narrations.py --pick 3750191=3 --pick 3869685=3 --confirm
 ```
 
 That path calls no model: the words already exist, so it reads them out of the
@@ -2965,10 +2966,107 @@ candidates document, re-runs the grounding check against `data/raw/`, and
 writes `app/web/narrations.json` with the model that wrote them and which
 candidate it was. Without `--confirm` it prints the pick and writes nothing.
 It refuses a slot that is not in the file, a goal picked twice, a goal that is
-not a hero, and a pick that leaves one hero unpicked, because freezing one of
-the two would leave one moment card speaking a narration chosen on the
-evidence and the other speaking one chosen before it. The slot numbers are the
-asked-for slots and have gaps: 1986 kept 3 and 5, not 1 and 2.
+not a hero, and a pick that leaves one hero unpicked. **The 1986 slots have
+gaps: they are 1, 3 and 4, because slots 2 and 5 were refused.**
+
+**Eight candidates, not ten: 1986 came back three of five.** Both of the two
+that failed did so the same way, and it is the citation rather than the
+sentence. The hero block prints the Beardsley step as "Diego Armando
+Maradona, from facts 10, 11, 12: dribbled past Peter Beardsley", and the model
+wrote the sentence citing `[10]` alone. Fact 10 is "Peter Beardsley (England)
+was dribbled past", which names Beardsley and not Maradona, so his name is in
+the buildup and not in the facts that sentence cited, and the check refuses it
+correctly. Five of the six failed attempts are that; the sixth wrote no
+citation tags at all, which is the failure
+`app/narration_prompt.py::build_prompt` already describes as the harder one.
+
+**Whether the prompt invites it cannot be told from ten generations.** The
+same shortened citation is what the Task 7 prompt fix was aimed at, and that
+rerun came back five of five; this one came back three of five at the same
+temperature 0.8. The only change to the 1986 prompt since is one name
+("Héctor Enrique" rather than "Héctor Adolfo Enrique"), which is not in any
+sentence that failed. So it is either sampling or a prompt that still allows
+the short citation, and the honest answer is that this run cannot say which.
+Asking for one fact number per sentence, or restating that a step's sentence
+cites every number printed for it, is the next thing to try, and it is a
+prompt change rather than a check change.
+
+**The 2022 goal came back five of five, all five naming all five players.**
+That is the thing the Task 6 narration was short on: it named three of five
+and left out Messi and Álvarez, and every candidate here names Molina,
+MacAllister, Messi, Álvarez and Di María in order. They differ only in the
+closing phrase and in whether a receipt is said as "received the ball" or
+"received", a spread of 87 characters and 204 billed.
+
+**Every candidate is grounded, carries one clock, ends on a sentence saying it
+scored, and covers every key beat.** 1986: five of five beats, seven of the
+eight recorded players, Peter Reid the one unnamed, which is right because
+Reid only pressed and no fact pairs him with anything else. 2022: one of one
+beat, five of five players.
+
+**No candidate carries an unusual character.** `odd_characters` reports none
+across all eight, after two of the previous run's candidates carried one. That
+is not evidence the problem is gone: `app/plain_characters.py` now rewrites a
+disguised space or hyphen as the model's text arrives in `app/narration.py`,
+so a character that did arrive was made plain before the review file measured
+anything. The review file no longer distinguishes "the model wrote none" from
+"the model wrote one and it was fixed", which is a reporting loss taken
+knowingly: the fix is worth more than the report, and recording what was
+rewritten is a change to `Attempt` that this task did not ask for.
+
+**Every pair fits the budget, so the price is not the thing to choose on.**
+`scripts/tts_hero.py --budget` is 3,000 billed characters for the six
+recordings. The cheapest pair is 1986 slot 3 with 2022 slot 3 at 2,688, and
+the most expensive is 1986 slot 4 with 2022 slot 4 at 2,934. All fifteen
+pairs are under 3,000, with between 66 and 312 characters to spare. The 1986
+narrations run 1,473 to 1,515 billed and the 2022 ones 1,215 to 1,419.
+
+**The 1986 narration still says "Diego Armando Maradona" six times, and the
+data is why.** Task 8 was asked for recorded common names, and
+`data/raw/lineups/3750191.json` records no `player_nickname` for him: the
+field is null. So there is nothing shorter to say that the data says, and
+`app/recorded_names.py` does not pick a surname out of a full name, because
+that would be this repo's judgement about what a player is called rather than
+a value read from the match. What 1986 did gain is "Héctor Enrique" for
+"Héctor Adolfo Enrique", which is the one nickname in that buildup.
+
+The 2022 goal is where the change lands: "Lionel Messi" for "Lionel Andrés
+Messi Cuccittini", "Ángel Di María" for "Ángel Fabián Di María Hernández",
+"Nahuel Molina" for "Nahuel Molina Lucero", "Alexis MacAllister" for "Alexis
+Mac Allister". Julián Álvarez has none recorded and so is said in full.
+
+**Still owed after the pick: the recordings.** The Text to Speech instance is
+disabled above its Lite cap until November 1, so `scripts/tts_hero.py
+--confirm` has not been sent and `hero.audio` is still `{}`. What to listen
+for: a candidate that says "at 54:02" or "at 35:12" once still reads a colon
+between two numbers aloud, which nothing here knows the sound of, and `di` in
+"Di María" is still unheard.
+
+**The vocabulary sweep has nothing to review after the pick, and that was
+measured rather than assumed.** `scripts/check_vocabulary.py` reads the frozen
+narrations, so a freeze changes the words it sweeps: "MacAllister" is a word
+no narration has held before, and the full names that go ("Fabián",
+"Hernández", "Cuccittini") take their words with them. Run with every one of
+the eight candidates standing in for the frozen pair, the gate's own flagging
+reports no unreviewed word either way, because a name has to carry two listed
+CMU pronunciations to be flagged at all and none of these does. `di` is
+already in the table, from the Task 6 narration.
+
+### Task 7: the candidate run Task 8 replaced
+
+**Task 7's candidates no longer exist.** Task 8 reran both goals, into the
+same candidates document, so what the file holds is Task 8's eight and not
+these. The reason for the rerun is in Task 8's record above: the names. What
+is kept here is what the run measured, because the prompt fixes and the
+prices it found are still true.
+
+**Nothing was frozen then either**, and the freeze path is unchanged: it
+reads a candidate out of the document, re-checks it against `data/raw/`, and
+writes `app/web/narrations.json`. It refuses a slot that is not in the file,
+a goal picked twice, a goal that is not a hero, and a pick that leaves one
+hero unpicked, because freezing one of the two would leave one moment card
+speaking a narration chosen on the evidence and the other speaking one chosen
+before it. The slot numbers are the asked-for slots and have gaps.
 
 **The 1986 goal was rerun with the fixed prompt and a length target, and it
 went from two usable candidates to five.** Every one of the five is grounded,
@@ -2986,8 +3084,8 @@ scored". Slots 4 and 5 are one text of 466 characters at 1,503 billed, ending
 1986 candidate never did. The length target is what converged them: asked for
 about 450 characters, the model wrote the same telling over and over.
 
-**Slot 5 carries a `NARROW NO-BREAK SPACE` (U+202F) inside "Terry Butcher",
-so slot 4 is the one to pick of that pair.** It is the second invisible
+**Slot 5 carried a `NARROW NO-BREAK SPACE` (U+202F) inside "Terry Butcher",
+which made slot 4 the one to pick of that pair.** It was the second invisible
 character a candidate has arrived with, after the `NON-BREAKING HYPHEN` in the
 run before it, and both passed `app/grounding.py` correctly: a narrow space is
 whitespace, so the name either side of it still matched, and a hyphen is not a
