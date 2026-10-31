@@ -44,7 +44,7 @@ from app.grounding import (
     ACTION_CLAIMS,
     NOT_A_NAME,
     TEAM_DEMONYMS,
-    _is_a_reaction,
+    is_a_reaction,
     check,
     sentences,
 )
@@ -744,6 +744,6 @@ class TestTheReactionLayer:
                 actions=ACTION_CLAIMS,
             )
             for sentence in parsed:
-                assert not _is_a_reaction(
+                assert not is_a_reaction(
                     sentence.text, reader.read(sentence.text)
                 ), f"{slot}: {sentence.text!r} read as a reaction"

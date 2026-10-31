@@ -72,7 +72,15 @@ from app.goal_call_prompt import (  # noqa: E402
     situation_for,
     slot_key,
 )
-from app.grounding import check  # noqa: E402
+from app.grounding import (  # noqa: E402
+    ACTION_CLAIMS,
+    NOT_A_NAME,
+    TEAM_DEMONYMS,
+    check,
+    is_a_reaction,
+    sentences,
+)
+from app.narration_grammar import Reader  # noqa: E402
 from app.narration import MAX_RETRIES, MODEL, narrate  # noqa: E402
 from app.narration_config import (  # noqa: E402
     ACTIVE_CANDIDATE,
@@ -266,6 +274,42 @@ def slot_coverage(text: str, facts: Facts) -> dict:
     }
 
 
+def play_shape(text: str, facts: Facts) -> tuple[tuple[str, ...], ...]:
+    """The structure of a candidate's play layer, as the grammar reads it.
+
+    Rule 13 asks for narrations that differ in structure rather than in
+    wording, and this is what says whether two of them do. It is the moves
+    each sentence of the play makes, in order, by kind: how many sentences
+    there are, where the chains fall, where the pronoun takes over, whether
+    the defenders are a list of `past` moves or a repetition, where the
+    position and the body part land.
+
+    **It reads the kinds and not the words, which is the whole point.** "Who
+    found Álvarez" and "who played it to Álvarez" are one `chain` either way,
+    so two tellings that differ only in a synonym come out with the same
+    shape and the second is a near copy. Two tellings that differ in where
+    the sentence breaks, or in which claims they make, do not.
+
+    **The reaction is left out.** It is the narrator's voice rather than the
+    telling, and a slot whose three candidates differ only in ending on "What
+    a finish!" or "What a strike!" has one telling in it and not three.
+    `is_a_reaction` is the same test `app/grounding.py` reads a narration by.
+    """
+    reader = Reader(
+        facts=facts,
+        not_a_name=NOT_A_NAME,
+        demonyms=TEAM_DEMONYMS,
+        actions=ACTION_CLAIMS,
+    )
+    parsed = sentences(text)
+    read = [reader.read(one.text) for one in parsed]
+    return tuple(
+        tuple(move.kind for move in moves)
+        for one, moves in zip(parsed, read)
+        if not is_a_reaction(one.text, moves)
+    )
+
+
 def prompt_characters(
     facts: Facts, key: str, per_slot: int
 ) -> tuple[int, ...]:
@@ -432,6 +476,7 @@ def gather(
                         )
                     )
                 billed = billed_for_slot(match_id, key, narrated.text)
+                shape = play_shape(narrated.text, facts)
                 one = {
                     "candidate": number,
                     "text": narrated.text,
@@ -451,6 +496,28 @@ def gather(
                           ))
                     print("      | {}".format(narrated.text))
                     one["over_allowance"] = allowance
+                    dropped.append(one)
+                    continue
+                # A near copy is not a candidate. Rule 13 asks the model for
+                # tellings that differ in structure, and `play_shape` is what
+                # decides whether two of them do; the run of 2026-10-31 at
+                # effort high wrote two pairs that differed only in a synonym
+                # and in the reaction they ended on.
+                one["play_shape"] = shape
+                twin = next(
+                    (
+                        other
+                        for other in kept
+                        if other.get("play_shape") == shape
+                    ),
+                    None,
+                )
+                if twin is not None:
+                    print("    candidate {}: grounded, and the same telling "
+                          "as candidate {} with other words in it; "
+                          "dropped".format(number, twin["candidate"]))
+                    print("      | {}".format(narrated.text))
+                    one["near_copy_of"] = twin["candidate"]
                     dropped.append(one)
                     continue
                 kept.append(one)
@@ -619,8 +686,15 @@ def review(
                                )))
                 out.append("")
             if slot["dropped"]:
-                out.append("{} candidate(s) were dropped for this "
-                           "slot.".format(len(slot["dropped"])))
+                copies = [
+                    one for one in slot["dropped"] if one.get("near_copy_of")
+                ]
+                said = "{} candidate(s) were dropped for this slot".format(
+                    len(slot["dropped"])
+                )
+                if copies:
+                    said += ", {} of them as the same telling as one that "                            "was kept".format(len(copies))
+                out.append(said + ".")
                 out.append("")
     return "\n".join(out) + "\n"
 

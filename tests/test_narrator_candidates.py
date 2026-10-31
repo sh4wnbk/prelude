@@ -37,7 +37,7 @@ from app.grounding import (
     NOT_A_NAME,
     REACTION_WORDS,
     TEAM_DEMONYMS,
-    _is_a_reaction,
+    is_a_reaction,
     check,
     sentences,
 )
@@ -54,6 +54,7 @@ from scripts.narrator_candidates import (
     goals_to_run,
     main,
     narrator_for,
+    play_shape,
     prompt_characters,
     review,
     slot_coverage,
@@ -778,7 +779,7 @@ def last_sentence(text):
 def reads_as_a_reaction(text, facts):
     """Whether the check would read this sentence as a reaction.
 
-    The reader is given real facts because that is what `_is_a_reaction`
+    The reader is given real facts because that is what `is_a_reaction`
     takes. None of the four reactions names anybody, which is the point of
     them, so which passage it is read against makes no difference.
     """
@@ -789,7 +790,7 @@ def reads_as_a_reaction(text, facts):
         actions=ACTION_CLAIMS,
     )
     sentence = last_sentence(text)
-    return _is_a_reaction(sentence.text, one.read(sentence.text))
+    return is_a_reaction(sentence.text, one.read(sentence.text))
 
 
 class TestEachWorkedExampleCarriesAReaction:
@@ -1040,3 +1041,88 @@ class TestTheRecordsSayWhatIsNotThereToo:
         assert "nothing in it was won back" in flat(
             build_goal_call_prompt(facts_2022, key)
         )
+
+
+class TestTwoTellingsOrOneWithOtherWordsInIt:
+    """`play_shape` is what rule 13 is measured by.
+
+    The run at effort high wrote two pairs that differ only in a synonym and
+    in the reaction they end on, which is one telling and not two. The shape
+    is the moves the play makes, by kind, so a chain written as "found Y" and
+    a chain written as "played it to Y" are the same move and a sentence
+    break is not.
+    """
+
+    def test_a_synonym_leaves_the_shape_alone(self, facts_2022):
+        assert play_shape(
+            "Molina found MacAllister, who set up Di María, who scored.",
+            facts_2022,
+        ) == play_shape(
+            "Molina played it to MacAllister, who set up Di María, who "
+            "scored.",
+            facts_2022,
+        )
+
+    def test_a_sentence_break_changes_it(self, facts_2022):
+        assert play_shape(
+            "Molina found MacAllister, who set up Di María, who scored.",
+            facts_2022,
+        ) != play_shape(
+            "Molina found MacAllister. He set up Di María, who scored.",
+            facts_2022,
+        )
+
+    def test_a_claim_the_other_does_not_make_changes_it(self, facts_2022):
+        assert play_shape(
+            "Molina found MacAllister, who set up Di María, who scored.",
+            facts_2022,
+        ) != play_shape(
+            "Molina found MacAllister, who set up Di María in the box, who "
+            "scored.",
+            facts_2022,
+        )
+
+    def test_the_reaction_is_not_part_of_the_shape(self, facts_2022):
+        """A slot whose candidates differ only in ending on "What a finish!"
+        or "What a strike!" holds one telling."""
+        play = "Molina found MacAllister, who set up Di María, who scored"
+        assert play_shape(
+            play + "! What a finish!", facts_2022
+        ) == play_shape(play + "! Oh, lovely!", facts_2022)
+        assert play_shape(play + "!", facts_2022) == play_shape(
+            play + "! What a strike!", facts_2022
+        )
+
+    @pytest.mark.parametrize(
+        "goal, names",
+        [
+            (
+                "1986",
+                [
+                    "STORYTELLER_1986",
+                    "BUDDY_1986_ARGENTINA",
+                    "BUDDY_1986_ENGLAND",
+                    "CALLER_1986",
+                ],
+            ),
+            (
+                "2022",
+                [
+                    "STORYTELLER_2022",
+                    "BUDDY_2022_ARGENTINA",
+                    "BUDDY_2022_FRANCE",
+                    "CALLER_2022",
+                ],
+            ),
+        ],
+    )
+    def test_the_four_references_for_a_goal_are_four_tellings(
+        self, goal, names, facts_1986, facts_2022
+    ):
+        """So the measure is not over-eager: Shawn's four narrations of one
+        goal are four shapes, not one shape four times."""
+        facts = facts_1986 if goal == "1986" else facts_2022
+        shapes = {
+            play_shape(getattr(references, name), facts) for name in names
+        }
+        assert len(shapes) == len(names)

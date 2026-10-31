@@ -1195,7 +1195,7 @@ REACTION_MOVES = frozenset({"action"})
 _PRONOUN_WORDS = frozenset(PRONOUNS)
 
 
-def _is_a_reaction(text: str, moves: Sequence[Move]) -> bool:
+def is_a_reaction(text: str, moves: Sequence[Move]) -> bool:
     """Whether this sentence is the narrator's reaction rather than the play.
 
     Four things, and all of them are about the shape of the sentence rather
@@ -1319,7 +1319,7 @@ def _goal_call(
     all thirteen records in that passage are Argentina's.
 
     **The last sentence may be a reaction, and a reaction is not checked.**
-    `_is_a_reaction` is the shape test, `REACTION_WORDS` says why it is safe,
+    `is_a_reaction` is the shape test, `REACTION_WORDS` says why it is safe,
     and what it exempts is the support of the moves. Everything a reaction
     could be refused for it is still refused for: the banned verdicts, the
     force words, "you", a clock, a digit, the present tense, the first person
@@ -1349,7 +1349,7 @@ def _goal_call(
     reactions = frozenset(
         index
         for index, sentence in enumerate(parsed)
-        if _is_a_reaction(sentence.text, read[index])
+        if is_a_reaction(sentence.text, read[index])
     )
     last = len(parsed) - 1
     the_reaction = last if last in reactions else None
