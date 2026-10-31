@@ -286,6 +286,12 @@ def gather(
             kept: list[dict] = []
             dropped: list[dict] = []
             for number in range(1, per_slot + 1):
+                # Every candidate already kept for this slot goes into the
+                # prompt, so the model is asked for a telling that differs
+                # from them in structure rather than in wording. Three
+                # independent calls at temperature 0.8 produced three near
+                # copies on 2026-10-31, which is what rule 13 and this are
+                # for.
                 narrated = narrate(
                     feed,
                     match_id,
@@ -295,6 +301,7 @@ def gather(
                     persona=persona,
                     side=side,
                     goal_call=True,
+                    avoid=[one["text"] for one in kept],
                 )
                 attempts = len(narrated.attempts)
                 if narrated.source != MODEL:

@@ -168,6 +168,7 @@ def narrate(
     beats: bool = True,
     hero: bool = False,
     goal_call: bool = False,
+    avoid: Sequence[str] = (),
 ) -> Narrated:
     """Narrate `moment`, returning grounded text or raising.
 
@@ -198,6 +199,13 @@ def narrate(
     Messi Cuccittini". A player the file records no nickname for keeps their
     full name: see `app/recorded_names.py`, which also says why no surname is
     picked out of a full name here.
+
+    `avoid` is the narrations already written for this slot, which the goal
+    call prompt asks the model to differ from in structure. It reaches the
+    prompt and nothing else, it is ignored without `goal_call`, and it is the
+    model's own earlier answers rather than a reference: a reference in a
+    prompt for the goal it describes is the dictation `docs/VOICE.md`
+    forbids.
 
     `goal_call` asks for the framework in `docs/VOICE.md` instead of the
     cited narration: the recap stage of a goal call, with no citation tags and
@@ -236,6 +244,7 @@ def narrate(
         prompt = build_goal_call_prompt(
             facts,
             slot_key(persona.id, situation_for(side, facts.moment.team)),
+            avoid=avoid,
         )
     else:
         prompt = build_prompt(

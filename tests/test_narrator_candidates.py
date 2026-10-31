@@ -32,8 +32,16 @@ from app.goal_call_prompt import (
     slot_key,
     steps_block,
 )
-from app.grounding import check
-from app.narration_grammar import WORD, fold
+from app.grounding import (
+    ACTION_CLAIMS,
+    NOT_A_NAME,
+    REACTION_WORDS,
+    TEAM_DEMONYMS,
+    _is_a_reaction,
+    check,
+    sentences,
+)
+from app.narration_grammar import WORD, Reader, fold
 from app.narration_prompt import HERO_TARGET_CHARACTERS, facts_from_buildup
 from app.personas import THE_BUDDY, THE_CALLER, THE_STORYTELLER
 from app.recorded_names import recorded_nicknames
@@ -290,7 +298,7 @@ class TestTheRecordsInThePrompt:
         beat = facts_2022.facts[10].beat
         assert record_line(facts_2022, beat) == (
             "Alexis MacAllister (Argentina) passed to Ángel Di María, "
-            "the assist, in the box"
+            "the assist, forward, in the box"
         )
 
 
@@ -758,3 +766,150 @@ class TestTheReferencesPassTheCheckAsTheSlotTheyAreFor:
         side = dict(slots_for(match_id, facts.moment.team))[slot]
         result = check(text, facts, narrator_for(slot), side)
         assert result.grounded, result.summary
+
+
+def last_sentence(text):
+    return sentences(text)[-1]
+
+
+def reads_as_a_reaction(text, facts):
+    """Whether the check would read this sentence as a reaction.
+
+    The reader is given real facts because that is what `_is_a_reaction`
+    takes. None of the four reactions names anybody, which is the point of
+    them, so which passage it is read against makes no difference.
+    """
+    one = Reader(
+        facts=facts,
+        not_a_name=NOT_A_NAME,
+        demonyms=TEAM_DEMONYMS,
+        actions=ACTION_CLAIMS,
+    )
+    sentence = last_sentence(text)
+    return _is_a_reaction(sentence.text, one.read(sentence.text))
+
+
+class TestEachWorkedExampleCarriesAReaction:
+    """The two layers, shown rather than only described.
+
+    The example is the one thing in the prompt a model copies the shape of,
+    so a layer the examples do not have is a layer the candidates will not
+    have either.
+    """
+
+    @pytest.mark.parametrize("key", sorted(STYLES))
+    def test_the_example_ends_on_a_reaction(self, key, facts_2022):
+        assert reads_as_a_reaction(STYLES[key].example, facts_2022), key
+
+    @pytest.mark.parametrize("key", sorted(STYLES))
+    def test_the_reaction_is_within_the_word_count(self, key, facts_2022):
+        said = last_sentence(STYLES[key].example).text
+        assert len(WORD.findall(said)) <= REACTION_WORDS, (key, said)
+
+    def test_the_two_voices_that_cheer_cheer_in_the_reaction_too(self):
+        for key in (BUDDY_SCORED, CALLER_NEUTRAL):
+            assert STYLES[key].example.endswith("!")
+
+    def test_the_two_voices_that_do_not_are_restrained(self):
+        """The Storyteller notices the goal and the conceding Buddy is
+        subdued, which is the cheer rule each of them already had."""
+        for key in (STORYTELLER_NEUTRAL, BUDDY_CONCEDED):
+            assert STYLES[key].example.endswith(".")
+            assert "!" not in STYLES[key].example
+
+    @pytest.mark.parametrize("key", sorted(STYLES))
+    def test_every_style_says_how_its_reaction_ends(self, key):
+        assert "reaction" in STYLES[key].style
+
+    @pytest.mark.parametrize("key", sorted(STYLES))
+    def test_every_prompt_states_both_layers(self, key, facts_1986):
+        prompt = flat(build_goal_call_prompt(facts_1986, key))
+        assert "THE PLAY" in prompt
+        assert "THE REACTION" in prompt
+        assert "at most eight words" in prompt
+
+
+class TestTheRecordsSayWhichWayAndHowFar:
+    """Rule 5 asks for a claim the model has to be able to read off the page.
+
+    A coordinate is not something a model can be asked to compare, so the
+    records say "forward" and "a run" in the words the narration would use,
+    computed by `app/narration_grammar.py` from the two ends of the record.
+    """
+
+    def test_a_pass_up_the_pitch_is_marked_forward(self, facts_2022):
+        """Álvarez's ball to MacAllister, 36.1 yards of x."""
+        line = record_line(facts_2022, facts_2022.facts[8].beat)
+        assert "a long ball, forward" in line
+
+    def test_a_touch_on_the_spot_is_marked_as_no_run(self, facts_2022):
+        """Álvarez's carry, 0.7 yards, which four candidates called a drive
+        forward on 2026-10-31."""
+        line = record_line(facts_2022, facts_2022.facts[7].beat)
+        assert "a touch on the spot, not a run" in line
+        assert "forward" not in line
+
+    def test_a_long_carry_is_marked_a_run(self, facts_1986):
+        """Maradona's 34.9 yard carry."""
+        line = record_line(facts_1986, facts_1986.facts[11].beat)
+        assert "a run, far enough to be called one" in line
+        assert "forward" in line
+
+    def test_a_defenders_record_says_neither(self, facts_1986):
+        """StatsBomb mirrors a defensive record's coordinates, so "forward"
+        on one would mean the half the words do not say."""
+        for fact in facts_1986.facts:
+            if fact.beat.team == facts_1986.moment.team:
+                continue
+            line = record_line(facts_1986, fact.beat)
+            assert "forward" not in line
+            assert "back" not in line
+            assert "run" not in line
+
+
+class TestAskingForDifferentTellings:
+    """Rule 13, and the one mechanism that can make it bite.
+
+    Three independent calls at temperature 0.8 wrote three near copies for
+    each slot on 2026-10-31. A model writing one candidate per call cannot
+    know what the others said unless the prompt tells it.
+    """
+
+    @pytest.mark.parametrize("key", sorted(STYLES))
+    def test_every_prompt_asks_for_a_different_structure(
+        self, key, facts_2022
+    ):
+        prompt = flat(build_goal_call_prompt(facts_2022, key))
+        assert "differ in structure" in prompt.lower()
+        assert "not one telling with the words swapped" in prompt
+
+    def test_the_first_candidate_has_nothing_to_avoid(self, facts_2022):
+        prompt = build_goal_call_prompt(facts_2022, BUDDY_SCORED)
+        assert "ALREADY WRITTEN FOR THIS SLOT" not in prompt
+
+    def test_what_was_kept_is_shown_back(self, facts_2022):
+        earlier = [
+            "We went on the counter, Molina to MacAllister, and he scored!",
+            "Molina to MacAllister and on it went, and we scored!",
+        ]
+        prompt = flat(
+            build_goal_call_prompt(facts_2022, BUDDY_SCORED, avoid=earlier)
+        )
+        assert "ALREADY WRITTEN FOR THIS SLOT" in prompt
+        for one in earlier:
+            assert one in prompt
+
+    def test_what_is_shown_back_is_never_a_reference(
+        self, facts_1986, facts_2022
+    ):
+        """`avoid` is the model's own earlier answers. The eight references
+        are the standard and go into no prompt for the goal they describe,
+        which `TestTheExampleIsInvented` holds for the rest of the prompt."""
+        for facts in (facts_1986, facts_2022):
+            prompt = flat(build_goal_call_prompt(facts, BUDDY_SCORED))
+            for name, text in vars(references).items():
+                if not name.isupper() or not isinstance(text, str):
+                    continue
+                if len(text) < 60:
+                    continue
+                assert text[:25] not in prompt, name

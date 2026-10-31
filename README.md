@@ -306,12 +306,15 @@ Everything above it is structure.
   the force words it may not, the verdicts about history it may not, and the
   reaction layer: where a reaction may stand, who may cheer in one and what
   makes a short sentence play instead. All pass.
-- `tests/test_narrator_candidates.py`: 86 tests over `app/goal_call_prompt.py`
-  and `scripts/narrator_candidates.py`: the four styles, one per narrator and
-  situation, the invented match their examples are shown through, the records
-  the prompt prints with no clock on them, the six recorded slots read off
-  `hero.voice_for`, the price of one recording and the call count the run
-  prints before it sends anything. All pass, and none calls a model.
+- `tests/test_narrator_candidates.py`: 115 tests over
+  `app/goal_call_prompt.py` and `scripts/narrator_candidates.py`: the four
+  styles, one per narrator and situation, the invented match their examples
+  are shown through and the reaction each example ends on, the records the
+  prompt prints with no clock on them and with which way and how far on them,
+  the six recorded slots read off `hero.voice_for`, the price of one
+  recording, the request for tellings that differ in structure and the call
+  count the run prints before it sends anything. All pass, and none calls a
+  model.
 - `tests/test_narration.py`: 28 tests over the pipeline, covering the retries,
   the fallback, the citation stripping, the failure log, the first-attempt pass
   rate and the characters made plain as a model's text arrives. All pass, and
@@ -355,6 +358,38 @@ enforce between them, with what the check still cannot decide.
 
 No claim in this README is intended to run ahead of the code. If you find one
 that does, it is a bug in the README.
+
+## The label, and the two layers under it
+
+The label is **"Verified from play data"**, written once in `app/narration.py`
+so nothing spells it differently or softens it. There is no partial credit and
+no shortened variant: it goes over narration that passed the check in
+`app/grounding.py`, and over nothing else.
+
+What it claims is that **every event in the narration happened as told**. A
+narration has two layers, and that sentence is exactly true of both.
+
+**The play** is who, what, where and how it finished, and it is checked claim
+by claim against `data/raw/`: the names, the passes from one named player to
+another, the defenders gone past, the positions on the pitch, which way the
+ball went, how far a carry ran, the body part the goal was scored with.
+Nothing in it is inferred, recalled or softened, and a narration with one
+unsupported claim in it is refused whole.
+
+**The reaction** is the narrator feeling the moment, in at most eight words:
+"Oh, lovely!", "What a finish!", and for the side that conceded "Ah, no.". It
+stands once, at the goal, with nothing after it, and it is not checked against
+the data, because it asserts nothing about the data: no player, no team, no
+pronoun, no number, nothing about where the ball was or what anybody did. It
+is the narrator's own voice, and it leaves the label's claim untouched. It is
+still held to everything else: no verdict about where the goal stands among
+other goals, no words for how hard the ball was struck, and never "you".
+
+[`docs/VOICE.md`](docs/VOICE.md) has the two layers in full, the eight
+reference narrations that are the standard for the play, and what the check
+still cannot decide. [`docs/VERIFICATION.md`](docs/VERIFICATION.md) has one
+test per kind of claim and one per kind of mistake.
+
 
 ## The documents
 

@@ -54,7 +54,15 @@ import textwrap
 from dataclasses import dataclass
 from typing import Mapping, Sequence
 
-from app.narration_grammar import NUMBER_WORDS, fold, name_keys
+from app.narration_grammar import (
+    DIRECTION_YARDS,
+    NUMBER_WORDS,
+    RUN_YARDS,
+    carry_yards,
+    change_in_x,
+    fold,
+    name_keys,
+)
 from app.narration_prompt import (
     DRIBBLE,
     EVENT_VERBS,
@@ -112,12 +120,17 @@ class NarratorStyle:
 #: forgiven for thinking invention is allowed, so the block says what it is
 #: and the rule after it says the move below is the only one to tell.
 INVENTED_MATCH = (
-    "Kestrel Bay are the side that scored. Five players: Odili, Brandt, "
-    "Vance, and Marrow and the goalkeeper Oyelaran, who defend for Harbour "
-    "Town. Odili won the ball back in his own half and passed to Brandt. "
-    "Brandt carried it forward under pressure, went past Marrow, and played a "
-    "long ball forward to Vance. Vance carried it into the box, went around "
-    "Oyelaran, and scored with his right foot."
+    "Kestrel Bay are the side that scored and Vance scored it, with his "
+    "right foot, from open play. Five players: Odili, Brandt and Vance of "
+    "Kestrel Bay, and Marrow and the goalkeeper Oyelaran, who defend for "
+    "Harbour Town. The possession is recorded as from a counter, and it runs "
+    "from the first record to the shot in under ten seconds. Odili won the "
+    "ball back in his own half and passed to Brandt. Brandt carried it "
+    "forward under pressure from Marrow, far enough to be called a run, went "
+    "past Marrow, and "
+    "played a long ball forward to Vance, which is the pass recorded as the "
+    "assist. Vance carried it into the box, went around Oyelaran, and scored "
+    "with his right foot."
 )
 
 STYLES: Mapping[str, NarratorStyle] = {
@@ -130,12 +143,15 @@ STYLES: Mapping[str, NarratorStyle] = {
             " through, and the plainness is the register. Nobody is cheered"
             " for and nobody is cheered at, so there is no exclamation mark"
             " anywhere, and no \"we\": this listener supports neither side."
+            " The reaction is restrained and ends on a full stop: this voice"
+            " notices the goal rather than celebrating it."
         ),
         example=(
-            "Odili won it back in his own half and gave it to Brandt, who "
-            "carried it forward under pressure past Marrow and hit a long "
-            "ball to Vance, who took it into the box, went around Oyelaran "
-            "and scored with his right foot."
+            "Odili's recovery started the counter, and he gave it to Brandt "
+            "just inside his own half, who carried it forward under pressure "
+            "past Marrow and sent a long ball forward to Vance, who took it "
+            "into the box, went around Oyelaran and scored with his right "
+            "foot. Well, that was lovely."
         ),
     ),
     BUDDY_SCORED: NarratorStyle(
@@ -146,13 +162,15 @@ STYLES: Mapping[str, NarratorStyle] = {
             " it is \"we\" and \"us\" where the side that scored did"
             " something: \"we won it back through Odili\". Warmer and looser"
             " than the Storyteller, and it builds: the finish is the one"
-            " place a listener cheers, so the last sentence, and only the"
-            " last sentence, ends on an exclamation mark."
+            " place a listener cheers, so the sentence that lands it ends on"
+            " an exclamation mark, and so may the reaction after it. This is"
+            " the voice that gets both."
         ),
         example=(
-            "We won it back through Odili, and Brandt took it past Marrow and "
-            "sent a long ball forward to Vance, who carried it into the box, "
-            "got around Oyelaran and scored with his right foot!"
+            "We won it back through Odili, and he gave it to Brandt in his "
+            "own half, who went past Marrow and sent a long ball forward to "
+            "Vance, and from there it was all Vance: into the box, around "
+            "Oyelaran, and he scored with his right foot! Oh, lovely!"
         ),
     ),
     BUDDY_CONCEDED: NarratorStyle(
@@ -166,13 +184,15 @@ STYLES: Mapping[str, NarratorStyle] = {
             " listener's team did not do it. What this voice can do that the"
             " Storyteller does not is tell it from the defending side's"
             " point of view: who closed the scorer down, who came back at"
-            " him, what the defence tried."
+            " him, what the defence tried. The reaction is subdued and ends"
+            " on a full stop, or there is none at all: \"Ah, no.\" is the"
+            " whole of what this listener wants to hear about it."
         ),
         example=(
-            "Odili won it back in his own half and found Brandt, who got past "
-            "Marrow and played a long ball to Vance, and though Marrow came "
-            "back at him Vance carried it into the box, got around Oyelaran "
-            "and scored."
+            "Odili won it back in his own half and found Brandt, and though "
+            "Marrow closed him down and came back at him, Brandt got past "
+            "Marrow and played a long ball forward to Vance, who carried it "
+            "into the box, got around Oyelaran and scored. Ah, no."
         ),
     ),
     CALLER_NEUTRAL: NarratorStyle(
@@ -183,13 +203,15 @@ STYLES: Mapping[str, NarratorStyle] = {
             " their shortest (\"Odili to Brandt\"), the repetition is clipped"
             " (\"past one, past another\"), and the whole thing runs as one"
             " sentence of clauses rather than several. No \"we\": this"
-            " listener supports neither side. It ends on the finish and the"
-            " finish gets the exclamation mark."
+            " listener supports neither side. It ends on the finish, the"
+            " finish gets the exclamation mark, and the reaction after it may"
+            " have one too."
         ),
         example=(
-            "Odili won it back, Odili to Brandt, Brandt past Marrow, a long "
-            "ball forward to Vance, into the box, around Oyelaran, and he "
-            "scored with his right!"
+            "Odili won it back and the counter was on, Odili to Brandt, "
+            "Brandt forward under pressure, past Marrow, a long ball forward "
+            "to Vance, Vance into the box, around Oyelaran, and he finished "
+            "with his right! What a finish!"
         ),
     ),
 }
@@ -279,13 +301,58 @@ def _where(facts: Facts, beat) -> str:
     return ""
 
 
+def _which_way(facts: Facts, beat) -> str:
+    """Which way a pass or a carry took the ball, for the side in possession.
+
+    Rule 5 asks a narration to say "forward" or "back" only where the records
+    show the ball going that way, and `app/grounding.py` refuses it where
+    they do not. A model cannot read a coordinate it has not been shown, so
+    the records say it in the word the narration would use. It is printed for
+    the possession team alone, for the reason `_where` is: StatsBomb mirrors
+    a defensive record's coordinates.
+    """
+    if beat.team != facts.moment.team:
+        return ""
+    if beat.action not in ("Pass", "Carry"):
+        return ""
+    change = change_in_x(beat)
+    if change is None:
+        return ""
+    if change >= DIRECTION_YARDS:
+        return "forward"
+    if change <= -DIRECTION_YARDS:
+        return "back"
+    return ""
+
+
+def _how_far(beat) -> str:
+    """How long a carry was, where the length is one a narration may say.
+
+    The same reason as `_which_way`: "drove", "ran" and "burst" need a carry
+    of `RUN_YARDS` or more, and a carry of under a yard is a touch on the
+    spot rather than a run. The lengths between the two are left unsaid,
+    because there is no word the check holds them to.
+    """
+    if beat.action != "Carry":
+        return ""
+    yards = carry_yards(beat)
+    if yards is None:
+        return ""
+    if yards >= RUN_YARDS:
+        return "a run, far enough to be called one"
+    if yards < DIRECTION_YARDS:
+        return "a touch on the spot, not a run"
+    return ""
+
+
 def record_line(facts: Facts, beat) -> str:
     """One record, said plainly, with the fields a goal call can use.
 
     The clock is left off, because no narration carries one. Everything else is
     read: the recipient of a pass, whether it was the assist, whether it was a
     long ball, whether the record is under pressure, whether the shot was
-    struck first time, the body part, and where on the pitch.
+    struck first time, the body part, which way it took the ball, how far a
+    carry went, and where on the pitch.
     """
     verb = EVENT_VERBS.get(beat.action, beat.action)
     parts = ["{} ({}) {}".format(beat.name, beat.team, verb)]
@@ -298,6 +365,12 @@ def record_line(facts: Facts, beat) -> str:
         extras.append("the assist")
     if beat.long_pass:
         extras.append("a long ball")
+    way = _which_way(facts, beat)
+    if way:
+        extras.append(way)
+    far = _how_far(beat)
+    if far:
+        extras.append(far)
     if beat.under_pressure:
         extras.append("under pressure")
     if beat.first_time:
@@ -418,9 +491,10 @@ def rules(
 ) -> str:
     """The rules, which are the ones `app/grounding.py` holds a goal call to.
 
-    Nine of them are the same for every narrator and the tenth is the
-    narrator's own. The one that reads differently per narrator is the one the
-    check reads differently: the first person and the exclamation mark.
+    Twelve of them are the same for every narrator and the thirteenth is the
+    narrator's own. The one that reads differently per narrator is the one
+    the check reads differently: the first person, the exclamation mark and
+    how the reaction ends.
     """
     shared = shared_name_parts(facts)
     words = round(target_characters / GOAL_CALL_CHARACTERS_PER_WORD)
@@ -437,12 +511,26 @@ def rules(
             _rule(
                 2,
                 "Start at the catalyst, tell the decisive part, land the"
-                " finish. The last thing you say is that the ball went in,"
-                " and nothing follows it: no summary, no comment, no sentence"
-                " addressed to the listener.",
+                " finish. The last thing you say about the play is that the"
+                " ball went in. One thing may follow it and one only, which"
+                " is rule 3: no summary, no comment, no sentence addressed to"
+                " the listener.",
             ),
             _rule(
                 3,
+                "You are writing two layers. THE PLAY is everything the"
+                " records hold, and every word of it is checked against them."
+                " THE REACTION is you feeling the moment, and it is not"
+                " checked, because it says nothing about the match: \"Oh,"
+                " lovely!\", \"What a finish!\", \"Ah, no.\". One reaction at"
+                " most, standing at the goal with nothing after it, at most"
+                " eight words, and it may hold no player or team name, no"
+                " \"he\" or \"his\", no number, and nothing about where the"
+                " ball was or what anybody did. A reaction that names"
+                " somebody is read as play and checked as play.",
+            ),
+            _rule(
+                4,
                 "Say only what the records above hold. Every player, every"
                 " pass from one named player to another, every defender gone"
                 " past, every position on the pitch and the body part all"
@@ -452,7 +540,17 @@ def rules(
                 ),
             ),
             _rule(
-                4,
+                5,
+                "Which way and how far are claims as well, and the records"
+                " above say both. Write \"forward\" or \"back\" only over a"
+                " pass or a carry the records show going that way."
+                " \"Drove\", \"ran\" and \"burst\" need a carry of at least"
+                " ten yards, which the records mark as a run. And a carry"
+                " never gives the ball to another player: write \"carried it"
+                " forward and played it to Y\", never \"carried it to Y\".",
+            ),
+            _rule(
+                6,
                 "Name a player as the records print them, or by any part of"
                 " that name that fits only one of them: \"{}\" is fine."
                 " Never use a part that fits two players, which here"
@@ -463,7 +561,7 @@ def rules(
                 ),
             ),
             _rule(
-                5,
+                7,
                 "\"He\", \"his\" and \"who\" mean the player who last had the"
                 " ball. Say a name once and then follow him with a pronoun;"
                 " saying a full name six times is a document rather than a"
@@ -471,14 +569,14 @@ def rules(
                 " not what the next \"he\" means.",
             ),
             _rule(
-                6,
+                8,
                 "Write a pass as a chain, \"X to Y\", or as \"X played it to"
                 " Y\", \"found Y\", \"gave it to Y\" or \"set up Y\". Only"
                 " for a pass the records show from X to Y: both names being"
                 " up there is not enough. {}".format(_assist_rule(facts)),
             ),
             _rule(
-                7,
+                9,
                 "No clock and no digit anywhere. Not a minute, not a second,"
                 " not a count: the line before this narration already says"
                 " when the goal came, and a colon between two numbers is read"
@@ -486,26 +584,43 @@ def rules(
                 " word if you need one.",
             ),
             _rule(
-                8,
-                "No nicknames for the goal or the players, no verdicts, no"
-                " words like \"decisive\", \"brilliant\" or \"historic\"."
-                " Nothing about the score, the result or what the goal meant"
-                " for the match. Nothing about the crowd, the weather or"
-                " anybody's intentions. No em dashes. Never \"you\" or"
-                " \"your\".",
-            ),
-            _rule(9, style.style),
-            _rule(
                 10,
-                "One or two sentences, clauses joined rather than one claim"
-                " per full stop, coming to about {} characters in all, which"
-                " is roughly {} words. This gets recorded and a monthly"
-                " character allowance pays for it, so a shorter telling of"
-                " the whole move is better than a longer one. Do not drop a"
-                " step to get there. Output the narration only, with no"
-                " preamble, heading or explanation.".format(
-                    target_characters, words
-                ),
+                "No nicknames for the goal or the players, no verdicts, no"
+                " words like \"decisive\", \"brilliant\" or \"historic\", and"
+                " nothing about where this goal stands among other goals: you"
+                " know about this one. No words for how hard the ball was"
+                " struck, so not \"smashed\", \"blasted\", \"hammered\","
+                " \"rifled\" or \"thumped\": the records say who shot, with"
+                " which foot and that it went in, and nothing about force."
+                " \"Finished\", \"scored\", \"struck\", \"fired\", \"hit\""
+                " and \"slotted\" are all fine. Nothing about the score, the"
+                " result or what the goal meant for the match. Nothing about"
+                " the crowd, the weather or anybody's intentions. No em"
+                " dashes. Never \"you\" or \"your\".",
+            ),
+            _rule(11, style.style),
+            _rule(
+                12,
+                "One or two sentences of play, clauses joined rather than one"
+                " claim per full stop, coming to about {} characters in all,"
+                " which is roughly {} words, with the reaction on top if you"
+                " write one. This gets recorded and a monthly character"
+                " allowance pays for it, so a shorter telling of the whole"
+                " move is better than a longer one. Do not drop a step to get"
+                " there. Output the narration only, with no preamble, heading"
+                " or explanation.".format(target_characters, words),
+            ),
+            _rule(
+                13,
+                "Several narrations are being written for this slot and they"
+                " have to be different tellings of the move, not one telling"
+                " with the words swapped. Differ in structure: where the"
+                " first sentence starts, whether it is one sentence or two,"
+                " whether a pass is \"X to Y\" or \"X played it to Y\","
+                " whether the defenders are a list or a repetition, where the"
+                " pronoun takes over from the name, whether there is a"
+                " reaction at all. Two narrations that differ only in a"
+                " synonym are one narration, and only one of them is kept.",
             ),
         )
     )
@@ -553,16 +668,51 @@ def _one_safe_part(facts: Facts) -> str:
     return max(parts, key=len).title()
 
 
+def already_written(avoid: Sequence[str]) -> str:
+    """The tellings of this move already kept for this slot, or nothing.
+
+    Rule 13 asks for narrations that differ in structure rather than in
+    wording, and a model writing each candidate in a separate call cannot
+    know what the other calls produced unless it is shown. The run of
+    2026-10-31 is what this is for: the three storyteller candidates for 1986
+    differed by one full stop and one word.
+
+    This is not the dictation `docs/VOICE.md` forbids. What may never go into
+    the prompt is a reference, because the references are the standard and a
+    model handing one back measures nothing. These are the model's own
+    earlier answers, shown so that it writes a different one.
+    """
+    if not avoid:
+        return ""
+    lines = [
+        "ALREADY WRITTEN FOR THIS SLOT",
+        _wrapped(
+            "These tellings of this same move are already kept. Write one"
+            " that differs from them in structure, as rule 13 asks: not the"
+            " same sentence with other words in it."
+        ),
+        "",
+    ]
+    for number, text in enumerate(avoid, start=1):
+        lines.append(_wrapped("{}. {}".format(number, text), indent="  "))
+    return "\n".join(lines) + "\n"
+
+
 def build_goal_call_prompt(
     facts: Facts,
     key: str,
     target_characters: int = GOAL_CALL_TARGET_CHARACTERS,
+    avoid: Sequence[str] = (),
 ) -> str:
     """The prompt for one goal in one narrator's voice.
 
     `key` is one of `STYLES`, which is a narrator and a situation together.
     Everything above the style is the same for all four, because the records
-    are the records; what changes is rule 9 and the worked example.
+    are the records; what changes is rule 11 and the worked example.
+
+    `avoid` is the narrations already kept for this slot, which the prompt
+    asks the model to differ from. It is empty for the first candidate of a
+    slot and for every caller that wants one narration.
     """
     style = STYLES[key]
     moment = facts.moment
@@ -624,9 +774,11 @@ Told by {label}:
 That example is about players who do not exist. The only move you may narrate
 is the one above it.
 
+{already}
 RULES
 {rules}
 """.format(
+        already=already_written(avoid),
         label=style.label,
         team=moment.team,
         scorer=facts.goal_beat.name,

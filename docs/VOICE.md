@@ -20,6 +20,8 @@ into two places that have to agree:
 | Where | What it does |
 | ----- | ------------ |
 | `app/narration_prompt.py` | builds the numbered facts, holds the one style in `NARRATION_STYLE`, and states the rules to the model in the prompt |
+| `app/goal_call_prompt.py` | builds the goal-call prompt: a style and a worked example per narrator, the records with no clock on them, and the thirteen rules |
+| `app/narration_grammar.py` | reads a goal call that cites nothing, and holds the yard thresholds the words are measured against |
 | `app/personas.py` | the three voices the one narration can be spoken in, which is Phase 5 and not this document |
 | `app/grounding.py` | refuses a narration that broke them |
 | `scripts/narrate_once.py` | runs one goal through a real model and prints every attempt |
@@ -423,10 +425,94 @@ the four slots below are four pieces of writing.
 | The Buddy, the side that conceded | the same move told without cheering it, and without "we", because the passage records nothing the listener's side did. |
 | The Caller | quick, chained, the repetition at its most clipped, ending on the shot. |
 
-**"!" only where the listener would cheer.** That is the last sentence, and
-only for the Caller or for the Buddy of the side that scored. The Storyteller
-does not get one in any situation, and neither does a Buddy sitting with the
-side that conceded.
+**"!" only where the listener would cheer.** That is the sentence that lands
+the finish, and the reaction after it where there is one, and only for the
+Caller or for the Buddy of the side that scored. The Storyteller does not get
+one in any situation, and neither does a Buddy sitting with the side that
+conceded. The next section is what the reaction is.
+
+### Two layers: the play and the reaction
+
+**Settled by Shawn on 2026-10-31, after reading the first eighteen candidates
+aloud.** The narrations were correct and flat. Every one of them told the move
+and stopped, because the framework above is entirely about the move, and a
+commentator calling a goal does one more thing: he feels it.
+
+So a narration has two layers, and they are held to different standards.
+
+**THE PLAY** is who, what, where and how it finished. It is checked strictly,
+claim by claim, against the records: the names, the chains, the defenders gone
+past, the positions on the pitch, which way the ball went, how far a carry
+ran, the body part, the first-time flag. Everything in the framework above is
+this layer, and so are all eight references.
+
+**THE REACTION** is the narrator feeling the moment: "Oh, lovely!", "What a
+finish!", and for the side that conceded "Ah, no.". It follows the listener's
+side, and it is not checked against the data, because it claims nothing about
+the data. It is not a loosening of the label: "Verified from play data" says
+every event happened as told, and the reaction tells no event.
+
+What keeps that true is the shape of the sentence rather than anybody's good
+intentions. A reaction is at most eight words, holds no digit, names no player
+and no team, uses no "he", "his" or "who", and makes no claim about a recorded
+field. A sentence that breaks any of those is play, and is read and refused as
+play: "Lovely, Di María!" names somebody, so it is checked like any other
+sentence.
+
+**Where it may stand.** Once, at the goal, after the play has landed the
+finish, with nothing after it. A reaction before the finish is refused,
+because there is nothing yet to react to, and a second one is refused because
+the first was the reaction.
+
+**What is still banned in it.** A verdict about history, which needs knowledge
+from outside the moment: "the best of all time", "historic", "Goal of the
+Century". The data says nothing about where this goal stands among other
+goals. Also physical manner the record does not hold: "smashed", "blasted",
+"hammered". A shot record carries who struck it, with which foot, from where
+and whether it went in, and nothing about how hard. "Finished", "scored",
+"struck", "fired", "hit" and "slotted" all stay sayable. And "you", because no
+narration is addressed to the fan.
+
+**Which narrator reacts how.**
+
+| Narrator and situation | Its reaction |
+| ---------------------- | ------------ |
+| The Storyteller | restrained, and it ends on a full stop: this voice notices the goal rather than celebrating it. |
+| The Buddy, the side that scored | the one that cheers: the finish takes an exclamation mark and so may the reaction. |
+| The Buddy, the side that conceded | subdued, ending on a full stop, or absent: "Ah, no." |
+| The Caller | clipped, and it may cheer: "What a finish!" |
+
+**"!" now has two places rather than one.** The sentence that lands the finish
+and the reaction after it, for the Caller and for the Buddy of the side that
+scored. Nowhere else, and never for the Storyteller or for a Buddy sitting
+with the side that conceded.
+
+**The eight references hold no reaction**, and they are still the standard for
+the play layer.
+`tests/test_reference_narrations.py::TestTheReactionLayer::test_the_eight_references_hold_no_reaction`
+reads each one sentence by sentence and asserts so, which is what keeps the
+layer an addition rather than a change to what was already settled.
+
+### Which way, how far, and who gave the ball away
+
+**Three claims that used to be prose, settled on 2026-10-31 for the same
+reason.** The first eighteen candidates were read aloud and three kinds of
+sentence turned out to be wrong in a way nothing could catch:
+
+- **Direction.** "Carried it back to MacAllister" and "slipped it back to
+  MacAllister", over a pass that went 38 yards up the pitch. "Forward" and
+  "back" are now a claim about the change in x on a pass or a carry, and
+  `DIRECTION_YARDS` in `app/narration_grammar.py` is how much of a change
+  counts. Nothing in either hero passage moves the ball between 0.8 yards and
+  9.0, so the threshold sits in the gap.
+- **Distance.** "Drove forward" and "drove ahead", over carries of 0.7 yards.
+  "Drove", "ran", "burst" and the words like them now need a recorded carry of
+  `RUN_YARDS` or more. Maradona's three long carries are 34.9, 16.8 and 16.7
+  yards; every other carry in either passage is 1.1 or less.
+- **Who gave the ball away.** "Who carried it back to MacAllister". A carry is
+  the record of a player moving with the ball at his own feet, so it never
+  delivers the ball to anybody: only a pass does. A chain whose only verb is a
+  carry is refused.
 
 ### The eight references are the standard
 
@@ -1696,3 +1782,10 @@ The phrase is **"Verified from play data"**, written once in
 `app/narration.py` so nothing spells it differently or softens it. There is no
 partial credit and no shortened variant. It goes over narration that passed the
 check, and over nothing else.
+
+**What it claims is that every event in the narration happened as told.** That
+is why the reaction layer does not weaken it: "Oh, lovely!" tells no event, so
+there is nothing in it for the label to be true or false about. The play layer
+is where every event is, and every claim in it is traced to a record.
+"Two layers: the play and the reaction" above is the whole of that rule, and
+`REACTION_WORDS` in `app/grounding.py` is where the shape test lives.
