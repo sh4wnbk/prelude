@@ -576,25 +576,56 @@ def hero_block(facts: Facts) -> str:
     steps = move_steps(facts)
     players = touched_the_ball(facts)
     by_number = {fact.number: fact for fact in facts.facts}
+    # The dribble beats, by the facts that record them, so a step that beat a
+    # defender can be printed as that rather than as its own verbs. The live
+    # run of 2026-10-30 is why: three of the five 1986 candidate slots failed
+    # all three attempts the same way, writing "Peter Beardsley was dribbled
+    # past and Diego Armando Maradona carried the ball" from a step printed as
+    # "dribbled, carried the ball" beside a beat naming Beardsley. The check
+    # refuses that, correctly, because no cited fact pairs Beardsley with a
+    # Carry. Printing the step as the dribble past him names one action and
+    # both players, which is the shape the one candidate that passed wrote.
+    dribbles = [beat for beat in key_beats(facts) if beat.kind == DRIBBLE]
     lines = []
     for index, step in enumerate(steps, start=1):
-        numbers = ", ".join(str(number) for number in step.numbers)
-        plural = "facts" if len(step.numbers) > 1 else "fact"
-        # The verbs, so a step says what happened in it and not only who had
-        # the ball. Five of the eight steps of the 1986 move are the same
-        # player, and without them that list reads as one name five times.
-        verbs = ", ".join(
-            EVENT_VERBS.get(
-                by_number[number].beat.action,
-                by_number[number].beat.action,
-            )
-            for number in step.numbers
+        beaten = next(
+            (
+                beat
+                for beat in dribbles
+                if set(beat.numbers) & set(step.numbers)
+            ),
+            None,
         )
+        if beaten is not None:
+            numbers = tuple(sorted(set(step.numbers) | set(beaten.numbers)))
+            said = beaten.label
+        else:
+            numbers = step.numbers
+            # The verbs, so a step says what happened in it and not only who
+            # had the ball. Without them the 1986 list reads as one name over
+            # and over.
+            said = ", ".join(
+                EVENT_VERBS.get(
+                    by_number[number].beat.action,
+                    by_number[number].beat.action,
+                )
+                for number in numbers
+            )
+        printed = ", ".join(str(number) for number in numbers)
+        plural = "facts" if len(numbers) > 1 else "fact"
         last = " (the goal)" if index == len(steps) else ""
         lines.append(
-            f"  {index}. {step.player}, from {plural} {numbers}: "
-            f"{verbs}{last}"
+            f"  {index}. {step.player}, from {plural} {printed}: "
+            f"{said}{last}"
         )
+    beat_note = (
+        " A step that says \"dribbled past\" is one sentence about that one"
+        " action, naming the player who beat the defender and the defender"
+        " who was beaten. The carry recorded beside it does not need a"
+        " sentence of its own."
+        if dribbles
+        else ""
+    )
     return (
         "\nTHE WHOLE MOVE\n"
         + _wrapped(
@@ -608,6 +639,7 @@ def hero_block(facts: Facts) -> str:
         + _wrapped(
             "Every player in that list touched the ball, and the narration"
             " names every one of them: " + ", ".join(players) + "."
+            + beat_note
         )
         + "\n"
     )
@@ -700,13 +732,15 @@ def rules_block(facts: Facts, sentences: int, hero: bool = False) -> str:
         else ""
     )
     clock = (
-        "Give the clock once, on the first line, and on no other line. It is"
-        " written exactly as the fact that line cites writes it. A clock on"
-        " every sentence is true of every sentence and reads as a log rather"
-        " than as a passage of play; a listener needs telling once when this"
-        " happened. Write any count as a word, not a digit: \"past two"
-        " defenders\", never \"past 2 defenders\". No digits besides that one"
-        " clock."
+        "Give the clock once, on the first line, and on no other line. Write"
+        " it exactly as the fact that line cites writes it, digits and colon,"
+        " so {} and not any other way. Do not write the time in words"
+        " anywhere: no \"minute fifty-four\", no \"seconds two\", no clock"
+        " spelled out. A clock on every sentence is true of every sentence"
+        " and reads as a log rather than as a passage of play; a listener"
+        " needs telling once when this happened. Write any count as a word,"
+        " not a digit: \"past two defenders\", never \"past 2"
+        " defenders\".".format(facts.facts[0].beat.clock)
         if hero
         else "A clock is written exactly as the fact you cite writes it, so a"
         " clock belongs only to a line citing the fact it was printed on."

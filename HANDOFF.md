@@ -2967,28 +2967,40 @@ are in the last line and in how "carried the ball" is phrased, and they cost
 1,488 to 1,605 billed characters. The 1986 goal kept two of five. One of them
 is usable and the other is not.
 
-**The 1986 run found a real prompt problem, and it is in the check's pairing
-rule.** Three of the five slots failed all three attempts the same way: the
-model wrote one sentence per defender in the form "Peter Beardsley was
-dribbled past and Diego Armando Maradona carried the ball", and the check
-refuses it, correctly, because no cited fact records a `Carry` involving
-Beardsley. The hero block is what invites it: a step for the scorer prints as
-"dribbled, carried the ball", so a model joining that step to the defender's
-beat writes two actions and two players into one line, which rule 4 forbids.
-The surviving candidate 3 avoids it by dropping the carry and writing
-"dribbled past Peter Beardsley". Naming the carry separately, or leaving it
-off the step line, is the cheap fix if the 1986 goal needs rerunning.
+**The 1986 run found a real prompt problem, and it is fixed.** Three of the
+five slots failed all three attempts the same way: the model wrote one sentence
+per defender in the form "Peter Beardsley was dribbled past and Diego Armando
+Maradona carried the ball", and the check refuses it, correctly, because no
+cited fact records a `Carry` involving Beardsley and rule 4 asks for one action
+a line. The hero block was what invited it: a step for the scorer printed as
+"dribbled, carried the ball" beside a beat naming Beardsley. It now prints as
+"dribbled past Peter Beardsley", citing all three facts (the defender beaten,
+the dribble, the carry), which names one action and both players and is the
+shape the one candidate that passed wrote. A note under the step list says so
+too. `tests/test_narration_prompt.py::TestTheTwoDefectsTheLiveRunFound` holds
+it.
 
-**Candidate 5 for 1986 is grounded and unusable, which is worth seeing once.**
-Rule 6 for the hero use says no digits besides the one clock, and the model
-obeyed by spelling every clock out in words: "at minute fifty-four seconds
-two" on each of twelve sentences. Nothing in `app/grounding.py` objects, since
-a clock written as words carries no digits and no number claim, and the result
-costs 4,299 billed characters on its own, more than the whole raised budget.
-It also carries a `NON-BREAKING HYPHEN` (U+2011) in "fifty-four", a character
-the check does not refuse and no gate would catch. If the clock rule is
-rewritten, it should say the clock is written as the fact writes it and
-nowhere else, rather than reaching for digits as the thing to forbid.
+**Candidate 5 for 1986 is grounded and unusable, and that rule is fixed too.**
+Rule 6 for the hero use said no digits besides the one clock, and the model
+obeyed by spelling every clock out in words instead: "at minute fifty-four
+seconds two" on each of twelve sentences. Nothing in `app/grounding.py`
+objects, since a clock written as words carries no digits and makes no number
+claim, so it passed the check, cost 4,299 billed characters on its own, more
+than the whole raised budget, and carried a `NON-BREAKING HYPHEN` (U+2011) in
+"fifty-four" that the check does not refuse and no gate would catch. The rule
+now names the shape it wants rather than forbidding digits: the clock is
+written as the fact writes it, digits and colon, with the first fact's own
+clock shown as the example, and the time is not to be written in words
+anywhere. `app/grounding.py` is still unchanged; closing the loophole in the
+prompt removes the thing that produced the hyphen.
+
+**Both fixes landed after the candidates were generated.** The seven
+candidates in the review file were written by the prompt as it stood on
+2026-10-30, before either fix, so a rerun would not reproduce them. That costs
+nothing for the 2022 goal, where five of five passed and the pick is open. For
+1986 it means a rerun is now worth more than it was: the failure that took
+three of the five slots is the one that has been fixed, so a second run should
+come back with more than one usable candidate to choose from.
 
 **Only two of the ten pairs fit the raised budget.** `--budget` is now 3,000
 billed characters and the arithmetic is tight: 1986 candidate 3 with 2022

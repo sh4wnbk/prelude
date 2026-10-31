@@ -588,6 +588,110 @@ class TestTheHeroPrompt:
                 for line in rules.splitlines():
                     assert len(line) <= 78, (hero, line)
 
+class TestTheTwoDefectsTheLiveRunFound:
+    """Two things the run of 2026-10-30 found, both of them this prompt's.
+
+    The run asked for five candidates per hero goal and kept seven of ten.
+    Neither failure was a grounding limit and neither was the model being
+    careless: both were things this prompt asked for.
+    """
+
+    def test_a_step_that_beat_a_defender_is_printed_as_that_dribble(
+        self, feed
+    ):
+        """Three of the five 1986 slots failed all three attempts the same way.
+
+        The step was printed as "dribbled, carried the ball" and the beats
+        block named Beardsley beside it, so the model wrote "Peter Beardsley
+        was dribbled past and Diego Armando Maradona carried the ball". The
+        check refuses that, correctly: no cited fact pairs Beardsley with a
+        `Carry`, and rule 4 asks for one action a line. So the step now prints
+        as the dribble past him, which names one action and both players, and
+        is what the one candidate that passed wrote.
+        """
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        block = hero_block(facts)
+        for defender in (
+            "Peter Beardsley",
+            "Terry Butcher",
+            "Terry Fenwick",
+            "Peter Shilton",
+        ):
+            assert "dribbled past {}".format(defender) in block
+
+    def test_the_carry_beside_a_dribble_is_not_listed_as_its_own_verb(
+        self, feed
+    ):
+        """It is still cited, because citing a fact a sentence does not use
+        costs nothing and the check reads what a sentence claims. It is just
+        not offered as a second thing to say."""
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        dribble_lines = [
+            line
+            for line in hero_block(facts).splitlines()
+            if "dribbled past" in line and line.startswith("  ")
+        ]
+        assert len(dribble_lines) == 4
+        for line in dribble_lines:
+            assert "carried the ball" not in line
+            # Three facts a step: the defender who was beaten, the dribble
+            # that beat him, and the carry recorded beside it.
+            cited = line.split("from facts ")[1].split(":")[0]
+            assert len(cited.split(", ")) == 3, line
+
+    def test_the_block_says_a_dribble_step_is_one_sentence(self, feed):
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        flattened = flat(hero_block(facts))
+        assert (
+            'A step that says "dribbled past" is one sentence about that one '
+            "action" in flattened
+        )
+
+    def test_a_goal_with_no_dribble_gets_no_such_note(self, feed):
+        """Five of the nine goals have no dribble past an opponent, and a note
+        about a shape their prompt never prints would be noise."""
+        facts = facts_for(feed, MATCH_1986, LINEKER["clock"])
+        assert "dribbled past" not in hero_block(facts)
+
+    def test_the_clock_rule_refuses_the_time_written_in_words(self, feed):
+        """The other failure, and it came back grounded.
+
+        Rule 6 said no digits besides the one clock, and the model obeyed by
+        spelling every clock out instead: "at minute fifty-four seconds two"
+        on each of twelve sentences. `app/grounding.py` has no objection, since
+        a clock written as words carries no digits and makes no number claim,
+        so it passed the check, cost 4,299 billed characters on its own and
+        carried a non-breaking hyphen no gate would catch. The rule now names
+        the shape it wants rather than forbidding digits.
+        """
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        flattened = flat(build_prompt(facts, hero=True))
+        assert "Do not write the time in words anywhere" in flattened
+        assert '"minute fifty-four"' in flattened
+        assert "No digits besides that one clock" not in flattened
+
+    def test_the_clock_rule_shows_the_first_fact_s_own_clock(self, feed):
+        """The example is the clock of the fact the first line cites, read off
+        the data, so the rule cannot show a time this passage never had."""
+        for match_id, clock in (
+            (MATCH_1986, GOAL_1986["clock"]),
+            (MATCH_2022, HERO_2022["clock"]),
+        ):
+            facts = facts_for(feed, match_id, clock)
+            first = facts.facts[0].beat.clock
+            flattened = flat(build_prompt(facts, hero=True))
+            assert "digits and colon, so {} and not".format(first) in flattened
+
+    def test_the_default_prompt_keeps_its_own_clock_rule(self, feed):
+        """Neither fix reaches the prompt the eval numbers were measured on."""
+        facts = facts_for(feed, MATCH_1986, GOAL_1986["clock"])
+        flattened = flat(build_prompt(facts))
+        assert "A clock is written exactly as the fact you cite writes it" in (
+            flattened
+        )
+        assert "Do not write the time in words" not in flattened
+
+
 class TestTemplateNarration:
     def test_it_stays_within_its_sentence_budget_unless_a_beat_needs_room(
         self, feed

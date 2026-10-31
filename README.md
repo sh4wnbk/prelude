@@ -252,7 +252,7 @@ Everything above it is structure.
   fake credentials file into a temporary directory; none reads the real one,
   and `tests/conftest.py` points `PRELUDE_ENV_FILE` at an absent path for the
   whole suite so none can.
-- `tests/test_narration_prompt.py`: 64 tests over the facts, the numbered fact
+- `tests/test_narration_prompt.py`: 71 tests over the facts, the numbered fact
   list, the prompt, the one narration style printed in it, the key beats of a
   passage, the move the hero prompt prints as steps and the fallback
   narration, which has to reach every one of those beats. All pass.
