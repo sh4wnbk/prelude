@@ -27,11 +27,17 @@ be measured on: counting retries would hide how often the first attempt was
 wrong, which is the number that says whether the prompt and the model are
 working.
 
-The narration a model writes carries a citation tag per sentence, naming the
-facts that sentence used, and the check needs them. They are machinery, not
-copy, so `Narrated.text` has them stripped and is what a screen shows and a
-voice reads; `Narrated.tagged_text` keeps the cited version, which is the one
-the check passed and the one a reader can audit sentence by sentence.
+A cited narration carries a citation tag per sentence, naming the facts that
+sentence used, and the cited reading of the check needs them. They are
+machinery, not copy, so `Narrated.text` has them stripped and is what a screen
+shows and a voice reads; `Narrated.tagged_text` keeps the cited version, which
+is the one the check passed and the one a reader can audit sentence by
+sentence.
+
+A goal call, which is what `goal_call=True` asks for, carries no tags at all,
+so the two fields hold the same words and the audit trail is the records the
+grammar in `app/narration_grammar.py` matched rather than a number in the
+text.
 
 The fallback is the last resort, and if it somehow fails the check too, this
 raises rather than returning something unlabelled. There is no path here that
@@ -42,6 +48,11 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from app.event_feed import EventFeed, Moment
+from app.goal_call_prompt import (
+    build_goal_call_prompt,
+    situation_for,
+    slot_key,
+)
 from app.grounding import Claim, check, strip_citations
 from app.narration_prompt import (
     DEFAULT_SENTENCES,
@@ -156,6 +167,7 @@ def narrate(
     side: str | None = None,
     beats: bool = True,
     hero: bool = False,
+    goal_call: bool = False,
 ) -> Narrated:
     """Narrate `moment`, returning grounded text or raising.
 
@@ -187,6 +199,15 @@ def narrate(
     full name: see `app/recorded_names.py`, which also says why no surname is
     picked out of a full name here.
 
+    `goal_call` asks for the framework in `docs/VOICE.md` instead of the
+    cited narration: the recap stage of a goal call, with no citation tags and
+    no clock, in the style `app/goal_call_prompt.py` holds for this narrator
+    and situation. It needs `persona`, because there is no narrator-less goal
+    call to write, and it makes `sentences`, `beats` and `hero` irrelevant:
+    those shape the cited prompt. `app/grounding.py` reads what comes back as
+    a goal call, because what picks the reading there is whether the narration
+    carries a citation tag.
+
     `beats` prints the key beats of the passage in the prompt. It is true
     everywhere but in one arm of the paid comparison, which measures what the
     block costs on a model that may not need it: Task 4c added it because
@@ -205,9 +226,21 @@ def narrate(
         feed.buildup(match_id, moment), recorded_nicknames(match_id)
     )
     chosen = narration_provider or default_provider()
-    prompt = build_prompt(
-        facts, sentences=sentences, beats=beats, hero=hero
-    )
+    if goal_call:
+        if persona is None:
+            raise ValueError(
+                "a goal call is written in one narrator's voice, so narrate "
+                "needs the persona: app/goal_call_prompt.py has a style per "
+                "narrator and situation and no default"
+            )
+        prompt = build_goal_call_prompt(
+            facts,
+            slot_key(persona.id, situation_for(side, facts.moment.team)),
+        )
+    else:
+        prompt = build_prompt(
+            facts, sentences=sentences, beats=beats, hero=hero
+        )
 
     attempts: list[Attempt] = []
     for number in range(1, max_retries + 2):
@@ -253,10 +286,12 @@ def _narrated(
 ) -> Narrated:
     """Wrap the narration that passed, stripped for showing and kept for audit.
 
-    `text` is what passed the check with its citations taken off. Nothing is
-    re-checked here: the stripped text cannot pass the check, because a sentence
-    with no citation has nothing to be read against, which is why the tagged
-    version is the one kept beside it.
+    `text` is what passed the check with its citations taken off, and nothing
+    is re-checked here. For a cited narration the stripped text would not pass
+    the cited reading, because a sentence with no citation has nothing to be
+    read against, which is why the tagged version is the one kept beside it.
+    For a goal call there is nothing to strip and the two are the same words,
+    which the check reads as a goal call either way.
     """
     return Narrated(
         moment=moment,

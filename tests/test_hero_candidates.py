@@ -290,10 +290,16 @@ class TestTheRecordingBudget:
     worth a test rather than only a docstring.
     """
 
-    def test_the_default_is_three_thousand(self):
-        """Raised from 2,000 for Task 7: the fuller narrations are longer, and
-        the Task 6 pair cleared 2,000 by only 41 characters."""
-        assert DEFAULT_BUDGET == 3000
+    def test_the_default_is_three_thousand_five_hundred(self):
+        """Raised from 3,000 for Task 9c, because there are six narrations.
+
+        The framework in `docs/VOICE.md` gives each narrator its own text, so
+        the six recordings are six narrations rather than two spoken three
+        ways each. What the budget has to cover did not get longer; it got
+        divided differently, and 3,500 leaves 583 a recording where the eight
+        references in `tests/test_reference_narrations.py` need 271 to 364.
+        """
+        assert DEFAULT_BUDGET == 3500
 
     def test_the_frozen_run_still_fits_under_it(self, feed, frozen):
         """Raising a budget must not be what makes the current run pass: it
@@ -305,11 +311,12 @@ class TestTheRecordingBudget:
         assert billed == BILLED_BOTH
         assert billed <= DEFAULT_BUDGET
 
-    def test_a_fuller_pair_of_narrations_can_still_exceed_it(self, feed):
-        """Why the number is worth reading before freezing: a candidate that
-        tells the whole move costs about 1,500 for its match, so two of them
-        land near 3,000 rather than comfortably under it. The arithmetic is
-        done here on text written in the test, not on a live run."""
+    def test_a_fuller_pair_of_cited_narrations_lands_near_it(self, feed):
+        """Why the number is worth reading before freezing: a cited narration
+        that tells the whole move costs about 1,500 for its match, so two of
+        them land near the budget rather than comfortably under it. The
+        arithmetic is done here on text written in the test, not on a live
+        run."""
         full_1986 = (
             "Jos\u00e9 Luis Cuciuffo recovered the ball, carried the ball and "
             "passed at 54:02. H\u00e9ctor Adolfo Enrique received the ball, "
@@ -333,8 +340,9 @@ class TestTheRecordingBudget:
         together = billed_for_match(MATCH_1986, full_1986) + billed_for_match(
             MATCH_2022, full_2022
         )
+        assert together == 3090
         assert together > BILLED_BOTH
-        assert together > DEFAULT_BUDGET
+        assert together > 3000
 
 
 class TestCoverage:

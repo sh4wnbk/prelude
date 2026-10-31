@@ -109,7 +109,7 @@ AUDIO_HREF = "assets/audio"
 #: forecast of the next one. The monthly Lite allowance is 10,000 characters,
 #: so this is a fraction of it, and `--budget` takes a number for a run that
 #: is meant to be bigger.
-DEFAULT_BUDGET = 3000
+DEFAULT_BUDGET = 3500
 
 
 @dataclass(frozen=True)

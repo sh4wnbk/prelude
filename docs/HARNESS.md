@@ -175,7 +175,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 988 tests in twenty-eight files, and all 988 pass, so any failure
+The suite is 1069 tests in thirty files, and all 1069 pass, so any failure
 means something is wrong. It is run from the repo root:
 
 ```
@@ -194,6 +194,7 @@ No path setting is needed: `pyproject.toml` sets `pythonpath = ["."]` and
 | `tests/test_grounding.py` | one test per way a narration can be wrong or look wrong and be fine |
 | `tests/test_reference_narrations.py` | the eight reference narrations that are the narration standard, and the lines the check has to keep refusing |
 | `tests/test_narration_grammar.py` | the goal-call grammar one mechanism at a time: the names, the pronoun, the chains, the actor of a claim, "past X", the field positions, the shape of the run and the recorded fields |
+| `tests/test_narrator_candidates.py` | the goal-call prompt: the four styles, the invented match the examples use, the records the prompt shows, the six recorded slots, the price of one recording and the plan the run prints |
 | `tests/test_narration.py` | the pipeline: generate, check, retry, fall back, record |
 | `tests/test_narration_provider.py` | the model config and both backends |
 | `tests/test_credentials.py` | where the credentials file lives, and what is refused |

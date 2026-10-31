@@ -1308,6 +1308,17 @@ def template_narration(facts: Facts) -> str:
     return "\n".join(lines)
 
 
+def beat_record(beat: KeyBeat, by_number: Mapping[int, Fact]) -> Fact:
+    """The record a key beat is about, which is the one naming its player.
+
+    A dribble beat holds two records and only one of them names the defender
+    who was beaten, so "did the narration reach this beat" is a question about
+    that record rather than about either. `scripts/narrator_candidates.py`
+    asks it, and the fallback asks the same thing a line lower down.
+    """
+    return by_number[_beat_fact_number(beat, by_number)]
+
+
 def _beat_fact_number(beat: KeyBeat, by_number: Mapping[int, Fact]) -> int:
     """Which of a beat's records the fallback says it with.
 

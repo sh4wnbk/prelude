@@ -302,6 +302,12 @@ Everything above it is structure.
   standard: the eight reference narrations in `docs/VOICE.md`, checked word
   for word with the narrator and the listener side given, and the eleven
   lines the check has to keep refusing. All pass.
+- `tests/test_narrator_candidates.py`: 81 tests over `app/goal_call_prompt.py`
+  and `scripts/narrator_candidates.py`: the four styles, one per narrator and
+  situation, the invented match their examples are shown through, the records
+  the prompt prints with no clock on them, the six recorded slots read off
+  `hero.voice_for`, the price of one recording and the call count the run
+  prints before it sends anything. All pass, and none calls a model.
 - `tests/test_narration.py`: 28 tests over the pipeline, covering the retries,
   the fallback, the citation stripping, the failure log, the first-attempt pass
   rate and the characters made plain as a model's text arrives. All pass, and
