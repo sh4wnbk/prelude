@@ -12,7 +12,8 @@ hero buildups in `data/raw/`.
 
 import pytest
 
-from app.grounding import ACTION_CLAIMS, NOT_A_NAME, TEAM_DEMONYMS
+from app.grounding import ACTION_CLAIMS, NOT_A_NAME, TEAM_DEMONYMS, check
+from app.personas import THE_BUDDY, THE_STORYTELLER
 from app.narration_grammar import (
     CLAUSE_BREAK,
     DIRECTION_YARDS,
@@ -888,3 +889,158 @@ class TestACarryDoesNotDeliverTheBall:
         )
         assert "carry_delivery" not in kinds(found)
         assert not ungrounded(facts_1986, found)
+
+
+class TestWhoTheMoveIsAttributedTo:
+    """The attribution, which is who the sentence says did it.
+
+    `support` has always checked a chain against `beat.player` and
+    `beat.recipient`, so a pass only grounds between the two players the
+    record names. What the run of 2026-11-05 showed is that the actor
+    reaching it could be the wrong player: Shawn read "We won it back through
+    Cuciuffo, who passed to Enrique and set up Maradona" aloud and heard
+    Cuciuffo setting up Maradona, which the records put on Enrique, and the
+    check passed it on twenty-one claims.
+
+    The reader was following the ball. "And" joins a second verb to the same
+    subject, so the subject is still Cuciuffo even though the ball has gone
+    on to Enrique.
+    """
+
+    def test_the_candidate_that_got_away_with_it_is_refused(self, facts_1986):
+        """Buddy for Argentina candidate 1 of 2026-11-05, as written."""
+        text = (
+            "We won it back through Cuciuffo, who passed to Enrique and set "
+            "up Maradona; he slipped past Beardsley, ran forward thirty-five "
+            "yards, dribbled past Butcher, ran forward seventeen, beat "
+            "Fenwick, ran forward seventeen into the box, glided past "
+            "Shilton and shot with his left foot! What a moment!"
+        )
+        result = check(text, facts_1986, THE_BUDDY, "Argentina")
+        assert not result.grounded, result.summary
+        assert "chain" in {failure.kind for failure in result.failures}
+        assert any(
+            "set up Maradona" in failure.value for failure in result.failures
+        )
+
+    def test_the_assist_has_to_be_the_recorded_assist(self, facts_1986):
+        """Enrique carries `goal_assist`, so he set up Maradona and nobody
+        else did."""
+        assert check(
+            "Enrique set up Maradona, who scored with his left foot.",
+            facts_1986,
+            THE_STORYTELLER,
+            None,
+        ).grounded
+        wrong = check(
+            "Cuciuffo set up Maradona, who scored with his left foot.",
+            facts_1986,
+            THE_STORYTELLER,
+            None,
+        )
+        assert not wrong.grounded, wrong.summary
+        assert "chain" in {failure.kind for failure in wrong.failures}
+
+    def test_a_second_verb_on_the_same_subject_keeps_that_subject(
+        self, facts_1986
+    ):
+        reader = Reader(
+            facts=facts_1986,
+            not_a_name=NOT_A_NAME,
+            demonyms=TEAM_DEMONYMS,
+            actions=ACTION_CLAIMS,
+        )
+        text = "Cuciuffo, who passed to Enrique and set up Maradona."
+        chains = [
+            move for move in reader.read(text) if move.kind == "chain"
+        ]
+        assert [move.actor for move in chains] == [
+            "José Luis Cuciuffo",
+            "José Luis Cuciuffo",
+        ]
+        assert [support(move, facts_1986) != () for move in chains] == [
+            True,
+            False,
+        ]
+
+    def test_a_pronoun_between_the_two_moves_the_subject_on(self, facts_1986):
+        """"Played it to Enrique who found Maradona" is the same move told
+        correctly: "who" follows Enrique, so the second chain is his."""
+        reader = Reader(
+            facts=facts_1986,
+            not_a_name=NOT_A_NAME,
+            demonyms=TEAM_DEMONYMS,
+            actions=ACTION_CLAIMS,
+        )
+        text = "Cuciuffo played it to Enrique who found Maradona."
+        chains = [
+            move for move in reader.read(text) if move.kind == "chain"
+        ]
+        assert [move.actor for move in chains] == [
+            "José Luis Cuciuffo",
+            "Héctor Adolfo Enrique",
+        ]
+        assert all(support(move, facts_1986) for move in chains)
+
+    def test_a_named_subject_between_the_two_does_as_well(self, facts_2022):
+        """The 2022 counter, which names a subject before every chain."""
+        reader = Reader(
+            facts=facts_2022,
+            not_a_name=NOT_A_NAME,
+            demonyms=TEAM_DEMONYMS,
+            actions=ACTION_CLAIMS,
+        )
+        text = (
+            "Molina to MacAllister, MacAllister to Messi, Messi to Álvarez, "
+            "Álvarez to MacAllister, MacAllister set up Di María."
+        )
+        chains = [
+            move for move in reader.read(text) if move.kind == "chain"
+        ]
+        assert [move.actor for move in chains] == [
+            "Nahuel Molina Lucero",
+            "Alexis Mac Allister",
+            "Lionel Andrés Messi Cuccittini",
+            "Julián Álvarez",
+            "Alexis Mac Allister",
+        ]
+        assert all(support(move, facts_2022) for move in chains)
+
+    def test_a_bare_marker_still_follows_the_ball(self, facts_2022):
+        """"On to" and "to" carry no verb of their own, so they are the ball
+        continuing from whoever has it rather than a second verb on the same
+        subject. Rule 14 offers "on to" as a join, so this one has to work."""
+        reader = Reader(
+            facts=facts_2022,
+            not_a_name=NOT_A_NAME,
+            demonyms=TEAM_DEMONYMS,
+            actions=ACTION_CLAIMS,
+        )
+        text = "Molina to MacAllister on to Messi."
+        chains = [
+            move for move in reader.read(text) if move.kind == "chain"
+        ]
+        assert [move.actor for move in chains] == [
+            "Nahuel Molina Lucero",
+            "Alexis Mac Allister",
+        ]
+        assert all(support(move, facts_2022) for move in chains)
+
+    def test_the_passer_and_the_receiver_are_both_checked(self, facts_2022):
+        """Said plainly, because the module docstring used to say direction
+        survived: it does in the cited reading and not in this one."""
+        assert check(
+            "Molina to MacAllister, who scored with his left foot.",
+            facts_2022,
+            THE_STORYTELLER,
+            None,
+        ).failures[0].kind != "chain"
+        backwards = check(
+            "MacAllister to Molina, and Di María scored with his left foot.",
+            facts_2022,
+            THE_STORYTELLER,
+            None,
+        )
+        assert not backwards.grounded, backwards.summary
+        assert "chain" in {failure.kind for failure in backwards.failures}
+

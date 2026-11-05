@@ -123,12 +123,26 @@ sentence. The cost is real and is the price of catching misdescription: "Di
 Maria wins a foul and Messi scores" is true and is refused, because no one fact
 pairs Messi with the foul. Written as two sentences, both pass.
 
-**What it still cannot do.** It reads a sentence against the facts that sentence
-cited; it does not read the sentence's grammar. Direction survives: "Maradona
-passes to Enrique" and "Enrique passes to Maradona" cite the same facts and both
-pass, and only one of them is what happened. Prose that asserts nothing about an
-event (who was where, what it meant) is outside its reach entirely. Any claim
-that the app's narration is *correct* rests on more than this module.
+**What the cited reading still cannot do.** It reads a sentence against the
+facts that sentence cited; it does not read the sentence's grammar. Direction
+survives there: "Maradona passes to Enrique" and "Enrique passes to Maradona"
+cite the same facts and both pass, and only one of them is what happened.
+Prose that asserts nothing about an event (who was where, what it meant) is
+outside its reach entirely. Any claim that the app's narration is *correct*
+rests on more than this module.
+
+**The goal-call reading does read the attribution, and that is the one thing
+it has to get right.** A `chain` grounds only against a record whose
+`pass.player` is the actor the sentence names and whose `pass.recipient` is
+the target, and "set up" grounds only against the one pass carrying
+`goal_assist`. So "MacAllister to Molina" is refused where "Molina to
+MacAllister" passes, and "Cuciuffo set up Maradona" is refused because the
+assist is Enrique's. Who the sentence attributes a move to is
+`app/narration_grammar.py`'s `_chain_source`: a name or pronoun in the
+marker's own clause, failing that the subject a chain in that clause already
+established, and failing that the player with the ball. Reading the actor off
+the ball alone is what let "Cuciuffo, who passed to Enrique and set up
+Maradona" pass on twenty-one claims on 2026-11-05.
 
 Accents are normalised before matching, so "Hector" matches the recorded
 "Héctor". That is a spelling variant of a player who is really there, not an

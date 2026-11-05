@@ -306,10 +306,11 @@ Everything above it is structure.
   including the misdescription it refuses by pairing a name with an action and
   the first person, which only the Mate may use and only over its own side's
   facts. All pass.
-- `tests/test_narration_grammar.py`: 85 tests over the goal-call reading in
+- `tests/test_narration_grammar.py`: 92 tests over the goal-call reading in
   `app/narration_grammar.py`, one mechanism at a time: the name parts that
   pick out one player, the pronoun that means the player with the ball, the
-  chains, which name owns a claim, "past X" as a dribble past X, the field
+  chains, which name owns a claim, who a move is attributed to when a second
+  verb joins the same subject, "past X" as a dribble past X, the field
   positions, the shape of a run, which way the ball went, a run with yards in
   it, the carry that is asked to deliver the ball and the recorded fields a
   goal call says out loud. All pass.

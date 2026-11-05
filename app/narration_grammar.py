@@ -292,6 +292,14 @@ CHAIN_MARKERS: Sequence[tuple[str, bool]] = (
 #: them is the one that delivered the ball. "Molina to MacAllister" says the
 #: pass with the preposition alone; "carried it to MacAllister" says it with a
 #: carry, and a carry keeps the ball at the player's own feet.
+#:
+#: **They are also the markers that may follow the ball rather than the
+#: sentence.** A bare marker continues a journey: "Molina to MacAllister on
+#: to Messi" is the ball going on from whoever just received it, so its
+#: source is the player with the ball. A marker carrying its own verb asserts
+#: a new action, and an action belongs to the subject of the clause it was
+#: said in. `Reader.read` is where the two part company, and
+#: `_subject_of_the_clause` is why.
 BARE_CHAIN_MARKERS = frozenset({"to", "on to"})
 
 #: A second verb between an action and a bare chain marker. "Carried and
@@ -603,6 +611,11 @@ class Reader:
         # (whether it has to be the assist, who played it, the words said,
         #  the carry being asked to deliver the ball or None)
         pending_chain: tuple[bool, str | None, str, _Hit | None] | None = None
+        #: The actor of the last chain read, and where its clause began. A
+        #: second chain in that same clause, with no name or pronoun between
+        #: them, is a second verb on the same subject and keeps that actor.
+        #: See `_subject_of_the_clause`.
+        last_chain: tuple[str | None, int] | None = None
         past_open = False
         #: The last action claim, for the rule about a carry that delivers.
         recent_action: _Hit | None = None
@@ -667,6 +680,7 @@ class Reader:
                                 target=player,
                             )
                         )
+                    last_chain = (source, _clause_start(text, hit.at)[0])
                     pending_chain = None
                     recent_action = None
                     free = []
@@ -678,6 +692,7 @@ class Reader:
                 else:
                     moves.append(Move("name", hit.said, hit.at, actor=player))
                     free.append((player, hit.at))
+                    last_chain = None
                 if player in self.touched:
                     self.tracked = player
 
@@ -688,11 +703,12 @@ class Reader:
 
             elif hit.kind == "pronoun":
                 past_open = False
+                last_chain = None
                 if self.tracked:
                     free = [(self.tracked, hit.at)]
 
             elif hit.kind == "chain_marker":
-                source = free[-1][0] if free else self.tracked
+                source = self._chain_source(text, hit, free, last_chain)
                 pending_chain = (
                     bool(hit.detail),
                     source,
@@ -735,6 +751,47 @@ class Reader:
                 )
 
         return tuple(moves)
+
+    def _chain_source(
+        self,
+        text: str,
+        marker: _Hit,
+        free: Sequence[tuple[str, int]],
+        last_chain: tuple[str | None, int] | None,
+    ) -> str | None:
+        """Who this chain says played the ball.
+
+        Three answers, in order, and the middle one is the fix for what the
+        run of 2026-11-05 got away with.
+
+        **A name or a pronoun in the marker's own clause.** That is the
+        sentence saying who, and nothing overrides it. "MacAllister set up Di
+        María" and "he set up Di María" are both this.
+
+        **Otherwise the subject of the clause, where a chain already
+        established one.** "We won it back through Cuciuffo, who passed to
+        Enrique and set up Maradona" says Cuciuffo set up Maradona: "and"
+        joins a second verb to the same subject. The ball moved on to
+        Enrique, and Enrique is the player the records show with the assist,
+        so reading the actor off the ball made a false sentence pass on
+        twenty-one claims. The subject of the clause did not move, and this
+        is what keeps the two apart. A bare marker is exempt, because it
+        asserts no verb of its own: "Molina to MacAllister on to Messi" is
+        the ball continuing and its source really is whoever has it.
+
+        **Otherwise the player with the ball.** A clause that establishes no
+        subject at all is the framework's action before name, and following
+        the ball is the only reading left.
+        """
+        if free:
+            return free[-1][0]
+        if last_chain is not None and fold(
+            marker.said
+        ) not in BARE_CHAIN_MARKERS:
+            actor, clause = last_chain
+            if _clause_start(text, marker.at)[0] == clause:
+                return actor
+        return self.tracked
 
     def _ahead(self, hits: Sequence[_Hit], hit: _Hit) -> str | None:
         """The name just after a claim, for the framework's action before name.
