@@ -1800,6 +1800,106 @@ class TestANearCopyIsNotACandidate:
         assert self.BUDDY_2022_THREE in text
 
 
+class TestTheStorytellerTellsItInFullSentences:
+    """No "X to Y" in the Storyteller's text, which is rule 11 for that voice.
+
+    The chain shorthand is the Buddy's idiom and the Caller's, and the eight
+    references say so before any rule does: both Buddy narrations of the 2022
+    counter open "Molina to MacAllister, MacAllister to Messi", and neither
+    Storyteller narration has a bare chain in it. Keeping it out is part of
+    each narrator having its own text, which is what `docs/VOICE.md` settles.
+
+    The run of 2026-11-05 wrote both Storyteller candidates as a list of
+    passes, with the shorthand four times in one of them.
+    """
+
+    #: A chain with no verb in it, as the grammar's markers spell it.
+    BARE = ("to ", "on to ")
+
+    def bare_chains(self, text, facts):
+        reader = Reader(
+            facts=facts,
+            not_a_name=NOT_A_NAME,
+            demonyms=TEAM_DEMONYMS,
+            actions=ACTION_CLAIMS,
+        )
+        said = []
+        for one in sentences(text):
+            for move in reader.read(one.text):
+                if move.kind != "chain":
+                    continue
+                if fold(move.said).startswith(self.BARE):
+                    said.append(move.said)
+        return said
+
+    def test_the_storyteller_prompt_carries_the_rule(
+        self, facts_1986, facts_2022
+    ):
+        for facts in (facts_1986, facts_2022):
+            said = flat(build_goal_call_prompt(facts, STORYTELLER_NEUTRAL))
+            assert (
+                'Tell it in full sentences, and write no pass as "X to Y"'
+                in said
+            )
+            assert 'never "X to Y, Y to Z"' in said
+            assert (
+                "That shorthand is the Buddy's idiom and the Caller's"
+                in said
+            )
+
+    def test_the_other_three_voices_keep_the_shorthand(self, facts_2022):
+        """It is the Buddy's and the Caller's, so their prompts do not
+        forbid it and the Caller's style still asks for it."""
+        for key in (BUDDY_SCORED, BUDDY_CONCEDED, CALLER_NEUTRAL):
+            said = flat(build_goal_call_prompt(facts_2022, key))
+            assert 'write no pass as "X to Y"' not in said
+        caller = flat(build_goal_call_prompt(facts_2022, CALLER_NEUTRAL))
+        assert "The chains are at their shortest" in caller
+
+    def test_rule_8_still_offers_every_form(self, facts_2022):
+        """The shared rules are unchanged: rule 8 lists "X to Y" among the
+        forms a pass may be written as, and rule 11 is where one voice gives
+        it up."""
+        said = flat(build_goal_call_prompt(facts_2022, STORYTELLER_NEUTRAL))
+        assert 'Write a pass as a chain, "X to Y", or as "X played it to Y"' \
+            in said
+
+    def test_the_references_are_what_the_rule_asks_for(
+        self, facts_1986, facts_2022
+    ):
+        """The standard first and the rule second: neither Storyteller
+        reference has a bare chain, and both 2022 Buddy ones do."""
+        assert self.bare_chains(references.STORYTELLER_1986, facts_1986) == []
+        assert self.bare_chains(references.STORYTELLER_2022, facts_2022) == []
+        assert self.bare_chains(
+            references.BUDDY_2022_ARGENTINA, facts_2022
+        )
+        assert self.bare_chains(references.BUDDY_2022_FRANCE, facts_2022)
+
+    def test_the_storyteller_candidates_of_2026_11_05_break_it(
+        self, facts_2022
+    ):
+        """Why the rule was written. Three bare chains in it, as the
+        grammar reads them: the "to" after "sent a long ball" is read as part
+        of that pass rather than as a chain of its own."""
+        told = (
+            "Molina to MacAllister, MacAllister to Messi, Messi to "
+            "\u00c1lvarez, \u00c1lvarez sent a long ball to MacAllister, who "
+            "set up Di Mar\u00eda. Di Mar\u00eda struck his first-time left-foot "
+            "shot from inside the box and it went in. What a moment."
+        )
+        assert len(self.bare_chains(told, facts_2022)) == 3
+
+    def test_the_example_in_the_prompt_obeys_it(self):
+        """A worked example that broke the rule beside it would teach the
+        rule's opposite."""
+        style = STYLES[STORYTELLER_NEUTRAL]
+        for said in (" to ", ", to "):
+            assert "Odili to" not in style.example
+        assert "gave it to Brandt" in style.example
+        assert "sent a long ball forward to Vance" in style.example
+
+
 class TestTheTwoRulesAboutTheLongBallAndTheFirstTimeFinish:
     """Rules 15 and 16, general to any goal and asked for by one run.
 

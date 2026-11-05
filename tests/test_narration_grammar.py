@@ -16,6 +16,7 @@ from app.grounding import ACTION_CLAIMS, NOT_A_NAME, TEAM_DEMONYMS, check
 from app.personas import THE_BUDDY, THE_STORYTELLER
 from app.narration_grammar import (
     CLAUSE_BREAK,
+    hyphens_allowed,
     DIRECTION_YARDS,
     RUN_YARDS,
     STRAIGHT_TOLERANCE_YARDS,
@@ -1190,3 +1191,131 @@ class TestWhoUnderPressureIsAbout:
             if move.kind == "action" and "Shot" in (move.detail or ())
         )
         assert shot.actor == MARADONA
+
+
+class TestAHyphenIsTheSameClaimAsASpace:
+    """What the run of 2026-11-05 got past the reading with one character.
+
+    Three of that run's four kept 2022 candidates wrote "first-time" or
+    "left-foot", and `PHRASES` held both phrases as two words, so neither was
+    read as a claim and neither was checked. Nothing false passed: the record
+    is `first_time` and `Left Foot`, so the words were true and the check
+    simply did not look. The two storyteller candidates said the foot that
+    way and no other.
+    """
+
+    #: 2022 `storyteller_neutral` candidate 1 of that run, word for word.
+    HYPHENATED = (
+        "Molina to MacAllister, MacAllister to Messi, Messi to \u00c1lvarez, "
+        "\u00c1lvarez sent a long ball to MacAllister, who set up Di Mar\u00eda. "
+        "Di Mar\u00eda struck his first-time left-foot shot from inside the box "
+        "and it went in. What a moment."
+    )
+
+    def test_the_hyphenated_finish_is_read_as_two_claims(self, facts_2022):
+        found = moves(
+            facts_2022,
+            "Di Mar\u00eda struck his first-time left-foot shot from inside "
+            "the box.",
+        )
+        assert "first_time" in kinds(found)
+        assert "body_part" in kinds(found)
+        assert not ungrounded(facts_2022, found)
+
+    def test_the_candidate_of_2026_11_05_is_checked_on_more_claims(
+        self, facts_2022
+    ):
+        """It passed on 15 claims when the hyphens were prose. The words are
+        the same words; two more of them are now checked."""
+        result = check(self.HYPHENATED, facts_2022, THE_STORYTELLER, None)
+        assert result.grounded, result.summary
+        assert result.checked == 17
+
+    def test_the_same_words_over_the_1986_shot_are_refused(self, facts_1986):
+        """The 1986 shot is not recorded as struck first time, so the
+        hyphenated claim is refused there exactly as the spaced one is."""
+        found = moves(
+            facts_1986,
+            "Maradona struck his first-time left-foot shot from inside the "
+            "box.",
+        )
+        first = next(move for move in found if move.kind == "first_time")
+        assert not support(first, facts_1986)
+        assert why(first, facts_1986) == (
+            "'first-time': the goal shot is not recorded as struck first "
+            "time"
+        )
+
+    def test_the_wrong_foot_hyphenated_is_still_the_wrong_foot(
+        self, facts_2022
+    ):
+        found = moves(facts_2022, "Di Mar\u00eda struck a right-foot shot.")
+        part = next(move for move in found if move.kind == "body_part")
+        assert not support(part, facts_2022)
+
+    def test_footed_is_the_same_claim_as_foot(self, facts_2022):
+        """"A left-footed shot" is the spelling the hyphen invites next."""
+        found = moves(facts_2022, "Di Mar\u00eda struck a left-footed shot.")
+        part = next(move for move in found if move.kind == "body_part")
+        assert part.detail == "Left Foot"
+        assert support(part, facts_2022)
+
+    def test_every_phrase_takes_either_spelling(self, facts_1986):
+        """Not the finish alone: the rule is in `hyphens_allowed`, so every
+        phrase of two words or more reads the same with a hyphen in it."""
+        assert hyphens_allowed("under pressure") == "under[ -]pressure"
+        assert hyphens_allowed("first time") == "first[ -]time"
+        assert hyphens_allowed("drove") == "drove"
+        found = moves(
+            facts_1986,
+            "Maradona, under-pressure, dribbled past Shilton and scored.",
+        )
+        pressed = next(move for move in found if move.kind == "pressured")
+        assert pressed.actor == MARADONA
+        assert support(pressed, facts_1986)
+
+    def test_a_hyphenated_long_ball_is_still_the_long_ball(self, facts_2022):
+        """And still refused over a pass that is not long enough: the pass
+        from MacAllister to Di Mar\u00eda is 26 yards."""
+        held = moves(
+            facts_2022,
+            "\u00c1lvarez hit a long-ball forward to MacAllister.",
+        )
+        assert not ungrounded(facts_2022, held)
+        refused = moves(
+            facts_2022,
+            "MacAllister hit a long-ball to Di Mar\u00eda.",
+        )
+        assert ungrounded(facts_2022, refused)
+
+    def test_a_hyphenated_chain_marker_still_reads_as_the_pass(
+        self, facts_2022
+    ):
+        """"Set-up" is the noun spelling of the marker, and "on-to" is the
+        bare marker that the rule about a second verb exempts."""
+        found = moves(
+            facts_2022, "MacAllister set-up Di Mar\u00eda, who scored."
+        )
+        chain = next(move for move in found if move.kind == "chain")
+        assert (chain.actor, chain.target) == (MAC_ALLISTER, DI_MARIA)
+        assert support(chain, facts_2022)
+        carried = moves(
+            facts_2022, "Molina to MacAllister on-to Messi."
+        )
+        chains = [move for move in carried if move.kind == "chain"]
+        assert [(one.actor, one.target) for one in chains] == [
+            (MOLINA, MAC_ALLISTER),
+            (MAC_ALLISTER, MESSI),
+        ]
+        assert not ungrounded(facts_2022, carried)
+
+    def test_a_hyphen_cannot_make_a_claim_the_records_refuse(
+        self, facts_2022
+    ):
+        """The point of the fix: the spelling changes what is read, never
+        what the records hold."""
+        for said in (
+            "\u00c1lvarez passed it back to MacAllister.",
+            "\u00c1lvarez passed it back-to MacAllister.",
+        ):
+            assert ungrounded(facts_2022, moves(facts_2022, said))

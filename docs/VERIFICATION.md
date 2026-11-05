@@ -104,6 +104,7 @@ And the goal-call reading, whose tests are in
 | `run` | "drove", "ran" or "burst" over a carry under `RUN_YARDS` | `tests/test_narration_grammar.py::TestARunHasYardsInIt::test_a_carry_under_a_yard_is_not_a_run` |
 | `carry_delivery` | a carry asked to hand the ball to another player | `tests/test_narration_grammar.py::TestACarryDoesNotDeliverTheBall::test_a_carry_asked_to_deliver_is_refused` |
 | `shot_type` | "first time" over a shot not recorded as struck first time | `tests/test_narration_grammar.py::TestTheRecordedFieldsSaidOutLoud::test_first_time_is_the_2022_shot_and_not_the_1986_one` |
+| `shot_type` | "first-time" with a hyphen, over the same shot: a hyphen is the space it stands in for | `tests/test_narration_grammar.py::TestAHyphenIsTheSameClaimAsASpace::test_the_same_words_over_the_1986_shot_are_refused` |
 | `body_part` | the body part is not the goal's | `tests/test_narration_grammar.py::TestTheRecordedFieldsSaidOutLoud::test_the_body_part_is_the_goals` |
 | `duration` | a span the timestamps do not give | `tests/test_narration_grammar.py::TestTheRecordedFieldsSaidOutLoud::test_a_duration_the_passage_did_not_take` |
 | `clock` | any clock at all, which a goal call does not carry | `tests/test_reference_narrations.py::TestNoClockReachesTheNarration` |

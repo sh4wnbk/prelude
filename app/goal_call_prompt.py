@@ -13,7 +13,7 @@ of them, which are the four `app/delivery.py` already keys its table by:
 
 | Key | Who is listening |
 | --- | ---------------- |
-| `storyteller_neutral` | anybody; the move told evenly, in the third person |
+| `storyteller_neutral` | anybody; the move told evenly, in the third person, in full sentences |
 | `buddy_scored` | a fan of the side that scored, so "we" and the one cheer |
 | `buddy_conceded` | a fan of the side that conceded: the same move, no cheering |
 | `caller_neutral` | anybody; quick, chained, clipped |
@@ -143,7 +143,13 @@ STYLES: Mapping[str, NarratorStyle] = {
             " for and nobody is cheered at, so there is no exclamation mark"
             " anywhere, and no \"we\": this listener supports neither side."
             " The reaction is restrained and ends on a full stop: this voice"
-            " notices the goal rather than celebrating it."
+            " notices the goal rather than celebrating it. Tell it in full"
+            " sentences, and write no pass as \"X to Y\": every pass this"
+            " voice says has a verb in it, so \"he played it to Y\", \"he"
+            " found Y\" or \"he gave it to Y\", never \"X to Y, Y to Z\"."
+            " That shorthand is the Buddy's idiom and the Caller's, and"
+            " keeping it out of this one is part of each narrator having its"
+            " own text."
         ),
         example=(
             "Odili's recovery started the counter, and he gave it to Brandt "

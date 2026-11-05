@@ -272,10 +272,10 @@ PHRASES: Sequence[tuple[str, str, object]] = (
         None,
     ),
     # The body part, which is the goal's and not a pass's.
-    (r"(?:with )?his left foot", "body_part", "Left Foot"),
-    (r"(?:with )?his right foot", "body_part", "Right Foot"),
-    (r"left foot", "body_part", "Left Foot"),
-    (r"right foot", "body_part", "Right Foot"),
+    (r"(?:with )?his left foot(?:ed)?", "body_part", "Left Foot"),
+    (r"(?:with )?his right foot(?:ed)?", "body_part", "Right Foot"),
+    (r"left foot(?:ed)?", "body_part", "Left Foot"),
+    (r"right foot(?:ed)?", "body_part", "Right Foot"),
     (r"his left", "body_part", "Left Foot"),
     (r"his right", "body_part", "Right Foot"),
     (r"header", "body_part", "Head"),
@@ -432,9 +432,40 @@ class _Hit:
     players: tuple[str, ...] = ()
 
 
+def hyphens_allowed(pattern: str) -> str:
+    """One phrase pattern with a hyphen allowed wherever it has a space.
+
+    **A hyphen used to get a claim past the reading.** The run of 2026-11-05
+    wrote "he struck first-time with his left foot" and "Di Maria struck his
+    first-time left-foot shot from inside the box", and `PHRASES` holds
+    "first time" and "left foot" as two words each, so neither was read as a
+    claim and neither was checked. Nothing false passed, because the record
+    is `first_time` and `Left Foot` and the words were true; the check simply
+    did not look. Three of that run's four kept candidates were written that
+    way, and the two storyteller ones said the foot that way and no other, so
+    a line the app would label carried an unchecked body part.
+
+    A hyphen between two words is the same claim as a space between them, so
+    every phrase takes either. `app/plain_characters.py` has already
+    rewritten a disguised hyphen as a plain one by the time a narration
+    reaches here, which is what keeps this to one character class.
+    """
+    return pattern.replace(" ", "[ -]")
+
+
+def _marker_key(said: str) -> str:
+    """A chain marker as `BARE_CHAIN_MARKERS` spells it: folded, hyphens out.
+
+    "On to" and "on-to" are the same marker, and the rule about a bare marker
+    reads the words rather than the pattern that found them.
+    """
+    return fold(said).replace("-", " ")
+
+
 def _phrase_hits(text: str) -> list[_Hit]:
     found: list[_Hit] = []
     for pattern, kind, detail in PHRASES:
+        pattern = hyphens_allowed(pattern)
         for match in re.finditer(rf"\b{pattern}\b", text, re.IGNORECASE):
             value = detail
             if kind == "duration":
@@ -443,6 +474,7 @@ def _phrase_hits(text: str) -> list[_Hit]:
                 _Hit(kind, match.group(0), match.start(), match.end(), value)
             )
     for pattern, assist in CHAIN_MARKERS:
+        pattern = hyphens_allowed(pattern)
         for match in re.finditer(rf"\b{pattern}\b", text, re.IGNORECASE):
             found.append(
                 _Hit(
@@ -852,7 +884,7 @@ class Reader:
         """
         if free:
             return free[-1][0]
-        if last_chain is not None and fold(
+        if last_chain is not None and _marker_key(
             marker.said
         ) not in BARE_CHAIN_MARKERS:
             actor, clause = last_chain
@@ -899,7 +931,7 @@ class Reader:
         """
         if recent_action is None:
             return None
-        if fold(marker.said) not in BARE_CHAIN_MARKERS:
+        if _marker_key(marker.said) not in BARE_CHAIN_MARKERS:
             return None
         if set(recent_action.detail or ()) != {"Carry"}:
             return None
