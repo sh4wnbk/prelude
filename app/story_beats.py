@@ -633,8 +633,10 @@ def beats_block(one: Story) -> str:
             "beats: a pass below names who it reached, which is the same "
             "fact, and a",
             "player taking a touch where he stands is not a turn in the "
-            "story. Yards are",
-            "there for you to read and never to write.",
+            "story. Where one",
+            "beat names several defenders, they were beaten one after "
+            "another with only",
+            "a carry between them.",
             "",
             "  {} {}".format(pattern, where),
             "",
