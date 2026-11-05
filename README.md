@@ -147,6 +147,17 @@ Everything above it is structure.
   `tests/conftest.py` replaces `urllib.request.urlopen` and
   `socket.socket.connect` with functions that raise, for every test in the
   suite.
+- `app/story_beats.py`: curates one buildup down to the beats a goal call
+  tells, which is what `app/goal_call_prompt.py` shows the model: the
+  recovery, each pass, each carry of ten yards or more, each dribble past an
+  opponent, the pressure on the player with the ball and the finish. Ball
+  receipts and touches on the spot are left out, no beat carries a clock, and
+  the play pattern and the own half are said once. The grounding check still
+  reads a narration against every record, so the curation can only narrow
+  what a narration may say.
+- `scripts/story_beats_report.py`: prints the beat list for both hero goals
+  beside the records it was curated from. Reads `data/raw/` and writes
+  nothing.
 - `app/narration_prompt.py`: turns one buildup into a numbered list of plain
   past-tense facts, one per recorded event, built by code out of the records
   and naming each player by the recorded nickname where there is one;
@@ -309,7 +320,7 @@ Everything above it is structure.
   the force words it may not, the verdicts about history it may not, and the
   reaction layer: where a reaction may stand, who may cheer in one and what
   makes a short sentence play instead. All pass.
-- `tests/test_narrator_candidates.py`: 143 tests over
+- `tests/test_narrator_candidates.py`: 151 tests over
   `app/goal_call_prompt.py` and `scripts/narrator_candidates.py`: the four
   styles, one per narrator and situation, the invented match their examples
   are shown through and the reaction each example ends on, the records the

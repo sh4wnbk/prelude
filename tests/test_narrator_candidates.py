@@ -10,6 +10,7 @@ connection, so the run's own plan is exercised and its paid path is not.
 """
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -25,12 +26,24 @@ from app.goal_call_prompt import (
     STORYTELLER_NEUTRAL,
     STYLES,
     build_goal_call_prompt,
-    record_line,
-    records_block,
     shared_name_parts,
     situation_for,
     slot_key,
-    steps_block,
+)
+from app.story_beats import (
+    DRIBBLE_PAST,
+    FINISH,
+    NOT_A_BEAT,
+    NO_CLOCK_FIELDS,
+    PASS,
+    PRESSURE,
+    RECOVERY,
+    RUN,
+    beat_fields,
+    beat_line,
+    beats_block,
+    kinds,
+    story,
 )
 from app.grounding import (
     ACTION_CLAIMS,
@@ -244,76 +257,217 @@ class TestTheExampleIsInvented:
         assert "first time" not in INVENTED_MATCH
 
 
-class TestTheRecordsInThePrompt:
-    """What the model is shown, which is read off the records."""
+class TestTheBeatsInThePrompt:
+    """What the model is shown, which is the story beats and not the records.
 
-    def test_no_record_line_carries_a_clock(self, facts_1986, facts_2022):
-        """The narration carries none, so the prompt shows none: a clock in
-        front of a model is a clock in the narration."""
+    Shawn read the eighteen of Task 9d aloud on 2026-10-31 and found every
+    candidate echoing the fact list: "received, carried and passed", because
+    the prompt handed over every recorded event, receipts and sub-yard
+    carries included. `app/story_beats.py` curates the passage first, and
+    these are the rules it curates by.
+    """
+
+    def test_no_beat_says_received(self, facts_1986, facts_2022):
+        """A pass beat names who it reached, so a receipt is the same fact
+        written twice from the other end. Eight of the 1986 records are
+        receipts and five of the 2022 ones."""
+        assert "Ball Receipt*" in NOT_A_BEAT
         for facts in (facts_1986, facts_2022):
-            block = records_block(facts)
-            assert ":" not in block
-            assert not any(character.isdigit()
-                           for line in block.splitlines()
-                           for character in line.split(".", 1)[1])
+            block = beats_block(story(facts))
+            assert "received" not in block.lower()
+            assert "Ball Receipt" not in block
 
-    def test_a_pass_line_names_who_it_reached(self, facts_2022):
-        block = records_block(facts_2022)
-        assert "Nahuel Molina (Argentina) passed to Alexis MacAllister" in block
-        assert "a long ball" in block
-        assert "the assist" in block
+    def test_no_carry_under_ten_yards_appears(self, facts_1986, facts_2022):
+        """Seven of the 1986 carries and both of the 2022 ones are a touch on
+        the spot: 1.1 yards or less. "Drove forward" over 0.7 yards is what
+        the check spent Task 9d refusing."""
+        for facts in (facts_1986, facts_2022):
+            for beat in story(facts).beats:
+                if beat.kind == RUN:
+                    assert beat.yards >= 10
+        assert kinds(story(facts_1986))[RUN] == 3
+        assert RUN not in kinds(story(facts_2022))
 
-    def test_the_shot_line_carries_the_body_part(self, facts_1986, facts_2022):
-        assert "shot, with his left foot, in the box" in records_block(
-            facts_1986
-        )
-        assert "shot, first time, with his left foot, in the box" in (
-            records_block(facts_2022)
-        )
+    def test_the_three_runs_carry_their_distance_and_the_box(self, facts_1986):
+        """Maradona's carries are 34.9, 16.8 and 16.7 yards, and the third is
+        the one that ends inside the box."""
+        runs = [beat for beat in story(facts_1986).beats if beat.kind == RUN]
+        assert [beat.yards for beat in runs] == [35, 17, 17]
+        assert [beat.in_the_box for beat in runs] == [False, False, True]
+        assert [beat.direction for beat in runs] == ["forward"] * 3
 
-    def test_a_defenders_line_carries_no_field_position(self, facts_1986):
-        """StatsBomb mirrors a defensive record, so "his own half" on
-        Beardsley's `Pressure` would mean the half England were attacking."""
-        lines = [
-            line
-            for line in records_block(facts_1986).splitlines()
-            if "(England)" in line
+    def test_the_long_ball_appears(self, facts_2022):
+        """Alvarez to MacAllister, 38.5 yards, which is the one pass in
+        either passage at or over thirty."""
+        one = story(facts_2022)
+        passes = [beat for beat in one.beats if beat.kind == PASS]
+        assert [beat.long_ball for beat in passes] == [
+            False,
+            False,
+            False,
+            True,
+            False,
         ]
-        assert lines
-        for line in lines:
-            assert "own half" not in line
-            assert "in the box" not in line
+        assert "long" in beats_block(one)
 
-    def test_the_pressure_records_are_there_for_the_conceding_buddy(
+    def test_the_four_dribbles_past_appear(self, facts_1986):
+        one = story(facts_1986)
+        beaten = [
+            beat.beaten for beat in one.beats if beat.kind == DRIBBLE_PAST
+        ]
+        assert beaten == [
+            "Peter Beardsley",
+            "Terry Butcher",
+            "Terry Fenwick",
+            "Peter Shilton",
+        ]
+        block = beats_block(one)
+        for name in beaten:
+            assert "dribbled past {}".format(name) in block
+
+    def test_a_dribble_past_is_one_beat_and_names_both_players(
         self, facts_1986
     ):
-        """"Beardsley and Reid closed him down" needs those records shown."""
-        block = records_block(facts_1986)
-        assert "Peter Beardsley (England) pressed" in block
-        assert "Peter Reid (England) pressed" in block
-        assert "Terry Butcher (England) pressed" in block
+        """StatsBomb records it twice, `Dribble` on the player who went past
+        and `Dribbled Past` on the defender. One beat says both."""
+        first = next(
+            beat
+            for beat in story(facts_1986).beats
+            if beat.kind == DRIBBLE_PAST
+        )
+        assert first.player == "Diego Armando Maradona"
+        assert first.beaten == "Peter Beardsley"
+        assert len(first.event_ids) == 2
 
-    def test_the_steps_say_a_dribble_past_once(self, facts_1986):
-        block = steps_block(facts_1986)
-        assert "Diego Armando Maradona dribbled past Peter Beardsley" in block
-        assert "Diego Armando Maradona dribbled past Peter Shilton" in block
+    def test_no_beat_has_a_key_named_minute_second_or_timestamp(self):
+        """A goal call carries no clock, and a field a beat carries is a
+        field the prompt can print."""
+        assert not beat_fields() & NO_CLOCK_FIELDS
+        assert NO_CLOCK_FIELDS >= {"minute", "second", "timestamp"}
+
+    def test_the_rendered_prompt_carries_no_clock(
+        self, facts_1986, facts_2022
+    ):
+        """3750191 and 3869685, every slot, against the clock pattern."""
+        clock = re.compile(r"\b\d{1,3}:\d{2}\b")
+        for facts in (facts_1986, facts_2022):
+            for key in STYLES:
+                assert not clock.search(build_goal_call_prompt(facts, key))
+
+    def test_the_curation_cuts_the_passage_roughly_in_half(
+        self, facts_1986, facts_2022
+    ):
+        """24 records to 14 beats and 13 to 6, read off the data."""
+        assert (story(facts_1986).records, story(facts_1986).kept) == (24, 14)
+        assert (story(facts_2022).records, story(facts_2022).kept) == (13, 6)
+
+    def test_the_recovery_is_kept_and_the_2022_passage_has_none(
+        self, facts_1986, facts_2022
+    ):
+        assert kinds(story(facts_1986))[RECOVERY] == 1
+        assert RECOVERY not in kinds(story(facts_2022))
+
+    def test_a_pass_beat_names_who_it_reached_and_which_way(self, facts_2022):
+        one = story(facts_2022)
+        assert beat_line(one.beats[0]) == (
+            "Nahuel Molina (Argentina) passed to Alexis MacAllister, forward"
+        )
+        assert beat_line(one.beats[4]) == (
+            "Alexis MacAllister (Argentina) passed to Ángel Di María, "
+            "the assist, forward, into the box"
+        )
+
+    def test_the_finish_carries_the_body_part_and_first_time(
+        self, facts_1986, facts_2022
+    ):
+        last = story(facts_1986).beats[-1]
+        assert last.kind == FINISH
+        assert beat_line(last) == (
+            "Diego Armando Maradona (Argentina) shot, from inside the box, "
+            "with his left foot"
+        )
+        assert not last.first_time
+        other = story(facts_2022).beats[-1]
+        assert other.first_time
+        assert beat_line(other) == (
+            "Ángel Di María (Argentina) shot, from inside the box, "
+            "first time, with his left foot"
+        )
+
+    def test_the_pressure_on_the_ball_carrier_is_kept(self, facts_1986):
+        """All three of them, which is how Peter Reid reaches the prompt at
+        all: pressing is his only record in the passage. Butcher's is
+        recorded one second before a carry two seconds earlier still, so the
+        match is on feed order and not on the clock."""
+        one = story(facts_1986)
+        pressers = [
+            beat.player for beat in one.beats if beat.kind == PRESSURE
+        ]
+        assert pressers == ["Peter Beardsley", "Peter Reid", "Terry Butcher"]
+        assert "Peter Reid (England) pressed the player on the ball" in (
+            beats_block(one)
+        )
+
+    def test_a_defenders_beat_carries_no_field_position_or_direction(
+        self, facts_1986
+    ):
+        """StatsBomb mirrors a defensive record, so "forward" or "his own
+        half" on one would mean the way England were going."""
+        for beat in story(facts_1986).beats:
+            if beat.team == facts_1986.moment.team:
+                continue
+            assert beat.direction == ""
+            assert not beat.in_the_box
+            assert beat.yards is None
+
+    def test_the_play_pattern_and_the_own_half_are_said_once(
+        self, facts_1986, facts_2022
+    ):
+        """They were on every line of the record list this replaced, which is
+        two facts printed twenty-four times."""
+        for facts in (facts_1986, facts_2022):
+            one = story(facts)
+            assert one.play_pattern == "From Counter"
+            assert one.started_in_own_half
+            block = beats_block(one)
+            assert block.count("From Counter") == 1
+            assert block.count("own half") == 1
+
+    def test_the_block_does_not_claim_nothing_else_happened(self, facts_1986):
+        """The dropped records did happen. What the block says is that the
+        narration may not reach outside the list, which is true."""
+        block = beats_block(story(facts_1986))
+        assert "Nothing happened that is not here" not in block
+        assert "nothing outside it" in block
+
+    def test_a_dribble_past_is_said_once_each(self, facts_1986):
+        block = beats_block(story(facts_1986))
         assert "went dribbled" not in block
-        assert block.rstrip().endswith("(the goal)")
+        assert block.count("dribbled past") == 4
 
-    def test_the_steps_chain_the_2022_passes_in_order(self, facts_2022):
-        lines = steps_block(facts_2022).splitlines()
+    def test_the_beats_chain_the_2022_passes_in_order(self, facts_2022):
+        lines = [beat_line(beat) for beat in story(facts_2022).beats]
         assert "passed to Alexis MacAllister" in lines[0]
         assert "passed to Lionel Messi" in lines[1]
         assert "passed to Julián Álvarez" in lines[2]
         assert "passed to Alexis MacAllister" in lines[3]
         assert "passed to Ángel Di María" in lines[4]
 
-    def test_a_record_line_uses_the_recorded_nickname(self, facts_2022):
-        beat = facts_2022.facts[10].beat
-        assert record_line(facts_2022, beat) == (
-            "Alexis MacAllister (Argentina) passed to Ángel Di María, "
-            "the assist, forward, in the box"
-        )
+    def test_a_beat_uses_the_recorded_nickname(self, facts_2022):
+        """"Lionel Messi", not "Lionel Andres Messi Cuccittini"."""
+        players = {beat.player for beat in story(facts_2022).beats}
+        assert "Lionel Messi" in players
+        assert "Ángel Di María" in players
+
+    def test_every_beat_points_back_at_a_record(self, facts_1986, facts_2022):
+        """A beat asserts nothing a `Fact` does not, and `event_ids` is what
+        says so: every one of them is an id in `data/raw/`."""
+        for facts in (facts_1986, facts_2022):
+            recorded = {fact.beat.event_id for fact in facts.facts}
+            for beat in story(facts).beats:
+                assert beat.event_ids
+                for event_id in beat.event_ids:
+                    assert event_id in recorded
 
 
 class TestTheRulesMatchTheCheck:
@@ -842,44 +996,6 @@ class TestEachWorkedExampleCarriesAReaction:
         assert "THE REACTION" in prompt
         assert "at most eight words" in prompt.lower()
         assert "it is the last thing you write" in prompt
-
-
-class TestTheRecordsSayWhichWayAndHowFar:
-    """Rule 5 asks for a claim the model has to be able to read off the page.
-
-    A coordinate is not something a model can be asked to compare, so the
-    records say "forward" and "a run" in the words the narration would use,
-    computed by `app/narration_grammar.py` from the two ends of the record.
-    """
-
-    def test_a_pass_up_the_pitch_is_marked_forward(self, facts_2022):
-        """Álvarez's ball to MacAllister, 36.1 yards of x."""
-        line = record_line(facts_2022, facts_2022.facts[8].beat)
-        assert "a long ball, forward" in line
-
-    def test_a_touch_on_the_spot_is_marked_as_no_run(self, facts_2022):
-        """Álvarez's carry, 0.7 yards, which four candidates called a drive
-        forward on 2026-10-31."""
-        line = record_line(facts_2022, facts_2022.facts[7].beat)
-        assert "a touch on the spot, not a run" in line
-        assert "forward" not in line
-
-    def test_a_long_carry_is_marked_a_run(self, facts_1986):
-        """Maradona's 34.9 yard carry."""
-        line = record_line(facts_1986, facts_1986.facts[11].beat)
-        assert "a run, far enough to be called one" in line
-        assert "forward" in line
-
-    def test_a_defenders_record_says_neither(self, facts_1986):
-        """StatsBomb mirrors a defensive record's coordinates, so "forward"
-        on one would mean the half the words do not say."""
-        for fact in facts_1986.facts:
-            if fact.beat.team == facts_1986.moment.team:
-                continue
-            line = record_line(facts_1986, fact.beat)
-            assert "forward" not in line
-            assert "back" not in line
-            assert "run" not in line
 
 
 class TestAskingForDifferentTellings:

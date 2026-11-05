@@ -20,7 +20,8 @@ into two places that have to agree:
 | Where | What it does |
 | ----- | ------------ |
 | `app/narration_prompt.py` | builds the numbered facts, holds the one style in `NARRATION_STYLE`, and states the rules to the model in the prompt |
-| `app/goal_call_prompt.py` | builds the goal-call prompt: a style and a worked example per narrator, the records with no clock on them, and the thirteen rules |
+| `app/goal_call_prompt.py` | builds the goal-call prompt: a style and a worked example per narrator, the story beats with no clock on them, and the thirteen rules |
+| `app/story_beats.py` | curates the passage down to the beats the prompt shows, so the model is not handed every recorded event |
 | `app/narration_grammar.py` | reads a goal call that cites nothing, and holds the yard thresholds the words are measured against |
 | `app/personas.py` | the three voices the one narration can be spoken in, which is Phase 5 and not this document |
 | `app/grounding.py` | refuses a narration that broke them |
@@ -393,8 +394,44 @@ shot, and the last thing said is that it went in.
 | **No backstory** | nothing about the match, the tournament or the player before this passage. |
 | **No crowd** | the stadium is in the room already. |
 | **No full names every time** | a name said in full six times is a document, not a call. |
-| **No filler repetition** | the repetition that builds is "past, past, past". Saying "received the ball" four times is not that. |
+| **No filler repetition** | the repetition that builds is "past, past, past". Saying "received the ball" four times is not that, and `app/story_beats.py` is what stops it: a receipt is not a beat and is not shown. |
 | **No opener two goals share** | an opening line that would fit any goal is an opening line that says nothing about this one. |
+
+### The beats the model is shown, which are not the records
+
+**A rule the model is told and a list that contradicts it is a rule that does
+not hold.** The eighteen candidates of 2026-10-31 said "received, carried and
+passed" in almost every telling, and the reason was in front of them: the
+prompt printed every recorded event of the passage, and eight of the
+twenty-four in 1986 are a ball receipt while seven more are a carry of under
+a yard. Nothing in `app/grounding.py` was wrong about any of it. The records
+are real; they are simply not beats.
+
+So `app/story_beats.py` curates the passage first, and what the prompt shows
+is the result. Each rule is a recorded field read against a threshold
+`app/narration_grammar.py` already holds, which is the threshold
+`app/grounding.py` refuses the matching word on:
+
+| Kept | What it carries |
+| ---- | --------------- |
+| the ball recovery | who won it |
+| every pass | who it reached, "forward" or "back" off the change in x, "long" at `LONG_PASS_YARDS`, the assist, the box |
+| every carry of `RUN_YARDS` or more | its distance in whole yards and whether it ended in the box |
+| every dribble past an opponent | both players, as one beat for the two records |
+| pressure on the player on the ball | who pressed |
+| the finish | the body part, whether it was struck first time, the box |
+
+Dropped: `Ball Receipt*`, because the pass beat already names who the ball
+reached, and a carry under `RUN_YARDS`, because a player taking a touch where
+he stands is not a turn in the story. `play_pattern` and the own half are
+said once, above the list, rather than on every line.
+
+**The curation can only narrow what a narration may say.** The check still
+reads a narration against every record of the passage, so a line about a ball
+receipt would still pass it; it will not be written, because the model was
+never shown one. Read the two lists with:
+
+    .\.venv-prelude\Scripts\python.exe -I scripts\story_beats_report.py
 
 ### How the sentences hold together
 

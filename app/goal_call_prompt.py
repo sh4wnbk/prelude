@@ -28,12 +28,16 @@ and whose goal is a different shape from either real one: one recovery, two
 passes with a long ball among them, one defender beaten, and a right-footed
 finish. What the example teaches is the devices, not the sentence.
 
-**What the model is shown about the move is read off the records.** The steps
-come from `move_steps` and `key_beats` in `app/narration_prompt.py`, the same
-two functions the cited prompt uses, and the extra fields on each line are the
-ones Task 9b step 1 put on `Beat`: the pass recipient, the assist, the long
-ball, the pressure, the first-time finish, the body part and the two field
-positions. Nothing here is inferred.
+**What the model is shown is the story beats, not the records.**
+`app/story_beats.py` curates the passage down to them: the recovery, each
+pass, each run of ten yards or more, each dribble past an opponent, the
+pressure on the player with the ball and the finish, with the recorded fields
+a goal call says out loud on each one. The ball receipts and the touches on
+the spot are left out, because the candidates of 2026-10-31 echoed the list
+they were given and that list was every record in the passage, eight of them
+receipts. Nothing is inferred and nothing is added: the curation can only
+narrow what a narration may say, and `app/grounding.py` still verifies it
+against every record.
 
 **The rules ask for no less than `app/grounding.py` enforces.** A prompt asking
 for more than the check requires costs nothing; one asking for less sets the
@@ -55,23 +59,18 @@ from dataclasses import dataclass
 from typing import Mapping, Sequence
 
 from app.narration_grammar import (
-    DIRECTION_YARDS,
     NUMBER_WORDS,
-    RUN_YARDS,
-    carry_yards,
-    change_in_x,
     fold,
     name_keys,
 )
 from app.narration_prompt import (
-    DRIBBLE,
     EVENT_VERBS,
     Facts,
-    key_beats,
     move_steps,
     spoken_names,
     touched_the_ball,
 )
+from app.story_beats import beats_block, story
 
 #: The keys, which are `app/delivery.py`'s and `hero.voice_for`'s in
 #: `app/web/matches.json`. A fifth combination does not exist: the Buddy is
@@ -124,7 +123,7 @@ INVENTED_MATCH = (
     "right foot, from open play. Five players: Odili, Brandt and Vance of "
     "Kestrel Bay, and Marrow and the goalkeeper Oyelaran, who defend for "
     "Harbour Town. The possession is recorded as from a counter, and it runs "
-    "from the first record to the shot in under ten seconds. Odili won the "
+    "from the first beat to the shot in under ten seconds. Odili won the "
     "ball back in his own half and passed to Brandt. Brandt carried it "
     "forward under pressure from Marrow, far enough to be called a run, went "
     "past Marrow, and "
@@ -279,120 +278,6 @@ def _seconds_phrase(facts: Facts) -> str | None:
     return "under {} seconds".format(tightest)
 
 
-def _where(facts: Facts, beat) -> str:
-    """Where a record happened, for the side in possession only.
-
-    StatsBomb mirrors a defensive record's coordinates, so "his own half" on a
-    defender's `Pressure` means the half his team is attacking, which is the
-    opposite of what the words say. Printing it for the possession team alone
-    keeps every line in the prompt readable in the way the narration will say
-    it.
-    """
-    if beat.team != facts.moment.team:
-        return ""
-    for place in (beat.end, beat.start):
-        if place is None:
-            continue
-        if place.in_the_box:
-            return ", in the box"
-        if place.in_own_half:
-            return ", in his own half"
-        return ""
-    return ""
-
-
-def _which_way(facts: Facts, beat) -> str:
-    """Which way a pass or a carry took the ball, for the side in possession.
-
-    Rule 5 asks a narration to say "forward" or "back" only where the records
-    show the ball going that way, and `app/grounding.py` refuses it where
-    they do not. A model cannot read a coordinate it has not been shown, so
-    the records say it in the word the narration would use. It is printed for
-    the possession team alone, for the reason `_where` is: StatsBomb mirrors
-    a defensive record's coordinates.
-    """
-    if beat.team != facts.moment.team:
-        return ""
-    if beat.action not in ("Pass", "Carry"):
-        return ""
-    change = change_in_x(beat)
-    if change is None:
-        return ""
-    if change >= DIRECTION_YARDS:
-        return "forward"
-    if change <= -DIRECTION_YARDS:
-        return "back"
-    return ""
-
-
-def _how_far(beat) -> str:
-    """How long a carry was, where the length is one a narration may say.
-
-    The same reason as `_which_way`: "drove", "ran" and "burst" need a carry
-    of `RUN_YARDS` or more, and a carry of under a yard is a touch on the
-    spot rather than a run. The lengths between the two are left unsaid,
-    because there is no word the check holds them to.
-    """
-    if beat.action != "Carry":
-        return ""
-    yards = carry_yards(beat)
-    if yards is None:
-        return ""
-    if yards >= RUN_YARDS:
-        return "a run, far enough to be called one"
-    if yards < DIRECTION_YARDS:
-        return "a touch on the spot, not a run"
-    return ""
-
-
-def record_line(facts: Facts, beat) -> str:
-    """One record, said plainly, with the fields a goal call can use.
-
-    The clock is left off, because no narration carries one. Everything else is
-    read: the recipient of a pass, whether it was the assist, whether it was a
-    long ball, whether the record is under pressure, whether the shot was
-    struck first time, the body part, which way it took the ball, how far a
-    carry went, and where on the pitch.
-    """
-    verb = EVENT_VERBS.get(beat.action, beat.action)
-    parts = ["{} ({}) {}".format(beat.name, beat.team, verb)]
-    if beat.recipient:
-        parts.append(" to {}".format(spoken_names(facts).get(
-            beat.recipient, beat.recipient
-        )))
-    extras = []
-    if beat.goal_assist:
-        extras.append("the assist")
-    if beat.long_pass:
-        extras.append("a long ball")
-    way = _which_way(facts, beat)
-    if way:
-        extras.append(way)
-    far = _how_far(beat)
-    if far:
-        extras.append(far)
-    if beat.under_pressure:
-        extras.append("under pressure")
-    if beat.first_time:
-        extras.append("first time")
-    if beat.body_part and beat.action == "Shot":
-        extras.append("with his {}".format(beat.body_part.lower()))
-    if extras:
-        parts.append(", " + ", ".join(extras))
-    parts.append(_where(facts, beat))
-    return "".join(parts)
-
-
-def records_block(facts: Facts) -> str:
-    """Every record of the passage, in order, with no clock on any of them."""
-    width = len(str(len(facts.facts)))
-    lines = [
-        "  {:>{}}. {}".format(fact.number, width, record_line(facts, fact.beat))
-        for fact in facts.facts
-    ]
-    return "\n".join(lines)
-
-
 def catalyst_and_finish(facts: Facts) -> str:
     """Where this narration starts and what it lands on, said plainly.
 
@@ -414,7 +299,7 @@ def catalyst_and_finish(facts: Facts) -> str:
         if fact.number == first.numbers[0]
     ]
     return (
-        "Start on the first step and land on the last. The first thing that"
+        "Start on the first beat and land on the last. The first thing that"
         " happened is that {} {}, and that is where the narration starts;"
         " nothing before it. The last thing is that {} scored, and that is"
         " where it stops.{}".format(
@@ -443,48 +328,6 @@ def _nothing_won_back(facts: Facts) -> str:
         " won back and nobody won the ball: the example below opens that way"
         " and this move does not."
     )
-
-
-def steps_block(facts: Facts) -> str:
-    """The move as the steps a narration tells, in order.
-
-    `move_steps` is one step per turn on the ball and `key_beats` names every
-    dribble past an opponent, which is the same pair the cited prompt's hero
-    block is built from. Here the two are merged into one list of plain
-    sentences with no fact numbers on them, because a goal call has none.
-    """
-    spoken = spoken_names(facts)
-    dribbles = [beat for beat in key_beats(facts) if beat.kind == DRIBBLE]
-    by_number = {fact.number: fact for fact in facts.facts}
-    steps = move_steps(facts)
-    lines = []
-    for index, step in enumerate(steps, start=1):
-        beaten = next(
-            (
-                beat
-                for beat in dribbles
-                if set(beat.numbers) & set(step.numbers)
-            ),
-            None,
-        )
-        name = spoken[step.player]
-        if beaten is not None:
-            # `KeyBeat.label` is already "dribbled past X".
-            said = "{} {}".format(name, beaten.label)
-        else:
-            beats = [by_number[number].beat for number in step.numbers]
-            verbs = []
-            for beat in beats:
-                verb = EVENT_VERBS.get(beat.action, beat.action)
-                if beat.recipient:
-                    verb += " to {}".format(
-                        spoken.get(beat.recipient, beat.recipient)
-                    )
-                verbs.append(verb)
-            said = "{} {}".format(name, ", ".join(dict.fromkeys(verbs)))
-        last = " (the goal)" if index == len(steps) else ""
-        lines.append("  {}. {}{}".format(index, said, last))
-    return "\n".join(lines)
 
 
 def _wrapped(text: str, indent: str = "") -> str:
@@ -744,15 +587,14 @@ def build_goal_call_prompt(
         spoken_names(facts)[player] for player in touched_the_ball(facts)
     ]
     span = _seconds_phrase(facts)
-    pattern = ", ".join(sorted(facts.play_patterns)) or "not recorded"
+    # The play pattern and the own half are said once, in the beats block:
+    # they are facts about the passage rather than about a beat, and they were
+    # on every line of the record list this replaced.
     extra = []
     if span:
         extra.append(
-            "The move ran from the first record to the shot in {}.".format(span)
+            "The move ran from the first beat to the shot in {}.".format(span)
         )
-    extra.append(
-        "The possession is recorded as {}.".format(pattern)
-    )
 
     return """You are writing the narration for one goal in a football match, for a fan
 who missed it. It is the recap a commentator gives over the replay: the app
@@ -768,17 +610,9 @@ THE GOAL
   Body part:  {body_part}
   Shot type:  {set_piece}
 
-EVERY RECORD OF THE PASSAGE
-In the order it happened, with no clock on any of it, because the narration
-carries none. Nothing happened that is not here.
-{records}
+{beats}
 
 {extra}
-
-THE MOVE TO TELL
-The same records as the steps a narration tells. Take them in this order and
-reach all of them; the numbers are for reading and never for writing.
-{steps}
 
 {anchor}
 
@@ -808,12 +642,11 @@ RULES
         scorer=facts.goal_beat.name,
         body_part=facts.body_part or "not recorded",
         set_piece=facts.set_piece or "Open Play",
-        records=records_block(facts),
+        beats=beats_block(story(facts)),
         extra=_wrapped(" ".join(extra)),
-        steps=steps_block(facts),
         anchor=_wrapped(catalyst_and_finish(facts)),
         who_had_it=_wrapped(
-            "Every player in that list had the ball: "
+            "Every player named here had the ball: "
             + ", ".join(players)
             + "."
         ),
