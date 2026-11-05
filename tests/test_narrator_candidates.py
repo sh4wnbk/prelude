@@ -315,8 +315,8 @@ class TestTheBeatsInThePrompt:
         assert runs[0].in_the_box
         assert runs[0].direction == "forward"
         assert beat_line(runs[0]) == (
-            "Diego Armando Maradona (Argentina) carried the ball, a long "
-            "carry, forward, ending in the box, under pressure"
+            "Diego Armando Maradona (Argentina) carried the ball forward on "
+            "a long run, ending in the box, under pressure"
         )
 
     def test_the_long_ball_appears(self, facts_2022):
@@ -434,11 +434,12 @@ class TestTheBeatsInThePrompt:
     def test_a_pass_beat_names_who_it_reached_and_which_way(self, facts_2022):
         one = story(facts_2022)
         assert beat_line(one.beats[0]) == (
-            "Nahuel Molina (Argentina) passed to Alexis MacAllister, forward"
+            "Nahuel Molina (Argentina) passed it forward to Alexis "
+            "MacAllister"
         )
         assert beat_line(one.beats[4]) == (
-            "Alexis MacAllister (Argentina) passed to Ángel Di María, "
-            "the assist, forward, into the box"
+            "Alexis MacAllister (Argentina) passed it forward to Ángel Di "
+            "María, into the box, which is the assist"
         )
 
     def test_the_finish_carries_the_body_part_and_first_time(
@@ -447,15 +448,15 @@ class TestTheBeatsInThePrompt:
         last = story(facts_1986).beats[-1]
         assert last.kind == FINISH
         assert beat_line(last) == (
-            "Diego Armando Maradona (Argentina) shot, from inside the box, "
-            "with his left foot"
+            "Diego Armando Maradona (Argentina) shot with his left foot "
+            "from inside the box"
         )
         assert not last.first_time
         other = story(facts_2022).beats[-1]
         assert other.first_time
         assert beat_line(other) == (
-            "Ángel Di María (Argentina) shot, from inside the box, "
-            "first time, with his left foot"
+            "Ángel Di María (Argentina) shot first time with his left foot "
+            "from inside the box"
         )
 
     def test_the_pressure_on_the_ball_carrier_is_kept(self, facts_1986):
@@ -504,6 +505,108 @@ class TestTheBeatsInThePrompt:
         assert "Nothing happened that is not here" not in block
         assert "nothing outside it" in block
 
+    def test_every_beat_is_a_phrase_and_not_a_tag(self, facts_2022):
+        """What the run of 2026-11-05 copied, and why the rendering changed.
+
+        The beat read "Julián Álvarez (Argentina) passed to Alexis
+        MacAllister, long, forward", with the fields labelled after the name,
+        and four of the five 2022 candidates wrote "Álvarez to MacAllister
+        forward", which is the label read out. Every beat is one clause now
+        and the direction sits inside it.
+        """
+        lines = [beat_line(beat) for beat in story(facts_2022).beats]
+        for line in lines:
+            assert not line.endswith("forward")
+            assert not line.endswith("back")
+            assert ", forward" not in line
+            assert ", back" not in line
+            assert ", long" not in line
+            assert ", the assist" not in line
+            assert ", first time" not in line
+
+    def test_the_long_ball_is_the_turn_of_the_2022_move(self, facts_2022):
+        """"A long ball forward to" the player it reached, computed from
+        `pass.length` and the change in x. The recipient is named as the
+        records print him, which is "Alexis MacAllister"."""
+        lines = [beat_line(beat) for beat in story(facts_2022).beats]
+        long_ball = next(line for line in lines if "long ball" in line)
+        assert "a long ball forward to Alexis MacAllister" in long_ball
+        assert "a long ball forward to Alexis MacAllister again" in long_ball
+        assert "a long ball forward to Alexis MacAllister" in (
+            beats_block(story(facts_2022))
+        )
+
+    def test_the_second_ball_to_the_same_player_says_again(
+        self, facts_1986, facts_2022
+    ):
+        """MacAllister takes Molina's pass and then Álvarez's long ball, and
+        that is the one time it happens in either passage."""
+        one = story(facts_2022)
+        again = [beat for beat in one.beats if beat.again]
+        assert len(again) == 1
+        assert again[0].recipient == "Alexis MacAllister"
+        assert again[0].long_ball
+        assert "again" in beats_block(one)
+        # 1986 reaches nobody twice: three players touch it, each once.
+        assert not [beat for beat in story(facts_1986).beats if beat.again]
+        assert "again" not in beats_block(story(facts_1986))
+
+    def test_a_pass_that_ends_in_the_box_says_so_after_the_recipient(
+        self, facts_2022
+    ):
+        """The box is where the ball arrived, and the recipient is the player
+        who was in it: MacAllister played the assist from four yards
+        outside, so "MacAllister passed it into the box" is a claim about
+        MacAllister's own position that `player_spots` refuses."""
+        one = story(facts_2022)
+        assist = next(beat for beat in one.beats if beat.assist)
+        line = beat_line(assist)
+        assert "into the box" in line
+        assert line.index("Ángel Di María") < line.index("into the box")
+        assert "into the box" in beats_block(one)
+
+    def test_the_finish_says_first_time_and_names_the_foot(
+        self, facts_1986, facts_2022
+    ):
+        """`shot.first_time` and `shot.body_part`, in one clause. 2022 is
+        recorded first time and 1986 is not."""
+        block = beats_block(story(facts_2022))
+        assert "first time" in block
+        assert "shot first time with his left foot" in block
+        assert "first time" not in beats_block(story(facts_1986))
+        assert "with his left foot" in beats_block(story(facts_1986))
+
+    def test_the_1986_beats_are_phrases_too(self, facts_1986):
+        """The same rendering over the other goal: nothing here is written
+        for one match."""
+        lines = [beat_line(beat) for beat in story(facts_1986).beats]
+        for line in lines:
+            assert not line.endswith("forward")
+            assert ", forward" not in line
+        assert lines[0] == (
+            "José Luis Cuciuffo (Argentina) won the ball back"
+        )
+        assert lines[1] == (
+            "José Luis Cuciuffo (Argentina) passed it forward to Héctor "
+            "Enrique"
+        )
+
+    def test_a_beat_shaped_telling_of_the_2022_move_is_grounded(
+        self, facts_2022
+    ):
+        """The point of the phrasing: a narration that says the beats in the
+        beats' own words passes the check. A prompt that invites a refusal is
+        a prompt that costs a candidate."""
+        told = (
+            "Molina passed it forward to MacAllister, MacAllister found "
+            "Messi, Messi played it on to Álvarez, who hit a long ball "
+            "forward to MacAllister again, and MacAllister passed it "
+            "forward to Di María, into the box, who shot first time with "
+            "his left foot and it went in."
+        )
+        result = check(told, facts_2022, THE_STORYTELLER, None)
+        assert result.grounded, result.summary
+
     def test_a_dribble_past_is_said_once_each(self, facts_1986):
         block = beats_block(story(facts_1986))
         assert "went dribbled" not in block
@@ -512,11 +615,11 @@ class TestTheBeatsInThePrompt:
 
     def test_the_beats_chain_the_2022_passes_in_order(self, facts_2022):
         lines = [beat_line(beat) for beat in story(facts_2022).beats]
-        assert "passed to Alexis MacAllister" in lines[0]
-        assert "passed to Lionel Messi" in lines[1]
-        assert "passed to Julián Álvarez" in lines[2]
-        assert "passed to Alexis MacAllister" in lines[3]
-        assert "passed to Ángel Di María" in lines[4]
+        assert "passed it forward to Alexis MacAllister" in lines[0]
+        assert "passed it forward to Lionel Messi" in lines[1]
+        assert "passed it forward to Julián Álvarez" in lines[2]
+        assert "a long ball forward to Alexis MacAllister" in lines[3]
+        assert "passed it forward to Ángel Di María" in lines[4]
 
     def test_a_beat_uses_the_recorded_nickname(self, facts_2022):
         """"Lionel Messi", not "Lionel Andres Messi Cuccittini"."""

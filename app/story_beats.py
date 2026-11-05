@@ -25,8 +25,8 @@ refuses a claim on:
 | Kept | Why it is a beat |
 | ---- | ---------------- |
 | the ball recovery | the move starts somewhere and this is where |
-| every pass | the chain is the move; `forward` or `back` off the change in x, `long` at `LONG_PASS_YARDS` |
-| every carry of `RUN_YARDS` or more | a run, with its distance and whether it ended in the box |
+| every pass | the chain is the move; `forward` or `back` off the change in x, `long` at `LONG_PASS_YARDS`, "again" where the recipient has already received one |
+| every carry of `RUN_YARDS` or more | a run, and whether it ended in the box |
 | every dribble past an opponent | the turning points, one beat for the two records |
 | pressure on the player on the ball | "under pressure" is a claim and this is the record behind it |
 | the finish | with the body part and whether it was struck first time |
@@ -51,6 +51,13 @@ verified against every `Fact` of the passage, so the curation can only narrow
 what a narration may say, never widen it: a line about a ball receipt would
 still pass the check and will not be written, because the model was not shown
 one. That is the trade this module makes, and it is the right way round.
+
+**Every beat is rendered as a phrase a narrator could say**, not as a line
+with its fields labelled after it. `beat_line` is where that happens and the
+run of 2026-11-05 is why: the beat read "Julián Álvarez (Argentina) passed to
+Alexis MacAllister, long, forward" and four of the five 2022 candidates wrote
+"Álvarez to MacAllister forward", which is the label read out loud. The fields
+are the same fields; the difference is that the line is sayable.
 
 **`play_pattern` and the own half are stated once.** Both were on every line,
 which is twenty-four copies of two facts, and a repetition in the prompt is a
@@ -172,6 +179,17 @@ class StoryBeat:
     #: references say it and how a listener hears four defenders rather than
     #: one. `_grouped` is what collapses them.
     beaten: tuple[str, ...] = ()
+    #: Whether this pass reaches a player who has already received one in
+    #: this passage, which the beat says as "again".
+    #:
+    #: Read off the recipients in record order and nothing else: MacAllister
+    #: receives Molina's pass and then Álvarez's long ball, which is the one
+    #: time it happens in either hero passage. The run of 2026-11-05 told the
+    #: 2022 move as a flat list of five passes, "Molina to MacAllister,
+    #: MacAllister to Messi, Messi to Álvarez, Álvarez to MacAllister", and
+    #: the ball coming back to the same man is the shape of that move. A beat
+    #: that does not say so is a beat the telling cannot say it from.
+    again: bool = False
     #: Whether a carry was absorbed into this dribble beat, which is what
     #: lets the narration say the ball was carried forward between the
     #: defenders without the carries having beats of their own.
@@ -260,6 +278,26 @@ def _pressed_the_carrier(facts: Facts, fact: Fact) -> bool:
     return bool(neighbour and neighbour.beat.under_pressure)
 
 
+def _received_before(facts: Facts) -> frozenset[str]:
+    """The event ids of the passes that reach a player for the second time.
+
+    The recipients in record order, so a pass is marked where its recipient
+    has already been a recipient in this passage. One pass in the 2022
+    passage is: Álvarez's long ball back to MacAllister, who took Molina's
+    pass at the start of it.
+    """
+    seen: set[str] = set()
+    again: set[str] = set()
+    for fact in facts.facts:
+        beat = fact.beat
+        if beat.action != "Pass" or not beat.recipient:
+            continue
+        if beat.recipient in seen:
+            again.add(beat.event_id)
+        seen.add(beat.recipient)
+    return frozenset(again)
+
+
 def _dribbler(facts: Facts, beaten: Fact) -> Fact | None:
     """The `Dribble` record paired with a `Dribbled Past`, or `None`.
 
@@ -286,6 +324,7 @@ def story(facts: Facts) -> Story:
     each beat, so the beats run in the order the play did.
     """
     spoken = spoken_names(facts)
+    again = _received_before(facts)
     dribbles = {
         number
         for key in key_beats(facts)
@@ -380,6 +419,7 @@ def story(facts: Facts) -> Story:
                     direction=_direction(facts, beat),
                     long_ball=beat.long_pass,
                     assist=beat.goal_assist,
+                    again=beat.event_id in again,
                     in_the_box=bool(beat.end and beat.end.in_the_box),
                     under_pressure=beat.under_pressure,
                 )
@@ -443,68 +483,74 @@ def story(facts: Facts) -> Story:
 
 
 def beat_line(beat: StoryBeat) -> str:
-    """One beat said plainly, in the words a narration would use.
+    """One beat as a short phrase a narrator could say, computed from the record.
 
-    The extras are the recorded fields, in a fixed order, so two beats of a
-    kind read the same way and a reader of the prompt can see at a glance
-    which claims this beat supports.
+    **It used to be a line with the fields tagged on after it**, which is
+    what the run of 2026-11-05 read out. "Julián Álvarez (Argentina) passed
+    to Alexis MacAllister, long, forward" put "long" and "forward" after the
+    name as labels, and the model wrote "Álvarez to MacAllister forward",
+    which is the tag copied into the narration: four of the five 2022
+    candidates carry it. Nothing was ungrounded about it and nothing read
+    like a goal call either.
+
+    So each beat is one clause now, with every word of it computed from a
+    field: the direction sits inside the verb phrase rather than after the
+    name, a long pass is "a long ball", a pass into the box says where it
+    ended, a second ball to the same player says "again", and the finish says
+    first time and names the foot. The fields are unchanged and the claims
+    are the same claims; what changes is that the line is sayable, so a model
+    telling it says a move rather than reading a label.
     """
+    where = beat.player, beat.team
     if beat.kind == DRIBBLE_PAST:
-        said = "{} ({}) dribbled past {}".format(
-            beat.player, beat.team, _and(beat.beaten)
-        )
+        said = "{} ({}) dribbled past {}".format(*where, _and(beat.beaten))
+        if beat.carried:
+            said += ", carrying the ball{} between them".format(
+                " " + beat.direction if beat.direction else ""
+            )
     elif beat.kind == PRESSURE:
-        said = "{} ({}) pressed the player on the ball".format(
-            beat.player, beat.team
-        )
+        said = "{} ({}) pressed the player on the ball".format(*where)
     elif beat.kind == PASS:
-        said = "{} ({}) passed to {}".format(
-            beat.player, beat.team, beat.recipient or "nobody recorded"
+        said = "{} ({}) {}{} to {}{}".format(
+            *where,
+            "hit a long ball" if beat.long_ball else "passed it",
+            " " + beat.direction if beat.direction else "",
+            beat.recipient or "nobody recorded",
+            " again" if beat.again else "",
         )
+        # After the recipient and not before him, because the box is where
+        # the ball arrived and he is the player who was in it. The passer was
+        # not: MacAllister played the assist from four yards outside, and
+        # "MacAllister passed it into the box" is a claim about MacAllister's
+        # own position, which `player_spots` refuses and should.
+        if beat.in_the_box:
+            said += ", into the box"
+        if beat.assist:
+            said += ", which is the assist"
     elif beat.kind == RUN:
-        said = "{} ({}) carried the ball, a long carry".format(
-            beat.player, beat.team
+        said = "{} ({}) carried the ball{} on a long run".format(
+            *where, " " + beat.direction if beat.direction else ""
         )
+        if beat.in_the_box:
+            said += ", ending in the box"
     elif beat.kind == RECOVERY:
-        said = "{} ({}) recovered the ball".format(beat.player, beat.team)
+        said = "{} ({}) won the ball back".format(*where)
     elif beat.kind == FINISH:
-        said = "{} ({}) shot".format(beat.player, beat.team)
+        said = "{} ({}) shot{}{}{}".format(
+            *where,
+            " first time" if beat.first_time else "",
+            " with his {}".format(beat.body_part.lower())
+            if beat.body_part
+            else "",
+            " from inside the box" if beat.in_the_box else "",
+        )
     else:
         said = "{} ({}) {}".format(
-            beat.player,
-            beat.team,
+            *where,
             EVENT_VERBS.get(beat.action or "", beat.action or "had the ball"),
         )
-
-    extras: list[str] = []
-    if beat.carried:
-        extras.append(
-            "carrying the ball {} between them".format(beat.direction)
-            if beat.direction
-            else "carrying the ball between them"
-        )
-    if beat.assist:
-        extras.append("the assist")
-    if beat.long_ball:
-        extras.append("long")
-    if beat.direction and not beat.carried:
-        extras.append(beat.direction)
-    if beat.in_the_box:
-        extras.append(
-            {
-                PASS: "into the box",
-                RUN: "ending in the box",
-                FINISH: "from inside the box",
-            }.get(beat.kind, "in the box")
-        )
     if beat.under_pressure:
-        extras.append("under pressure")
-    if beat.first_time:
-        extras.append("first time")
-    if beat.kind == FINISH and beat.body_part:
-        extras.append("with his {}".format(beat.body_part.lower()))
-    if extras:
-        said += ", " + ", ".join(extras)
+        said += ", under pressure"
     return said
 
 
