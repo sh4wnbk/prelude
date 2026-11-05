@@ -47,8 +47,11 @@ from app.personas import THE_BUDDY, THE_CALLER, THE_STORYTELLER
 from app.recorded_names import recorded_nicknames
 from app.statsbomb_event_feed import StatsBombEventFeed
 from app.narration_config import ACTIVE_CANDIDATE
+from app.narration_provider import IAM_TOKEN_URL, WatsonxProvider
+from scripts.hero_candidates import HEROES
 from scripts.narrator_candidates import (
     DEFAULT_PER_SLOT,
+    gather,
     merged,
     billed_for_slot,
     goals_to_run,
@@ -65,6 +68,13 @@ from scripts.tts_hero import DEFAULT_BUDGET
 import tests.test_reference_narrations as references
 
 ROOT = Path(__file__).resolve().parent.parent
+GOLDEN = ROOT / "tests" / "golden"
+
+
+def read_json(path: Path):
+    with path.open(encoding="utf-8") as handle:
+        return json.load(handle)
+
 
 MATCH_1986 = 3750191
 MATCH_2022 = 3869685
@@ -1126,3 +1136,151 @@ class TestTwoTellingsOrOneWithOtherWordsInIt:
             play_shape(getattr(references, name), facts) for name in names
         }
         assert len(shapes) == len(names)
+
+
+class TestTheRunIsCappedInTokens:
+    """`--max-total-tokens`, which has no default on purpose.
+
+    Task 9d printed an estimate before it sent anything, ran at effort high
+    and cost about 817,000 tokens. The plan is still printed; what is new is
+    that the run stops at a number rather than reporting one afterwards.
+    """
+
+    def test_confirm_refuses_to_start_without_a_cap(self):
+        with pytest.raises(SystemExit) as raised:
+            main(["--confirm"])
+        said = str(raised.value)
+        assert "--max-total-tokens" in said
+        assert "no default" in said
+        assert "817,000" in said
+
+    def test_a_cap_of_nothing_is_refused(self):
+        with pytest.raises(SystemExit) as raised:
+            main(["--plan", "--max-total-tokens", "0"])
+        assert "count of tokens" in str(raised.value)
+
+    def test_the_plan_prints_the_cap_it_was_given(self, capsys):
+        assert main(["--plan", "--max-total-tokens", "80000"]) == 0
+        printed = capsys.readouterr().out
+        assert "80,000 tokens for the whole run" in printed
+        assert "stops before a call that could pass it" in printed
+
+    def test_the_plan_says_when_no_cap_was_given(self, capsys):
+        assert main(["--plan"]) == 0
+        assert "--confirm refuses to start without one" in (
+            capsys.readouterr().out
+        )
+
+    def test_the_review_file_states_the_cap_and_a_run_cut_short(self):
+        goals = [
+            {
+                "year": 2022,
+                "match_id": MATCH_2022,
+                "minute": 35,
+                "second": 22,
+                "player": "Ángel Fabián Di María Hernández",
+                "team": "Argentina",
+                "records": 13,
+                "recorded_players": (),
+                "players_who_touched_the_ball": (),
+                "shared_name_parts": (),
+                "slots": [],
+            }
+        ]
+        text = review(
+            goals,
+            "m",
+            "p",
+            "low",
+            2000,
+            token_cap=80_000,
+            stopped="watsonx has billed this run 79,000 tokens",
+        )
+        assert "allowed 80,000 tokens in all" in text
+        assert "stopped on its token cap" in text
+        assert "79,000" in text
+        assert "—" not in text
+
+    def test_the_review_file_says_nothing_about_a_run_that_was_not_cut(self):
+        text = review([], "m", "p", "low", 2000, token_cap=80_000)
+        assert "allowed 80,000 tokens in all" in text
+        assert "stopped on its token cap" not in text
+
+
+class TestTheCapStopsTheRunAndKeepsWhatWasWritten:
+    """The cap driven through `gather`, against a recorded response.
+
+    The answer replayed here is one of the reference narrations, so it passes
+    the grounding check and the run really does keep a candidate before the
+    cap stops it. Nothing opens a connection: `tests/conftest.py` would fail
+    the test if it did.
+    """
+
+    def backend(self, billed, **kwargs):
+        golden = read_json(GOLDEN / "watsonx_text_generation.json")
+        body = {
+            "usage": {
+                "prompt_tokens": billed - 200,
+                "completion_tokens": 200,
+                "total_tokens": billed,
+            },
+            "choices": [
+                {
+                    "index": 0,
+                    "finish_reason": "stop",
+                    "message": {
+                        "role": "assistant",
+                        "content": references.BUDDY_2022_ARGENTINA,
+                    },
+                }
+            ],
+        }
+        urls = {
+            IAM_TOKEN_URL: golden["iam"]["response"],
+            WatsonxProvider(env=golden["env"], chat=True).url: body,
+        }
+
+        def transport(url, sent, headers):
+            return urls[url]
+
+        return WatsonxProvider(
+            env=golden["env"],
+            chat=True,
+            transport=transport,
+            max_new_tokens=2000,
+            **kwargs,
+        )
+
+    def test_the_run_stops_mid_slot_and_the_first_candidate_survives(self):
+        hero = next(one for one in HEROES if one[1] == MATCH_2022)
+        # 6,000 billed for the first answer, a prompt of about 1,700 tokens
+        # and a 2,000 length cap: the second call's worst case passes 9,000.
+        backend = self.backend(6_000, token_cap=9_000)
+        goals, stopped = gather(
+            backend, 3, heroes=(hero,), only=[BUDDY_SCORED]
+        )
+        assert stopped
+        assert "9,000" in stopped
+        assert backend.total_tokens == 6_000
+        assert len(goals) == 1
+        assert [slot["slot"] for slot in goals[0]["slots"]] == [BUDDY_SCORED]
+        kept = goals[0]["slots"][0]["candidates"]
+        assert len(kept) == 1
+        assert kept[0]["text"] == references.BUDDY_2022_ARGENTINA
+        # The cap is not a failed candidate: nothing was sent, so there is
+        # nothing to record as refused.
+        assert goals[0]["slots"][0]["dropped"] == []
+
+    def test_a_cap_with_room_lets_the_slot_finish(self):
+        """The same recorded answer three times, so candidates two and three
+        are dropped as near copies rather than as a cap."""
+        hero = next(one for one in HEROES if one[1] == MATCH_2022)
+        backend = self.backend(6_000, token_cap=400_000)
+        goals, stopped = gather(
+            backend, 3, heroes=(hero,), only=[BUDDY_SCORED]
+        )
+        assert stopped is None
+        assert backend.total_tokens == 18_000
+        slot = goals[0]["slots"][0]
+        assert len(slot["candidates"]) == 1
+        assert [one.get("near_copy_of") for one in slot["dropped"]] == [1, 1]

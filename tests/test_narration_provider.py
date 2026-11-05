@@ -37,6 +37,7 @@ from app import narration_config as config
 from app.narration_provider import (
     AnsweredWithoutContent,
     BACKENDS,
+    CHARACTERS_A_TOKEN,
     COMPARISON_MAX_NEW_TOKENS,
     DEFAULT_MAX_NEW_TOKENS,
     DEFAULT_TIMEOUT,
@@ -47,6 +48,7 @@ from app.narration_provider import (
     NarrationProvider,
     NarrationProviderError,
     OllamaProvider,
+    TokenCapReached,
     WATSONX_CHAT_PATH,
     WATSONX_GENERATE_PATH,
     candidate_for,
@@ -928,3 +930,128 @@ class TestWhatTheRunWasBilled:
         with pytest.raises(AnsweredWithoutContent):
             feed.narrate("the prompt")
         assert feed.total_tokens == 18746
+
+
+class TestTheHardTokenCap:
+    """`token_cap`, which stops a run before it is billed past its allowance.
+
+    Task 9d printed an estimate before it sent anything and then cost about
+    817,000 tokens. An estimate is not a stop, so the provider now reads the
+    tally it already keeps against a cap and refuses the next call rather
+    than reporting the overspend afterwards.
+
+    Every figure below comes off a recorded response: the schema fixture's
+    body with a `usage` object on it, which is where the real run's counts
+    come from too.
+    """
+
+    def answered(self, golden, usage, **kwargs):
+        """A chat provider whose every answer carries `usage`."""
+        body = {
+            "usage": usage,
+            "choices": [
+                {
+                    "index": 0,
+                    "finish_reason": "stop",
+                    "message": {"role": "assistant", "content": "A goal."},
+                }
+            ],
+        }
+        return WatsonxProvider(
+            env=golden["env"],
+            chat=True,
+            transport=Replay(
+                {
+                    IAM_TOKEN_URL: golden["iam"]["response"],
+                    WatsonxProvider(env=golden["env"], chat=True).url: body,
+                }
+            ),
+            **kwargs,
+        )
+
+    def test_no_cap_is_the_default_and_sends_every_call(self):
+        golden = read_json(WATSONX_GOLDEN)
+        feed = self.answered(
+            golden,
+            {
+                "prompt_tokens": 2746,
+                "completion_tokens": 295,
+                "total_tokens": 3041,
+            },
+            max_new_tokens=2000,
+        )
+        assert feed.token_cap is None
+        for _ in range(4):
+            assert feed.narrate("the prompt").text == "A goal."
+        assert feed.total_tokens == 12164
+
+    def test_the_cap_stops_the_next_call_before_it_is_sent(self):
+        """Three answers of 3,041 billed is 9,123, and the fourth call's worst
+        case is the prompt plus the 2,000 length cap, which passes 12,000."""
+        golden = read_json(WATSONX_GOLDEN)
+        feed = self.answered(
+            golden,
+            {
+                "prompt_tokens": 2746,
+                "completion_tokens": 295,
+                "total_tokens": 3041,
+            },
+            max_new_tokens=2000,
+            token_cap=12_000,
+        )
+        prompt = "x" * 10_000
+        for _ in range(3):
+            feed.narrate(prompt)
+        assert feed.total_tokens == 9123
+        with pytest.raises(TokenCapReached) as raised:
+            feed.narrate(prompt)
+        assert "9,123" in str(raised.value)
+        assert "12,000" in str(raised.value)
+        # And the tally did not move, because nothing was sent.
+        assert feed.total_tokens == 9123
+
+    def test_the_worst_case_is_the_prompt_plus_the_whole_length_cap(self):
+        """Not the likely cost: a reasoning model writes its reasoning into
+        `max_new_tokens`, and at effort high it used 14,141 of 16,000."""
+        golden = read_json(WATSONX_GOLDEN)
+        feed = self.answered(
+            golden,
+            {
+                "prompt_tokens": 1,
+                "completion_tokens": 1,
+                "total_tokens": 2,
+            },
+            max_new_tokens=16_000,
+            token_cap=20_000,
+        )
+        prompt = "x" * 8_000
+        assert feed.would_exceed_cap(prompt, 16_000) is None
+        feed.narrate(prompt)
+        assert feed.total_tokens == 2
+        # 2 billed, plus 2,000 estimated prompt, plus 16,000 is 18,002, and a
+        # cap of 18,000 refuses it.
+        assert feed.would_exceed_cap(prompt, 16_000) is None
+        feed.token_cap = 18_000
+        assert feed.would_exceed_cap(prompt, 16_000) == 18_002
+        with pytest.raises(TokenCapReached):
+            feed.narrate(prompt)
+
+    def test_the_prompt_half_is_estimated_at_four_characters_a_token(self):
+        """The one figure here that is not read off watsonx, and why."""
+        assert CHARACTERS_A_TOKEN == 4.0
+        golden = read_json(WATSONX_GOLDEN)
+        feed = self.answered(
+            golden,
+            {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+            max_new_tokens=1_000,
+            token_cap=1_500,
+        )
+        # 2,000 characters is 500 tokens, which with the 1,000 length cap
+        # comes to exactly the 1,500 allowed; 2,004 is 501 and does not.
+        assert feed.would_exceed_cap("x" * 2_000, 1_000) is None
+        assert feed.would_exceed_cap("x" * 2_004, 1_000) == 1_501
+
+    def test_a_cap_reached_is_a_provider_error(self):
+        """So a caller that already handles one does not crash on this, and
+        `scripts/narrator_candidates.py` catches it ahead of that handler."""
+        assert issubclass(TokenCapReached, NarrationProviderError)

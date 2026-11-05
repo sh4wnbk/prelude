@@ -128,7 +128,7 @@ nothing in the repo may open that file to check. The file itself moved out of
 the repo in task 2c, below; at this commit it was still at the repo root.
 
 **The tests make no network calls, and that is enforced.**
-`tests/test_narration_provider.py` is 60 tests, and `tests/conftest.py`
+`tests/test_narration_provider.py` is 65 tests, and `tests/conftest.py`
 replaces `urllib.request.urlopen` and `socket.socket.connect` with functions
 that raise, for every test in the suite. Two tests check the guard itself.
 

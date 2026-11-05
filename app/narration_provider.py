@@ -108,6 +108,19 @@ DEFAULT_MAX_NEW_TOKENS = 200
 #: run needs is a property of the effort that run chose.
 COMPARISON_MAX_NEW_TOKENS = 2000
 
+#: Characters a token is worth, for the one figure here that has to be
+#: estimated rather than read.
+#:
+#: Every other token count in this module comes off watsonx's own `usage`
+#: object. `token_cap` cannot: it decides whether to send a call before the
+#: call has been billed, and asking watsonx how many tokens a prompt holds is
+#: a paid request sent to find out what a paid request will cost. Four
+#: characters a token is the usual figure for English prose, and it is the
+#: smaller half of the estimate anyway: a call's worst case is the prompt plus
+#: the whole of `max_new_tokens`, which at effort high is 16,000 against a
+#: prompt of under 3,000.
+CHARACTERS_A_TOKEN = 4.0
+
 #: Seconds before an IAM token's stated expiry that it is treated as expired.
 #: A token that expires while a request is in flight is a 401 that costs a
 #: retry, and a minute of slack is cheaper than finding out.
@@ -132,6 +145,28 @@ class AnsweredWithoutContent(NarrationProviderError):
 
     The cause is a cap too small for the effort; `COMPARISON_MAX_NEW_TOKENS`
     has the measurements.
+    """
+
+
+class TokenCapReached(NarrationProviderError):
+    """The run has been billed what it was allowed, so nothing more is sent.
+
+    Raised before a call rather than after it, because a call already sent is
+    a call already billed: a cap that notices afterwards is a report and not a
+    cap. What it compares is the run's tally so far plus this call's worst
+    case, so the cap is never passed rather than being passed once and then
+    noticed.
+
+    **Why there is a cap at all.** Task 9d ran at `reasoning_effort` high and
+    cost about 817,000 tokens, and nothing in the run could have stopped it:
+    the plan printed an estimate before anything was sent and then the run
+    spent whatever it spent. `scripts/narrator_candidates.py` takes
+    `--max-total-tokens` with no default for that reason, and this is what it
+    arrives as.
+
+    `scripts/narrator_candidates.py` keeps every candidate already written
+    when it catches this, because the ones already paid for are the whole
+    point of stopping rather than crashing.
     """
 
 
@@ -320,6 +355,7 @@ class WatsonxProvider:
         max_new_tokens: int = DEFAULT_MAX_NEW_TOKENS,
         reasoning_effort: str | None = None,
         timeout: float | None = None,
+        token_cap: int | None = None,
     ) -> None:
         env = load_credentials() if env is None else env
         missing = [name for name in WATSONX_ENV_VARS if not env.get(name)]
@@ -387,6 +423,10 @@ class WatsonxProvider:
         self.prompt_tokens = 0
         self.completion_tokens = 0
         self.total_tokens = 0
+        #: The tokens this provider may be billed in all, or `None` for no
+        #: cap. It is read against the tally above before every call: see
+        #: `TokenCapReached` and `would_exceed_cap`.
+        self.token_cap = token_cap
 
     @property
     def url(self) -> str:
@@ -479,14 +519,42 @@ class WatsonxProvider:
         the token is dropped and fetched once more, and a second 401 is a real
         authorisation failure and is raised.
         """
-        body = self._send(
-            prompt,
-            self.max_new_tokens if max_new_tokens is None else max_new_tokens,
+        cap = (
+            self.max_new_tokens if max_new_tokens is None else max_new_tokens
         )
+        over = self.would_exceed_cap(prompt, cap)
+        if over is not None:
+            raise TokenCapReached(
+                "watsonx has billed this run {:,} tokens and this call could "
+                "take it to {:,}, past the {:,} it was allowed, so it was not "
+                "sent".format(self.total_tokens, over, self.token_cap)
+            )
+        body = self._send(prompt, cap)
         self._count(body)
         if self.chat:
             return self._read_chat(body)
         return self._read_generation(body)
+
+    def would_exceed_cap(
+        self, prompt: str, max_new_tokens: int
+    ) -> int | None:
+        """What this call could take the run's tally to, if that is over the
+        cap, and `None` where it is not or where there is no cap.
+
+        The worst case rather than the likely one: the prompt estimated at
+        `CHARACTERS_A_TOKEN`, plus the whole of `max_new_tokens`, because a
+        reasoning model writes its reasoning into that budget and at effort
+        high it used 14,141 of a 16,000 cap. A cap read against the likely
+        cost is a cap a run can walk through.
+        """
+        if self.token_cap is None:
+            return None
+        would = (
+            self.total_tokens
+            + round(len(prompt) / CHARACTERS_A_TOKEN)
+            + max_new_tokens
+        )
+        return would if would > self.token_cap else None
 
     def _count(self, body: Mapping[str, Any]) -> None:
         """Add what this call billed to the run's tally.

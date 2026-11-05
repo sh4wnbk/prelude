@@ -139,9 +139,10 @@ Everything above it is structure.
   every attempt, the claims the check refused, and whether the first attempt
   was grounded. Defaults to the 1986 goal at 54:18; takes a match id and a
   clock for any other. It needs a local Ollama server and writes nothing.
-- `tests/test_narration_provider.py`: 60 tests over the config and both
+- `tests/test_narration_provider.py`: 65 tests over the config and both
   backends, including the answer that is all reasoning and no narration, the
-  timeout a run sets for itself and the tokens watsonx says it billed. All 60
+  timeout a run sets for itself, the tokens watsonx says it billed and the
+  hard cap that stops a run before the next call passes it. All 65
   pass, and none of them opens a connection:
   `tests/conftest.py` replaces `urllib.request.urlopen` and
   `socket.socket.connect` with functions that raise, for every test in the
@@ -308,7 +309,7 @@ Everything above it is structure.
   the force words it may not, the verdicts about history it may not, and the
   reaction layer: where a reaction may stand, who may cheer in one and what
   makes a short sentence play instead. All pass.
-- `tests/test_narrator_candidates.py`: 135 tests over
+- `tests/test_narrator_candidates.py`: 143 tests over
   `app/goal_call_prompt.py` and `scripts/narrator_candidates.py`: the four
   styles, one per narrator and situation, the invented match their examples
   are shown through and the reaction each example ends on, the records the
@@ -316,8 +317,9 @@ Everything above it is structure.
   the six recorded slots read off `hero.voice_for`, the price of one
   recording, the request for tellings that differ in structure, the
   reasoning effort the run chooses for itself, the shape that tells two
-  tellings from one telling written twice, and the call count and token
-  estimate the run prints before it sends anything. All pass, and none calls
+  tellings from one telling written twice, the call count and token
+  estimate the run prints before it sends anything, and the hard token cap
+  that stops the run and keeps what it had written. All pass, and none calls
   a model.
 - `tests/test_narration.py`: 31 tests over the pipeline, covering the retries,
   the fallback, the citation stripping, the failure log, the first-attempt pass

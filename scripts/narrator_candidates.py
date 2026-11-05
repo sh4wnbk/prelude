@@ -39,10 +39,18 @@ not one per slot.
 **The call count is printed before anything is sent**, and nothing is sent
 without `--confirm`.
 
+**A run is capped in tokens and there is no default.** `--max-total-tokens`
+is what stops the run before watsonx bills it more than it was allowed,
+counted off the `usage` object on every answer, and `--confirm` refuses to
+start without one. Task 9d is why: it printed an estimate, sent its calls at
+`reasoning_effort` high and cost about 817,000 tokens, and an estimate is not
+a stop. When the cap is reached the run keeps every candidate already written
+and says which slot it stopped in.
+
 Run it:
 
     .\.venv-prelude\Scripts\python.exe -I scripts\narrator_candidates.py --plan
-    .\.venv-prelude\Scripts\python.exe -I scripts\narrator_candidates.py --confirm
+    .\.venv-prelude\Scripts\python.exe -I scripts\narrator_candidates.py --confirm --max-total-tokens 80000
 
 Standard library only.
 """
@@ -94,9 +102,11 @@ from app.narration_prompt import (  # noqa: E402
     touched_the_ball,
 )
 from app.narration_provider import (  # noqa: E402
+    CHARACTERS_A_TOKEN,
     COMPARISON_MAX_NEW_TOKENS,
     DEFAULT_TIMEOUT,
     NarrationProviderError,
+    TokenCapReached,
     WatsonxProvider,
 )
 from app.personas import THE_BUDDY, THE_STORYTELLER  # noqa: E402
@@ -123,15 +133,6 @@ DEFAULT_PER_SLOT = 3
 #: candidate is not a narration the app may speak, and a file in the working
 #: tree is a file that gets committed by habit.
 DEFAULT_OUT = Path.home() / "prelude-review"
-
-#: Characters a token is worth, for the estimate the plan prints.
-#:
-#: It is an estimate and is labelled one everywhere it is printed. Counting
-#: the tokens exactly would mean sending the prompt to watsonx's tokenization
-#: endpoint, which is a call to the paid service in order to find out what the
-#: paid service will cost. Four characters a token is the usual figure for
-#: English prose and is close enough to decide whether a run fits a budget.
-CHARACTERS_A_TOKEN = 4.0
 
 _NOTE = (
     "Goal-call candidate narrations, three per recorded slot, written by the "
@@ -366,10 +367,22 @@ def gather(
     allowance: int | None = None,
     only: Sequence[str] = (),
 ) -> list[dict]:
-    """Narrate every slot of every goal `per_slot` times and keep what passed."""
+    """Narrate every slot of every goal `per_slot` times and keep what passed.
+
+    Returns the goals and, where the token cap stopped the run, the reason it
+    gave. **Everything already written is kept.** The cap exists to stop a run
+    that is spending more than it was allowed, and a run that threw away the
+    candidates it had already paid for on its way out would be the more
+    expensive of the two failures. So the slot being written when the cap was
+    reached is recorded with the candidates it had, the goal is recorded with
+    the slots it had, and the heroes after it are simply absent.
+    """
     feed = StatsBombEventFeed()
     goals: list[dict] = []
+    stopped: str | None = None
     for year, match_id, minute, second in heroes:
+        if stopped:
+            break
         moment = moment_at(feed, match_id, minute, second)
         facts = facts_from_buildup(
             feed.buildup(match_id, moment), recorded_nicknames(match_id)
@@ -383,6 +396,8 @@ def gather(
         ))
         slots: list[dict] = []
         for key, side in slots_for(match_id, moment.team, only):
+            if stopped:
+                break
             persona = narrator_for(key)
             style = STYLES[slot_key(
                 persona.id, situation_for(side, moment.team)
@@ -409,6 +424,14 @@ def gather(
                         goal_call=True,
                         avoid=[one["text"] for one in kept],
                     )
+                except TokenCapReached as cap:
+                    # The run, not this candidate. Nothing after this would
+                    # be cheaper than what was just refused, so trying the
+                    # next slot would only print the same refusal five more
+                    # times.
+                    print("    candidate {}: {}".format(number, cap))
+                    stopped = str(cap)
+                    break
                 except (OSError, NarrationProviderError) as lost:
                     # A call that never came back costs this candidate and
                     # not the run. The run of 2026-10-31 read the first slot
@@ -560,7 +583,7 @@ def gather(
             }
         )
         print()
-    return goals
+    return goals, stopped
 
 
 def review(
@@ -569,6 +592,8 @@ def review(
     provider: str,
     reasoning_effort: str | None,
     max_new_tokens: int,
+    token_cap: int | None = None,
+    stopped: str | None = None,
 ) -> str:
     """The review file: every candidate, grouped by slot, with its price.
 
@@ -594,6 +619,18 @@ def review(
                    COMPARISON_DECODING.top_k,
                ))
     out.append("")
+    if token_cap is not None:
+        out.append("The run was allowed {:,} tokens in all and stopped "
+                   "before a call that could have passed that.".format(
+                       token_cap
+                   ))
+        out.append("")
+    if stopped:
+        out.append("**This run stopped on its token cap and is short of what "
+                   "it asked for.** Every candidate already written is here; "
+                   "the slots after the one it stopped in were not "
+                   "generated. {}".format(stopped))
+        out.append("")
     out.append("Every candidate was written by the model and passed the "
                "grounding check in app/grounding.py, read as a goal call. "
                "Nothing here is frozen.")
@@ -761,6 +798,8 @@ def document(goals: Sequence[dict], backend: WatsonxProvider) -> dict:
         "chat": backend.chat,
         "reasoning_effort": backend.reasoning_effort,
         "max_new_tokens": backend.max_new_tokens,
+        "max_total_tokens": backend.token_cap,
+        "billed_tokens": backend.total_tokens,
         "decoding": {
             "temperature": COMPARISON_DECODING.temperature,
             "top_p": COMPARISON_DECODING.top_p,
@@ -850,6 +889,16 @@ def main(argv: Sequence[str]) -> int:
              ),
     )
     parser.add_argument(
+        "--max-total-tokens",
+        type=int,
+        default=None,
+        metavar="TOKENS",
+        help="the tokens watsonx may bill this whole run, counted off the "
+             "usage object on every answer; the run stops before a call that "
+             "could pass it and keeps what it has written. There is no "
+             "default and --confirm refuses to start without it",
+    )
+    parser.add_argument(
         "--timeout",
         type=float,
         default=DEFAULT_TIMEOUT,
@@ -867,6 +916,22 @@ def main(argv: Sequence[str]) -> int:
 
     if args.per_slot < 1:
         raise SystemExit("--per-slot is how many candidates to ask for")
+    # No default, on purpose. Task 9d printed an estimate before it sent
+    # anything and then spent about 817,000 tokens, because an estimate is
+    # not a stop. A cap this run did not choose is a cap that sits at
+    # somebody else's number on the run that needed it.
+    if args.confirm and args.max_total_tokens is None:
+        raise SystemExit(
+            "--max-total-tokens is what stops this run before it is billed "
+            "more than it was allowed, and it has no default: Task 9d cost "
+            "about 817,000 tokens and nothing in the run could have stopped "
+            "it. Pass a cap in tokens. --plan prints what this run is "
+            "expected to spend."
+        )
+    if args.max_total_tokens is not None and args.max_total_tokens < 1:
+        raise SystemExit(
+            "--max-total-tokens is a count of tokens the run may be billed"
+        )
     out_dir = args.out.resolve()
     if ROOT == out_dir or ROOT in out_dir.parents:
         raise SystemExit(
@@ -961,6 +1026,14 @@ def main(argv: Sequence[str]) -> int:
           "token".format(
               spend["at_most"], spend["calls_at_most"], CHARACTERS_A_TOKEN,
           ))
+    print("cap       {}".format(
+        "{:,} tokens for the whole run, read off the usage object on every "
+        "answer; the run stops before a call that could pass it".format(
+            args.max_total_tokens
+        )
+        if args.max_total_tokens is not None
+        else "not set, and --confirm refuses to start without one"
+    ))
     print("review    {}".format(out_dir))
     print("freezes   nothing: app/web/narrations.json is not written here")
     print()
@@ -978,8 +1051,9 @@ def main(argv: Sequence[str]) -> int:
         decoding=COMPARISON_DECODING,
         reasoning_effort=args.reasoning_effort,
         timeout=args.timeout,
+        token_cap=args.max_total_tokens,
     )
-    goals = gather(
+    goals, stopped = gather(
         backend,
         args.per_slot,
         heroes=heroes,
@@ -1002,6 +1076,8 @@ def main(argv: Sequence[str]) -> int:
             backend.name,
             backend.reasoning_effort,
             backend.max_new_tokens,
+            token_cap=backend.token_cap,
+            stopped=stopped,
         ),
         encoding="utf-8",
         newline="\n",
@@ -1038,6 +1114,13 @@ def main(argv: Sequence[str]) -> int:
     print("the plan estimated {:,} expected and {:,} at most".format(
         spend["if_first_attempt"], spend["at_most"]
     ))
+    print("the cap was {:,} tokens and {:,} of it is unspent".format(
+        backend.token_cap, backend.token_cap - backend.total_tokens
+    ))
+    if stopped:
+        print("THE RUN STOPPED ON THE CAP and is short of what it asked "
+              "for: {}".format(stopped))
+        print("Everything written before that is in the files above.")
     print()
     print("Nothing is frozen. Shawn reads these aloud and picks six.")
     return 0
