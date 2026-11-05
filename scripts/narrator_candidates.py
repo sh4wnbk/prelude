@@ -19,8 +19,8 @@ The Caller has a style in `app/goal_call_prompt.py` and no recording, because
 `hero.voice_for` does not send a listener to it; nothing here generates for it.
 
 **The prompt is the goal-call prompt**, `build_goal_call_prompt`, which carries
-the records with no clock on them, the move as steps, the style for this
-narrator and situation, and one worked example from an invented match. The
+the story beats with no clock on them, the style for this narrator and
+situation, and one worked example from an invented match. The
 eight reference narrations in `tests/test_reference_narrations.py` are the
 standard and never the material: a reference in the prompt for the goal it
 describes is dictation.
@@ -1018,8 +1018,8 @@ def main(argv: Sequence[str]) -> int:
               COMPARISON_DECODING.top_p,
               COMPARISON_DECODING.top_k,
           ))
-    print("prompt    goal call: the records with no clock, the move as steps, "
-          "a style per narrator shown through an invented match")
+    print("prompt    goal call: the story beats with no clock on them, a "
+          "style per narrator shown through an invented match")
     print("target    about {} characters a narration, roughly {} words".format(
         GOAL_CALL_TARGET_CHARACTERS,
         round(GOAL_CALL_TARGET_CHARACTERS / GOAL_CALL_CHARACTERS_PER_WORD),
