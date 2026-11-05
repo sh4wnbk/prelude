@@ -354,10 +354,19 @@ def rules(
 ) -> str:
     """The rules, which are the ones `app/grounding.py` holds a goal call to.
 
-    Thirteen of them are the same for every narrator and rule 11 is the
+    Fifteen of them are the same for every narrator and rule 11 is the
     narrator's own. The one that reads differently per narrator is the one
     the check reads differently: the first person, the exclamation mark and
     how the reaction ends.
+
+    **Rules 15 and 16 are about the two beats a telling kept flattening.**
+    Both are general: they say what to do when the records mark a pass long
+    or a finish first time, and the beats say which pass and which finish
+    that is in this move. The run of 2026-11-05 is what asked for them. The
+    2022 move turns on Álvarez's 38 yard ball back to MacAllister and every
+    candidate told it as one more comma in a list of five passes, and the
+    2022 shot is the one of the two recorded as struck first time and no
+    candidate said so.
 
     **Rule 14 is a cadence rule and not a claim rule**, which is why nothing
     in `app/grounding.py` answers to it. Every candidate of 2026-10-31 hung
@@ -501,6 +510,15 @@ def rules(
                 "Use the word \"who\" at most once in the narration. Join the"
                 " play with other connections: a comma chain, \"and\", \"on"
                 " to\", or a new clause.",
+            ),
+            _rule(
+                15,
+                "When a pass is marked long, it is the turn of the move; give"
+                " it its own clause.",
+            ),
+            _rule(
+                16,
+                "When the finish is first time, say so, with the foot.",
             ),
         )
     )

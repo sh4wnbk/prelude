@@ -27,6 +27,7 @@ from app.goal_call_prompt import (
     STORYTELLER_NEUTRAL,
     STYLES,
     build_goal_call_prompt,
+    rules,
     shared_name_parts,
     situation_for,
     slot_key,
@@ -1568,6 +1569,54 @@ class TestTheCapStopsTheRunAndKeepsWhatWasWritten:
         slot = goals[0]["slots"][0]
         assert len(slot["candidates"]) == 1
         assert [one.get("near_copy_of") for one in slot["dropped"]] == [1, 1]
+
+
+class TestTheTwoRulesAboutTheLongBallAndTheFirstTimeFinish:
+    """Rules 15 and 16, general to any goal and asked for by one run.
+
+    The 2022 move turns on Álvarez's 38 yard ball back to MacAllister, and
+    every candidate of 2026-11-05 told it as one more comma in a list of five
+    passes. The 2022 shot is the one of the two recorded as struck first
+    time, and no candidate said so. Neither is a claim rule: the check holds
+    "a long ball" and "first time" to the records already, and nothing
+    refuses a telling that leaves them out.
+    """
+
+    def test_the_prompt_carries_both(self, facts_1986, facts_2022):
+        for facts in (facts_1986, facts_2022):
+            for key in STYLES:
+                said = flat(build_goal_call_prompt(facts, key))
+                assert (
+                    "When a pass is marked long, it is the turn of the move; "
+                    "give it its own clause." in said
+                )
+                assert (
+                    "When the finish is first time, say so, with the foot."
+                    in said
+                )
+
+    def test_they_are_general_and_name_no_match(self, facts_1986, facts_2022):
+        """Both read the same for a goal with no long ball and a finish that
+        is not first time, which 1986 is: the beats say which is which."""
+        one = flat(rules(facts_1986, STYLES[BUDDY_SCORED], 230))
+        other = flat(rules(facts_2022, STYLES[BUDDY_SCORED], 230))
+        for said in ("marked long", "the finish is first time"):
+            assert said in one
+            assert said in other
+
+    def test_the_records_behind_them_are_what_the_beats_print(
+        self, facts_1986, facts_2022
+    ):
+        """Rule 15 has one pass to point at in 2022 and none in 1986; rule 16
+        has the 2022 shot and not the 1986 one."""
+        assert [
+            beat.long_ball for beat in story(facts_2022).beats
+        ].count(True) == 1
+        assert not any(
+            beat.long_ball for beat in story(facts_1986).beats
+        )
+        assert story(facts_2022).beats[-1].first_time
+        assert not story(facts_1986).beats[-1].first_time
 
 
 class TestTheRuleAgainstHangingTheMoveOffWho:
