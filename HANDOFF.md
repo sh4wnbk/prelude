@@ -2985,6 +2985,15 @@ the second is dropped, and the reaction is left out of the shape. Shawn's
 four references for each hero goal come out as four shapes, so it is not
 over-eager. Applied to the eighteen this run produced it flags two.
 
+### Task 11, the second list: the pressure rule, the beats as phrases, two rules and the near copies (done)
+
+The record is above. Listed here so the plan reads in order: "under pressure"
+attributed to the player on the ball with "from X" checked against X's own
+pressure, every beat rendered as a phrase instead of a line with its fields
+labelled, rules 15 and 16 about the long ball and the first-time finish, a
+near-copy filter on the words as well as on the shape, and one rerun of the
+three 2022 slots.
+
 ### Task 11: the three check and prompt fixes, and the rerun (done)
 
 The record is above, under "Task 11". Listed here so the plan reads in order:
@@ -3266,6 +3275,150 @@ Shilton" is grounded, because the records hold a dribble past him; the manner
 is unsaid in the data and uncheckable, like "smashed" before it was banned
 outright. No candidate of the rerun used one, and nothing was changed for it.
 
+### Task 11, the second list: who "under pressure" is about, the beats as phrases, two rules and the near copies (done)
+
+**Shawn read the ten candidates of the first Task 11 rerun aloud and wrote a
+second list of steps under the same number.** The task before it is recorded
+above; this is the one that followed it on 2026-11-05, and the film is set in
+2022, so the Di María narration is the one the video plays and the three 2022
+slots are the ones this rerun spent anything on.
+
+**Step 1, `b0d4d2c`: "under pressure" belongs to the player on the ball.**
+`support` was never the problem and neither was the pressure record: the
+actor was. StatsBomb puts `under_pressure` on the record of the player being
+pressed and a `Pressure` on the record of the player pressing him, so reading
+the actor off the words landed the claim on Beardsley and asked his own
+record for Maradona's flag. The claim is the carrier's now, whoever is named
+beside it, and "under pressure from X" is a second claim of its own: X has a
+`Pressure` in the buildup. Both have to hold, so the refused narration of the
+earlier run passes on twenty claims and "under pressure from Fenwick", who
+was dribbled past and pressed nobody, is refused with `'under pressure from
+Fenwick': the records hold no pressure by Terry Fenwick in this passage`.
+
+A comma ends the list of pressers, which is the same bluntness `CLAUSE_BREAK`
+buys everywhere else and the same price: "under pressure from Beardsley, Reid
+and Butcher" checks Beardsley and reads the other two as names. It is a
+leniency rather than a false refusal, and it is what keeps "under pressure
+from Beardsley, Maradona dribbled past Butcher" from making Maradona a
+presser.
+
+**Step 2, `8c1c437`: a beat is a phrase a narrator can say.** The beat read
+"Julián Álvarez (Argentina) passed to Alexis MacAllister, long, forward",
+with the recorded fields labelled after the name, and four of the five 2022
+candidates wrote "Álvarez to MacAllister forward": the label read out loud.
+Every beat is one clause now, computed from the same fields. The direction
+sits inside the verb phrase, a pass at `LONG_PASS_YARDS` is "a long ball
+forward to X", a pass reaching a player who has already received one says
+"again", and the finish says first time and names the foot.
+
+**The 2022 beat list, from `scripts/story_beats_report.py`: 13 records to 6
+beats.**
+
+```
+  - Nahuel Molina (Argentina) passed it forward to Alexis MacAllister
+  - Alexis MacAllister (Argentina) passed it forward to Lionel Messi
+  - Lionel Messi (Argentina) passed it forward to Julián Álvarez
+  - Julián Álvarez (Argentina) hit a long ball forward to Alexis
+    MacAllister again
+  - Alexis MacAllister (Argentina) passed it forward to Ángel Di María,
+    into the box, which is the assist
+  - Ángel Di María (Argentina) shot first time with his left foot from
+    inside the box
+```
+
+**"Into the box" goes after the recipient and not before him**, because the
+box is where the ball arrived and he is the player who was in it. MacAllister
+played the assist from four yards outside, so "MacAllister passed it into the
+box" is a claim about MacAllister's own position, which `player_spots`
+refuses and should. A narration told in the beats' own order is grounded on
+twenty claims and the same narration with the box moved in front of the
+recipient is refused, which is a test.
+
+**Step 3, `72103d7`: rules 15 and 16.** "When a pass is marked long, it is
+the turn of the move; give it its own clause." and "When the finish is first
+time, say so, with the foot." Both are general to any goal and neither is a
+claim rule: the check holds "a long ball" and "first time" to the records
+already and nothing refuses a telling that leaves them out. The earlier run
+left both out of all ten.
+
+**Step 4, `61b19cd`: a near copy is caught in the words as well as the
+shape.** `play_shape` asks whether two tellings make the same moves in the
+same order, and it kept two pairs that read the same aloud: "We passed from
+Molina to MacAllister" and "We went from Molina to MacAllister" differ in one
+word and come out with different shapes, because "passed" is a claim the
+grammar reads and "went" is not. So the words are compared too, with every
+player name folded to one token, the punctuation gone and the accents folded,
+and `difflib`'s ratio over what is left. At 0.8 or higher the later candidate
+is dropped.
+
+| Pair, from the earlier run | Ratio |
+| -------------------------- | ----: |
+| 2022 `buddy_scored` 2 and 3 | 0.971 |
+| 2022 `storyteller_neutral` 1 and 2 | 0.912 |
+| 1986 `buddy_scored` 1 and 3 | 0.925 |
+| 1986 `buddy_conceded` 1 and 3 | 0.867 |
+| 1986 `buddy_conceded` 1 and `buddy_scored` 1 | 0.619 |
+
+**Words and not characters, `autojunk` off.** Compared character by
+character with the default, `SequenceMatcher` treats any character appearing
+in more than one per cent of a sequence over 200 long as junk, which over a
+250 character narration is the space and most of the alphabet: two 1986
+candidates opening on the same clause scored 0.084 that way.
+
+**Every same-slot pair of 1986 candidates in the document is a near copy at
+this threshold**, which is why the pair this is tested against comes from two
+different slots. The 1986 slots were not rerun and nothing was dropped from
+them: a filter decides what a run keeps and does not reach back into a
+document. If 1986 is ever rerun, two of its three slots come back with one
+candidate rather than two.
+
+**Step 5, the run: the three 2022 slots, 34,353 tokens of the 45,000
+allowed.** Effort low, three candidates a slot, two retries allowed, eleven
+calls and one IAM exchange. Four of the nine candidates were kept and 10,647
+of the cap is unspent.
+
+| This run, the three 2022 slots | |
+| --- | ---: |
+| calls sent | 11 |
+| billed by watsonx | 34,353 |
+| of it prompt | 29,832 |
+| of it completion | 4,521 |
+| the cap | 45,000 |
+| unspent | 10,647 |
+| candidates kept | 4 of 9 |
+| slots with something in them | 3 of 3 |
+
+The earlier rerun asked the same three slots for the same nine candidates
+with no retries, sent nine calls and kept five, and its billed total is only
+recorded for all six of its slots together (51,496), so the two runs' token
+figures are not comparable and no comparison is printed here.
+
+**2022 `buddy_conceded` has a candidate for the first time in three runs.**
+It was empty on both of the earlier runs, and the two it dropped here were
+dropped as near copies of the one it kept rather than as refusals.
+
+**Every candidate of this run says the long ball and says first time**,
+which is what rules 15 and 16 were for, and none of the four carries a
+standalone "forward" after a name, which is what step 2 was for. "Álvarez
+sent a long ball to MacAllister" is in all four.
+
+**Five of the nine went on the near-copy filter and one on three refusals.**
+The four near copies scored 0.97, 0.91, 0.85 and 0.83. The refusals are the
+model being wrong and the check working: "Brilliant!" as an editorial
+epithet, Álvarez's 36 yard ball up the pitch called a ball "back" twice, and
+"We surged from our half" over a Molina who has no carry in the passage.
+
+**The finding of this run: a hyphen gets a claim past the reading.** Three of
+the four kept candidates say "first-time" or "left-foot" with a hyphen, and
+`PHRASES` holds "first time" and "left foot" as two words, so neither is read
+as a claim and neither is checked. Nothing false passed: the record is
+`first_time` and `Left Foot`, so the words are true and the data agrees with
+them. But the check did not verify them, and the storyteller candidates say
+the foot that way and no other, so their body part is unchecked prose over a
+line the app would label. The fix is the hyphenated spelling beside the
+spaced one in `PHRASES`, which is a change to `app/narration_grammar.py` and
+one test, and nothing was changed for it here.
+
 ### Phase 5: voice and audio
 
 **This is where the personas are, now that the narration text is one text.**
@@ -3327,64 +3480,62 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Shawn reads ten candidates aloud and picks from five slots)
+## Next first action (Shawn reads nine candidates aloud and picks from six slots)
 
-**Task 11 is run end to end: all six slots were generated, ten candidates
-passed, and one slot is empty.** They are in
+**The three 2022 slots were rerun after the second Task 11 list and every one
+of them came back with something.** They are in
 `C:\Users\shawn\prelude-review\narrator_candidates_2026-11-05.md`, with the
-same data beside it as JSON, and that file is the rerun's: a slot this run
-produced replaces its older self, and this run produced all six.
+same data beside it as JSON. The three 1986 slots are carried across from the
+earlier rerun unchanged, with the provenance they were written with: this run
+asked for nothing from match 3750191 and spent nothing on it.
 
-| Slot | Kept |
-| ---- | ---: |
-| 1986 `buddy_conceded` | 2 |
-| 1986 `buddy_scored` | 2 |
-| 1986 `storyteller_neutral` | 1 |
-| 2022 `buddy_conceded` | 0 |
-| 2022 `buddy_scored` | 2 |
-| 2022 `storyteller_neutral` | 3 |
+| Slot | Kept | Which run wrote them |
+| ---- | ---: | -------------------- |
+| 1986 `buddy_conceded` | 2 | the first Task 11 rerun |
+| 1986 `buddy_scored` | 2 | the first Task 11 rerun |
+| 1986 `storyteller_neutral` | 1 | the first Task 11 rerun |
+| 2022 `buddy_conceded` | 1 | this run |
+| 2022 `buddy_scored` | 1 | this run |
+| 2022 `storyteller_neutral` | 2 | this run |
 
-**What the run cost: 51,496 tokens of the 80,000 allowed**, every one counted
-off watsonx's `usage` object, over 18 calls with no retries. 28,504 unspent.
-The Task 11 record above has the comparison against the retried run and the
-two findings that came out of this one.
+**What this run cost: 34,353 tokens of the 45,000 allowed**, every one
+counted off watsonx's `usage` object, over eleven calls. 10,647 unspent. The
+record above has the four near copies it dropped, the three refusals that
+cost its one empty candidate, and the finding about the hyphen.
 
-**2022 `buddy_conceded` is empty for a different reason than last time.** All
-three of its attempts were the model being wrong, not the check being wrong:
-"Álvarez back to MacAllister" over a ball 36 yards up the pitch, "Ah, no."
-written in front of the play, and "set up Di María forward" with the
-"forward" landing on Di María. With no retries each cost its candidate. That
-is the trade `--max-retries 0` makes, and it bought a run that reached every
-slot for two thirds of the tokens.
+**The film is set in 2022, so the Di María narration is the one the video
+plays**, and all four 2022 candidates now say the long ball and say the shot
+was struck first time. None of them carries a standalone "forward" after a
+name.
 
-**Two things to decide, and the first is cheap.**
-
-- **"Under pressure from X" is refused and the claim is true.** Three of the
-  eight drops are that one refusal. The fix is a rule in `support` about who
-  "under pressure" is about, plus a test, and it is worth doing before any
-  further paid run: half the kept 1986 candidates had to route around it.
-- **Whether to rerun 2022 `buddy_conceded`,** which is one slot and about
-  9,000 tokens at this run's rate:
+**The rerun command, if a 2022 slot is to be asked again.** A slot this run
+produced replaces its older self and a slot it did not touch is carried
+across, so the three 1986 slots survive any 2022 rerun:
 
 ```
-.\.venv-prelude\Scripts\python.exe -I scripts\narrator_candidates.py --plan --match 3869685 --slot buddy_conceded --reasoning-effort low --per-slot 3 --max-retries 1 --max-total-tokens 25000
+.\.venv-prelude\Scripts\python.exe -I scripts\narrator_candidates.py --confirm --match 3869685 --slot buddy_scored --slot buddy_conceded --slot storyteller_neutral --reasoning-effort low --per-slot 3 --max-retries 2 --max-total-tokens 45000
 ```
 
-`--max-retries 1` rather than 0, because that slot's three refusals were all
-the kind a second attempt fixes. `--plan` prints what it would spend and
-`--confirm` sends it; a slot this run did not produce is carried across
-unchanged, so the other five survive the rerun.
+`--plan` prints what it would spend and sends nothing; `--confirm` sends it.
+Drop the two `--slot` flags that are not wanted to rerun one slot alone.
 
 **Still owed after the pick.** Three things, and the first is Shawn's:
 
-1. Shawn picks one candidate per slot, reading them aloud. Five slots can be
-   picked from today and the sixth has nothing in it.
+1. Shawn picks one candidate per slot, reading them aloud. All six slots can
+   be picked from, and two of them hold one candidate each.
 2. The freeze. `scripts/freeze_narrations.py` writes one narration per goal
    and `app/web/narrations.json` holds one per goal, so writing six picks
    into it is a change to both and is not built.
    `scripts/narrator_candidates.py` freezes nothing on purpose.
 3. The recordings. `scripts/tts_hero.py --confirm` has not been sent and
    `hero.audio` is still `{}`.
+
+**One check fix is owed before the next paid run, and it is small.** Three of
+the four kept 2022 candidates say "first-time" or "left-foot" with a hyphen,
+and `PHRASES` holds those phrases as two words, so neither is read as a claim
+and neither is checked. The words are true and the records agree with them,
+and that is luck rather than verification. The fix is the hyphenated spelling
+beside the spaced one in `app/narration_grammar.py`, plus a test.
 
 **The Caller has a style and no recording.** `hero.voice_for` sends no
 listener to it, so nothing generated for it and there are six slots rather
