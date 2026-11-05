@@ -65,6 +65,7 @@ from scripts.hero_candidates import HEROES
 from scripts.narrator_candidates import (
     DEFAULT_PER_SLOT,
     gather,
+    said_who,
     merged,
     billed_for_slot,
     goals_to_run,
@@ -1400,3 +1401,107 @@ class TestTheCapStopsTheRunAndKeepsWhatWasWritten:
         slot = goals[0]["slots"][0]
         assert len(slot["candidates"]) == 1
         assert [one.get("near_copy_of") for one in slot["dropped"]] == [1, 1]
+
+
+class TestTheRuleAgainstHangingTheMoveOffWho:
+    """Rule 14, which is cadence and not a claim.
+
+    Every candidate of 2026-10-31 joined the move with "who": "passed to
+    Maradona, who carried it forward, who went past Beardsley". Grounded,
+    grammatical, and read aloud one shape repeated. Nothing in
+    `app/grounding.py` answers to it, so the prompt is where it is asked for
+    and the review file is where it is counted.
+    """
+
+    def test_the_prompt_carries_the_rule(self, facts_1986, facts_2022):
+        for facts in (facts_1986, facts_2022):
+            for key in STYLES:
+                said = flat(build_goal_call_prompt(facts, key))
+                assert (
+                    'Use the word "who" at most once in the narration.'
+                    in said
+                )
+                assert (
+                    "Join the play with other connections: a comma chain, "
+                    '"and", "on to", or a new clause.' in said
+                )
+
+    def test_the_cadence_rules_are_not_changed(self, facts_1986):
+        """It does not ban a long sentence and does not ask for a full stop
+        after each pass: rule 12 still asks for one or two sentences of play
+        with the clauses joined."""
+        said = flat(build_goal_call_prompt(facts_1986, BUDDY_SCORED))
+        assert "One or two sentences of play, clauses joined rather than one" \
+            " claim per full stop" in said
+        assert "sentence per pass" not in said
+        assert "short sentences" not in said
+
+    def test_a_candidate_is_counted_rather_than_dropped(self, facts_1986):
+        """Shawn reads the eighteen aloud and picks six, so a candidate with
+        two "who" is flagged and kept: the count is for the reader."""
+        hung = (
+            "Cuciuffo won it back and found Enrique, who played it to "
+            "Maradona, who carried it forward past Beardsley, Butcher and "
+            "Fenwick, and scored with his left."
+        )
+        assert said_who(hung) == 2
+        assert said_who(references.STORYTELLER_1986) <= 1
+        assert said_who("Nobody is named here.") == 0
+
+    def test_who_is_counted_as_a_word_and_not_inside_another(self):
+        """"Whose" and "whoever" are other words, and the count is case
+        insensitive because a sentence can open on it."""
+        assert said_who("Whose ball was it? Whoever wanted it.") == 0
+        assert said_who("Who finished it, and who set it up") == 2
+
+    def test_the_review_file_prints_the_count_and_flags_a_second(
+        self, facts_1986
+    ):
+        hung = (
+            "Cuciuffo won it back and found Enrique, who played it to "
+            "Maradona, who scored with his left."
+        )
+        goals = [
+            {
+                "year": 1986,
+                "match_id": MATCH_1986,
+                "minute": 54,
+                "second": 18,
+                "player": "Diego Armando Maradona",
+                "team": "Argentina",
+                "records": 24,
+                "recorded_players": ("Diego Armando Maradona",),
+                "players_who_touched_the_ball": ("Diego Armando Maradona",),
+                "shared_name_parts": (),
+                "slots": [
+                    {
+                        "slot": BUDDY_SCORED,
+                        "label": STYLES[BUDDY_SCORED].label,
+                        "narrator": "buddy",
+                        "side": "Argentina",
+                        "candidates": [
+                            {
+                                "candidate": 1,
+                                "text": hung,
+                                "attempt": 1,
+                                "first_attempt_grounded": True,
+                                "claims_checked": 9,
+                                "billed_characters": 280,
+                                "characters": len(hung),
+                                "words": len(hung.split()),
+                                "coverage": slot_coverage(hung, facts_1986),
+                            }
+                        ],
+                        "dropped": [],
+                    }
+                ],
+            }
+        ]
+        text = review(goals, "m", "p", "low", 2000)
+        assert '"who" twice' in text
+        assert "rule 14 allows one" in text
+
+    def test_the_coverage_carries_the_count(self, facts_2022):
+        cover = slot_coverage(references.BUDDY_2022_ARGENTINA, facts_2022)
+        assert "who" in cover
+        assert cover["who"] == said_who(references.BUDDY_2022_ARGENTINA)

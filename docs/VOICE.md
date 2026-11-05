@@ -20,7 +20,7 @@ into two places that have to agree:
 | Where | What it does |
 | ----- | ------------ |
 | `app/narration_prompt.py` | builds the numbered facts, holds the one style in `NARRATION_STYLE`, and states the rules to the model in the prompt |
-| `app/goal_call_prompt.py` | builds the goal-call prompt: a style and a worked example per narrator, the story beats with no clock on them, and the thirteen rules |
+| `app/goal_call_prompt.py` | builds the goal-call prompt: a style and a worked example per narrator, the story beats with no clock on them, and the fourteen rules |
 | `app/story_beats.py` | curates the passage down to the beats the prompt shows, so the model is not handed every recorded event |
 | `app/narration_grammar.py` | reads a goal call that cites nothing, and holds the yard thresholds the words are measured against |
 | `app/personas.py` | the three voices the one narration can be spoken in, which is Phase 5 and not this document |
@@ -396,6 +396,7 @@ shot, and the last thing said is that it went in.
 | **No full names every time** | a name said in full six times is a document, not a call. |
 | **No filler repetition** | the repetition that builds is "past, past, past". Saying "received the ball" four times is not that, and `app/story_beats.py` is what stops it: a receipt is not a beat and is not shown. |
 | **No opener two goals share** | an opening line that would fit any goal is an opening line that says nothing about this one. |
+| **No move hung off "who"** | "passed to Maradona, who carried it forward, who went past Beardsley" is grounded and is one shape repeated. Rule 14 of the goal-call prompt allows "who" once; the joins are a comma chain, "and", "on to" or a new clause. |
 
 ### The beats the model is shown, which are not the records
 

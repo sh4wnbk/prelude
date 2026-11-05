@@ -57,6 +57,7 @@ Standard library only.
 
 import argparse
 import json
+import re
 import sys
 from datetime import date
 from pathlib import Path
@@ -215,6 +216,22 @@ def billed_for_slot(match_id: int, key: str, narration: str) -> int:
     return len("".join(spoken.split()))
 
 
+def said_who(text: str) -> int:
+    """How many times a narration says the word "who".
+
+    Rule 14 of the goal-call prompt allows one. Nothing in
+    `app/grounding.py` answers to it, because it is cadence rather than a
+    claim: "passed to Maradona, who carried it forward, who went past
+    Beardsley" is true of the records and is one shape repeated. So it is
+    counted and printed beside each candidate, and Shawn reads the eighteen
+    aloud and decides.
+
+    A whole word, case insensitively, so "whose" and "whoever" are other
+    words and a sentence opening on "Who" is counted.
+    """
+    return len(re.findall(r"\bwho\b", text, flags=re.IGNORECASE))
+
+
 def slot_coverage(text: str, facts: Facts) -> dict:
     """What a goal-call candidate covers, as numbers a choice can be made on.
 
@@ -261,6 +278,7 @@ def slot_coverage(text: str, facts: Facts) -> dict:
         "sentences": text.count(".") + text.count("!") + text.count("?"),
         "cheers": text.count("!"),
         "digits": sum(1 for character in text if character.isdigit()),
+        "who": said_who(text),
         "says_scored": any(
             word in text.lower() for word in ("scored", "finished", "score")
         ),
@@ -545,9 +563,9 @@ def gather(
                     continue
                 kept.append(one)
                 print("    candidate {}: grounded on {} claims, attempt {}, "
-                      "{} billed, {} characters".format(
+                      "{} billed, {} characters, \"who\" x{}".format(
                           number, result.checked, attempts, billed,
-                          len(narrated.text),
+                          len(narrated.text), said_who(narrated.text),
                       ))
                 print("      | {}".format(narrated.text))
             slots.append(
@@ -668,17 +686,18 @@ def review(
                 out.append("No candidate for this slot passed.")
                 out.append("")
                 continue
-            out.append("| # | Billed | Characters | Words | \"!\" | Digits | "
-                       "Players named | Beats |")
+            out.append("| # | Billed | Characters | Words | \"!\" | "
+                       "\"who\" | Digits | Players named | Beats |")
             out.append("| - | -----: | ---------: | ----: | ---: | -----: | "
-                       "------------: | ----- |")
+                       "-----: | ------------: | ----- |")
             for one in slot["candidates"]:
                 cover = one["coverage"]
-                out.append("| {} | {} | {} | {} | {} | {} | {} of {} | "
+                out.append("| {} | {} | {} | {} | {} | {} | {} | {} of {} | "
                            "{} of {} |".format(
                                one["candidate"], one["billed_characters"],
                                one["characters"], one["words"],
-                               cover["cheers"], cover["digits"],
+                               cover["cheers"], cover.get("who", 0),
+                               cover["digits"],
                                len(cover["named_players"]),
                                len(cover["recorded_players"]),
                                cover["key_beats_reached"], cover["key_beats"],
@@ -698,6 +717,20 @@ def review(
                 out.append("- Grounded on {} claims, on attempt {}".format(
                     one["claims_checked"], one["attempt"]
                 ))
+                said = cover.get("who", 0)
+                if said > 1:
+                    # Flagged and kept. Rule 14 is cadence rather than a
+                    # claim, so nothing refuses it and the reader decides.
+                    out.append("- **Says \"who\" {}:** rule 14 allows one, "
+                               "and this one is for Shawn to judge "
+                               "aloud".format(
+                                   "twice" if said == 2
+                                   else "{} times".format(said)
+                               ))
+                else:
+                    out.append("- Says \"who\" {}".format(
+                        "once" if said == 1 else "not at all"
+                    ))
                 out.append("- Names {} of the {} recorded players: {}".format(
                     len(cover["named_players"]),
                     len(cover["recorded_players"]),

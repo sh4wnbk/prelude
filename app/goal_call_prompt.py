@@ -354,10 +354,17 @@ def rules(
 ) -> str:
     """The rules, which are the ones `app/grounding.py` holds a goal call to.
 
-    Twelve of them are the same for every narrator and the thirteenth is the
+    Thirteen of them are the same for every narrator and rule 11 is the
     narrator's own. The one that reads differently per narrator is the one
     the check reads differently: the first person, the exclamation mark and
     how the reaction ends.
+
+    **Rule 14 is a cadence rule and not a claim rule**, which is why nothing
+    in `app/grounding.py` answers to it. Every candidate of 2026-10-31 hung
+    the move off "who": "passed to Maradona, who carried it forward, who went
+    past Beardsley". It is grammatical, it is grounded, and read aloud it is
+    one shape repeated. The rest of the cadence is untouched: a long sentence
+    is still allowed and nothing asks for a full stop after each pass.
     """
     shared = shared_name_parts(facts)
     words = round(target_characters / GOAL_CALL_CHARACTERS_PER_WORD)
@@ -488,6 +495,12 @@ def rules(
                 " pronoun takes over from the name, whether there is a"
                 " reaction at all. Two narrations that differ only in a"
                 " synonym are one narration, and only one of them is kept.",
+            ),
+            _rule(
+                14,
+                "Use the word \"who\" at most once in the narration. Join the"
+                " play with other connections: a comma chain, \"and\", \"on"
+                " to\", or a new clause.",
             ),
         )
     )

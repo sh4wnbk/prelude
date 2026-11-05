@@ -320,18 +320,21 @@ Everything above it is structure.
   the force words it may not, the verdicts about history it may not, and the
   reaction layer: where a reaction may stand, who may cheer in one and what
   makes a short sentence play instead. All pass.
-- `tests/test_narrator_candidates.py`: 151 tests over
-  `app/goal_call_prompt.py` and `scripts/narrator_candidates.py`: the four
+- `tests/test_narrator_candidates.py`: 157 tests over
+  `app/goal_call_prompt.py`, `app/story_beats.py` and
+  `scripts/narrator_candidates.py`: the four
   styles, one per narrator and situation, the invented match their examples
-  are shown through and the reaction each example ends on, the records the
-  prompt prints with no clock on them and with which way and how far on them,
-  the six recorded slots read off `hero.voice_for`, the price of one
+  are shown through and the reaction each example ends on, the story beats
+  the prompt shows and the receipts and short carries it does not, the clock
+  no beat and no prompt carries, the six recorded slots read off
+  `hero.voice_for`, the price of one
   recording, the request for tellings that differ in structure, the
   reasoning effort the run chooses for itself, the shape that tells two
-  tellings from one telling written twice, the call count and token
-  estimate the run prints before it sends anything, and the hard token cap
-  that stops the run and keeps what it had written. All pass, and none calls
-  a model.
+  tellings from one telling written twice, the rule against hanging the move
+  off "who" and the count printed beside each candidate, the call count and
+  token estimate the run prints before it sends anything, and the hard token
+  cap that stops the run and keeps what it had written. All pass, and none
+  calls a model.
 - `tests/test_narration.py`: 31 tests over the pipeline, covering the retries,
   the fallback, the citation stripping, the failure log, the first-attempt pass
   rate, the characters made plain as a model's text arrives and the attempt
