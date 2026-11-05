@@ -30,6 +30,16 @@ at most `MAX_RETRIES + 1` attempts per candidate, and a candidate that reaches
 the code's template fallback yields nothing rather than a narration the code
 wrote. So a run can come back with fewer than it asked for, and says so.
 
+**A near copy is not a candidate, and it is tested twice.** `play_shape`
+asks whether two tellings make the same moves in the same order, and
+`near_copy_ratio` asks how alike the words are once the player names are
+folded to one token. The second is there because the first kept two pairs
+from the run of 2026-11-05 that read the same aloud: "We passed from Molina
+to MacAllister" and "We went from Molina to MacAllister" differ in one word
+and come out with different shapes, because "passed" is a claim the grammar
+reads and "went" is not. The later of a pair is the one dropped, and the
+review file says which candidate it matched and by how much.
+
 **Nothing here is frozen and nothing here goes in the repo.** The review file
 is written outside the working tree. Shawn reads the candidates aloud and picks
 six; writing those six into `app/web/narrations.json` is a later task, because
@@ -56,6 +66,7 @@ Standard library only.
 """
 
 import argparse
+import difflib
 import json
 import re
 import sys
@@ -89,7 +100,7 @@ from app.grounding import (  # noqa: E402
     is_a_reaction,
     sentences,
 )
-from app.narration_grammar import Reader  # noqa: E402
+from app.narration_grammar import WORD, Reader, fold, name_keys  # noqa: E402
 from app.narration import MAX_RETRIES, MODEL, narrate  # noqa: E402
 from app.narration_config import (  # noqa: E402
     ACTIVE_CANDIDATE,
@@ -129,6 +140,24 @@ from scripts.tts_hero import DEFAULT_BUDGET  # noqa: E402
 #: Candidates asked for per slot. Three is what Shawn asked to choose from,
 #: and six slots makes eighteen.
 DEFAULT_PER_SLOT = 3
+
+#: How alike two tellings of one move may be before the later one is a near
+#: copy, as `difflib.SequenceMatcher.ratio` scores them.
+#:
+#: **0.8 because of what the run of 2026-11-05 kept.** Its 2022
+#: `buddy_scored` candidates 2 and 3 are "We passed from Molina to
+#: MacAllister..." and "We went from Molina to MacAllister...", the same
+#: telling with one word changed, and they score 0.971. Its 2022
+#: `storyteller_neutral` candidates 1 and 2 score 0.912. The pairs of that
+#: run that read differently, each from a different slot, are between 0.596
+#: and 0.773. Nothing in either passage sits between 0.773 and 0.912, so the
+#: threshold has room on both sides of it.
+NEAR_COPY_RATIO = 0.8
+
+#: A possessive ending, taken off before a name lookup, as
+#: `app/narration_grammar.py` does: `WORD` keeps the apostrophe, so
+#: "Cuciuffo's" arrives with its ending attached.
+_POSSESSIVE = re.compile(r"(?:['’]s|['’])$")
 
 #: Where the review file goes, which is outside the repo on purpose: a
 #: candidate is not a narration the app may speak, and a file in the working
@@ -327,6 +356,52 @@ def play_shape(text: str, facts: Facts) -> tuple[tuple[str, ...], ...]:
         for one, moves in zip(parsed, read)
         if not is_a_reaction(one.text, moves)
     )
+
+
+def one_telling(text: str, facts: Facts) -> tuple[str, ...]:
+    """A telling as words, with every player name replaced by one token.
+
+    Lower case, accents folded, the punctuation gone and every name part this
+    passage records written as "name", so what is left is the shape of the
+    sentence and the words that are not names. "Molina to MacAllister" and
+    "Messi to Álvarez" are the same two words either way, which is the point:
+    two tellings that differ only in which pass they open on are not two
+    tellings, and two that differ only in "we passed from" against "we went
+    from" are one telling with one word changed.
+
+    The names are folded away rather than left in because a name is the one
+    word a telling of this move cannot choose: every candidate names the same
+    five players in the same order, so leaving them in makes every pair look
+    more alike than it is in the words the narrator did choose.
+    """
+    keys = name_keys(facts)
+    said = []
+    for word in WORD.findall(text):
+        plain = fold(_POSSESSIVE.sub("", word))
+        said.append("name" if plain in keys else plain)
+    return tuple(said)
+
+
+def near_copy_ratio(one: str, other: str, facts: Facts) -> float:
+    """How alike two tellings of one move are, between 0.0 and 1.0.
+
+    `difflib`'s own ratio over the words of `one_telling`, which is what
+    `NEAR_COPY_RATIO` is read against.
+
+    **Words rather than characters, and `autojunk` off.** Compared character
+    by character with the default, `SequenceMatcher` treats any character
+    appearing in more than one per cent of a sequence over 200 long as junk,
+    which over a 250 character narration is the space and most of the
+    alphabet: two 1986 candidates that open on the same clause scored 0.084
+    that way. A telling is a sequence of words, so the words are what is
+    compared.
+    """
+    return difflib.SequenceMatcher(
+        None,
+        one_telling(one, facts),
+        one_telling(other, facts),
+        autojunk=False,
+    ).ratio()
 
 
 def prompt_characters(
@@ -560,6 +635,37 @@ def gather(
                           "dropped".format(number, twin["candidate"]))
                     print("      | {}".format(narrated.text))
                     one["near_copy_of"] = twin["candidate"]
+                    one["near_copy_by"] = "shape"
+                    dropped.append(one)
+                    continue
+                # The same test in the words, which the shape test misses:
+                # "We passed from Molina" and "We went from Molina" read the
+                # same aloud and come out with different shapes, because
+                # "passed" is a claim the grammar reads and "went" is not. The
+                # run of 2026-11-05 kept both, in two slots.
+                alike = [
+                    (
+                        other,
+                        near_copy_ratio(narrated.text, other["text"], facts),
+                    )
+                    for other in kept
+                ]
+                alike = [
+                    pair for pair in alike if pair[1] >= NEAR_COPY_RATIO
+                ]
+                if alike:
+                    other, ratio = max(alike, key=lambda pair: pair[1])
+                    print("    candidate {}: grounded, and a near copy of "
+                          "candidate {} at {:.2f} of the {:.2f} allowed; "
+                          "dropped".format(
+                              number, other["candidate"], ratio,
+                              NEAR_COPY_RATIO,
+                          ))
+                    print("      | {}".format(narrated.text))
+                    print("      = {}".format(other["text"]))
+                    one["near_copy_of"] = other["candidate"]
+                    one["near_copy_by"] = "words"
+                    one["near_copy_ratio"] = round(ratio, 3)
                     dropped.append(one)
                     continue
                 kept.append(one)
@@ -767,7 +873,61 @@ def review(
                     said += ", {} of them as the same telling as one that "                            "was kept".format(len(copies))
                 out.append(said + ".")
                 out.append("")
+                # One line per drop, with the reason. The run of 2026-11-05
+                # printed the count alone and the only way to see what was
+                # dropped and why was the console log.
+                for one in slot["dropped"]:
+                    out.append("- Candidate {}: {}".format(
+                        one["candidate"], _why_dropped(one)
+                    ))
+                out.append("")
     return "\n".join(out) + "\n"
+
+
+def _why_dropped(one: Mapping) -> str:
+    """Why one candidate did not reach the review file, in a sentence.
+
+    Four reasons, which are the four the run can produce: a call that never
+    came back, a near copy of one already kept, a grounded narration costing
+    more than a recording may, and the check refusing every attempt.
+    """
+    if one.get("lost"):
+        return "the call did not come back: {}".format(one["lost"])
+    if one.get("near_copy_of"):
+        if one.get("near_copy_by") == "words":
+            return (
+                "a near copy of candidate {} at {:.2f} of the {:.2f} "
+                "allowed: \"{}\"".format(
+                    one["near_copy_of"], one.get("near_copy_ratio", 0.0),
+                    NEAR_COPY_RATIO, one["text"],
+                )
+            )
+        return (
+            "the same telling as candidate {} with other words in it: "
+            "\"{}\"".format(one["near_copy_of"], one["text"])
+        )
+    if one.get("over_allowance"):
+        return (
+            "grounded, and {} billed characters over the {} a recording may "
+            "cost: \"{}\"".format(
+                one["billed_characters"] - one["over_allowance"],
+                one["over_allowance"], one["text"],
+            )
+        )
+    refusals = one.get("refused") or []
+    if refusals:
+        return "refused on {} attempt(s). {}".format(
+            one.get("attempts", len(refusals)),
+            " ".join(
+                "Attempt {}: \"{}\" {}".format(
+                    attempt["attempt"],
+                    " ".join(attempt["text"].split()),
+                    attempt["summary"],
+                )
+                for attempt in refusals
+            ),
+        )
+    return "dropped, and the run recorded no reason"
 
 
 def merged(goals: Sequence[dict], path: Path) -> list[dict]:

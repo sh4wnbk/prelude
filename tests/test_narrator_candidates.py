@@ -68,7 +68,10 @@ from app.narration_provider import IAM_TOKEN_URL, WatsonxProvider
 from scripts.hero_candidates import HEROES
 from scripts.narrator_candidates import (
     DEFAULT_PER_SLOT,
+    NEAR_COPY_RATIO,
     gather,
+    near_copy_ratio,
+    one_telling,
     said_who,
     merged,
     billed_for_slot,
@@ -1569,6 +1572,232 @@ class TestTheCapStopsTheRunAndKeepsWhatWasWritten:
         slot = goals[0]["slots"][0]
         assert len(slot["candidates"]) == 1
         assert [one.get("near_copy_of") for one in slot["dropped"]] == [1, 1]
+
+
+def recorded_backend(answers, billed=6_000, **kwargs):
+    """A watsonx provider whose chat endpoint answers with each text in turn.
+
+    The golden transport in `TestTheTokenCap` answers with one narration
+    every time, which the shape filter catches as a copy of itself. The
+    near-copy test needs two answers that differ, so the body is built per
+    call from `answers`, with the last one repeated once they run out.
+    """
+    golden = read_json(GOLDEN / "watsonx_text_generation.json")
+    said = iter([])
+
+    def body(index):
+        return {
+            "usage": {
+                "prompt_tokens": billed - 200,
+                "completion_tokens": 200,
+                "total_tokens": billed,
+            },
+            "choices": [
+                {
+                    "index": 0,
+                    "finish_reason": "stop",
+                    "message": {
+                        "role": "assistant",
+                        "content": answers[min(index, len(answers) - 1)],
+                    },
+                }
+            ],
+        }
+
+    chat_url = WatsonxProvider(env=golden["env"], chat=True).url
+    state = {"sent": 0}
+
+    def transport(url, sent, headers):
+        if url == IAM_TOKEN_URL:
+            return golden["iam"]["response"]
+        answer = body(state["sent"])
+        state["sent"] += 1
+        return answer
+
+    return WatsonxProvider(
+        env=golden["env"],
+        chat=True,
+        transport=transport,
+        max_new_tokens=2000,
+        **kwargs,
+    )
+
+class TestANearCopyIsNotACandidate:
+    """The words as well as the shape, over the candidates of 2026-11-05.
+
+    `play_shape` catches two tellings that make the same moves in the same
+    order, and it kept two pairs that read the same aloud: "We passed from
+    Molina to MacAllister" against "We went from Molina to MacAllister" comes
+    out with a different shape, because "passed" is a claim the grammar reads
+    and "went" is not. So the words are compared too, with the player names
+    folded to one token, since a name is the one word a telling of this move
+    cannot choose.
+
+    Every narration quoted here is one the model wrote in the run of
+    2026-11-05 and the check passed, read off
+    `narrator_candidates_2026-11-05.json`.
+    """
+
+    #: 2022 `buddy_scored`, candidates 2 and 3: one word apart.
+    BUDDY_2022_TWO = (
+        "We passed from Molina to MacAllister, he found Messi, Messi to "
+        "\u00c1lvarez, \u00c1lvarez to MacAllister forward, MacAllister set up "
+        "Di Mar\u00eda who struck with his left foot and it went in! What a "
+        "moment!"
+    )
+    BUDDY_2022_THREE = (
+        "We went from Molina to MacAllister, he found Messi, Messi to "
+        "\u00c1lvarez, \u00c1lvarez to MacAllister forward, MacAllister set up "
+        "Di Mar\u00eda who struck with his left foot and it went in! What a "
+        "moment!"
+    )
+
+    #: 2022 `storyteller_neutral`, candidates 1 and 2: the same list of
+    #: passes, and the second says the box and drops the "who".
+    NEUTRAL_2022_ONE = (
+        "Molina to MacAllister, MacAllister to Messi, Messi to \u00c1lvarez, "
+        "\u00c1lvarez to MacAllister forward, MacAllister set up Di Mar\u00eda "
+        "who struck with his left foot and the ball went in. What a finish."
+    )
+    NEUTRAL_2022_TWO = (
+        "Molina to MacAllister, MacAllister to Messi, Messi to \u00c1lvarez, "
+        "\u00c1lvarez to MacAllister forward, MacAllister set up Di Mar\u00eda, "
+        "and he struck with his left foot inside the box and the ball went "
+        "in. What a finish."
+    )
+
+    #: 1986, two candidates that read differently: the England fan's Buddy,
+    #: which opens on the full recorded name and ends on "Ah, no.", and the
+    #: Argentina fan's, which opens in the first person and ends on "What a
+    #: moment!". They are from different slots of that run, because every
+    #: pair inside one 1986 slot is itself a near copy at this threshold:
+    #: `buddy_conceded` 1 and 3 score 0.867 and `buddy_scored` 1 and 3 score
+    #: 0.925.
+    CONCEDED_1986 = (
+        "Jos\u00e9 Luis Cuciuffo recovered the ball and passed to H\u00e9ctor "
+        "Enrique, who found Maradona; pressed by Beardsley and Reid, "
+        "Maradona dribbled past Beardsley, Butcher and Fenwick, carried it "
+        "forward into the box, slipped past Shilton and struck with his left "
+        "foot. Ah, no."
+    )
+    SCORED_1986 = (
+        "We won it back through Cuciuffo, who passed to Enrique, and he set "
+        "up Maradona, Maradona dribbled past Beardsley, Butcher and "
+        "Fenwick, he carried it forward into the box, dribbled past Shilton "
+        "and shot with his left foot! What a moment!"
+    )
+
+    def test_the_2022_buddy_pair_is_a_near_copy(self, facts_2022):
+        ratio = near_copy_ratio(
+            self.BUDDY_2022_TWO, self.BUDDY_2022_THREE, facts_2022
+        )
+        assert ratio >= NEAR_COPY_RATIO
+        assert round(ratio, 3) == 0.971
+
+    def test_the_2022_neutral_pair_is_a_near_copy(self, facts_2022):
+        ratio = near_copy_ratio(
+            self.NEUTRAL_2022_ONE, self.NEUTRAL_2022_TWO, facts_2022
+        )
+        assert ratio >= NEAR_COPY_RATIO
+        assert round(ratio, 3) == 0.912
+
+    def test_a_1986_pair_that_reads_differently_is_kept(self, facts_1986):
+        ratio = near_copy_ratio(
+            self.CONCEDED_1986, self.SCORED_1986, facts_1986
+        )
+        assert ratio < NEAR_COPY_RATIO
+        assert round(ratio, 3) == 0.619
+
+    def test_the_shape_test_kept_both_2022_pairs(self, facts_2022):
+        """Why the words are compared at all: the shape filter that was
+        already there saw two different tellings in each pair."""
+        assert play_shape(self.BUDDY_2022_TWO, facts_2022) != play_shape(
+            self.BUDDY_2022_THREE, facts_2022
+        )
+        assert play_shape(self.NEUTRAL_2022_ONE, facts_2022) != play_shape(
+            self.NEUTRAL_2022_TWO, facts_2022
+        )
+
+    def test_the_names_are_folded_to_one_token(self, facts_2022):
+        said = one_telling(
+            "Molina to MacAllister, and Di Mar\u00eda scored.", facts_2022
+        )
+        assert said == (
+            "name", "to", "name", "and", "name", "name", "scored"
+        )
+
+    def test_a_possessive_and_an_accent_fold_the_same_way(self, facts_2022):
+        """"\u00c1lvarez's" is one name part with an ending on it, and
+        "Alvarez" unaccented is the same part."""
+        assert one_telling("\u00c1lvarez's ball", facts_2022) == (
+            "name", "ball"
+        )
+        assert one_telling("Alvarez's ball", facts_2022) == ("name", "ball")
+
+    def test_the_punctuation_is_gone(self, facts_2022):
+        assert one_telling(
+            "Messi, to \u00c1lvarez!", facts_2022
+        ) == one_telling("Messi to \u00c1lvarez", facts_2022)
+
+    def test_the_same_narration_twice_is_a_near_copy(self, facts_2022):
+        assert near_copy_ratio(
+            references.BUDDY_2022_ARGENTINA,
+            references.BUDDY_2022_ARGENTINA,
+            facts_2022,
+        ) == 1.0
+
+    def test_the_threshold_has_room_on_both_sides_of_it(
+        self, facts_1986, facts_2022
+    ):
+        """Nothing in that run's candidates sits between the pairs that read
+        differently and the pairs that do not."""
+        copies = [
+            near_copy_ratio(
+                self.BUDDY_2022_TWO, self.BUDDY_2022_THREE, facts_2022
+            ),
+            near_copy_ratio(
+                self.NEUTRAL_2022_ONE, self.NEUTRAL_2022_TWO, facts_2022
+            ),
+        ]
+        apart = [
+            near_copy_ratio(
+                self.CONCEDED_1986, self.SCORED_1986, facts_1986
+            ),
+            near_copy_ratio(
+                self.BUDDY_2022_TWO, self.NEUTRAL_2022_TWO, facts_2022
+            ),
+        ]
+        assert max(apart) < NEAR_COPY_RATIO <= min(copies)
+
+    def test_the_later_one_is_the_one_dropped(self):
+        """The filter runs against the candidates already kept, so the first
+        telling of a pair stays and the second goes."""
+        backend = recorded_backend([self.BUDDY_2022_TWO, self.BUDDY_2022_THREE])
+        hero = next(one for one in HEROES if one[1] == MATCH_2022)
+        goals, stopped = gather(
+            backend, 2, heroes=(hero,), only=[BUDDY_SCORED]
+        )
+        assert stopped is None
+        slot = goals[0]["slots"][0]
+        assert [one["text"] for one in slot["candidates"]] == [
+            self.BUDDY_2022_TWO
+        ]
+        assert [one["candidate"] for one in slot["dropped"]] == [2]
+        dropped = slot["dropped"][0]
+        assert dropped["text"] == self.BUDDY_2022_THREE
+        assert dropped["near_copy_of"] == 1
+        assert dropped["near_copy_by"] == "words"
+        assert dropped["near_copy_ratio"] == 0.971
+
+    def test_the_review_file_says_what_each_drop_matched(self):
+        backend = recorded_backend([self.BUDDY_2022_TWO, self.BUDDY_2022_THREE])
+        hero = next(one for one in HEROES if one[1] == MATCH_2022)
+        goals, _stopped = gather(
+            backend, 2, heroes=(hero,), only=[BUDDY_SCORED]
+        )
+        text = review(goals, "m", "p", "low", 2000)
+        assert "Candidate 2: a near copy of candidate 1 at 0.97" in text
+        assert self.BUDDY_2022_THREE in text
 
 
 class TestTheTwoRulesAboutTheLongBallAndTheFirstTimeFinish:
