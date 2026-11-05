@@ -2985,6 +2985,13 @@ the second is dropped, and the reaction is left out of the shape. Shawn's
 four references for each hero goal come out as four shapes, so it is not
 over-eager. Applied to the eighteen this run produced it flags two.
 
+### Task 12: the hyphen, the Storyteller's full sentences and the two-slot rerun (done)
+
+The record is above. Listed here so the plan reads in order: a hyphen reading
+as the space it stands in for, so "first-time" and "left-foot" are checked
+rather than read as prose; the Storyteller told to write no pass as "X to Y";
+and one rerun of the two 2022 slots that had something to gain from both.
+
 ### Task 11, the second list: the pressure rule, the beats as phrases, two rules and the near copies (done)
 
 The record is above. Listed here so the plan reads in order: "under pressure"
@@ -3275,6 +3282,81 @@ Shilton" is grounded, because the records hold a dribble past him; the manner
 is unsaid in the data and uncheckable, like "smashed" before it was banned
 outright. No candidate of the rerun used one, and nothing was changed for it.
 
+### Task 12: the hyphen, the Storyteller's full sentences and the two-slot rerun (done)
+
+**Shawn asked for one small, last run after reading the four 2022 candidates
+aloud**: the hyphen fix the earlier run's finding named, a rule keeping the
+chain shorthand out of the Storyteller's text, and a rerun of `buddy_scored`
+and `storyteller_neutral` only. The 2022 `buddy_conceded` candidate and all
+three 1986 slots were to be kept as they are, and they were: this run asked
+for nothing from them and `merged` carried them across.
+
+**The hyphen, `6cf8fde`: it reads as the space it stands in for.** Three of
+the four kept candidates of the earlier run wrote "first-time" or
+"left-foot", `PHRASES` held both phrases as two words, and neither was read
+as a claim. Nothing false passed, because the record is `first_time` and
+`Left Foot`, so the words were true and the check did not look; the two
+Storyteller candidates said the foot that way and no other, so a line the app
+would label carried an unchecked body part. `hyphens_allowed` puts a hyphen
+beside the space in every phrase pattern and every chain marker, so
+"under-pressure", "long-ball", "one-touch" and "set-up" read as the claims
+they are and "left-footed" reads as the foot. The spelling changes what is
+read and never what the records hold: the same words over the 1986 shot are
+still refused, and that Storyteller candidate now passes on 17 claims rather
+than 15.
+
+**The Storyteller's own idiom, same commit: no pass written as "X to Y".**
+Rule 11 for that voice asks for full sentences and a verb in every pass, and
+says why: the shorthand is the Buddy's idiom and the Caller's. The references
+settled it before the rule did, which is the test: neither Storyteller
+reference has a bare chain in it, and both 2022 Buddy references open "Molina
+to MacAllister, MacAllister to Messi". Both Storyteller candidates of the
+earlier run were a list of passes with three bare chains each. Rule 8 is
+unchanged and still offers "X to Y" among the forms a pass may be written as;
+this is the one voice that gives it up, and the Caller's style still asks for
+the shortest chains.
+
+**The run: two slots, 21,470 tokens of the 30,000 allowed**, over seven calls
+and one IAM exchange. 8,530 unspent. Three of the six candidates were kept.
+
+| This run, 2022 `buddy_scored` and `storyteller_neutral` | |
+| --- | ---: |
+| calls sent | 7 |
+| billed by watsonx | 21,470 |
+| of it prompt | 17,572 |
+| of it completion | 3,898 |
+| the cap | 30,000 |
+| unspent | 8,530 |
+| candidates kept | 3 of 6 |
+
+**The Storyteller rule took.** Its one kept candidate writes every pass with
+a verb in it: "Molina passed forward to MacAllister, who found Messi, who
+gave it to Álvarez; Álvarez sent a long ball forward to MacAllister, who set
+up Di María". No bare chain anywhere in the slot, in the kept candidate or in
+the two dropped as near copies, against three in each candidate of the run
+before it.
+
+**The hyphen fix is in the claim counts.** The `buddy_scored` candidate that
+came back on its second attempt is grounded on 21 claims, which is the most
+any 2022 candidate has reached; the earlier run's best was 18. Nothing was
+asked of the model to get there: the words it already liked are now read.
+
+**Three of the six went on the near-copy filter**, at 0.93, 0.93 and 0.86,
+and `storyteller_neutral` is down to one candidate because of it. That is the
+filter working on a slot where the model wrote one telling three times, and
+it is also the reason this slot has one rather than three: the shape of the
+2022 move is five passes and a finish, and there is less to vary in it than
+in the 1986 run.
+
+**One refusal happened and the document does not say what it was.** The
+`buddy_scored` candidate 2 is recorded with `attempt` 2 and
+`first_attempt_grounded` false, so its first attempt was refused, and the
+words and the reason are kept only for a candidate that was dropped
+altogether. `gather` records `refused` on a drop and not on a retry that
+later passed. It is a reporting gap rather than a check gap, and the fix is
+to record the refused attempts of a kept candidate beside the kept text.
+Nothing was changed for it here.
+
 ### Task 11, the second list: who "under pressure" is about, the beats as phrases, two rules and the near copies (done)
 
 **Shawn read the ten candidates of the first Task 11 rerun aloud and wrote a
@@ -3482,47 +3564,47 @@ The rules Shawn settled for them, before any of it is built:
 
 ## Next first action (Shawn reads nine candidates aloud and picks from six slots)
 
-**The three 2022 slots were rerun after the second Task 11 list and every one
-of them came back with something.** They are in
-`C:\Users\shawn\prelude-review\narrator_candidates_2026-11-05.md`, with the
-same data beside it as JSON. The three 1986 slots are carried across from the
-earlier rerun unchanged, with the provenance they were written with: this run
-asked for nothing from match 3750191 and spent nothing on it.
+**Every slot has something in it, and the two 2022 slots that had something
+to gain from the hyphen fix and the Storyteller rule were rerun last.** They
+are in `C:\Users\shawn\prelude-review\narrator_candidates_2026-11-05.md`, with
+the same data beside it as JSON. The 1986 slots and the 2022 `buddy_conceded`
+slot are carried across unchanged, with the provenance they were written
+with.
 
 | Slot | Kept | Which run wrote them |
 | ---- | ---: | -------------------- |
 | 1986 `buddy_conceded` | 2 | the first Task 11 rerun |
 | 1986 `buddy_scored` | 2 | the first Task 11 rerun |
 | 1986 `storyteller_neutral` | 1 | the first Task 11 rerun |
-| 2022 `buddy_conceded` | 1 | this run |
-| 2022 `buddy_scored` | 1 | this run |
-| 2022 `storyteller_neutral` | 2 | this run |
+| 2022 `buddy_conceded` | 1 | the Task 11 2022 rerun |
+| 2022 `buddy_scored` | 2 | the Task 12 rerun |
+| 2022 `storyteller_neutral` | 1 | the Task 12 rerun |
 
-**What this run cost: 34,353 tokens of the 45,000 allowed**, every one
-counted off watsonx's `usage` object, over eleven calls. 10,647 unspent. The
-record above has the four near copies it dropped, the three refusals that
-cost its one empty candidate, and the finding about the hyphen.
+**What the two 2022 runs cost together: 55,823 tokens**, every one counted
+off watsonx's `usage` object: 34,353 over eleven calls for the three slots,
+and 21,470 over seven calls for the two that were run again. Nothing was
+spent on match 3750191 after the first Task 11 rerun.
 
 **The film is set in 2022, so the Di María narration is the one the video
-plays**, and all four 2022 candidates now say the long ball and say the shot
-was struck first time. None of them carries a standalone "forward" after a
-name.
+plays.** All four 2022 candidates say the long ball in a clause of its own
+and say the shot was struck first time, none carries a standalone "forward"
+after a name, and the Storyteller one writes every pass with a verb in it.
 
 **The rerun command, if a 2022 slot is to be asked again.** A slot this run
 produced replaces its older self and a slot it did not touch is carried
-across, so the three 1986 slots survive any 2022 rerun:
+across, so everything not named survives:
 
 ```
-.\.venv-prelude\Scripts\python.exe -I scripts\narrator_candidates.py --confirm --match 3869685 --slot buddy_scored --slot buddy_conceded --slot storyteller_neutral --reasoning-effort low --per-slot 3 --max-retries 2 --max-total-tokens 45000
+.\.venv-prelude\Scripts\python.exe -I scripts\narrator_candidates.py --confirm --match 3869685 --slot buddy_scored --slot storyteller_neutral --reasoning-effort low --per-slot 3 --max-retries 2 --max-total-tokens 30000
 ```
 
 `--plan` prints what it would spend and sends nothing; `--confirm` sends it.
-Drop the two `--slot` flags that are not wanted to rerun one slot alone.
+Add or drop a `--slot` flag to change which slots are asked.
 
 **Still owed after the pick.** Three things, and the first is Shawn's:
 
 1. Shawn picks one candidate per slot, reading them aloud. All six slots can
-   be picked from, and two of them hold one candidate each.
+   be picked from, and three of them hold one candidate each.
 2. The freeze. `scripts/freeze_narrations.py` writes one narration per goal
    and `app/web/narrations.json` holds one per goal, so writing six picks
    into it is a change to both and is not built.
@@ -3530,12 +3612,13 @@ Drop the two `--slot` flags that are not wanted to rerun one slot alone.
 3. The recordings. `scripts/tts_hero.py --confirm` has not been sent and
    `hero.audio` is still `{}`.
 
-**One check fix is owed before the next paid run, and it is small.** Three of
-the four kept 2022 candidates say "first-time" or "left-foot" with a hyphen,
-and `PHRASES` holds those phrases as two words, so neither is read as a claim
-and neither is checked. The words are true and the records agree with them,
-and that is luck rather than verification. The fix is the hyphenated spelling
-beside the spaced one in `app/narration_grammar.py`, plus a test.
+**Two small things a later run would want, neither of them built.** A refused
+attempt of a candidate that later passes is not recorded, so the one refusal
+of the Task 12 run is known only as `attempt` 2 with no words beside it; the
+fix is to keep `refused` on a kept candidate as well as on a dropped one. And
+rule 14 allows one "who" and nothing refuses a third, so the 2022
+Storyteller candidate says it three times and is flagged for Shawn rather
+than dropped.
 
 **The Caller has a style and no recording.** `hero.voice_for` sends no
 listener to it, so nothing generated for it and there are six slots rather
