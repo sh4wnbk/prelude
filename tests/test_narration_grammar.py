@@ -1044,3 +1044,149 @@ class TestWhoTheMoveIsAttributedTo:
         assert not backwards.grounded, backwards.summary
         assert "chain" in {failure.kind for failure in backwards.failures}
 
+
+
+class TestWhoUnderPressureIsAbout:
+    """"Under pressure" is the carrier's, and "from X" is a claim about X.
+
+    The run of 2026-11-05 refused "under pressure from Beardsley and Reid"
+    three times with `'under pressure': no record of Peter Beardsley is
+    marked under pressure`, and the claim is true: Beardsley and Reid are the
+    players who pressed. StatsBomb puts `under_pressure` on the record of the
+    player being pressed and a `Pressure` on the record of the player
+    pressing him, so reading the actor off the words asked the presser's
+    record for the carrier's flag.
+    """
+
+    #: The refusal the run of 2026-11-05 printed, over a sentence the records
+    #: hold. Three of that run's eight drops were this one line.
+    REFUSAL = (
+        "'under pressure': no record of Peter Beardsley is marked under "
+        "pressure"
+    )
+
+    #: What the model wrote and the check refused, word for word, in the 1986
+    #: `buddy_conceded` slot of that run.
+    REFUSED = (
+        "Cuciuffo recovered and passed to Enrique, who set up Maradona; "
+        "under pressure from Beardsley and Reid, he dribbled past Beardsley, "
+        "Butcher and Fenwick, carried it forward into the box, slipped past "
+        "Shilton and shot with his left foot."
+    )
+
+    def test_the_carrier_owns_the_claim_and_not_the_name_beside_it(
+        self, facts_1986
+    ):
+        found = moves(
+            facts_1986,
+            "Maradona, under pressure from Beardsley and Reid, dribbled "
+            "past Butcher and scored with his left foot.",
+        )
+        pressed = next(move for move in found if move.kind == "pressured")
+        assert pressed.actor == MARADONA
+        assert support(pressed, facts_1986)
+        assert not ungrounded(facts_1986, found)
+
+    def test_each_name_after_from_has_to_have_pressed(self, facts_1986):
+        found = moves(
+            facts_1986,
+            "Maradona, under pressure from Beardsley and Reid, dribbled "
+            "past Butcher and scored with his left foot.",
+        )
+        pressers = [move for move in found if move.kind == "pressed_by"]
+        assert [move.target for move in pressers] == [BEARDSLEY, "Peter Reid"]
+        for move in pressers:
+            assert move.actor == MARADONA
+            assert support(move, facts_1986)
+
+    def test_a_player_who_never_pressed_is_refused(self, facts_1986):
+        """Terry Fenwick was dribbled past and pressed nobody, so the records
+        hold the carrier's flag and not Fenwick's pressure."""
+        found = moves(
+            facts_1986,
+            "Maradona, under pressure from Fenwick, dribbled past Butcher "
+            "and scored with his left foot.",
+        )
+        pressed = next(move for move in found if move.kind == "pressured")
+        assert support(pressed, facts_1986)
+        refused = next(move for move in found if move.kind == "pressed_by")
+        assert refused.target == "Terry Fenwick"
+        assert not support(refused, facts_1986)
+        assert why(refused, facts_1986) == (
+            "'under pressure from Fenwick': the records hold no pressure by "
+            "Terry Fenwick in this passage"
+        )
+
+    def test_the_refusal_of_2026_11_05_is_gone(self, facts_1986):
+        """The whole narration the model wrote, through `check`, as the slot
+        it was written for."""
+        result = check(
+            self.REFUSED, facts_1986, THE_BUDDY, "England"
+        )
+        assert result.grounded, result.summary
+        assert self.REFUSAL not in result.summary
+
+    def test_the_refusal_text_itself_is_no_longer_produced(self, facts_1986):
+        """The words of the refusal, not just the verdict: no move of that
+        sentence puts the claim on Beardsley any more."""
+        found = moves(facts_1986, self.REFUSED)
+        pressed = [move for move in found if move.kind == "pressured"]
+        assert pressed and all(move.actor == MARADONA for move in pressed)
+        assert self.REFUSAL not in [
+            why(move, facts_1986) for move in found
+        ]
+
+    def test_pressed_by_them_still_passes_as_it_did(self, facts_1986):
+        """Half the kept 1986 candidates routed around the refusal by
+        writing it this way, and nothing here changes that reading."""
+        found = moves(
+            facts_1986,
+            "Maradona, pressed by Beardsley and Reid, dribbled past "
+            "Butcher and scored with his left foot.",
+        )
+        assert not ungrounded(facts_1986, found)
+
+    def test_a_name_past_the_comma_is_not_read_as_a_presser(self, facts_1986):
+        """The price of the clause rule, both ways round: a list that runs
+        past a comma is checked as far as the comma, and a subject past one
+        is not turned into a presser, which would refuse a true sentence."""
+        found = moves(
+            facts_1986,
+            "Under pressure from Beardsley, Maradona dribbled past Butcher "
+            "and scored with his left foot.",
+        )
+        pressers = [move for move in found if move.kind == "pressed_by"]
+        assert [move.target for move in pressers] == [BEARDSLEY]
+        assert MARADONA not in [move.target for move in pressers]
+        assert not ungrounded(facts_1986, found)
+
+    def test_a_verb_after_the_marker_ends_the_list(self, facts_1986):
+        """"Under pressure from Beardsley and dribbled past Butcher" has a
+        verb between the two, so Butcher is a defender beaten and not a
+        presser."""
+        found = moves(
+            facts_1986,
+            "Maradona, under pressure from Beardsley and dribbled past "
+            "Butcher, scored with his left foot.",
+        )
+        assert [
+            move.target for move in found if move.kind == "pressed_by"
+        ] == [BEARDSLEY]
+        assert "Terry Butcher" in [
+            move.target for move in found if move.kind == "past"
+        ]
+
+    def test_the_presser_does_not_take_the_ball(self, facts_1986):
+        """A player who pressed is spoken for, like a chain's target: he
+        becomes nobody's actor and no pronoun after him means him."""
+        found = moves(
+            facts_1986,
+            "Maradona, under pressure from Beardsley and Reid, dribbled "
+            "past Butcher, and he scored with his left foot.",
+        )
+        shot = next(
+            move
+            for move in found
+            if move.kind == "action" and "Shot" in (move.detail or ())
+        )
+        assert shot.actor == MARADONA

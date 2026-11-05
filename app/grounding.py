@@ -1653,5 +1653,6 @@ _FAILED_AS: Mapping[str, str] = {
     "long_pass": "action",
     "touch": "action",
     "pressured": "action",
+    "pressed_by": "action",
     "first_time": "shot_type",
 }

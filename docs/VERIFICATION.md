@@ -97,6 +97,7 @@ And the goal-call reading, whose tests are in
 | `past` | "past X" where no dribble past X is recorded | `tests/test_narration_grammar.py::TestPastAndAround::test_a_player_who_was_only_pressed_past_is_refused` |
 | `action` | "picked it up" where no record puts the ball at their feet | `tests/test_narration_grammar.py::TestTheRecordedFieldsSaidOutLoud::test_picked_it_up_is_any_recorded_touch` |
 | `action` | "under pressure" where no record of theirs carries it | `tests/test_narration_grammar.py::TestTheRecordedFieldsSaidOutLoud::test_under_pressure_is_refused_where_nothing_records_it` |
+| `action` | "under pressure from X" where no `Pressure` record of X's is in the passage | `tests/test_narration_grammar.py::TestWhoUnderPressureIsAbout::test_a_player_who_never_pressed_is_refused` |
 | `position` | "in his own half" or "in the box" over a coordinate that is not | `tests/test_narration_grammar.py::TestWhereOnThePitch::test_a_pass_the_player_did_not_follow_is_not_his_position` |
 | `straight` | a run called straight that strays from the line | `tests/test_narration_grammar.py::TestTheShapeOfTheRun::test_the_claim_is_refused_over_the_1986_carries` |
 | `direction` | "forward" or "back" against the change in x on a pass or a carry | `tests/test_narration_grammar.py::TestWhichWayTheBallWent::test_the_same_pass_called_back_is_refused` |

@@ -30,6 +30,7 @@ for:
 | "picked it up", "won it back", "closed him down", "finished" | `touch`, `action` | a record of that type by that player |
 | "in his own half", "into the box" | `position` | a coordinate of that player's against the pitch's own lines |
 | "under pressure", "first time", "with his left" | `pressured`, `first_time`, `body_part` | the field of that name on a record |
+| "under pressure from Beardsley" | `pressed_by` | a `Pressure` by Beardsley, beside the carrier's own flag |
 | "on the counter" | `pattern` | `play_pattern` |
 | "in under ten seconds" | `duration` | the span between the first and last timestamp |
 | "straight into the box" | `straight` | the carries running straight, which in 1986 they do not |
@@ -53,6 +54,17 @@ came before ("We won it back through Cuciuffo", which is the framework's action
 before name), and with no name either side it belongs to the player with the
 ball ("and finished with his left"). A name taken as a chain's target or as the
 defender in "past X" is spoken for and does not become anybody's actor.
+
+**"Under pressure" is the exception, and it belongs to the player on the
+ball.** The words around it are the players applying the pressure, not the
+player feeling it: StatsBomb puts `under_pressure` on the record of the man
+being pressed and a `Pressure` on the record of the man pressing him, so
+reading the actor off the sentence landed the claim on the presser and asked
+his record for a flag it never carries. "Under pressure from Beardsley and
+Reid" was refused three times in the run of 2026-11-05 over a sentence the
+records hold. So the claim is the carrier's, and each name after "from" is a
+second claim of its own: that player has a `Pressure` in the buildup. Both
+have to hold.
 
 **Which way the ball went is read now, and it used to be prose.** "Forward"
 and "back" are a claim about the change in x on a pass or a carry, "drove" and
@@ -189,6 +201,11 @@ PHRASES: Sequence[tuple[str, str, object]] = (
     (r"closed down", "action", ("Pressure",)),
     (r"came back at (?:him|her|them|it)", "action", ("Pressure",)),
     (r"came back at", "action", ("Pressure",)),
+    # "Under pressure from X" says two things: the player on the ball was
+    # under pressure, and X is who pressed him. The longer phrase sits
+    # above the shorter one so it wins at the shared start, and the names
+    # after it are read as the pressers rather than as free names.
+    (r"under pressure from", "pressure_from", None),
     (r"under pressure", "pressured", None),
     # Winning the ball back, which is a Ball Recovery and not a Foul Won.
     (r"won it back", "action", ("Ball Recovery",)),
@@ -617,6 +634,10 @@ class Reader:
         #: See `_subject_of_the_clause`.
         last_chain: tuple[str | None, int] | None = None
         past_open = False
+        #: Where the clause holding "under pressure from" began, and the
+        #: words said, while the names after it are being read as the players
+        #: who pressed. `None` the rest of the time.
+        pressing: tuple[int, str] | None = None
         #: The last action claim, for the rule about a carry that delivers.
         recent_action: _Hit | None = None
 
@@ -644,6 +665,11 @@ class Reader:
         for hit in hits:
             if pending_chain is not None and hit.kind not in ("name", "team"):
                 pending_chain = None
+            # The pressers are the names that follow the marker and nothing
+            # else: "under pressure from Beardsley and dribbled past Butcher"
+            # has a verb between the two, so Butcher is not a presser.
+            if pressing is not None and hit.kind not in ("name", "team"):
+                pressing = None
 
             if hit.kind == "name":
                 if len(hit.players) != 1:
@@ -657,6 +683,32 @@ class Reader:
                     )
                     continue
                 player = hit.players[0]
+                # The names in the marker's own clause and no further. A
+                # comma ends the list, which is the same bluntness
+                # `CLAUSE_BREAK` buys everywhere else and the same price:
+                # "under pressure from Beardsley, Reid and Butcher" checks
+                # Beardsley and reads the other two as names, while "under
+                # pressure from Beardsley, Maradona dribbled past Butcher"
+                # does not make Maradona a presser, which would be a false
+                # refusal over a true sentence.
+                if pressing is not None and _clause_start(
+                    text, hit.at
+                )[0] == pressing[0]:
+                    # "Under pressure from Beardsley and Reid": each name is a
+                    # claim that this player pressed, which his own records
+                    # answer. He is spoken for, like a chain's target, so he
+                    # becomes nobody's actor and does not take the ball: a
+                    # player who pressed is not a player who has it.
+                    moves.append(
+                        Move(
+                            "pressed_by",
+                            "{} {}".format(pressing[1], hit.said),
+                            hit.at,
+                            actor=self.tracked,
+                            target=player,
+                        )
+                    )
+                    continue
                 if pending_chain is not None:
                     assist, source, marker, carried = pending_chain
                     moves.append(
@@ -732,9 +784,24 @@ class Reader:
                 # before it is not what delivered the ball.
                 recent_action = None
 
+            elif hit.kind in ("pressured", "pressure_from"):
+                # "Under pressure" is about the player on the ball, whoever
+                # is named beside it. StatsBomb records `under_pressure` on
+                # the record of the player being pressed, and the names a
+                # narration puts after "from" are the players applying it, so
+                # reading the actor off the words landed the claim on the
+                # presser and asked his record for the flag it never carries.
+                # That refused "under pressure from Beardsley and Reid" three
+                # times in the run of 2026-11-05, over a true sentence.
+                past_open = False
+                moves.append(
+                    Move("pressured", hit.said, hit.at, actor=self.tracked)
+                )
+                if hit.kind == "pressure_from":
+                    pressing = (_clause_start(text, hit.at)[0], hit.said)
+
             elif hit.kind in (
                 "touch",
-                "pressured",
                 "first_time",
                 "position",
                 "pattern",
@@ -1068,6 +1135,17 @@ def support(move: Move, facts: Facts) -> tuple[Beat, ...]:
     if kind == "pressured":
         return tuple(beat for beat in beats if mine(beat) and beat.under_pressure)
 
+    if kind == "pressed_by":
+        # The other half of "under pressure from X": the flag above is the
+        # carrier's, and this is X's own record of pressing him. Both have to
+        # hold, so a true sentence passes and "under pressure from Fenwick",
+        # who was dribbled past and never pressed, does not.
+        return tuple(
+            beat
+            for beat in beats
+            if beat.action == "Pressure" and beat.player == move.target
+        )
+
     if kind == "first_time":
         goal = facts.goal_beat
         if goal.first_time and (move.actor is None or goal.player == move.actor):
@@ -1207,6 +1285,11 @@ def why(move: Move, facts: Facts) -> str:
         )
     if move.kind == "pressured":
         return f"{move.said!r}: no record of {actor} is marked under pressure"
+    if move.kind == "pressed_by":
+        return (
+            f"{move.said!r}: the records hold no pressure by {move.target} "
+            "in this passage"
+        )
     if move.kind == "first_time":
         return (
             f"{move.said!r}: the goal shot is not recorded as struck first "
