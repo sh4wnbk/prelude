@@ -151,10 +151,12 @@ Everything above it is structure.
   tells, which is what `app/goal_call_prompt.py` shows the model: the
   recovery, each pass, each carry of ten yards or more, each dribble past an
   opponent, the pressure on the player with the ball and the finish. Ball
-  receipts and touches on the spot are left out, no beat carries a clock, and
-  the play pattern and the own half are said once. The grounding check still
-  reads a narration against every record, so the curation can only narrow
-  what a narration may say.
+  receipts and touches on the spot are left out, consecutive dribbles past
+  are one beat naming the defenders in order with the carries between them
+  absorbed, a long carry is a flag and never a yard figure, no beat carries
+  a clock, and the play pattern and the own half are said once. The grounding
+  check still reads a narration against every record, so the curation can
+  only narrow what a narration may say.
 - `scripts/story_beats_report.py`: prints the beat list for both hero goals
   beside the records it was curated from. Reads `data/raw/` and writes
   nothing.
@@ -322,7 +324,7 @@ Everything above it is structure.
   reaction layer: where a reaction may stand, who may cheer in one, what
   makes a short sentence play instead, and the match's own names rather than
   capitalisation deciding whether a reaction names anybody. All pass.
-- `tests/test_narrator_candidates.py`: 157 tests over
+- `tests/test_narrator_candidates.py`: 165 tests over
   `app/goal_call_prompt.py`, `app/story_beats.py` and
   `scripts/narrator_candidates.py`: the four
   styles, one per narrator and situation, the invented match their examples
@@ -334,9 +336,9 @@ Everything above it is structure.
   reasoning effort the run chooses for itself, the shape that tells two
   tellings from one telling written twice, the rule against hanging the move
   off "who" and the count printed beside each candidate, the call count and
-  token estimate the run prints before it sends anything, and the hard token
-  cap that stops the run and keeps what it had written. All pass, and none
-  calls a model.
+  token estimate the run prints before it sends anything, the hard token
+  cap that stops the run and keeps what it had written, and the run with no
+  retries. All pass, and none calls a model.
 - `tests/test_narration.py`: 31 tests over the pipeline, covering the retries,
   the fallback, the citation stripping, the failure log, the first-attempt pass
   rate, the characters made plain as a model's text arrives and the attempt

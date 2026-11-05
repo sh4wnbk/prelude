@@ -384,6 +384,7 @@ def gather(
     heroes: Sequence[tuple[int, int, int, int]] = HEROES,
     allowance: int | None = None,
     only: Sequence[str] = (),
+    max_retries: int = MAX_RETRIES,
 ) -> list[dict]:
     """Narrate every slot of every goal `per_slot` times and keep what passed.
 
@@ -436,7 +437,7 @@ def gather(
                         match_id,
                         moment,
                         narration_provider=backend,
-                        max_retries=MAX_RETRIES,
+                        max_retries=max_retries,
                         persona=persona,
                         side=side,
                         goal_call=True,
@@ -628,7 +629,7 @@ def review(
     out.append("")
     out.append("Model {} on {}, chat endpoint, reasoning effort {} for this "
                "run, {} max new tokens, decoding pinned to temperature {}, "
-               "top_p {}, top_k {}.".format(
+               "top_p {}, top_k {}.".format(  # noqa: E501
                    model, provider,
                    reasoning_effort or "not set",
                    max_new_tokens,
@@ -922,6 +923,16 @@ def main(argv: Sequence[str]) -> int:
              ),
     )
     parser.add_argument(
+        "--max-retries",
+        type=int,
+        default=MAX_RETRIES,
+        metavar="N",
+        help="regenerations allowed after a candidate's first attempt "
+             "(default {}, and 0 means one attempt and no retry)".format(
+                 MAX_RETRIES
+             ),
+    )
+    parser.add_argument(
         "--max-total-tokens",
         type=int,
         default=None,
@@ -965,6 +976,11 @@ def main(argv: Sequence[str]) -> int:
         raise SystemExit(
             "--max-total-tokens is a count of tokens the run may be billed"
         )
+    if args.max_retries < 0:
+        raise SystemExit(
+            "--max-retries is how many regenerations a candidate may have "
+            "after its first attempt, so it is 0 or more"
+        )
     out_dir = args.out.resolve()
     if ROOT == out_dir or ROOT in out_dir.parents:
         raise SystemExit(
@@ -996,7 +1012,7 @@ def main(argv: Sequence[str]) -> int:
         for hero in HEROES
     )
     allowance = args.budget // recordings
-    attempts = MAX_RETRIES + 1
+    attempts = args.max_retries + 1
 
     print("model     {} ({})".format(
         ACTIVE_CANDIDATE.model_id, ACTIVE_CANDIDATE.label
@@ -1009,6 +1025,13 @@ def main(argv: Sequence[str]) -> int:
         ACTIVE_CANDIDATE.reasoning_effort or "not set",
     ))
     print("tokens    {} max new".format(args.max_new_tokens))
+    print("retries   {}".format(
+        "none: one attempt a candidate, and a refusal costs that candidate"
+        if args.max_retries == 0
+        else "{} after the first attempt, so {} attempts a candidate".format(
+            args.max_retries, args.max_retries + 1
+        )
+    ))
     print("timeout   {:.0f} seconds a call; a call that does not come back "
           "costs that candidate and not the run".format(args.timeout))
     print("decoding  temperature {}, top_p {}, top_k {} (pinned, because "
@@ -1035,9 +1058,10 @@ def main(argv: Sequence[str]) -> int:
         args.per_slot, args.per_slot * len(slots)
     ))
     print("calls     at most {} generations ({} slots x {} candidates x {} "
-          "attempts), plus 1 IAM exchange".format(
+          "attempt{}), plus 1 IAM exchange".format(
               len(slots) * args.per_slot * attempts,
               len(slots), args.per_slot, attempts,
+              "" if attempts == 1 else "s",
           ))
     spend = token_estimate(
         slots, characters, attempts, args.max_new_tokens
@@ -1092,6 +1116,7 @@ def main(argv: Sequence[str]) -> int:
         heroes=heroes,
         allowance=allowance,
         only=args.slot,
+        max_retries=args.max_retries,
     )
 
     out_dir.mkdir(parents=True, exist_ok=True)

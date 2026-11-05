@@ -417,7 +417,7 @@ is the result. Each rule is a recorded field read against a threshold
 | ---- | --------------- |
 | the ball recovery | who won it |
 | every pass | who it reached, "forward" or "back" off the change in x, "long" at `LONG_PASS_YARDS`, the assist, the box |
-| every carry of `RUN_YARDS` or more | its distance in whole yards and whether it ended in the box |
+| every carry of `RUN_YARDS` or more | that it was a long carry, which way, and whether it ended in the box |
 | every dribble past an opponent | both players, as one beat for the two records |
 | pressure on the player on the ball | who pressed |
 | the finish | the body part, whether it was struck first time, the box |
@@ -426,6 +426,18 @@ Dropped: `Ball Receipt*`, because the pass beat already names who the ball
 reached, and a carry under `RUN_YARDS`, because a player taking a touch where
 he stands is not a turn in the story. `play_pattern` and the own half are
 said once, above the list, rather than on every line.
+
+**Two things the beats do rather than leave to the model, and both came out of
+reading the run of 2026-11-05 aloud.** No beat carries a yard figure: it
+carried the distance in whole yards and every 1986 candidate read it out,
+"carried forward thirty-five yards, evaded Reid, beat Butcher, ran forward
+seventeen yards", which is grounded and is a stumble. And consecutive dribbles
+past one player are one beat naming the defenders in order, with the carries
+between them absorbed into it, because a list of beats is read out as a list
+of beats: that run wrote "beat Butcher, ran forward seventeen yards, beat
+Fenwick, ran forward seventeen yards" where the references say "past
+Beardsley, Butcher and Fenwick". A carry that ended in the box ends the group,
+which is why Shilton is beaten in a beat of his own.
 
 **The curation can only narrow what a narration may say.** The check still
 reads a narration against every record of the passage, so a line about a ball

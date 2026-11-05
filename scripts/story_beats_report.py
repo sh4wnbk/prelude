@@ -25,12 +25,12 @@ for _stream in (sys.stdout, sys.stderr):
     if hasattr(_stream, "reconfigure"):
         _stream.reconfigure(encoding="utf-8", errors="replace")
 
+from app.narration_grammar import RUN_YARDS, carry_yards  # noqa: E402
 from app.narration_prompt import facts_from_buildup  # noqa: E402
 from app.recorded_names import recorded_nicknames  # noqa: E402
 from app.statsbomb_event_feed import StatsBombEventFeed  # noqa: E402
 from app.story_beats import (  # noqa: E402
     NOT_A_BEAT,
-    RUN,
     beat_line,
     kinds,
     story,
@@ -74,20 +74,30 @@ def report(match_id: int, minute: int, second: int, year: int) -> None:
             continue
         if beat.action == "Carry":
             kept = any(
-                one_beat.kind == RUN and beat.event_id in one_beat.event_ids
-                for one_beat in one.beats
+                beat.event_id in one_beat.event_ids for one_beat in one.beats
             )
-            if not kept:
-                left.append(
-                    "{} ({}), a carry too short to be a run".format(
-                        beat.name, beat.team
-                    )
-                )
-            continue
-        if beat.action == "Dribble":
+            if kept:
+                continue
+            yards = carry_yards(beat)
             left.append(
-                "{} ({}), a dribble folded into the beat naming the "
-                "defender".format(beat.name, beat.team)
+                "{} ({}), a carry too short to be a run".format(
+                    beat.name, beat.team
+                )
+                if yards is None or yards < RUN_YARDS
+                else "{} ({}), a run absorbed into the dribble beat "
+                     "beside it".format(beat.name, beat.team)
+            )
+            continue
+        if beat.action in ("Dribble", "Dribbled Past"):
+            if any(
+                beat.event_id in one_beat.event_ids
+                and len(one_beat.beaten) < 2
+                for one_beat in one.beats
+            ):
+                continue
+            left.append(
+                "{} ({}), no beat of its own: named in the grouped dribble "
+                "beat instead".format(beat.name, beat.team)
             )
             continue
         if beat.action == "Pressure" and not any(

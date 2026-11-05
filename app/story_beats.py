@@ -61,7 +61,7 @@ Standard library only.
 """
 
 from dataclasses import dataclass, fields
-from typing import Mapping
+from typing import Mapping, Sequence
 
 from app.narration_grammar import (
     DIRECTION_YARDS,
@@ -149,16 +149,33 @@ class StoryBeat:
     long_ball: bool = False
     #: `pass.goal_assist`. One pass in a passage carries it.
     assist: bool = False
-    #: A run's length in whole yards, for a carry of `RUN_YARDS` or more.
-    yards: int | None = None
+    #: Whether this is a carry of `RUN_YARDS` or more, which is a run rather
+    #: than a touch on the spot.
+    #:
+    #: **It is a flag and not a figure, and the run of 2026-11-05 is why.**
+    #: The beats carried the distance in whole yards and every 1986 candidate
+    #: read it out: "carried forward thirty-five yards, evaded Reid, beat
+    #: Butcher, ran forward seventeen yards, beat Fenwick, ran forward
+    #: seventeen yards into the box". It is grounded, because the records hold
+    #: the lengths, and the two seventeens read as a stumble rather than as a
+    #: build. A figure in front of a model is a figure in the narration.
+    long_carry: bool = False
     #: Whether this beat was inside the box the team was attacking: where a
     #: run or a pass ended, and where a shot was struck from. One field
     #: rather than three, because it is one coordinate read against the
     #: eighteen yard line either way; `beat_line` says it in the words the
     #: kind calls for.
     in_the_box: bool = False
-    #: The defender who was beaten, for a dribble past an opponent.
-    beaten: str | None = None
+    #: The defenders who were beaten, in order, for a dribble past an
+    #: opponent. A tuple rather than one name because consecutive dribbles
+    #: are one beat: "past Beardsley, Butcher and Fenwick" is how the
+    #: references say it and how a listener hears four defenders rather than
+    #: one. `_grouped` is what collapses them.
+    beaten: tuple[str, ...] = ()
+    #: Whether a carry was absorbed into this dribble beat, which is what
+    #: lets the narration say the ball was carried forward between the
+    #: defenders without the carries having beats of their own.
+    carried: bool = False
     #: `under_pressure` on the record itself.
     under_pressure: bool = False
     #: `shot.first_time`.
@@ -317,7 +334,7 @@ def story(facts: Facts) -> Story:
                     player=dribbler.beat.name,
                     team=dribbler.beat.team,
                     event_ids=(dribbler.beat.event_id, beat.event_id),
-                    beaten=beat.name,
+                    beaten=(beat.name,),
                     under_pressure=dribbler.beat.under_pressure,
                 )
             )
@@ -382,7 +399,7 @@ def story(facts: Facts) -> Story:
                     team=beat.team,
                     event_ids=(beat.event_id,),
                     direction=_direction(facts, beat),
-                    yards=round(yards),
+                    long_carry=True,
                     in_the_box=bool(beat.end and beat.end.in_the_box),
                     under_pressure=beat.under_pressure,
                 )
@@ -417,7 +434,7 @@ def story(facts: Facts) -> Story:
         if fact.beat.team == facts.moment.team and fact.beat.start
     ]
     return Story(
-        beats=tuple(beats),
+        beats=_grouped(tuple(enumerate(beats))),
         team=facts.moment.team,
         play_pattern=next(iter(sorted(facts.play_patterns)), None),
         started_in_own_half=bool(ours and ours[0].start.in_own_half),
@@ -434,7 +451,7 @@ def beat_line(beat: StoryBeat) -> str:
     """
     if beat.kind == DRIBBLE_PAST:
         said = "{} ({}) dribbled past {}".format(
-            beat.player, beat.team, beat.beaten
+            beat.player, beat.team, _and(beat.beaten)
         )
     elif beat.kind == PRESSURE:
         said = "{} ({}) pressed the player on the ball".format(
@@ -445,7 +462,9 @@ def beat_line(beat: StoryBeat) -> str:
             beat.player, beat.team, beat.recipient or "nobody recorded"
         )
     elif beat.kind == RUN:
-        said = "{} ({}) carried the ball, a run".format(beat.player, beat.team)
+        said = "{} ({}) carried the ball, a long carry".format(
+            beat.player, beat.team
+        )
     elif beat.kind == RECOVERY:
         said = "{} ({}) recovered the ball".format(beat.player, beat.team)
     elif beat.kind == FINISH:
@@ -458,14 +477,18 @@ def beat_line(beat: StoryBeat) -> str:
         )
 
     extras: list[str] = []
+    if beat.carried:
+        extras.append(
+            "carrying the ball {} between them".format(beat.direction)
+            if beat.direction
+            else "carrying the ball between them"
+        )
     if beat.assist:
         extras.append("the assist")
     if beat.long_ball:
         extras.append("long")
-    if beat.direction:
+    if beat.direction and not beat.carried:
         extras.append(beat.direction)
-    if beat.yards is not None:
-        extras.append("{} yards".format(beat.yards))
     if beat.in_the_box:
         extras.append(
             {
@@ -485,13 +508,106 @@ def beat_line(beat: StoryBeat) -> str:
     return said
 
 
+def _and(names: Sequence[str]) -> str:
+    """"Beardsley, Butcher and Fenwick", for the defenders of one beat."""
+    if len(names) < 2:
+        return "".join(names)
+    return "{} and {}".format(", ".join(names[:-1]), names[-1])
+
+
+def _grouped(placed: Sequence[tuple[int, StoryBeat]]) -> tuple[StoryBeat, ...]:
+    """Consecutive dribbles past one player as one beat, carries absorbed.
+
+    **What the run of 2026-11-05 showed.** Shawn read the ten candidates
+    aloud: the event order was right in every 1986 one, and the model still
+    narrated every beat in one long comma chain, so there was no build and no
+    grouping. "Beat Butcher, ran forward seventeen yards, beat Fenwick, ran
+    forward seventeen yards" against the references' "past Beardsley, Butcher
+    and Fenwick". A list of beats is read out as a list of beats, so the
+    grouping has to be in the beats.
+
+    **The rule.** A run of `DRIBBLE_PAST` beats by one player collapses into
+    one, naming the defenders in order, when the only beats between them are
+    a carry (which is absorbed and loses its own beat) or a pressure (which
+    keeps its own beat). Anything else ends the group: a pass, a recovery,
+    the finish, or a carry that ended in the box, because that one is a
+    change of position and the references say it in its own clause.
+
+    **The group sits where it ends**, which is the index of the last defender
+    beaten, so a pressure recorded inside its span is said before it. That is
+    the references' order too: "though Beardsley and Reid closed him down, he
+    went past Beardsley, Butcher and Fenwick".
+    """
+    beats = [beat for _index, beat in placed]
+    absorbed: set[int] = set()
+    merged: dict[int, StoryBeat] = {}
+    at = 0
+    while at < len(beats):
+        if beats[at].kind != DRIBBLE_PAST:
+            at += 1
+            continue
+        first = beats[at]
+        members = [at]
+        carries: list[int] = []
+        held: list[int] = []
+        last = at
+        ahead = at + 1
+        while ahead < len(beats):
+            other = beats[ahead]
+            if other.kind == DRIBBLE_PAST and other.player == first.player:
+                members.append(ahead)
+                carries += held
+                held = []
+                last = ahead
+                ahead += 1
+                continue
+            if other.kind == PRESSURE:
+                ahead += 1
+                continue
+            if other.kind == RUN and not other.in_the_box:
+                held.append(ahead)
+                ahead += 1
+                continue
+            break
+        if len(members) > 1:
+            absorbed |= set(members[:-1]) | set(carries)
+            ways = {beats[one].direction for one in carries}
+            merged[last] = StoryBeat(
+                kind=DRIBBLE_PAST,
+                player=first.player,
+                team=first.team,
+                event_ids=tuple(
+                    event_id
+                    for one in members
+                    for event_id in beats[one].event_ids
+                ),
+                beaten=tuple(
+                    name for one in members for name in beats[one].beaten
+                ),
+                carried=bool(carries),
+                direction=ways.pop() if len(ways) == 1 else "",
+                # Said only where every record in the group holds it, so the
+                # claim is true of whichever one it is pointed at.
+                under_pressure=all(
+                    beats[one].under_pressure for one in members
+                ),
+            )
+        at = last + 1
+    return tuple(
+        merged.get(index, beat)
+        for index, beat in enumerate(beats)
+        if index not in absorbed
+    )
+
+
 def beats_block(one: Story) -> str:
     """The curated beats, numbered, with the two passage facts above them.
 
-    The numbers are for reading: they are not fact numbers and a goal call
-    cites nothing. The block says what the curation left out, because a model
-    told "nothing happened that is not here" over a curated list is being told
-    something untrue.
+    Bulleted and not numbered, because rule 9 allows no digit in the
+    narration and this is the one list the model is told to work from. The
+    block says what the curation left out, because a model told "nothing
+    happened that is not here" over a curated list is being told something
+    untrue.
     """
     where = (
         "{} started the move in their own half.".format(one.team)
@@ -503,10 +619,10 @@ def beats_block(one: Story) -> str:
         if one.play_pattern
         else "No play pattern is recorded for this possession."
     )
-    lines = [
-        "  {}. {}".format(number, beat_line(beat))
-        for number, beat in enumerate(one.beats, start=1)
-    ]
+    # Bulleted rather than numbered. Rule 9 of the goal-call prompt allows no
+    # digit anywhere in the narration, and the one list the model is told to
+    # work from is the last place to put one in front of it.
+    lines = ["  - {}".format(beat_line(beat)) for beat in one.beats]
     return "\n".join(
         [
             "THE BEATS OF THE PASSAGE",
@@ -528,11 +644,14 @@ def beats_block(one: Story) -> str:
             "",
             "Tell every beat in that list and nothing outside it. The move "
             "may only be",
-            "told with these players, these passes, these defenders, this "
-            "body part and",
-            "these two positions on the pitch; anything else is rejected, "
-            "whether or not",
-            "it happened.",
+            "told with these players, these passes, these defenders, these "
+            "carries, this",
+            "body part and these two positions on the pitch; anything else "
+            "is rejected,",
+            "whether or not it happened. Where one beat names several "
+            "defenders, say them",
+            "as one move: that is how a listener hears four defenders "
+            "rather than one.",
         ]
     )
 

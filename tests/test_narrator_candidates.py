@@ -11,6 +11,7 @@ connection, so the run's own plan is exercised and its paid path is not.
 
 import json
 import re
+from dataclasses import fields
 from pathlib import Path
 
 import pytest
@@ -39,6 +40,7 @@ from app.story_beats import (
     PRESSURE,
     RECOVERY,
     RUN,
+    StoryBeat,
     beat_fields,
     beat_line,
     beats_block,
@@ -59,6 +61,7 @@ from app.narration_prompt import HERO_TARGET_CHARACTERS, facts_from_buildup
 from app.personas import THE_BUDDY, THE_CALLER, THE_STORYTELLER
 from app.recorded_names import recorded_nicknames
 from app.statsbomb_event_feed import StatsBombEventFeed
+from app.narration import MAX_RETRIES
 from app.narration_config import ACTIVE_CANDIDATE
 from app.narration_provider import IAM_TOKEN_URL, WatsonxProvider
 from scripts.hero_candidates import HEROES
@@ -285,17 +288,36 @@ class TestTheBeatsInThePrompt:
         for facts in (facts_1986, facts_2022):
             for beat in story(facts).beats:
                 if beat.kind == RUN:
-                    assert beat.yards >= 10
-        assert kinds(story(facts_1986))[RUN] == 3
+                    assert beat.long_carry
+        # One run of its own: the two before it are absorbed into the
+        # grouped dribble beat, and this one ends in the box so it is not.
+        assert kinds(story(facts_1986))[RUN] == 1
         assert RUN not in kinds(story(facts_2022))
 
-    def test_the_three_runs_carry_their_distance_and_the_box(self, facts_1986):
-        """Maradona's carries are 34.9, 16.8 and 16.7 yards, and the third is
-        the one that ends inside the box."""
+    def test_no_beat_carries_a_yard_figure(self, facts_1986, facts_2022):
+        """The run of 2026-11-05 read them out: "carried forward thirty-five
+        yards, evaded Reid, beat Butcher, ran forward seventeen yards". A
+        figure in front of a model is a figure in the narration, so a long
+        carry is a flag now and not a number."""
+        assert "yards" not in {field.name for field in fields(StoryBeat)}
+        for facts in (facts_1986, facts_2022):
+            block = beats_block(story(facts))
+            assert "yards" not in block
+            assert not any(character.isdigit() for character in block)
+
+    def test_the_one_run_of_its_own_is_the_one_into_the_box(self, facts_1986):
+        """Maradona's carries are 34.9, 16.8 and 16.7 yards. The first two
+        are absorbed into the dribble beat; the third ends inside the box,
+        which the references say in its own clause."""
         runs = [beat for beat in story(facts_1986).beats if beat.kind == RUN]
-        assert [beat.yards for beat in runs] == [35, 17, 17]
-        assert [beat.in_the_box for beat in runs] == [False, False, True]
-        assert [beat.direction for beat in runs] == ["forward"] * 3
+        assert len(runs) == 1
+        assert runs[0].long_carry
+        assert runs[0].in_the_box
+        assert runs[0].direction == "forward"
+        assert beat_line(runs[0]) == (
+            "Diego Armando Maradona (Argentina) carried the ball, a long "
+            "carry, forward, ending in the box, under pressure"
+        )
 
     def test_the_long_ball_appears(self, facts_2022):
         """Alvarez to MacAllister, 38.5 yards, which is the one pass in
@@ -312,33 +334,74 @@ class TestTheBeatsInThePrompt:
         assert "long" in beats_block(one)
 
     def test_the_four_dribbles_past_appear(self, facts_1986):
+        """All four defenders, in order, over two beats rather than four."""
         one = story(facts_1986)
-        beaten = [
+        groups = [
             beat.beaten for beat in one.beats if beat.kind == DRIBBLE_PAST
         ]
-        assert beaten == [
-            "Peter Beardsley",
-            "Terry Butcher",
-            "Terry Fenwick",
-            "Peter Shilton",
+        assert groups == [
+            ("Peter Beardsley", "Terry Butcher", "Terry Fenwick"),
+            ("Peter Shilton",),
         ]
         block = beats_block(one)
-        for name in beaten:
-            assert "dribbled past {}".format(name) in block
+        for name in ("Beardsley", "Butcher", "Fenwick", "Shilton"):
+            assert name in block
 
-    def test_a_dribble_past_is_one_beat_and_names_both_players(
+    def test_consecutive_dribbles_are_one_beat_with_the_carries_absorbed(
+        self, facts_1986
+    ):
+        """What the run of 2026-11-05 could not do: "beat Butcher, ran
+        forward seventeen yards, beat Fenwick, ran forward seventeen yards"
+        against the references' "past Beardsley, Butcher and Fenwick"."""
+        one = story(facts_1986)
+        first = next(
+            beat for beat in one.beats if beat.kind == DRIBBLE_PAST
+        )
+        assert beat_line(first) == (
+            "Diego Armando Maradona (Argentina) dribbled past Peter "
+            "Beardsley, Terry Butcher and Terry Fenwick, carrying the ball "
+            "forward between them, under pressure"
+        )
+        # Two Dribble and two Dribbled Past records per defender beaten, and
+        # the two carries between them.
+        assert len(first.event_ids) == 6
+        assert first.carried
+
+    def test_a_carry_into_the_box_ends_the_group(self, facts_1986):
+        """It is a change of position, which the references say in a clause
+        of its own, so Shilton is beaten in a beat after it."""
+        kinds_in_order = [beat.kind for beat in story(facts_1986).beats]
+        assert kinds_in_order == [
+            RECOVERY,
+            PASS,
+            PASS,
+            PRESSURE,
+            PRESSURE,
+            DRIBBLE_PAST,
+            RUN,
+            PRESSURE,
+            DRIBBLE_PAST,
+            FINISH,
+        ]
+
+    def test_a_lone_dribble_past_is_still_one_beat_of_two_records(
         self, facts_1986
     ):
         """StatsBomb records it twice, `Dribble` on the player who went past
         and `Dribbled Past` on the defender. One beat says both."""
-        first = next(
+        last = [
             beat
             for beat in story(facts_1986).beats
             if beat.kind == DRIBBLE_PAST
+        ][-1]
+        assert last.player == "Diego Armando Maradona"
+        assert last.beaten == ("Peter Shilton",)
+        assert len(last.event_ids) == 2
+        assert not last.carried
+        assert beat_line(last) == (
+            "Diego Armando Maradona (Argentina) dribbled past Peter "
+            "Shilton, under pressure"
         )
-        assert first.player == "Diego Armando Maradona"
-        assert first.beaten == "Peter Beardsley"
-        assert len(first.event_ids) == 2
 
     def test_no_beat_has_a_key_named_minute_second_or_timestamp(self):
         """A goal call carries no clock, and a field a beat carries is a
@@ -358,8 +421,8 @@ class TestTheBeatsInThePrompt:
     def test_the_curation_cuts_the_passage_roughly_in_half(
         self, facts_1986, facts_2022
     ):
-        """24 records to 14 beats and 13 to 6, read off the data."""
-        assert (story(facts_1986).records, story(facts_1986).kept) == (24, 14)
+        """24 records to 10 beats and 13 to 6, read off the data."""
+        assert (story(facts_1986).records, story(facts_1986).kept) == (24, 10)
         assert (story(facts_2022).records, story(facts_2022).kept) == (13, 6)
 
     def test_the_recovery_is_kept_and_the_2022_passage_has_none(
@@ -419,7 +482,7 @@ class TestTheBeatsInThePrompt:
                 continue
             assert beat.direction == ""
             assert not beat.in_the_box
-            assert beat.yards is None
+            assert not beat.long_carry
 
     def test_the_play_pattern_and_the_own_half_are_said_once(
         self, facts_1986, facts_2022
@@ -444,7 +507,8 @@ class TestTheBeatsInThePrompt:
     def test_a_dribble_past_is_said_once_each(self, facts_1986):
         block = beats_block(story(facts_1986))
         assert "went dribbled" not in block
-        assert block.count("dribbled past") == 4
+        # Two beats, four defenders: the three consecutive ones are grouped.
+        assert block.count("dribbled past") == 2
 
     def test_the_beats_chain_the_2022_passes_in_order(self, facts_2022):
         lines = [beat_line(beat) for beat in story(facts_2022).beats]
@@ -1505,3 +1569,87 @@ class TestTheRuleAgainstHangingTheMoveOffWho:
         cover = slot_coverage(references.BUDDY_2022_ARGENTINA, facts_2022)
         assert "who" in cover
         assert cover["who"] == said_who(references.BUDDY_2022_ARGENTINA)
+
+
+class TestARunWithNoRetries:
+    """`--max-retries`, so a run can be one attempt a candidate.
+
+    The run of 2026-11-05 sent 26 calls for 18 candidates and nine of the 26
+    were retries, which is what took it to the cap. A retry is only worth
+    paying for while the refusals it meets are the model's; eight of those
+    nine were the reaction check, which is fixed, so the next run asks once.
+    """
+
+    def test_the_default_is_the_pipeline_s_own(self):
+        assert MAX_RETRIES == 2
+
+    def test_no_retries_is_one_attempt_a_candidate(self, capsys):
+        assert main([
+            "--plan", "--max-retries", "0", "--max-total-tokens", "80000"
+        ]) == 0
+        printed = capsys.readouterr().out
+        assert "at most 18 generations (6 slots x 3 candidates x 1 attempt)" \
+            in printed
+        assert "none: one attempt a candidate" in printed
+
+    def test_the_default_still_prints_three_attempts(self, capsys):
+        assert main(["--plan", "--max-total-tokens", "80000"]) == 0
+        printed = capsys.readouterr().out
+        assert "at most 54 generations (6 slots x 3 candidates x 3 attempts)" \
+            in printed
+        assert "2 after the first attempt, so 3 attempts a candidate" in printed
+
+    def test_a_negative_count_is_refused(self):
+        with pytest.raises(SystemExit) as raised:
+            main(["--plan", "--max-retries", "-1"])
+        assert "0 or more" in str(raised.value)
+
+    def test_a_refused_candidate_costs_one_call(self):
+        """With no retries a candidate that fails is dropped on its one
+        attempt, and the slot goes on to the next candidate."""
+        hero = next(one for one in HEROES if one[1] == MATCH_2022)
+        golden = read_json(GOLDEN / "watsonx_text_generation.json")
+        body = {
+            "usage": {
+                "prompt_tokens": 2_000,
+                "completion_tokens": 300,
+                "total_tokens": 2_300,
+            },
+            "choices": [
+                {
+                    "index": 0,
+                    "finish_reason": "stop",
+                    "message": {
+                        "role": "assistant",
+                        # Ungrounded: Pelé is in neither match.
+                        "content": "Pelé scored with his left foot.",
+                    },
+                }
+            ],
+        }
+        urls = {
+            IAM_TOKEN_URL: golden["iam"]["response"],
+            WatsonxProvider(env=golden["env"], chat=True).url: body,
+        }
+        calls = []
+
+        def transport(url, sent, headers):
+            calls.append(url)
+            return urls[url]
+
+        backend = WatsonxProvider(
+            env=golden["env"],
+            chat=True,
+            transport=transport,
+            max_new_tokens=2000,
+            token_cap=400_000,
+        )
+        goals, stopped = gather(
+            backend, 3, heroes=(hero,), only=[BUDDY_SCORED], max_retries=0
+        )
+        assert stopped is None
+        slot = goals[0]["slots"][0]
+        assert slot["candidates"] == []
+        assert [one["attempts"] for one in slot["dropped"]] == [1, 1, 1]
+        # Three candidates, one generation each, plus the IAM exchange.
+        assert len(calls) == 4
