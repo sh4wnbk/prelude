@@ -672,6 +672,82 @@ class TestTheReactionLayer:
         assert not result.grounded, result.summary
         assert "name" in {failure.kind for failure in result.failures}
 
+    def test_a_reaction_may_open_on_a_word_the_records_do_not_name(
+        self, facts_2022
+    ):
+        """The run of 2026-11-05 is what this is for.
+
+        "Incredible!", "Pure magic!" and "Unbelievable!" were each read as
+        play and refused, because the reader emits an unknown name for any
+        capitalised word it cannot resolve and "What a finish!" passed only
+        because "What" is in `NOT_A_NAME`. Eight of that run's nine retries
+        went on this, and the 2022 buddy_scored slot lost all three of its
+        attempts to it.
+        """
+        for reaction in (
+            "Pure magic!", "Oh my word!", "Wonderful!", "Outrageous!"
+        ):
+            text = BUDDY_2022_ARGENTINA.replace(
+                "and scored!", "and scored! " + reaction
+            )
+            result = check(text, facts_2022, THE_BUDDY, "Argentina")
+            assert result.grounded, (reaction, result.summary)
+
+    def test_a_banned_verdict_in_a_reaction_is_still_refused(
+        self, facts_2022
+    ):
+        """Two of the three words the run of 2026-11-05 reached for are
+        editorial epithets, so they stay refused on that ground: what changed
+        is which rule has a view on them, not whether one does.
+
+        This is the half of that run's refusal the name fix does not reach.
+        """
+        for banned in ("Incredible!", "Unbelievable!", "Simply stunning!"):
+            text = BUDDY_2022_ARGENTINA.replace(
+                "and scored!", "and scored! " + banned
+            )
+            result = check(text, facts_2022, THE_BUDDY, "Argentina")
+            assert not result.grounded, (banned, result.summary)
+            assert {failure.kind for failure in result.failures} == {
+                "editorial epithet"
+            }
+
+    def test_a_proper_noun_in_the_middle_of_a_reaction_is_still_play(
+        self, facts_2022
+    ):
+        """The first word of a sentence is capitalised whatever it is, so a
+        capital there says nothing. A capital anywhere else does, which is
+        how "Pure Pelé, that!" stays refused while "Pure magic!" passes."""
+        text = BUDDY_2022_ARGENTINA.replace(
+            "and scored!", "and scored! Pure Pelé, that!"
+        )
+        result = check(text, facts_2022, THE_BUDDY, "Argentina")
+        assert not result.grounded, result.summary
+        assert "name" in {failure.kind for failure in result.failures}
+
+    def test_the_names_this_match_records_are_what_decide(self, facts_2022):
+        """Not capitalisation. A recorded name makes the sentence play, by
+        either of its two recorded spellings, and an unresolved word does
+        not."""
+        reader = Reader(
+            facts=facts_2022,
+            not_a_name=NOT_A_NAME,
+            demonyms=TEAM_DEMONYMS,
+            actions=ACTION_CLAIMS,
+        )
+        for naming in ("Messi!", "Lionel Messi!", "Argentina!"):
+            assert not is_a_reaction(naming, reader.read(naming)), naming
+        for nobody in ("Pure magic!", "Outrageous!", "Oh my word!"):
+            assert is_a_reaction(nobody, reader.read(nobody)), nobody
+
+    def test_an_unknown_name_in_the_play_is_still_refused(self, facts_2022):
+        """The widening reaches the reaction and nothing else: an invented
+        player in a sentence of play is refused exactly as before."""
+        text = BUDDY_2022_ARGENTINA.replace("Di María", "Pelé")
+        result = check(text, facts_2022, THE_BUDDY, "Argentina")
+        assert not result.grounded, result.summary
+        assert "name" in {failure.kind for failure in result.failures}
+
     def test_a_short_last_sentence_of_play_is_not_a_reaction(
         self, facts_2022
     ):

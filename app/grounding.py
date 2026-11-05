@@ -91,6 +91,10 @@ confirm or refuse:
 | `cheer` | "!" | only on the finish or the reaction after it, and only from the Caller or the scoring side's Buddy |
 | `reaction` | a reaction away from the goal | never; it stands once, at the goal, after the finish has landed |
 
+A reaction is the one sentence read for shape rather than for claims, and
+"names nobody" there is read against this match's recorded names rather than
+against capitalisation: see `REACTION_MOVES`.
+
 The goal-call reading adds `chain`, `past`, `position`, `straight`,
 `duration`, `direction`, `run` and `carry_delivery` to that list and drops
 `untagged` and `citation`, which a narration with no numbers in it cannot
@@ -1177,17 +1181,59 @@ _CHEER = "!"
 #: narrator feels, which is not a thing the data has a view on.
 REACTION_WORDS = 8
 
-#: The move kinds a reaction may still make, which is the one that asserts
-#: nothing once nobody is named.
+#: The move kinds a reaction may still make, which are the two that assert
+#: nothing once nobody the records name is named.
 #:
-#: "What a finish!" is one of Shawn's three examples of a reaction and
-#: "finish" is in `ACTION_CLAIMS`, so an action word cannot be what rules a
-#: reaction out. With no name and no pronoun in the sentence there is nobody
-#: for the word to be about: it points at no record, so no record can refuse
-#: it. Everything else a goal call can say is about a specific record, and a
-#: sentence making one of those claims is play and is read as play, however
-#: short it is.
-REACTION_MOVES = frozenset({"action"})
+#: `action`: "What a finish!" is one of Shawn's three examples of a reaction
+#: and "finish" is in `ACTION_CLAIMS`, so an action word cannot be what rules
+#: a reaction out. With no name and no pronoun in the sentence there is
+#: nobody for the word to be about: it points at no record, so no record can
+#: refuse it.
+#:
+#: `unknown_name`: a capitalised word that is **not** a name this match
+#: records. The reader emits one for every capitalised word it cannot resolve,
+#: which is how an invented player is caught in the play, and it was also
+#: deciding which reactions were allowed. The run of 2026-11-05 is what that
+#: cost: "Incredible!", "Pure magic!" and "Unbelievable!" were each read as
+#: play and refused, because "Incredible", "Pure" and "Unbelievable" are
+#: capitalised and are not in `NOT_A_NAME`. "What a finish!" passed only
+#: because "What" happens to be in that set. So every neutral candidate of
+#: that run ended "What a moment", "What a finish" or "What a strike", and
+#: eight of the nine retries went on the refusal; the 2022 `buddy_scored`
+#: slot lost all three of its attempts to it and produced nothing.
+#:
+#: **So the test is the match's own names rather than capitalisation.** A word
+#: the records do not name is a word that points at no record, exactly like
+#: the action word beside it, and the move kinds are where that lookup has
+#: already happened: `name` and `team` resolved against this match, and
+#: `ambiguous_name` resolved against more than one of its players. Any of
+#: those three is naming somebody and makes the sentence play.
+#:
+#: **One capitalised word is still not allowed through: a proper noun from
+#: outside the moment.** "Pure Pelé, that!" names a footballer who is not in
+#: this match, which is both an invention and the verdict about history
+#: `CLAUDE.md` forbids, and
+#: `tests/test_reference_narrations.py::TestTheReactionLayer` has held it
+#: refused since the reaction layer was built. So an unresolved capitalised
+#: word is read as a reaction only where it is the sentence's own first word,
+#: which is capitalised whatever it is: "Incredible!", "Pure magic!" and
+#: "Unbelievable!" are that, and the "Pelé" in the middle of a sentence is
+#: not. `_opens_the_sentence` is the test, and a mid-sentence capital the
+#: records cannot resolve keeps the sentence in the play, where it is refused
+#: as an unknown name exactly as before.
+#:
+#: Nothing in a reaction is ever *grounded* by any of this; it is only left
+#: unchecked. The guards that remain are shape and the banned patterns: at
+#: most `REACTION_WORDS` words, no digit, no pronoun, nobody the records name,
+#: no proper noun introduced mid-sentence, and every verdict, epithet, force
+#: word, "you" and clock still refused there as in the play. The label still
+#: means every event happened as told, because the reaction tells no event.
+REACTION_MOVES = frozenset({"action", "unknown_name"})
+
+#: The move kinds that name somebody this match records, and so make a
+#: sentence play rather than reaction. Written out beside `REACTION_MOVES`
+#: because the two together are the whole of the rule.
+NAMES_SOMEBODY = frozenset({"name", "team", "ambiguous_name"})
 
 #: The pronouns that make a sentence play rather than reaction. A pronoun
 #: means the player with the ball, so "He scored." is the finish said shortly
@@ -1200,8 +1246,17 @@ def is_a_reaction(text: str, moves: Sequence[Move]) -> bool:
 
     Four things, and all of them are about the shape of the sentence rather
     than about what it happens to say: it is at most `REACTION_WORDS` words,
-    it holds no digit, it names nobody (no player, no team, no pronoun), and
-    every move in it is in `REACTION_MOVES`.
+    it holds no digit, it names nobody the records name (no player, no team,
+    no pronoun), and every move in it is in `REACTION_MOVES`.
+
+    **"Names nobody" is read against this match's names and not against
+    capitalisation.** `moves` is where that lookup has already happened: the
+    reader resolves every capitalised word against `name_keys(facts)` and
+    emits `name` or `team` when it hits, `ambiguous_name` when it fits more
+    than one player, and `unknown_name` when it hits nothing. The first three
+    are `NAMES_SOMEBODY` and rule the sentence out; the last points at no
+    record and is allowed where it is the sentence's own first word.
+    `REACTION_MOVES` has what that widened, what it did not, and why.
     """
     words = _WORD.findall(text)
     if not words or len(words) > REACTION_WORDS:
@@ -1210,7 +1265,29 @@ def is_a_reaction(text: str, moves: Sequence[Move]) -> bool:
         return False
     if any(bare(fold(word)) in _PRONOUN_WORDS for word in words):
         return False
-    return all(move.kind in REACTION_MOVES for move in moves)
+    if any(move.kind in NAMES_SOMEBODY for move in moves):
+        return False
+    for move in moves:
+        if move.kind not in REACTION_MOVES:
+            return False
+        if move.kind == "unknown_name" and not _opens_the_sentence(text, move):
+            # A proper noun introduced in the middle of a sentence is
+            # somebody from outside this moment. See `REACTION_MOVES`.
+            return False
+    return True
+
+
+def _opens_the_sentence(text: str, move: Move) -> bool:
+    """Whether this move is the sentence's own first word.
+
+    The first word of a sentence is capitalised whether or not it is a name,
+    so a capital there says nothing. A capital anywhere else does, which is
+    the one thing a reaction may not introduce.
+
+    Leading quotes, brackets and spaces are stepped over, because they are
+    punctuation rather than words.
+    """
+    return not _WORD.search(text, 0, move.at)
 
 
 def _clause(text: str, at: int) -> tuple[int, int]:
