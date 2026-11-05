@@ -2985,6 +2985,14 @@ the second is dropped, and the reaction is left out of the shape. Shawn's
 four references for each hero goal come out as four shapes, so it is not
 over-eager. Applied to the eighteen this run produced it flags two.
 
+### Task 11: the three check and prompt fixes, and the rerun (done)
+
+The record is above, under "Task 11". Listed here so the plan reads in order:
+`is_a_reaction` against the match's own names, attribution read off the
+subject of the sentence rather than off the ball, the yard figures out of the
+beats with the consecutive dribbles grouped, and one rerun of the six slots
+with no retries.
+
 ### Task 10: a token cap, curated beats and rule 14 (done, the run short of eighteen)
 
 **The diagnosis, from Shawn on 2026-10-31: the candidates echo the fact
@@ -3127,6 +3135,137 @@ all, against eighteen of eighteen hanging the move off it on 2026-10-31.
 for the six recordings, so 583 a recording, and the ten run 297 to 369
 billed. The 1986 candidates are 343 to 369 and the 2022 ones 297 to 339.
 
+### Task 11: the three check and prompt fixes Shawn read off the run (done)
+
+**Shawn read the ten candidates of 2026-11-05 aloud and none was ready to
+record.** The curation had done its job: the "received" echo was gone and the
+event order was right in every 1986 candidate. What was left was one hole in
+the check and three things the pipeline was doing to the output.
+
+**The hole, and it matters more than the cap.** Buddy for Argentina candidate
+1 said "We won it back through Cuciuffo, who passed to Enrique and set up
+Maradona". The records put `goal_assist` on Enrique. The check passed it on
+twenty-one claims.
+
+`support` was never the problem: a `chain` grounds only against a record
+whose `pass.player` is the actor and whose `pass.recipient` is the target, and
+"set up" only against the pass carrying `goal_assist`. The problem was which
+actor reached it. `Reader` advanced `tracked` to the recipient after a chain,
+and the next chain marker in the same clause took `tracked` as its source, so
+the ball moving on to Enrique made Enrique the subject of "set up" although
+"and" joins a second verb to the same subject.
+
+**Fix 2, `f6cb030`: `_chain_source` answers in three steps.** A name or
+pronoun in the marker's own clause; failing that the subject a chain in that
+clause already established; failing that the player with the ball. A bare
+marker is exempt because it carries no verb of its own, so "Molina to
+MacAllister on to Messi" is the ball continuing, which rule 14 offers as a
+join. All eight references still pass, including "played it to Enrique who
+found Maradona", where the pronoun moves the subject on and the second chain
+really is Enrique's.
+
+**Fix 1, `bdecc28`: a reaction names nobody by the match's names, not by
+capitals.** The reader emits an unknown name for any capitalised word it
+cannot resolve, `is_a_reaction` refused a sentence holding one, and "What a
+finish!" passed only because "What" is in `NOT_A_NAME`. So every neutral
+candidate of that run ended "What a moment", "What a finish" or "What a
+strike", every England one on a stapled-on "Ah, no.", eight of the nine
+retries went on the refusal and the 2022 `buddy_scored` slot lost all three
+attempts to it. `name`, `team` and `ambiguous_name` resolve against this match
+and still make a sentence play; `unknown_name` points at no record and no
+longer rules a reaction out.
+
+One capital is still not allowed through. "Pure Pelé, that!" names a
+footballer who is not in this match, which is both an invention and the
+verdict about history `CLAUDE.md` forbids, so an unresolved capital is read as
+a reaction only where it is the sentence's own first word. A proper noun
+introduced mid-sentence keeps the sentence in the play.
+
+**Two of the three words the model reached for stay refused anyway**, as the
+editorial epithets they are: "incredible", "unbelievable" and "stunning" are
+in `BANNED_PATTERNS`. What the fix widens is the rest, and the rerun used it:
+"Pure magic." was written and accepted as a reaction.
+
+**Fix 3, `ed20c8f`: no yard figures, and consecutive dribbles grouped.** The
+beats carried a carry's distance in whole yards and every 1986 candidate read
+it out. `yards` is `long_carry` now, a flag, and the beat says "a long carry";
+the beat list is bulleted rather than numbered for the same reason, so the
+block holds no digit at all. And consecutive dribbles past one player are one
+beat naming the defenders in order, with the carries between them absorbed,
+because a list of beats is read out as a list of beats. A pressure between
+them keeps its own beat and the group sits where it ends, so a pressure inside
+its span is said before it. A carry that ended in the box ends the group,
+which is why Shilton is beaten in a beat of his own.
+
+**The 1986 beat list, from `scripts/story_beats_report.py`: 24 records to 10
+beats, from 14.**
+
+```
+- Cuciuffo recovered the ball
+- Cuciuffo passed to Enrique, forward
+- Enrique passed to Maradona, the assist, forward
+- Beardsley pressed the player on the ball
+- Reid pressed the player on the ball
+- Maradona dribbled past Beardsley, Butcher and Fenwick, carrying the ball
+  forward between them, under pressure
+- Maradona carried the ball, a long carry, forward, ending in the box, under
+  pressure
+- Butcher pressed the player on the ball
+- Maradona dribbled past Shilton, under pressure
+- Maradona shot, from inside the box, with his left foot
+```
+
+The 2022 list is unchanged at six: it holds no dribble and no carry over ten
+yards.
+
+**Fix 4, the rerun: all six slots, one attempt a candidate, and it cost two
+thirds of what the retried run did.** `--max-retries` is a flag now, and 0 is
+one attempt with no regeneration.
+
+| | 2026-11-05, three attempts | the rerun, one attempt |
+| --- | ---: | ---: |
+| calls sent | 26 | 18 |
+| billed by watsonx | 76,542 | 51,496 |
+| of it prompt | 62,766 | 43,691 |
+| of it completion | 13,776 | 7,805 |
+| the cap | 80,000 | 80,000 |
+| unspent | 3,458 | 28,504 |
+| candidates kept | 10 of 18 | 10 of 18 |
+| slots reached | 5 of 6 | 6 of 6 |
+
+**The grouping is in the output.** "Maradona dribbled past Beardsley, Butcher
+and Fenwick, carried it forward into the box, slipped past Shilton and struck
+with his left foot" is every 1986 candidate's shape now, against "beat
+Butcher, ran forward seventeen yards, beat Fenwick, ran forward seventeen
+yards" before it. No candidate carries a yard figure, and none says "evaded
+Reid": where Reid is named it is as "pressed by Beardsley and Reid", which the
+records hold.
+
+**Five of the eight drops are the model being wrong, which is the check
+working.** "Álvarez back to MacAllister" over a ball 36 yards up the pitch,
+twice; "MacAllister set up Di María forward" with the "forward" landing on Di
+María, whose only record with two ends is the shot; "a long pass to Di María"
+over a pass of 26 yards; "Ah, no." written in front of the play; and
+"Incredible!".
+
+**Three of the eight are one false refusal, and it is new.** "Under pressure
+from Beardsley and Reid" is refused with `'under pressure': no record of Peter
+Beardsley is marked under pressure`. The claim is true: Beardsley and Reid are
+the players who pressed. The `pressured` move resolves its actor by the
+framework's action before name, so it lands on Beardsley, and `support` then
+asks whether Beardsley's own record carries `under_pressure`, which is
+Maradona's flag and not his. "Pressed by Beardsley and Reid" passes, which is
+why half the kept 1986 candidates say it that way. The beat line "X pressed
+the player on the ball" is what invites the other phrasing, so this is partly
+the curation's own doing and nothing was changed for it here. The fix is a
+rule about who "under pressure" is about, in `app/narration_grammar.py`, and
+it is one line of `support` plus a test.
+
+**"Glided past Shilton" still passes, and "glided" is a manner word.** "Past
+Shilton" is grounded, because the records hold a dribble past him; the manner
+is unsaid in the data and uncheckable, like "smashed" before it was banned
+outright. No candidate of the rerun used one, and nothing was changed for it.
+
 ### Phase 5: voice and audio
 
 **This is where the personas are, now that the narration text is one text.**
@@ -3188,44 +3327,53 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Shawn reads ten candidates aloud, and decides about the other eight)
+## Next first action (Shawn reads ten candidates aloud and picks from five slots)
 
-**Task 10 is run end to end and the run is eight candidates short, because
-the cap did what it was built to do.** The ten are in
+**Task 11 is run end to end: all six slots were generated, ten candidates
+passed, and one slot is empty.** They are in
 `C:\Users\shawn\prelude-review\narrator_candidates_2026-11-05.md`, with the
-same data beside it as JSON. Three per slot for 1986 `buddy_conceded` and
-1986 `storyteller_neutral`, two for 1986 `buddy_scored` and two for 2022
-`buddy_conceded`, nothing for 2022 `buddy_scored`, and 2022
-`storyteller_neutral` was never reached. Every one of the ten passed the
-grounding check in `app/grounding.py` read as a goal call, and nothing is
-frozen.
+same data beside it as JSON, and that file is the rerun's: a slot this run
+produced replaces its older self, and this run produced all six.
 
-**What the run cost: 76,542 tokens of the 80,000 allowed, every token of it
-counted off watsonx's `usage` object rather than estimated.** The Task 10
-record above has the breakdown and the two findings that came out of it: the
-nine retries that spent the difference are eight instances of one refusal,
-and the 1986 candidates are reading the yard figures out loud.
+| Slot | Kept |
+| ---- | ---: |
+| 1986 `buddy_conceded` | 2 |
+| 1986 `buddy_scored` | 2 |
+| 1986 `storyteller_neutral` | 1 |
+| 2022 `buddy_conceded` | 0 |
+| 2022 `buddy_scored` | 2 |
+| 2022 `storyteller_neutral` | 3 |
 
-**Two slots are owed and it is Shawn's call whether to pay for them.** They
-can be rerun on their own, which is what `--slot` is for, and
-`scripts/narrator_candidates.py` merges a rerun slot into the document
-rather than throwing the other four away:
+**What the run cost: 51,496 tokens of the 80,000 allowed**, every one counted
+off watsonx's `usage` object, over 18 calls with no retries. 28,504 unspent.
+The Task 11 record above has the comparison against the retried run and the
+two findings that came out of this one.
+
+**2022 `buddy_conceded` is empty for a different reason than last time.** All
+three of its attempts were the model being wrong, not the check being wrong:
+"Álvarez back to MacAllister" over a ball 36 yards up the pitch, "Ah, no."
+written in front of the play, and "set up Di María forward" with the
+"forward" landing on Di María. With no retries each cost its candidate. That
+is the trade `--max-retries 0` makes, and it bought a run that reached every
+slot for two thirds of the tokens.
+
+**Two things to decide, and the first is cheap.**
+
+- **"Under pressure from X" is refused and the claim is true.** Three of the
+  eight drops are that one refusal. The fix is a rule in `support` about who
+  "under pressure" is about, plus a test, and it is worth doing before any
+  further paid run: half the kept 1986 candidates had to route around it.
+- **Whether to rerun 2022 `buddy_conceded`,** which is one slot and about
+  9,000 tokens at this run's rate:
 
 ```
-.\.venv-prelude\Scripts\python.exe -I scripts\narrator_candidates.py --plan --match 3869685 --slot buddy_scored --slot storyteller_neutral --reasoning-effort low --per-slot 3 --max-total-tokens 40000
+.\.venv-prelude\Scripts\python.exe -I scripts\narrator_candidates.py --plan --match 3869685 --slot buddy_conceded --reasoning-effort low --per-slot 3 --max-retries 1 --max-total-tokens 25000
 ```
 
-That is the plan; `--confirm` in place of `--plan` is what sends it. Six
-calls if every candidate is grounded first time, eighteen at most, and the
-run of 2026-11-05 billed about 2,414 prompt tokens plus about 530 completion
-a call. 40,000 is room for about thirteen calls at that rate, and the cap
-stops it before the fourteenth.
-
-**Whether to touch the reaction refusal first.** The eight failures were all
-a reaction opening on a capitalised adjective, and a rerun of those two slots
-will meet it again: 2022 `buddy_scored` lost all three of its attempts to it.
-Deciding `NOT_A_NAME`, `is_a_reaction` or rule 3 before paying for the rerun
-is the cheaper order.
+`--max-retries 1` rather than 0, because that slot's three refusals were all
+the kind a second attempt fixes. `--plan` prints what it would spend and
+`--confirm` sends it; a slot this run did not produce is carried across
+unchanged, so the other five survive the rerun.
 
 **Still owed after the pick.** Three things, and the first is Shawn's:
 
@@ -3243,6 +3391,15 @@ listener to it, so nothing generated for it and there are six slots rather
 than eight. Its style is in `app/goal_call_prompt.py` and its two reference
 narrations are in `tests/test_reference_narrations.py`, so adding the
 recording later is a change to `hero.voice_for` and not to the writing.
+
+### Task 10's run: the ten candidates the fixes replaced
+
+**The first run of 2026-11-05 billed 76,542 of its 80,000 and stopped on the
+cap** in the 2022 `buddy_scored` slot, with ten candidates over five slots.
+Shawn read those ten aloud, and Task 11 is what the reading found: one hole in
+the check and three things the pipeline was doing to the output. The
+candidates themselves are gone from the review file, which the rerun
+overwrote; what they showed is in the Task 11 record.
 
 ### Task 9d: the eighteen candidates the curation replaced
 
