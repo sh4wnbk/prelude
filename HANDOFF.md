@@ -2985,6 +2985,15 @@ the second is dropped, and the reaction is left out of the shape. Shawn's
 four references for each hero goal come out as four shapes, so it is not
 over-eager. Applied to the eighteen this run produced it flags two.
 
+### Task 13: the move placed on the pitch (done, the six fallback candidates lost)
+
+The record is above. Listed here so the plan reads in order: a zone
+vocabulary of eight bands up the pitch and three across it, the beats
+carrying a place where the move starts, turns and ends, a wrong place
+refused, rule 17 asking every narrator for two or three of them, and a run
+of all six slots that kept eight of eighteen and overwrote the six
+candidates it was told to keep as the fallback.
+
 ### Task 12: the hyphen, the Storyteller's full sentences and the two-slot rerun (done)
 
 The record is above. Listed here so the plan reads in order: a hyphen reading
@@ -3282,6 +3291,204 @@ Shilton" is grounded, because the records hold a dribble past him; the manner
 is unsaid in the data and uncheckable, like "smashed" before it was banned
 outright. No candidate of the rerun used one, and nothing was changed for it.
 
+### Task 13: a place on the pitch, and the run that spent the review file (done)
+
+**Shawn, reading the six candidates of 2026-11-05 aloud: they have no field
+position.** "Dribbled past Butcher" and "a long ball to MacAllister" give a
+listener nothing to place. Two of the eight references say a band ("just
+inside his own half") and the other six place the move only with "in his own
+half" and "in the box", so the standard itself barely does it either. The
+coordinate is on almost every record and nothing was turning it into words.
+
+**Step 1, `1d29e49`: `app/pitch_zones.py`.** Eight bands of `x` and three of
+`y`, on Shawn's thresholds, each one a phrase: "deep in his own half" under
+40, "in his own half" 40 to 50, "just inside his own half" 50 to 60, "just
+inside their half" 60 to 70, "in their half" 70 to 80, "in the final third"
+80 up, "on the edge of the box" 96 to 102 inside the box's width, "in the
+box" past 102 inside it, and "on the left" and "on the right" outside `y`
+26.7 and 53.3. Both box bands ask for the width as well as the line, because
+a ball at `x` 110 and `y` 10 is by the byline with the goal frame between it
+and the posts, and anything from 80 up that is neither box band is the final
+third, which is this module's reading of a coordinate the vocabulary names no
+zone for.
+
+**A place is read off the attacking side's own record.** Butcher's `Dribbled
+Past` is at (33.0, 11.5) and the `Dribble` that beat him is at (87.1, 68.6),
+which is the same place said twice from two ends, so reading a mirrored
+record would put "on the left" and "just inside their half" over a dribble
+that was neither.
+
+**`Facts` gains the fixture's two teams.** All thirteen records of the 2022
+counter are Argentina's, so the side being attacked is not in the passage and
+"just inside France's half" has no name to use. They come off the lineups
+file `app/recorded_names.py` already reads, which is the same StatsBomb open
+data as the event feed.
+
+**Step 2, same commit: which beats carry a place.** The first action, a ball
+recovery, each defender gone past, a long ball at both ends, the assist and
+the finish. Not every beat and not every pass, because every record carries a
+location and a telling that places all of them is the label reading
+`beat_line` was written to stop: two of the five 2022 passes say nothing about
+where they were played.
+
+**The two beat lists, from `scripts/story_beats_report.py`.** 1986, 24 records
+to 10 beats:
+
+```
+   1. José Luis Cuciuffo (Argentina), deep in his own half, won the ball back
+   2. José Luis Cuciuffo (Argentina) passed it forward to Héctor Enrique
+   3. Héctor Enrique (Argentina), in his own half on the right, passed it
+      forward to Diego Armando Maradona, which is the assist
+   4. Peter Beardsley (England) pressed the player on the ball
+   5. Peter Reid (England) pressed the player on the ball
+   6. Diego Armando Maradona (Argentina) dribbled past Peter Beardsley just
+      inside his own half on the right, Terry Butcher in the final third on
+      the right and Terry Fenwick on the edge of the box on the right,
+      carrying the ball forward between them, under pressure
+   7. Diego Armando Maradona (Argentina) carried the ball forward on a long
+      run, ending in the box, under pressure
+   8. Terry Butcher (England) pressed the player on the ball
+   9. Diego Armando Maradona (Argentina) dribbled past Peter Shilton in the
+      box, under pressure
+  10. Diego Armando Maradona (Argentina), in the box, shot with his left foot
+```
+
+2022, 13 records to 6 beats:
+
+```
+   1. Nahuel Molina (Argentina), deep in his own half on the right, passed it
+      forward to Alexis MacAllister
+   2. Alexis MacAllister (Argentina) passed it forward to Lionel Messi
+   3. Lionel Messi (Argentina) passed it forward to Julián Álvarez
+   4. Julián Álvarez (Argentina), just inside France's half on the right, hit
+      a long ball forward to Alexis MacAllister again, landing on the edge of
+      the box on the right
+   5. Alexis MacAllister (Argentina), on the edge of the box on the right,
+      passed it forward to Ángel Di María, into the box, which is the assist
+   6. Ángel Di María (Argentina), in the box, shot first time with his left
+      foot
+```
+
+**The side rule puts "on the right" on three beats Shawn's own list did not
+name**, and all three are just over the line: Beardsley's dribble at `y`
+56.4, Fenwick's at 55.1 and the long ball's landing at 54.9, against a
+threshold of 53.3. The three Shawn did name a side for are at 68.6, 71.8 and
+68.2. The rule as written is what is built, and the cost is that the grouped
+1986 dribble beat says "on the right" three times in one line. Moving the
+line, or saying a side only where it is clear of it, is a change to
+`side_of` in `app/pitch_zones.py` and nothing else.
+
+**The finish says the place instead of "from inside the box".** The box band
+is the eighteen yard line and the box's width, so it is the same claim with
+one more line in it; saying both would be saying it twice.
+
+**Step 3, `d653794`: a place is a claim, and a wrong one is refused.** Twelve
+spellings, hyphens allowed on all of them, and the band and the side are two
+moves because either can be wrong on its own. Each is about the action it was
+said beside, not about the player: `player_spots` answers where a player was
+at any point in the passage, which is right for a half and far too loose for
+a band, since three of Maradona's four dribbles are in different bands. The
+move before the phrase owns it, or the one after where nothing is behind it,
+which is the appositive the beats are written in.
+
+**The two broad phrases are left alone.** "In his own half" and "in the box"
+stay the position claims they were, because Maradona's first touch is at `x`
+55.2, whose band is "just inside his own half", and three of the eight
+references say "in his own half" over it: reading the whole-half phrase as a
+band would refuse a true sentence and a reference with it. A band phrase is
+exclusive, so "just inside his own half" over Cuciuffo at 35.2 is refused
+although it is indeed his own half.
+
+**Shawn's two tests, and two more.** "Álvarez, deep in his own half, hit a
+long ball" is refused on 3869685, because his three records are at `x` 62.5,
+63.2 and a pass down at 99.3. "Beat Butcher on the left" is refused on
+3750191, because every record of Butcher's in the passage is England's and a
+place is read off the attacking side's own location; "went past Butcher on
+the left" is refused as the wrong side, which is the same sentence with the
+reason Shawn meant. A half said with a name is a claim about the name too:
+"just inside Argentina's half" is refused as the side in possession and
+"Brazil's" as neither side.
+
+**Step 4, `1e45340`: rule 17.** "Place the move on the pitch two or three
+times: where it started, where the decisive action happened, and where it
+finished. Do not give every beat a place." General to any goal, like rules 15
+and 16, and no claim rule answers to it: a wrong place is refused whether or
+not a rule asked for one.
+
+**Two reporting gaps closed first, `c2ef0fd`,** because step 6 asks a run to
+print what no run could. The places a candidate used, read with the same
+grammar the check reads them with, so what is counted is what was verified.
+And the refused attempts of a kept candidate: `gather` recorded `refused`
+only on a candidate dropped altogether, so the one refusal of the Task 12 run
+is on record as the number 2 and nothing else.
+
+**Step 5, the run: all six slots, 66,242 tokens of the 70,000 allowed, and
+it stopped on the cap.** Effort low, three candidates a slot, two retries
+allowed, twenty calls and one IAM exchange. Eight of the sixteen candidates
+it got to were kept, and the seventeenth was not sent.
+
+| This run, all six slots | |
+| --- | ---: |
+| calls sent | 20 |
+| billed by watsonx | 66,242 |
+| of it prompt | 54,900 |
+| of it completion | 11,342 |
+| the cap | 70,000 |
+| unspent | 3,758 |
+| candidates kept | 8 of the 18 asked for |
+| slots with something in them | 6 of 6 |
+
+**The run overwrote the six candidates it was told to keep.** The review file
+is named for the day and both runs are on 2026-11-05, and `merged` carries
+across only the slots a run did not produce: this run produced all six, so
+all six were replaced. They are not recoverable, and nothing in the repo ever
+held them. The precedent for keeping them is in the same directory:
+`hero_candidates_2026-10-30.before-task8.json`, copied aside by hand before
+an earlier overwrite. **Copy the review file aside before any rerun**, which
+is the first thing the next run should do and is not built.
+
+**Rule 17 reached one candidate of the six slots.** The 2022 Storyteller
+places the move three times ("deep in his own half", "on the right", "on the
+edge of the box"), which is exactly what the rule asks for. Four of the other
+seven place it once, both 1986 Buddy candidates place it not at all, and no
+candidate anywhere said where the long ball was struck from: all four 2022
+tellings place it where it came down. The vocabulary works and the asking is
+what is weak, which is the finding to read the eight aloud against.
+
+**What the near-copy filter did: seven of the sixteen.** Six on the words, at
+0.96, 0.94, 0.94, 0.87, 0.86 and 0.85, and one on the shape. The 1986
+`buddy_conceded` slot wrote one telling three times, and two of its three
+went; the 2022 `buddy_conceded` slot did the same. One candidate was dropped
+on three refusals.
+
+**Five refused attempts, and three of them are new evidence.** Two belong to
+kept candidates and would not have been recorded before this task. The model
+is wrong in the same three ways each time: "Peter Reid" after "past" when
+Reid pressed and was never dribbled past, "pressed" attributed to Maradona
+when `Pressure` is the presser's record, and "first time" on the 1986 shot,
+which is not recorded first time. The third one cost a whole candidate: the
+1986 `buddy_scored` slot was refused three times and twice for that.
+
+**"We won it back through Cuciuffo in half" is kept and reads wrong aloud.**
+A word is missing from "in our half" and nothing refused it, because "in
+half" is not a phrase the check reads: "own half" is. It is the only kept
+candidate with a dropped word in it and it is the 1986 `buddy_scored` slot's
+only candidate, so the slot is one telling with a hole in it.
+
+**A gap the beats carry: the recovery line cannot be said back.** The beat
+reads "Cuciuffo won the ball back", and a narration saying that is refused
+twice over: "won" claims a `Foul Won` and Cuciuffo has none, and "back" is a
+direction his records do not go. "Won it back" is the phrase the check holds,
+and it is what the references say. Nothing was changed for it here.
+
+**`Spot.in_the_box` is still `x >= 102` with no width.** The zone bands ask
+for the box's width and that property does not, so it calls a ball at `x` 110
+and `y` 10 inside the box and so does the position claim built on it. Every
+recorded location from 102 up in both passages has `y` between 32.1 and 55.1,
+so the two readings agree on all the real data; the difference is a hole in
+the older one. Tightening it would move `in_the_box` on every beat and every
+position claim, which no step asked for.
+
 ### Task 12: the hyphen, the Storyteller's full sentences and the two-slot rerun (done)
 
 **Shawn asked for one small, last run after reading the four 2022 candidates
@@ -3562,40 +3769,52 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Shawn reads nine candidates aloud and picks from six slots)
+## Next first action (Shawn reads eight candidates aloud and picks from six slots)
 
-**Every slot has something in it, and the two 2022 slots that had something
-to gain from the hyphen fix and the Storyteller rule were rerun last.** They
-are in `C:\Users\shawn\prelude-review\narrator_candidates_2026-11-05.md`, with
-the same data beside it as JSON. The 1986 slots and the 2022 `buddy_conceded`
-slot are carried across unchanged, with the provenance they were written
-with.
+**Every slot has something in it and every candidate in the file is this
+run's.** They are in `C:\Users\shawn\prelude-review\narrator_candidates_2026-11-05.md`,
+with the same data beside it as JSON.
 
-| Slot | Kept | Which run wrote them |
-| ---- | ---: | -------------------- |
-| 1986 `buddy_conceded` | 2 | the first Task 11 rerun |
-| 1986 `buddy_scored` | 2 | the first Task 11 rerun |
-| 1986 `storyteller_neutral` | 1 | the first Task 11 rerun |
-| 2022 `buddy_conceded` | 1 | the Task 11 2022 rerun |
-| 2022 `buddy_scored` | 2 | the Task 12 rerun |
-| 2022 `storyteller_neutral` | 1 | the Task 12 rerun |
+| Slot | Kept | Places the move |
+| ---- | ---: | --------------- |
+| 1986 `buddy_conceded` | 1 | not at all |
+| 1986 `buddy_scored` | 1 | not at all |
+| 1986 `storyteller_neutral` | 2 | once each |
+| 2022 `buddy_conceded` | 1 | once |
+| 2022 `buddy_scored` | 2 | once each |
+| 2022 `storyteller_neutral` | 1 | three times |
 
-**What the two 2022 runs cost together: 55,823 tokens**, every one counted
-off watsonx's `usage` object: 34,353 over eleven calls for the three slots,
-and 21,470 over seven calls for the two that were run again. Nothing was
-spent on match 3750191 after the first Task 11 rerun.
+**The six candidates of the earlier run are gone.** The review file is named
+for the day, both runs are on 2026-11-05, and `merged` carries across only
+the slots a run did not produce, so a run of all six replaced all six.
+Nothing in the repo held them. **Copy the review file aside before any
+rerun**, the way `hero_candidates_2026-10-30.before-task8.json` was copied
+aside in the same directory. That is not built and is the first thing the
+next run should do.
+
+**What this run cost: 66,242 tokens of the 70,000 it was allowed**, every one
+counted off watsonx's `usage` object, over twenty calls and one IAM exchange.
+It stopped on the cap in the last slot, with one candidate in it, so the
+second and third candidates of 2022 `storyteller_neutral` were never asked
+for.
 
 **The film is set in 2022, so the Di María narration is the one the video
-plays.** All four 2022 candidates say the long ball in a clause of its own
-and say the shot was struck first time, none carries a standalone "forward"
-after a name, and the Storyteller one writes every pass with a verb in it.
+plays.** All four 2022 candidates say the long ball in a clause of its own,
+say the shot was struck first time, and place the move at least once; the one
+Storyteller candidate places it three times, which is what rule 17 asks for.
 
-**The rerun command, if a 2022 slot is to be asked again.** A slot this run
+**The one thing to listen for in the 1986 `buddy_scored` slot.** Its only
+candidate opens "We won it back through Cuciuffo in half", which is "in our
+half" with a word missing. Nothing refused it, because "in half" is not a
+phrase the check reads. If it reads wrong aloud, that slot wants rerunning on
+its own.
+
+**The rerun command, if a slot is to be asked again.** A slot this run
 produced replaces its older self and a slot it did not touch is carried
-across, so everything not named survives:
+across, so everything not named survives; copy the two files aside first:
 
 ```
-.\.venv-prelude\Scripts\python.exe -I scripts\narrator_candidates.py --confirm --match 3869685 --slot buddy_scored --slot storyteller_neutral --reasoning-effort low --per-slot 3 --max-retries 2 --max-total-tokens 30000
+.\.venv-prelude\Scripts\python.exe -I scripts\narrator_candidates.py --confirm --match 3750191 --slot buddy_scored --reasoning-effort low --per-slot 3 --max-retries 2 --max-total-tokens 20000
 ```
 
 `--plan` prints what it would spend and sends nothing; `--confirm` sends it.
@@ -3604,7 +3823,7 @@ Add or drop a `--slot` flag to change which slots are asked.
 **Still owed after the pick.** Three things, and the first is Shawn's:
 
 1. Shawn picks one candidate per slot, reading them aloud. All six slots can
-   be picked from, and three of them hold one candidate each.
+   be picked from, and four of them hold one candidate each.
 2. The freeze. `scripts/freeze_narrations.py` writes one narration per goal
    and `app/web/narrations.json` holds one per goal, so writing six picks
    into it is a change to both and is not built.
@@ -3612,13 +3831,14 @@ Add or drop a `--slot` flag to change which slots are asked.
 3. The recordings. `scripts/tts_hero.py --confirm` has not been sent and
    `hero.audio` is still `{}`.
 
-**Two small things a later run would want, neither of them built.** A refused
-attempt of a candidate that later passes is not recorded, so the one refusal
-of the Task 12 run is known only as `attempt` 2 with no words beside it; the
-fix is to keep `refused` on a kept candidate as well as on a dropped one. And
-rule 14 allows one "who" and nothing refuses a third, so the 2022
-Storyteller candidate says it three times and is flagged for Shawn rather
-than dropped.
+**Three things a later run would want, none of them built.** The review file
+copied aside before a rerun overwrites it, which this run is the reason for.
+The side rule said only where a location is clear of the line, since it puts
+"on the right" on three beats at `y` 54.9, 55.1 and 56.4 against a threshold
+of 53.3 and makes the grouped 1986 dribble beat say it three times. And a
+recovery beat a narration can say back: "won the ball back" is refused twice
+over, on "won" as a `Foul Won` and on "back" as a direction, while "won it
+back" is the phrase the check holds.
 
 **The Caller has a style and no recording.** `hero.voice_for` sends no
 listener to it, so nothing generated for it and there are six slots rather

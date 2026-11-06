@@ -20,6 +20,7 @@ into two places that have to agree:
 | Where | What it does |
 | ----- | ------------ |
 | `app/narration_prompt.py` | builds the numbered facts, holds the one style in `NARRATION_STYLE`, and states the rules to the model in the prompt |
+| `app/pitch_zones.py` | one recorded location as the phrase a narrator places the move with: eight bands up the pitch and three across it |
 | `app/goal_call_prompt.py` | builds the goal-call prompt: a style and a worked example per narrator, the story beats with no clock on them, and the seventeen rules |
 | `app/story_beats.py` | curates the passage down to the beats the prompt shows, so the model is not handed every recorded event |
 | `app/narration_grammar.py` | reads a goal call that cites nothing, and holds the yard thresholds the words are measured against |
@@ -618,6 +619,23 @@ player's own half and `x >= 102` is inside the box, and a defensive record is
 mirrored so the same two lines read correctly for either side. Maradona
 received it at `x` 55.2, which is "just inside his own half" by under five
 yards, and the carry that ends his run ends at 112.8, which is "into the box".
+
+**The same arithmetic at the resolution a commentator speaks at** is
+`app/pitch_zones.py`, which Task 13 added after Shawn read the six
+candidates of 2026-11-05 aloud and found that none of them places the
+move: "dribbled past Butcher" and "a long ball to MacAllister" leave a
+listener with nowhere on the pitch to stand. It is eight bands of `x`
+and three of `y`, each one a phrase and each one a claim: "deep in his
+own half" is `x` under 40, "just inside his own half" is 50 to 60,
+"just inside their half" is 60 to 70, "in the final third" is 80 up,
+"on the edge of the box" is 96 to 102 within the box's width, and "on
+the left" and "on the right" are the outer thirds of an eighty yard
+pitch. The bands are exclusive, so a phrase naming the wrong one is
+refused: Cuciuffo won the ball back at `x` 35.2, and "just inside his
+own half" over it is a wrong place although it is indeed his own half.
+The two broad phrases above are not bands and are read as the half and
+the box they always were, which is what three of the eight references
+say.
 
 **Duration** is the difference between two timestamps. The `minute` and
 `second` fields floor the clock, so the 2022 counter reads as exactly ten

@@ -147,6 +147,16 @@ Everything above it is structure.
   `tests/conftest.py` replaces `urllib.request.urlopen` and
   `socket.socket.connect` with functions that raise, for every test in the
   suite.
+- `app/pitch_zones.py`: turns one recorded location into the phrase a
+  narrator says it with: eight bands up the pitch ("deep in his own half",
+  "just inside their half", "in the final third", "on the edge of the box",
+  "in the box") and three across it ("on the left", "on the right", and
+  nothing for the middle third). Arithmetic and a word list: one coordinate
+  against one number, read in the frame of the team whose record it is, so a
+  place is never read off a mirrored defending record.
+- `tests/test_pitch_zones.py`: 41 tests over the bands, the sides, the
+  box's width, the opponent's name in "their half" and the zones the two
+  hero passages put their beats in. All 41 pass.
 - `app/story_beats.py`: curates one buildup down to the beats a goal call
   tells, which is what `app/goal_call_prompt.py` shows the model: the
   recovery, each pass, each carry of ten yards or more, each dribble past an
@@ -154,9 +164,13 @@ Everything above it is structure.
   receipts and touches on the spot are left out, consecutive dribbles past
   are one beat naming the defenders in order with the carries between them
   absorbed, a long carry is a flag and never a yard figure, no beat carries
-  a clock, and the play pattern and the own half are said once. The grounding
-  check still reads a narration against every record, so the curation can
-  only narrow what a narration may say.
+  a clock, and the play pattern and the own half are said once. The beats
+  also place the move, from `app/pitch_zones.py`: the first action, the
+  recovery, each defender gone past, a long ball at both ends, the assist
+  and the finish, and nothing else, because every record carries a location
+  and a telling that places every beat is a list of coordinates with words
+  around it. The grounding check still reads a narration against every
+  record, so the curation can only narrow what a narration may say.
 - `scripts/story_beats_report.py`: prints the beat list for both hero goals
   beside the records it was curated from. Reads `data/raw/` and writes
   nothing.
@@ -180,13 +194,15 @@ Everything above it is structure.
   two characters live candidates actually arrived with, the sixteen space
   separators, the dashes left alone and the em dash still being refused after
   it. All 40 pass.
-- `app/recorded_names.py`: reads `player_nickname` out of
+- `app/recorded_names.py`: reads `player_nickname` and the two team names out of
   `data/raw/lineups/<match_id>.json` and maps it to the full name the event
   feed records, so a narration can say "Lionel Messi" rather than "Lionel
   Andrés Messi Cuccittini". It is a reader and not a chooser: there is no
   fallback that shortens a name the file does not shorten, so a player with no
   recorded nickname keeps their full recorded name. Maradona is one of those,
-  so the 1986 narration says his name in full.
+  so the 1986 narration says his name in full. The team names are what
+  "just inside France's half" needs: all thirteen records of the 2022
+  counter are Argentina's, so the side being attacked is not in the passage.
 - `tests/test_recorded_names.py`: 7 tests over the reader and over what the two
   lineups files record, including the four nicknames the 2022 hero buildup has
   and the nickname the 1986 file does not record for the scorer. All 7 pass.
@@ -315,7 +331,8 @@ Everything above it is structure.
   verb joins the same subject, "past X" as a dribble past X, the field
   positions, the shape of a run, which way the ball went, a run with yards in
   it, the carry that is asked to deliver the ball, who "under pressure" is
-  about, a hyphen reading as the space it stands in for and the recorded
+  about, a hyphen reading as the space it stands in for, the place on the
+  pitch a phrase claims and the action it is claimed about, and the recorded
   fields a goal call says out loud. All pass.
 - `tests/test_reference_narrations.py`: 63 tests holding the narration
   standard: the eight reference narrations in `docs/VOICE.md`, checked word
