@@ -2985,6 +2985,16 @@ the second is dropped, and the reaction is left out of the shape. Shawn's
 four references for each hero goal come out as four shapes, so it is not
 over-eager. Applied to the eighteen this run produced it flags two.
 
+### Task 14: the fallback back in the repo, the side rule, and places required (done, the run kept one)
+
+The record is above. Listed here so the plan reads in order: the six fallback
+narrations written verbatim into `scripts/fallback_narrations.py` and
+re-checked into `docs/narration_runs/`, a side said only where the ball is
+clear of the middle, a candidate refused for places in the run and not in the
+check, the review file copied aside with a timestamp before anything was
+sent, and a run of all six slots that kept one candidate of the fourteen it
+reached.
+
 ### Task 13: the move placed on the pitch (done, the six fallback candidates lost)
 
 The record is above. Listed here so the plan reads in order: a zone
@@ -3290,6 +3300,144 @@ it is one line of `support` plus a test.
 Shilton" is grounded, because the records hold a dribble past him; the manner
 is unsaid in the data and uncheckable, like "smashed" before it was banned
 outright. No candidate of the rerun used one, and nothing was changed for it.
+
+### Task 14: the fallback restored, the side rule and places required (done)
+
+**Shawn, 2026-11-05, after the zones run overwrote the six: field position is
+required and not optional.** The zones run placed the move in one of its
+eight kept candidates, so the vocabulary was built and the asking was what
+was weak. This task puts the six fallback narrations where a run cannot
+reach them, moves the side rule off the thirds of the pitch, makes a place a
+condition of being a candidate, and spends one more run.
+
+**Step 1, `a41ea38`: the six are in the repo.** `scripts/fallback_narrations.py`
+holds them verbatim as Shawn kept them, re-reads each against `data/raw/` with
+the current check in the persona and listening side its slot is written for,
+and writes `docs/narration_runs/fallback_2026-11-05.md` and the same answers as
+JSON beside it. It exits 1 if any of the six is refused, so a check change that
+would cost a fallback is visible rather than quiet. **All six are grounded
+today**, and not one of them places the move:
+
+| Slot | Check | Claims | Billed | Places |
+| ---- | ----- | -----: | -----: | -----: |
+| 1986 `buddy_scored` | grounded | 18 | 295 | 0 |
+| 1986 `buddy_conceded` | grounded | 19 | 310 | 0 |
+| 1986 `storyteller_neutral` | grounded | 22 | 341 | 0 |
+| 2022 `buddy_scored` | grounded | 17 | 331 | 0 |
+| 2022 `buddy_conceded` | grounded | 15 | 307 | 0 |
+| 2022 `storyteller_neutral` | grounded | 16 | 369 | 0 |
+
+**Step 2, `0e1f1e1`: a side is said only where the ball is clear of the
+middle.** "On the left" is `y` under 18 and "on the right" is `y` over 62, the
+sides of the penalty area, where `LEFT_Y` and `RIGHT_Y` were the thirds of an
+eighty yard pitch at 26.7 and 53.3. The old rule put "on the right" on four
+beats between `y` 54.9 and 60.5, a yard or two past the middle, and three of
+them fell in one line: the grouped 1986 dribble beat said it three times.
+
+Nine of the twelve places the two hero passages carry are now said with no
+side. Butcher's dribble at 68.6, Molina's pass at 71.8 and the long ball's
+strike at 68.2 keep it; Beardsley's dribble at 56.4, Fenwick's at 55.1, the
+long ball's landing at 54.9 and Enrique's pass at 60.5 lose it.
+`BOX_TOP_Y` and `BOX_BOTTOM_Y` are the same two numbers and stay separate
+constants, because the box bands ask whether a spot is inside the box and the
+side rule asks whether it is out wide.
+
+**One consequence, worth knowing before the pick.** Both of the zones run's
+1986 Storyteller candidates say "on the right" over the grouped dribble beat,
+and that is now a wrong place: the check refuses them today. The six fallback
+narrations say no side anywhere and are untouched by this.
+
+**Step 3, `823e494`: a telling that places the move nowhere is not a
+candidate.** `places_missing` in `scripts/narrator_candidates.py`, and not in
+`app/grounding.py`: the check refuses a place the records do not hold and a
+narration naming no place holds nothing wrong, so grounding stays about truth
+and the six fallback narrations still ground. Two things are asked. At least
+`PLACES_WANTED` places, which is two, the floor of what rule 17 asks for. And
+in a passage holding a long ball, one of those places has to hold the
+coordinate the ball was struck from, which is the zones run's own finding: all
+four of its 2022 tellings placed the ball where it came down and none where it
+was hit.
+
+**The long ball test is read phrase by phrase and not by the action each
+phrase was said beside, which is the weaker of the two readings.** The zones
+run's 2022 Storyteller passes on an "on the right" it said about Molina's
+pass, because that pass and Álvarez's strike are both out wide on the right.
+The stronger reading is already in `app/narration_grammar.py` as the `about`
+on a zone move, and it would refuse every candidate that run produced, which
+is why this is the one built. Tightening it is a change to `places_missing`
+and nothing else.
+
+A slot that keeps nothing now prints its dropped list too. `review` stopped at
+"No candidate for this slot passed" and the console log was the only record of
+why, which would have hidden eleven of this run's refusals; `_slot_candidates`
+is lifted out of it whole for that.
+
+**Step 4: the review file was copied aside before anything was sent**, which
+Task 13 asked for and nothing automates. The copies are
+`narrator_candidates_2026-11-05.before-task14-20261105T2027.md` and the JSON
+beside it, in the same directory as
+`hero_candidates_2026-10-30.before-task8.json`. **They are the only copy of
+the zones run's eight candidates**, and this run overwrote all three 1986
+slots with nothing, so the copy was needed within the hour it was made.
+
+**Step 5, the run: all six slots, 77,480 tokens of the 80,000, and it stopped
+on the cap.** Effort low, three candidates a slot, two retries allowed, 24
+generations and one IAM exchange. It reached fourteen of the eighteen
+candidates it asked for and kept one.
+
+| This run, all six slots | |
+| --- | ---: |
+| generations sent | 24 |
+| billed by watsonx | 77,480 |
+| of it prompt | 60,567 |
+| of it completion | 16,913 |
+| the cap | 80,000 |
+| unspent | 2,520 |
+| candidates reached | 14 of the 18 asked for |
+| candidates kept | 1 |
+| refused for places | 11 |
+| dropped on grounding refusals alone | 2 |
+| near copies dropped | 0 |
+
+**The one it kept is the 2022 `buddy_conceded` slot**, on its third attempt,
+grounded on 22 claims, 410 billed, and it places the move five times: "deep in
+his own half", "on the right", "just inside France's half", "on the right"
+again and "on the edge of the box". It is the first candidate of any run to
+say where the long ball was struck from. **It carries a `RIGHT SINGLE
+QUOTATION MARK` (U+2019) inside "France's"**, which the review file flags and
+which would reach the speech service as written.
+
+**Eleven of the fourteen were refused for places, and the refusal is the
+finding.** Every 1986 candidate placed the move nowhere at all: nine grounded
+tellings of that goal, and not one of them said a band or a side. The prompt
+carries rule 17 in every voice and the beats carry the places, and at effort
+low the model still writes the 1986 move as a list of defenders. Two of the
+2022 candidates placed it once, on the edge of the box, which is where the ball
+came down.
+
+**The 1986 slots hold nothing in the review file now.** This run produced all
+three of them and kept none, and `merged` replaces a slot a run produced, so
+the zones run's five 1986 candidates are out of the file. They are in the
+timestamped copy and the fallback three are in the repo, so nothing is lost
+this time. The 2022 `storyteller_neutral` slot was never reached, so its zones
+run candidate was carried across with its own provenance.
+
+**Twelve grounding refusals, and the 1986 `buddy_scored` slot is where they
+are.** Six of the twelve are its, and the shape is the same every time: the
+model answered with two whole narrations in one reply, so the first one's
+goal was followed by more play and its reaction stood before the finish. Two
+other refusals are the model calling Shilton's save a shot ("fired", "struck"
+with Shilton as the subject) and one is "set up Maradona" read as a Cuciuffo
+assist. The three new ones are worth keeping: "Ah, no." written as the first
+sentence rather than the last, "under pressure from Maradona" when `Pressure`
+is the presser's record, and "France's" written with a curly apostrophe that
+the name check reads as a name it does not record.
+
+**What the three readings of the long ball cost, in one line.** The
+`buddy_conceded` candidate that was kept needed three attempts to say "just
+inside France's half on the right", and the two before it were refused for the
+apostrophe and for "the box" over MacAllister. The phrase the vocabulary wants
+is reachable and it is not cheap.
 
 ### Task 13: a place on the pitch, and the run that spent the review file (done)
 
@@ -3769,49 +3917,58 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Shawn reads eight candidates aloud and picks from six slots)
+## Next first action (Shawn reads aloud and picks six, from three places)
 
-**Every slot has something in it and every candidate in the file is this
-run's.** They are in `C:\Users\shawn\prelude-review\narrator_candidates_2026-11-05.md`,
-with the same data beside it as JSON.
+**Every slot can be picked from, and no one file holds all six any more.**
+There are three places to read from, and the first is the only one that is in
+the repo:
 
-| Slot | Kept | Places the move |
-| ---- | ---: | --------------- |
-| 1986 `buddy_conceded` | 1 | not at all |
-| 1986 `buddy_scored` | 1 | not at all |
-| 1986 `storyteller_neutral` | 2 | once each |
-| 2022 `buddy_conceded` | 1 | once |
-| 2022 `buddy_scored` | 2 | once each |
-| 2022 `storyteller_neutral` | 1 | three times |
+| Where | What is in it |
+| ----- | ------------- |
+| `docs/narration_runs/fallback_2026-11-05.md` | the six fallback narrations, one per slot, all grounded, none placing the move |
+| `C:\Users\shawn\prelude-review\narrator_candidates_2026-11-05.md` | this run's one candidate (2022 `buddy_conceded`) and the carried 2022 Storyteller |
+| `C:\Users\shawn\prelude-review\narrator_candidates_2026-11-05.before-task14-20261105T2027.md` | the zones run's eight, including the five 1986 ones this run replaced |
 
-**The six candidates of the earlier run are gone.** The review file is named
-for the day, both runs are on 2026-11-05, and `merged` carries across only
-the slots a run did not produce, so a run of all six replaced all six.
-Nothing in the repo held them. **Copy the review file aside before any
-rerun**, the way `hero_candidates_2026-10-30.before-task8.json` was copied
-aside in the same directory. That is not built and is the first thing the
-next run should do.
-
-**What this run cost: 66,242 tokens of the 70,000 it was allowed**, every one
-counted off watsonx's `usage` object, over twenty calls and one IAM exchange.
-It stopped on the cap in the last slot, with one candidate in it, so the
-second and third candidates of 2022 `storyteller_neutral` were never asked
-for.
+| Slot | In the review file | In the repo's fallback | Places the move |
+| ---- | -----------------: | ---------------------: | --------------- |
+| 1986 `buddy_conceded` | 0 | 1 | not at all |
+| 1986 `buddy_scored` | 0 | 1 | not at all |
+| 1986 `storyteller_neutral` | 0 | 1 | not at all |
+| 2022 `buddy_conceded` | 1 | 1 | five times, and one of them is where the long ball was struck |
+| 2022 `buddy_scored` | 0 | 1 | not at all |
+| 2022 `storyteller_neutral` | 1 (carried) | 1 | three times |
 
 **The film is set in 2022, so the Di María narration is the one the video
-plays.** All four 2022 candidates say the long ball in a clause of its own,
-say the shot was struck first time, and place the move at least once; the one
-Storyteller candidate places it three times, which is what rule 17 asks for.
+plays**, and both 2022 slots with a candidate in them place the move. The
+2022 `buddy_conceded` candidate is the only narration any run has produced
+that says where the long ball was struck from, and it is the one to read
+aloud first.
 
-**The one thing to listen for in the 1986 `buddy_scored` slot.** Its only
-candidate opens "We won it back through Cuciuffo in half", which is "in our
-half" with a word missing. Nothing refused it, because "in half" is not a
-phrase the check reads. If it reads wrong aloud, that slot wants rerunning on
-its own.
+**Two things to listen for.** The kept 2022 `buddy_conceded` candidate says
+"France's" with a curly apostrophe (U+2019) and says "who" twice, where rule
+14 allows one. And the fallback 1986 `buddy_scored` line is the one Shawn
+wrote out, not the "in half" one the zones run kept, so the dropped word is
+gone.
+
+**Why the 1986 slots are empty in the review file.** This run produced all
+three and kept none: nine grounded 1986 tellings were refused because not one
+of them placed the move anywhere. The zones run's five are in the timestamped
+copy above, and two of those five are refused by the check today, because the
+side rule moved and they say "on the right" over the grouped dribble.
+
+**What this run cost: 77,480 tokens of the 80,000 it was allowed**, every one
+counted off watsonx's `usage` object, over 24 generations and one IAM
+exchange. It stopped on the cap in the 2022 `buddy_scored` slot, so that
+slot's third candidate and the whole 2022 `storyteller_neutral` slot were
+never asked for.
+
+**Copy both review files aside before any rerun.** It is still not automated
+and this run is the second reason for it: the copy made at 20:27 is the only
+place the zones run's 1986 candidates survive.
 
 **The rerun command, if a slot is to be asked again.** A slot this run
 produced replaces its older self and a slot it did not touch is carried
-across, so everything not named survives; copy the two files aside first:
+across:
 
 ```
 .\.venv-prelude\Scripts\python.exe -I scripts\narrator_candidates.py --confirm --match 3750191 --slot buddy_scored --reasoning-effort low --per-slot 3 --max-retries 2 --max-total-tokens 20000
@@ -3820,10 +3977,19 @@ across, so everything not named survives; copy the two files aside first:
 `--plan` prints what it would spend and sends nothing; `--confirm` sends it.
 Add or drop a `--slot` flag to change which slots are asked.
 
+**One thing a rerun of the 1986 slots would want, and it is not built.** The
+1986 move has no long ball and nine grounded tellings of it placed the move
+nowhere, so the places rule refuses the slot rather than teaching it. What
+the beats offer that voice is "deep in his own half" on the recovery, three
+places on the grouped dribble and "in the box" on the finish, and the prompt
+asks for two or three of them in a rule that is general to any goal. Whether
+rule 17 should name the beats' own places for the goal being told is a
+prompt change and a judgement, which is why it was not made here.
+
 **Still owed after the pick.** Three things, and the first is Shawn's:
 
 1. Shawn picks one candidate per slot, reading them aloud. All six slots can
-   be picked from, and four of them hold one candidate each.
+   be picked from, four of them only from the fallback.
 2. The freeze. `scripts/freeze_narrations.py` writes one narration per goal
    and `app/web/narrations.json` holds one per goal, so writing six picks
    into it is a change to both and is not built.
@@ -3831,20 +3997,12 @@ Add or drop a `--slot` flag to change which slots are asked.
 3. The recordings. `scripts/tts_hero.py --confirm` has not been sent and
    `hero.audio` is still `{}`.
 
-**Three things a later run would want, none of them built.** The review file
-copied aside before a rerun overwrites it, which this run is the reason for.
-The side rule said only where a location is clear of the line, since it puts
-"on the right" on three beats at `y` 54.9, 55.1 and 56.4 against a threshold
-of 53.3 and makes the grouped 1986 dribble beat say it three times. And a
-recovery beat a narration can say back: "won the ball back" is refused twice
-over, on "won" as a `Foul Won` and on "back" as a direction, while "won it
-back" is the phrase the check holds.
-
 **The Caller has a style and no recording.** `hero.voice_for` sends no
 listener to it, so nothing generated for it and there are six slots rather
 than eight. Its style is in `app/goal_call_prompt.py` and its two reference
 narrations are in `tests/test_reference_narrations.py`, so adding the
 recording later is a change to `hero.voice_for` and not to the writing.
+
 
 ### Task 10's run: the ten candidates the fixes replaced
 
