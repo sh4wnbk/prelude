@@ -20,7 +20,7 @@ into two places that have to agree:
 | Where | What it does |
 | ----- | ------------ |
 | `app/narration_prompt.py` | builds the numbered facts, holds the one style in `NARRATION_STYLE`, and states the rules to the model in the prompt |
-| `app/goal_call_prompt.py` | builds the goal-call prompt: a style and a worked example per narrator, the story beats with no clock on them, and the sixteen rules |
+| `app/goal_call_prompt.py` | builds the goal-call prompt: a style and a worked example per narrator, the story beats with no clock on them, and the seventeen rules |
 | `app/story_beats.py` | curates the passage down to the beats the prompt shows, so the model is not handed every recorded event |
 | `app/narration_grammar.py` | reads a goal call that cites nothing, and holds the yard thresholds the words are measured against |
 | `app/personas.py` | the three voices the one narration can be spoken in, which is Phase 5 and not this document |

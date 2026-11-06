@@ -2274,6 +2274,78 @@ class TestTheRuleAgainstHangingTheMoveOffWho:
         assert cover["who"] == said_who(references.BUDDY_2022_ARGENTINA)
 
 
+
+class TestTheRuleAboutPlacingTheMove:
+    """Rule 17, which Shawn asked for after reading the six aloud.
+
+    None of the six places the move. The beats say where now and the rule is
+    what asks for it, in every voice: it is general to any goal and it is not
+    a claim rule, because `app/narration_grammar.py` refuses a wrong place
+    whether or not a rule asked for one.
+    """
+
+    RULE = (
+        "Place the move on the pitch two or three times: where it started, "
+        "where the decisive action happened, and where it finished. Do not "
+        "give every beat a place."
+    )
+
+    @pytest.mark.parametrize("key", sorted(STYLES))
+    def test_every_prompt_carries_it(self, key, facts_1986, facts_2022):
+        for facts in (facts_1986, facts_2022):
+            assert self.RULE in flat(build_goal_call_prompt(facts, key))
+
+    @pytest.mark.parametrize("key", sorted(STYLES))
+    def test_it_is_the_last_rule_and_the_rest_are_unchanged(
+        self, key, facts_2022
+    ):
+        said = flat(
+            rules(facts_2022, STYLES[key], GOAL_CALL_TARGET_CHARACTERS)
+        )
+        assert said.rstrip().endswith(self.RULE)
+        for earlier in (
+            "When a pass is marked long, it is the turn of the move",
+            "When the finish is first time, say so, with the foot.",
+            'Use the word "who" at most once in the narration.',
+        ):
+            assert earlier in said
+
+    def test_it_names_no_match_and_no_zone(self, facts_1986, facts_2022):
+        """General to any goal, like rules 15 and 16: the beats say which
+        places this move has, and the rule says how many of them to say."""
+        for facts in (facts_1986, facts_2022):
+            said = flat(
+                rules(
+                    facts,
+                    STYLES[STORYTELLER_NEUTRAL],
+                    GOAL_CALL_TARGET_CHARACTERS,
+                )
+            )
+            place = said[said.index("Place the move"):]
+            for word in (
+                "France",
+                "Argentina",
+                "England",
+                "box",
+                "half",
+                "third",
+            ):
+                assert word not in place
+
+    def test_the_second_half_of_it_is_load_bearing(
+        self, facts_1986, facts_2022
+    ):
+        """Every record in both passages carries a location, so a telling
+        that placed every beat would read as a list of coordinates with
+        words around it. `_placed` holds the beats to the same line."""
+        assert "Do not give every beat a place." in flat(
+            build_goal_call_prompt(facts_2022, STORYTELLER_NEUTRAL)
+        )
+        for facts in (facts_1986, facts_2022):
+            beats = story(facts).beats
+            assert len([beat for beat in beats if beat.zone]) < len(beats)
+
+
 class TestARunWithNoRetries:
     """`--max-retries`, so a run can be one attempt a candidate.
 

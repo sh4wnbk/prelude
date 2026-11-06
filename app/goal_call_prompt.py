@@ -360,7 +360,7 @@ def rules(
 ) -> str:
     """The rules, which are the ones `app/grounding.py` holds a goal call to.
 
-    Fifteen of them are the same for every narrator and rule 11 is the
+    Sixteen of them are the same for every narrator and rule 11 is the
     narrator's own. The one that reads differently per narrator is the one
     the check reads differently: the first person, the exclamation mark and
     how the reaction ends.
@@ -373,6 +373,15 @@ def rules(
     candidate told it as one more comma in a list of five passes, and the
     2022 shot is the one of the two recorded as struck first time and no
     candidate said so.
+
+    **Rule 17 is what Shawn asked for after reading the six candidates of
+    2026-11-05 aloud.** None of them places the move: "dribbled past
+    Butcher" and "a long ball to MacAllister" leave a listener with nowhere
+    on the pitch to stand. The beats say where now, from the coordinates,
+    and the second half of the rule is as load bearing as the first: every
+    record in both passages carries a location, so a telling that places
+    every beat reads as a list of coordinates with words around it. Two or
+    three is what the references do.
 
     **Rule 14 is a cadence rule and not a claim rule**, which is why nothing
     in `app/grounding.py` answers to it. Every candidate of 2026-10-31 hung
@@ -525,6 +534,12 @@ def rules(
             _rule(
                 16,
                 "When the finish is first time, say so, with the foot.",
+            ),
+            _rule(
+                17,
+                "Place the move on the pitch two or three times: where it"
+                " started, where the decisive action happened, and where it"
+                " finished. Do not give every beat a place.",
             ),
         )
     )
