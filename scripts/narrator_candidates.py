@@ -261,6 +261,31 @@ def said_who(text: str) -> int:
     return len(re.findall(r"\bwho\b", text, flags=re.IGNORECASE))
 
 
+def zones_said(text: str, facts: Facts) -> tuple[str, ...]:
+    """The places a candidate puts the move, in the order it says them.
+
+    Read with the same grammar the check reads them with, so what is counted
+    here is what was verified: a phrase outside the vocabulary in
+    `app/pitch_zones.py` is not a place and is not counted, and a place the
+    records did not hold never reached a kept candidate at all.
+
+    One reader over the whole narration, because a reader follows the ball
+    across a full stop.
+    """
+    reader = Reader(
+        facts=facts,
+        not_a_name=NOT_A_NAME,
+        demonyms=TEAM_DEMONYMS,
+        actions=ACTION_CLAIMS,
+    )
+    said: list[str] = []
+    for one in sentences(text):
+        for move in reader.read(one.text):
+            if move.kind == "zone":
+                said.append(move.said)
+    return tuple(said)
+
+
 def slot_coverage(text: str, facts: Facts) -> dict:
     """What a goal-call candidate covers, as numbers a choice can be made on.
 
@@ -308,6 +333,11 @@ def slot_coverage(text: str, facts: Facts) -> dict:
         "cheers": text.count("!"),
         "digits": sum(1 for character in text if character.isdigit()),
         "who": said_who(text),
+        # Rule 17 asks for the move to be placed two or three times, and
+        # these are the phrases that did it. Counted rather than enforced:
+        # a wrong place is refused by the check, and how many right ones a
+        # telling wants is Shawn's to judge aloud.
+        "zones": zones_said(text, facts),
         "says_scored": any(
             word in text.lower() for word in ("scored", "finished", "score")
         ),
@@ -601,6 +631,21 @@ def gather(
                     "text": narrated.text,
                     "attempt": attempts,
                     "first_attempt_grounded": narrated.first_attempt_grounded,
+                    # The attempts the check refused on the way to this one.
+                    # The Task 12 run recorded a candidate as `attempt` 2
+                    # with no words beside it, because `refused` was kept
+                    # only on a candidate that was dropped altogether, and
+                    # the one refusal of that run is known to this day as a
+                    # number. A refusal is how the check is read.
+                    "refused": [
+                        {
+                            "attempt": one.number,
+                            "text": one.text,
+                            "summary": one.summary,
+                        }
+                        for one in narrated.attempts
+                        if not one.grounded
+                    ],
                     "claims_checked": result.checked,
                     "billed_characters": billed,
                     "characters": len(narrated.text),
@@ -672,11 +717,17 @@ def gather(
                     continue
                 kept.append(one)
                 print("    candidate {}: grounded on {} claims, attempt {}, "
-                      "{} billed, {} characters, \"who\" x{}".format(
+                      "{} billed, {} characters, \"who\" x{}, {} place(s)"
+                      .format(
                           number, result.checked, attempts, billed,
                           len(narrated.text), said_who(narrated.text),
+                          len(one["coverage"]["zones"]),
                       ))
                 print("      | {}".format(narrated.text))
+                for refused in one["refused"]:
+                    print("      x attempt {} was refused: {}".format(
+                        refused["attempt"], refused["summary"]
+                    ))
             slots.append(
                 {
                     "slot": key,
@@ -826,6 +877,27 @@ def review(
                 out.append("- Grounded on {} claims, on attempt {}".format(
                     one["claims_checked"], one["attempt"]
                 ))
+                places = cover.get("zones") or ()
+                out.append("- Places the move {}{}".format(
+                    "not at all, which rule 17 asks for two or three of"
+                    if not places
+                    else "{} time(s): {}".format(
+                        len(places), "; ".join(places)
+                    ),
+                    "",
+                ))
+                for refused in one.get("refused") or []:
+                    # A refusal is how the check is read, and a kept
+                    # candidate's refused first attempt was recorded as a
+                    # number alone until Task 13.
+                    out.append(
+                        "- **Attempt {} of this candidate was refused:** "
+                        "\"{}\" {}".format(
+                            refused["attempt"],
+                            " ".join(refused["text"].split()),
+                            refused["summary"],
+                        )
+                    )
                 said = cover.get("who", 0)
                 if said > 1:
                     # Flagged and kept. Rule 14 is cadence rather than a

@@ -68,6 +68,7 @@ from app.narration_provider import IAM_TOKEN_URL, WatsonxProvider
 from scripts.hero_candidates import HEROES
 from scripts.narrator_candidates import (
     DEFAULT_PER_SLOT,
+    zones_said,
     NEAR_COPY_RATIO,
     gather,
     near_copy_ratio,
@@ -2344,6 +2345,199 @@ class TestTheRuleAboutPlacingTheMove:
         for facts in (facts_1986, facts_2022):
             beats = story(facts).beats
             assert len([beat for beat in beats if beat.zone]) < len(beats)
+
+
+
+class TestWhatTheReportSaysAboutPlacesAndRefusals:
+    """The two things Task 13 step 6 asks a run to print and could not.
+
+    The places a candidate used, because rule 17 asks for two or three of
+    them and whether a telling got that right is read aloud. And the
+    refusals, every one of them: `gather` recorded `refused` on a candidate
+    that was dropped altogether and not on a candidate whose first attempt
+    was refused and whose second passed, so the one refusal of the Task 12
+    run is recorded as the number 2 and nothing else.
+    """
+
+    def one(self, text, facts, refused=()):
+        return {
+            "candidate": 1,
+            "text": text,
+            "attempt": 1 + len(refused),
+            "first_attempt_grounded": not refused,
+            "claims_checked": 21,
+            "billed_characters": 280,
+            "characters": len(text),
+            "words": len(text.split()),
+            "coverage": slot_coverage(text, facts),
+            "refused": list(refused),
+        }
+
+    def document(self, candidate, goal=MATCH_1986):
+        return [
+            {
+                "year": 1986,
+                "match_id": goal,
+                "minute": 54,
+                "second": 18,
+                "player": "Diego Armando Maradona",
+                "team": "Argentina",
+                "records": 24,
+                "recorded_players": ("Diego Armando Maradona",),
+                "players_who_touched_the_ball": ("Diego Armando Maradona",),
+                "shared_name_parts": ("Peter", "Terry"),
+                "slots": [
+                    {
+                        "slot": BUDDY_SCORED,
+                        "label": STYLES[BUDDY_SCORED].label,
+                        "narrator": "buddy",
+                        "side": "Argentina",
+                        "candidates": [candidate],
+                        "dropped": [],
+                    }
+                ],
+            }
+        ]
+
+    def test_the_places_are_read_with_the_same_grammar_as_the_check(
+        self, facts_1986
+    ):
+        said = (
+            "Cuciuffo won it back deep in his own half and Maradona went "
+            "past Butcher in the final third on the right and scored from "
+            "the edge of the box."
+        )
+        assert zones_said(said, facts_1986) == (
+            "deep in his own half",
+            "in the final third",
+            "on the right",
+            "the edge of the box",
+        )
+
+    def test_a_phrase_outside_the_vocabulary_is_not_a_place(self, facts_1986):
+        """Nothing has measured "in the middle of the park", so nothing
+        counts it: a place is one of the phrases `app/pitch_zones.py` holds
+        and the check verifies."""
+        assert zones_said(
+            "Maradona picked it up in the middle of the park.", facts_1986
+        ) == ()
+
+    def test_what_the_references_place_and_what_they_do_not(
+        self, facts_1986, facts_2022
+    ):
+        """Two of the eight say a band, and it is the same one: "just inside
+        his own half", where Maradona took Enrique's pass.
+
+        The other six place the move only with the two broad phrases, "in
+        his own half" and "in the box", which are the position claims they
+        always were and are not counted here. That is the gap rule 17 is
+        for: the standard itself barely places these two moves, and read
+        aloud a listener has nowhere to stand.
+        """
+        placed = {
+            "STORYTELLER_1986": (references.STORYTELLER_1986, facts_1986),
+            "CALLER_1986": (references.CALLER_1986, facts_1986),
+        }
+        for text, facts in placed.values():
+            assert zones_said(text, facts) == ("just inside his own half",)
+        for text, facts in (
+            (references.BUDDY_1986_ARGENTINA, facts_1986),
+            (references.BUDDY_1986_ENGLAND, facts_1986),
+            (references.STORYTELLER_2022, facts_2022),
+            (references.BUDDY_2022_ARGENTINA, facts_2022),
+            (references.BUDDY_2022_FRANCE, facts_2022),
+            (references.CALLER_2022, facts_2022),
+        ):
+            assert zones_said(text, facts) == ()
+
+    def test_the_coverage_carries_the_places(self, facts_2022):
+        said = (
+            "Molina played it forward deep in his own half on the right, "
+            "and Álvarez hit a long ball to MacAllister on the edge of the "
+            "box, who set up Di María in the box, who shot first time with "
+            "his left foot and it went in."
+        )
+        cover = slot_coverage(said, facts_2022)
+        assert cover["zones"] == (
+            "deep in his own half",
+            "on the right",
+            "on the edge of the box",
+        )
+
+    def test_the_review_file_prints_the_places(self, facts_1986):
+        said = (
+            "Cuciuffo won it back deep in his own half, Maradona went past "
+            "Butcher in the final third and scored with his left foot."
+        )
+        text = review(
+            self.document(self.one(said, facts_1986)),
+            "openai/gpt-oss-120b",
+            "watsonx",
+            "low",
+            2000,
+        )
+        assert (
+            "- Places the move 2 time(s): deep in his own half; in the "
+            "final third" in text
+        )
+
+    def test_the_review_file_says_when_nothing_was_placed(self, facts_1986):
+        text = review(
+            self.document(
+                self.one(references.BUDDY_1986_ARGENTINA, facts_1986)
+            ),
+            "openai/gpt-oss-120b",
+            "watsonx",
+            "low",
+            2000,
+        )
+        assert "Places the move not at all, which rule 17 asks for two or " \
+               "three of" in text
+
+    def test_the_refused_attempts_of_a_kept_candidate_are_printed(
+        self, facts_1986
+    ):
+        """The Task 12 gap. A refusal is how the check is read, and a kept
+        candidate's is worth as much as a dropped one's."""
+        candidate = self.one(
+            references.BUDDY_1986_ARGENTINA,
+            facts_1986,
+            refused=[
+                {
+                    "attempt": 1,
+                    "text": "Maradona scored a brilliant goal.",
+                    "summary": (
+                        "not grounded: 1 of 4 claim(s) could not be "
+                        "pointed at: sentence 1: verdict 'brilliant'"
+                    ),
+                }
+            ],
+        )
+        text = review(
+            self.document(candidate),
+            "openai/gpt-oss-120b",
+            "watsonx",
+            "low",
+            2000,
+        )
+        assert "**Attempt 1 of this candidate was refused:**" in text
+        assert "Maradona scored a brilliant goal." in text
+        assert "verdict 'brilliant'" in text
+        assert "on attempt 2" in text
+
+    def test_a_candidate_that_passed_first_time_prints_no_refusal(
+        self, facts_1986
+    ):
+        text = review(
+            self.document(
+                self.one(references.BUDDY_1986_ARGENTINA, facts_1986)
+            ),
+            "openai/gpt-oss-120b",
+            "watsonx",
+            "low",
+            2000,
+        )
+        assert "was refused" not in text
 
 
 class TestARunWithNoRetries:

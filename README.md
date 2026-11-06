@@ -325,7 +325,7 @@ Everything above it is structure.
   reaction layer: where a reaction may stand, who may cheer in one, what
   makes a short sentence play instead, and the match's own names rather than
   capitalisation deciding whether a reaction names anybody. All pass.
-- `tests/test_narrator_candidates.py`: 217 tests over
+- `tests/test_narrator_candidates.py`: 225 tests over
   `app/goal_call_prompt.py`, `app/story_beats.py` and
   `scripts/narrator_candidates.py`: the four
   styles, one per narrator and situation, the invented match their examples
