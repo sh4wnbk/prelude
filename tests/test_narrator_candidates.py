@@ -60,7 +60,7 @@ from app.grounding import (
 from app.narration_grammar import WORD, Reader, fold
 from app.narration_prompt import HERO_TARGET_CHARACTERS, facts_from_buildup
 from app.personas import THE_BUDDY, THE_CALLER, THE_STORYTELLER
-from app.recorded_names import recorded_nicknames
+from app.recorded_names import recorded_nicknames, recorded_teams
 from app.statsbomb_event_feed import StatsBombEventFeed
 from app.narration import MAX_RETRIES
 from app.narration_config import ACTIVE_CANDIDATE
@@ -137,7 +137,9 @@ def hero(feed, match_id, clock):
         if (m.minute, m.second) == clock
     )
     return facts_from_buildup(
-        feed.buildup(match_id, moment), recorded_nicknames(match_id)
+        feed.buildup(match_id, moment),
+        recorded_nicknames(match_id),
+        recorded_teams(match_id),
     )
 
 
@@ -363,8 +365,10 @@ class TestTheBeatsInThePrompt:
         )
         assert beat_line(first) == (
             "Diego Armando Maradona (Argentina) dribbled past Peter "
-            "Beardsley, Terry Butcher and Terry Fenwick, carrying the ball "
-            "forward between them, under pressure"
+            "Beardsley just inside his own half on the right, Terry Butcher "
+            "in the final third on the right and Terry Fenwick on the edge "
+            "of the box on the right, carrying the ball forward between "
+            "them, under pressure"
         )
         # Two Dribble and two Dribbled Past records per defender beaten, and
         # the two carries between them.
@@ -404,7 +408,7 @@ class TestTheBeatsInThePrompt:
         assert not last.carried
         assert beat_line(last) == (
             "Diego Armando Maradona (Argentina) dribbled past Peter "
-            "Shilton, under pressure"
+            "Shilton in the box, under pressure"
         )
 
     def test_no_beat_has_a_key_named_minute_second_or_timestamp(self):
@@ -438,12 +442,19 @@ class TestTheBeatsInThePrompt:
     def test_a_pass_beat_names_who_it_reached_and_which_way(self, facts_2022):
         one = story(facts_2022)
         assert beat_line(one.beats[0]) == (
-            "Nahuel Molina (Argentina) passed it forward to Alexis "
-            "MacAllister"
+            "Nahuel Molina (Argentina), deep in his own half on the right, "
+            "passed it forward to Alexis MacAllister"
         )
         assert beat_line(one.beats[4]) == (
-            "Alexis MacAllister (Argentina) passed it forward to Ángel Di "
-            "María, into the box, which is the assist"
+            "Alexis MacAllister (Argentina), on the edge of the box on the "
+            "right, passed it forward to Ángel Di María, into the box, "
+            "which is the assist"
+        )
+        # The two passes in the middle of the move carry no place at all:
+        # `_placed` is what says which beats get one.
+        assert beat_line(one.beats[1]) == (
+            "Alexis MacAllister (Argentina) passed it forward to Lionel "
+            "Messi"
         )
 
     def test_the_finish_carries_the_body_part_and_first_time(
@@ -452,15 +463,15 @@ class TestTheBeatsInThePrompt:
         last = story(facts_1986).beats[-1]
         assert last.kind == FINISH
         assert beat_line(last) == (
-            "Diego Armando Maradona (Argentina) shot with his left foot "
-            "from inside the box"
+            "Diego Armando Maradona (Argentina), in the box, shot with his "
+            "left foot"
         )
         assert not last.first_time
         other = story(facts_2022).beats[-1]
         assert other.first_time
         assert beat_line(other) == (
-            "Ángel Di María (Argentina) shot first time with his left foot "
-            "from inside the box"
+            "Ángel Di María (Argentina), in the box, shot first time with "
+            "his left foot"
         )
 
     def test_the_pressure_on_the_ball_carrier_is_kept(self, facts_1986):
@@ -488,19 +499,32 @@ class TestTheBeatsInThePrompt:
             assert beat.direction == ""
             assert not beat.in_the_box
             assert not beat.long_carry
+            assert beat.zone == ""
+            assert beat.landed == ""
 
     def test_the_play_pattern_and_the_own_half_are_said_once(
         self, facts_1986, facts_2022
     ):
         """They were on every line of the record list this replaced, which is
-        two facts printed twenty-four times."""
+        two facts printed twenty-four times.
+
+        The sentence is what is counted and not the words in it: a beat's
+        own place says "his own half" too, and that is a different claim
+        about a different record.
+        """
         for facts in (facts_1986, facts_2022):
             one = story(facts)
             assert one.play_pattern == "From Counter"
             assert one.started_in_own_half
             block = beats_block(one)
             assert block.count("From Counter") == 1
-            assert block.count("own half") == 1
+            assert block.count(
+                "Argentina started the move in their own half."
+            ) == 1
+            for line in block.splitlines():
+                if line.strip().startswith("- "):
+                    assert "started the move" not in line
+                    assert "From Counter" not in line
 
     def test_the_block_does_not_claim_nothing_else_happened(self, facts_1986):
         """The dropped records did happen. What the block says is that the
@@ -588,7 +612,8 @@ class TestTheBeatsInThePrompt:
             assert not line.endswith("forward")
             assert ", forward" not in line
         assert lines[0] == (
-            "José Luis Cuciuffo (Argentina) won the ball back"
+            "José Luis Cuciuffo (Argentina), deep in his own half, won the "
+            "ball back"
         )
         assert lines[1] == (
             "José Luis Cuciuffo (Argentina) passed it forward to Héctor "
@@ -640,6 +665,186 @@ class TestTheBeatsInThePrompt:
                 assert beat.event_ids
                 for event_id in beat.event_ids:
                     assert event_id in recorded
+
+
+class TestTheBeatsCarryAPlaceOnThePitch:
+    """What Shawn found reading the six candidates of 2026-11-05 aloud.
+
+    None of them places the move: "dribbled past Butcher" and "a long ball
+    to MacAllister" leave a listener with no idea where on the pitch any of
+    it happened. The coordinate was on every record the whole time.
+
+    The zones are `app/pitch_zones.py` and the rule about which beats carry
+    one is `_placed` in `app/story_beats.py`. Every figure quoted in these
+    docstrings is a location in `data/raw/`.
+    """
+
+    def test_the_1986_move_starts_deep_in_his_own_half(self, facts_1986):
+        """Cuciuffo's recovery is at (35.2, 50.4), which is under 40 and in
+        the middle third by width, so it gets no side."""
+        first = story(facts_1986).beats[0]
+        assert first.kind == RECOVERY
+        assert first.zone == "deep in his own half"
+
+    def test_the_three_grouped_dribbles_are_thirty_yards_apart(
+        self, facts_1986
+    ):
+        """One place per defender, which is why `beaten_zones` is a tuple:
+        the `Dribble` records that beat them are at (54.4, 56.4), (87.1,
+        68.6) and (97.1, 55.1)."""
+        first = next(
+            beat
+            for beat in story(facts_1986).beats
+            if beat.kind == DRIBBLE_PAST
+        )
+        assert first.beaten == (
+            "Peter Beardsley", "Terry Butcher", "Terry Fenwick"
+        )
+        assert first.beaten_zones == (
+            "just inside his own half on the right",
+            "in the final third on the right",
+            "on the edge of the box on the right",
+        )
+
+    def test_shilton_is_beaten_in_the_box(self, facts_1986):
+        """The `Dribble` is at (112.8, 49.4): past the eighteen yard line
+        and inside the box's width."""
+        last = [
+            beat
+            for beat in story(facts_1986).beats
+            if beat.kind == DRIBBLE_PAST
+        ][-1]
+        assert last.beaten == ("Peter Shilton",)
+        assert last.beaten_zones == ("in the box",)
+
+    def test_the_1986_finish_is_in_the_box(self, facts_1986):
+        last = story(facts_1986).beats[-1]
+        assert last.kind == FINISH
+        assert last.zone == "in the box"
+
+    def test_a_zone_is_read_off_the_attacking_sides_own_record(
+        self, facts_1986
+    ):
+        """Butcher's `Dribbled Past` is at (33.0, 11.5) and StatsBomb
+        mirrors it, so read from there the dribble that beat him would be
+        deep in Argentina's own half on the left. It is read off the
+        `Dribble` at (87.1, 68.6) instead."""
+        first = next(
+            beat
+            for beat in story(facts_1986).beats
+            if beat.kind == DRIBBLE_PAST
+        )
+        assert "deep" not in " ".join(first.beaten_zones)
+        assert "on the left" not in " ".join(first.beaten_zones)
+        butcher = next(
+            fact.beat
+            for fact in facts_1986.facts
+            if fact.beat.action == "Dribbled Past"
+            and fact.beat.player == "Terry Butcher"
+        )
+        assert round(butcher.start.x, 1) == 33.0
+
+    def test_the_2022_move_starts_deep_in_his_own_half_on_the_right(
+        self, facts_2022
+    ):
+        """Molina's pass is struck at (25.9, 71.8). It is the first beat and
+        the passage records no recovery, which is what "the recovery or the
+        first action" comes to here."""
+        first = story(facts_2022).beats[0]
+        assert first.kind == PASS
+        assert first.zone == "deep in his own half on the right"
+
+    def test_the_long_ball_is_placed_at_both_ends(self, facts_2022):
+        """Struck at (63.2, 68.2) and down at (99.3, 54.9), which is the one
+        pass in either passage that says where the ball landed as well as
+        where it was hit. "Their" is France, from the lineups file."""
+        long_ball = next(
+            beat for beat in story(facts_2022).beats if beat.long_ball
+        )
+        assert facts_2022.opponent == "France"
+        assert long_ball.zone == "just inside France's half on the right"
+        assert long_ball.landed == "on the edge of the box on the right"
+
+    def test_the_2022_assist_and_finish(self, facts_2022):
+        """MacAllister plays it from (99.3, 54.9), four yards outside the
+        box, and Di Maria shoots from (111.8, 32.1)."""
+        one = story(facts_2022)
+        assist = next(beat for beat in one.beats if beat.assist)
+        assert assist.zone == "on the edge of the box on the right"
+        assert one.beats[-1].zone == "in the box"
+
+    def test_not_every_pass_gets_a_place(self, facts_1986, facts_2022):
+        """Five passes in the 2022 move and two of them carry no place: the
+        first one, the long ball and the assist do. A telling that placed
+        every beat would read as the label reading `beat_line` was written
+        to stop."""
+        placed = [beat for beat in story(facts_2022).beats if beat.zone]
+        assert [beat.kind for beat in placed] == [PASS, PASS, PASS, FINISH]
+        passes = [
+            beat for beat in story(facts_2022).beats if beat.kind == PASS
+        ]
+        assert [bool(beat.zone) for beat in passes] == [
+            True, False, False, True, True
+        ]
+        # 1986: the recovery, the assist and the finish carry a zone, and
+        # the two dribble beats carry one per defender instead. Cuciuffo's
+        # own pass is not the assist and is not the first beat.
+        placed = [beat for beat in story(facts_1986).beats if beat.zone]
+        assert [beat.kind for beat in placed] == [RECOVERY, PASS, FINISH]
+
+    def test_only_the_long_ball_says_where_it_landed(
+        self, facts_1986, facts_2022
+    ):
+        for facts in (facts_1986, facts_2022):
+            for beat in story(facts).beats:
+                if beat.landed:
+                    assert beat.long_ball
+
+    def test_the_run_and_the_pressures_carry_no_place(self, facts_1986):
+        """The long run is not on Shawn's list and neither is a pressure, so
+        neither says where it happened: the dribble beats either side of the
+        run already place that stretch of the pitch."""
+        for beat in story(facts_1986).beats:
+            if beat.kind in (RUN, PRESSURE):
+                assert beat.zone == ""
+
+    def test_the_block_carries_the_places(self, facts_1986, facts_2022):
+        for phrase in (
+            "deep in his own half",
+            "just inside his own half on the right",
+            "in the final third on the right",
+            "on the edge of the box on the right",
+            "in the box",
+        ):
+            assert phrase in beats_block(story(facts_1986))
+        for phrase in (
+            "deep in his own half on the right",
+            "just inside France's half on the right",
+            "landing on the edge of the box on the right",
+            "in the box",
+        ):
+            assert phrase in beats_block(story(facts_2022))
+
+    def test_the_places_carry_no_digit(self, facts_1986, facts_2022):
+        """The phrase and not the coordinate, for the reason a long carry is
+        a flag and not a figure: a number in front of a model is a number in
+        the narration."""
+        for facts in (facts_1986, facts_2022):
+            block = beats_block(story(facts))
+            assert not any(character.isdigit() for character in block)
+
+    def test_a_beat_shaped_telling_of_the_1986_places_is_grounded(
+        self, facts_1986
+    ):
+        told = (
+            "Cuciuffo won it back deep in his own half and Enrique played "
+            "it to Maradona just inside his own half, and he went past "
+            "Beardsley, past Butcher in the final third on the right, past "
+            "Fenwick on the edge of the box, around Shilton in the box, "
+            "and scored with his left foot."
+        )
+        result = check(told, facts_1986, THE_STORYTELLER, None)
+        assert result.grounded, result.summary
 
 
 class TestTheRulesMatchTheCheck:

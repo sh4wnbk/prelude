@@ -32,7 +32,7 @@ Standard library only, like the rest of `app/`.
 
 import textwrap
 from dataclasses import dataclass
-from typing import Mapping
+from typing import Mapping, Sequence
 
 from app.event_feed import Buildup, Moment, RawEvent
 
@@ -371,10 +371,35 @@ class Facts:
     actions: frozenset[str]
     set_piece: str | None
     body_part: str | None
+    #: The two teams of the fixture, from `app/recorded_names.py`, or empty
+    #: where the caller did not read them.
+    #:
+    #: `teams` above is read off the records of this passage, and the 2022
+    #: counter is thirteen Argentina records with nothing of France's in it,
+    #: so the side being attacked is not in the facts at all. A zone phrase
+    #: says whose half the ball was in ("just inside France's half"), and
+    #: `opponent` is where that name comes from. It defaults to empty so
+    #: every caller that built facts before zones existed still builds them.
+    recorded_teams: tuple[str, ...] = ()
 
     @property
     def beats(self) -> tuple[Beat, ...]:
         return tuple(fact.beat for fact in self.facts)
+
+    @property
+    def opponent(self) -> str | None:
+        """The side being attacked, or `None` where nothing names it.
+
+        The fixture's teams first, because they hold both sides whether or
+        not the passage records one of them, and the passage's own teams
+        after, so a caller that read no lineups file still gets England out
+        of the 1986 records. `None` is what a zone phrase naming a team is
+        read leniently against; `app/narration_grammar.py` says how.
+        """
+        for team in tuple(self.recorded_teams) + tuple(self.teams):
+            if team != self.moment.team:
+                return team
+        return None
 
     @property
     def goal_fact(self) -> Fact:
@@ -583,7 +608,9 @@ def _beat(event: RawEvent, nicknames: Mapping[str, str]) -> Beat:
 
 
 def facts_from_buildup(
-    buildup: Buildup, nicknames: Mapping[str, str] | None = None
+    buildup: Buildup,
+    nicknames: Mapping[str, str] | None = None,
+    teams: Sequence[str] = (),
 ) -> Facts:
     """Read the facts a narration may use out of one buildup.
 
@@ -598,6 +625,10 @@ def facts_from_buildup(
     fetched: the full recorded name on every beat. A player the mapping does
     not hold keeps their full name too, which is not a gap to be filled by
     guessing at a surname.
+
+    `teams` is the fixture's two team names, from the same file, for
+    `Facts.opponent`. It is optional for the same reason and defaults to
+    nothing, which leaves the opponent to the records of the passage.
     """
     short = nicknames or {}
     beats = tuple(_beat(event, short) for event in buildup.events
@@ -612,10 +643,12 @@ def facts_from_buildup(
     for beat in beats:
         players.setdefault(beat.player, beat.team)
 
-    teams: list[str] = []
+    # Named for what it is rather than `teams`, which is the fixture's two
+    # from the lineups file and arrives as an argument.
+    recorded: list[str] = []
     for beat in beats:
-        if beat.team not in teams:
-            teams.append(beat.team)
+        if beat.team not in recorded:
+            recorded.append(beat.team)
 
     shot = _goal_shot(buildup)
     body_part = (shot.get("shot") or {}).get("body_part", {}).get("name")
@@ -624,10 +657,11 @@ def facts_from_buildup(
         moment=buildup.moment,
         facts=facts,
         players=players,
-        teams=tuple(teams),
+        teams=tuple(recorded),
         actions=frozenset(beat.action for beat in beats),
         set_piece=buildup.set_piece,
         body_part=body_part,
+        recorded_teams=tuple(teams),
     )
 
 

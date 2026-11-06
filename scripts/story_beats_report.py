@@ -27,7 +27,7 @@ for _stream in (sys.stdout, sys.stderr):
 
 from app.narration_grammar import RUN_YARDS, carry_yards  # noqa: E402
 from app.narration_prompt import facts_from_buildup  # noqa: E402
-from app.recorded_names import recorded_nicknames  # noqa: E402
+from app.recorded_names import recorded_nicknames, recorded_teams  # noqa: E402
 from app.statsbomb_event_feed import StatsBombEventFeed  # noqa: E402
 from app.story_beats import (  # noqa: E402
     NOT_A_BEAT,
@@ -43,7 +43,9 @@ def report(match_id: int, minute: int, second: int, year: int) -> None:
     feed = StatsBombEventFeed()
     moment = moment_at(feed, match_id, minute, second)
     facts = facts_from_buildup(
-        feed.buildup(match_id, moment), recorded_nicknames(match_id)
+        feed.buildup(match_id, moment),
+        recorded_nicknames(match_id),
+        recorded_teams(match_id),
     )
     one = story(facts)
 

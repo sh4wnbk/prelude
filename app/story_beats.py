@@ -67,7 +67,7 @@ so `Story` holds them and the block says each one once.
 Standard library only.
 """
 
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, replace
 from typing import Mapping, Sequence
 
 from app.narration_grammar import (
@@ -76,6 +76,7 @@ from app.narration_grammar import (
     carry_yards,
     change_in_x,
 )
+from app.pitch_zones import zone_for
 from app.narration_prompt import (
     DRIBBLE,
     EVENT_VERBS,
@@ -200,6 +201,35 @@ class StoryBeat:
     first_time: bool = False
     #: `shot.body_part.name`, for the finish.
     body_part: str | None = None
+    #: Where on the pitch this beat happened, as `app/pitch_zones.py` says
+    #: it, or "" on a beat that carries no place.
+    #:
+    #: **Read aloud, the six candidates of 2026-11-05 have no field position
+    #: in them at all**: "dribbled past Butcher" and "a long ball to
+    #: MacAllister" give a listener nothing to place. The coordinate was in
+    #: the records the whole time and nothing turned it into words.
+    #:
+    #: It is computed from the attacking side's own record and never from a
+    #: `Dribbled Past` or any other defending one, because StatsBomb mirrors
+    #: those: Butcher's `Dribbled Past` is at `x` 33.0 and the `Dribble` that
+    #: beat him is at 87.1. A beat of the defending side carries no place at
+    #: all, which is the same rule `_direction` follows for "forward".
+    #:
+    #: It is the phrase and not the coordinate, for the reason `long_carry`
+    #: is a flag and not a figure: a number in front of a model is a number
+    #: in the narration.
+    zone: str = ""
+    #: Where a long ball came down, which is the second place one pass has.
+    #: Only a pass marked long carries it: the records hold both ends of
+    #: every pass, and a telling that places every pass twice is the label
+    #: reading `beat_line` was written to stop.
+    landed: str = ""
+    #: Where each defender in `beaten` was gone past, in the same order.
+    #: One zone each rather than one for the beat, because the three
+    #: consecutive 1986 dribbles are one beat and they happen thirty yards
+    #: apart: Beardsley just inside his own half, Butcher in the final third
+    #: and Fenwick on the edge of the box.
+    beaten_zones: tuple[str, ...] = ()
 
 
 #: The fields a beat may never carry, asserted rather than assumed.
@@ -248,6 +278,26 @@ def _direction(facts: Facts, beat: Beat) -> str:
     if change <= -DIRECTION_YARDS:
         return "back"
     return ""
+
+
+def _zone(facts: Facts, beat: Beat) -> str:
+    """Where one record happened, in the attacking side's own frame.
+
+    Nothing for a record of the side that is defending, which is the rule
+    `_direction` follows and for the same reason: StatsBomb mirrors a
+    defensive record's coordinates, so the band it falls in there is the band
+    at the other end of the pitch.
+    """
+    if beat.team != facts.moment.team or beat.start is None:
+        return ""
+    return zone_for(beat.start, facts.opponent)
+
+
+def _landing(facts: Facts, beat: Beat) -> str:
+    """Where the ball a record sent came down, in the same frame."""
+    if beat.team != facts.moment.team or beat.end is None:
+        return ""
+    return zone_for(beat.end, facts.opponent)
 
 
 def _pressed_the_carrier(facts: Facts, fact: Fact) -> bool:
@@ -349,6 +399,7 @@ def story(facts: Facts) -> Story:
                     body_part=facts.body_part or beat.body_part,
                     in_the_box=bool(beat.start and beat.start.in_the_box),
                     under_pressure=beat.under_pressure,
+                    zone=_zone(facts, beat),
                 )
             )
             continue
@@ -374,6 +425,7 @@ def story(facts: Facts) -> Story:
                     team=dribbler.beat.team,
                     event_ids=(dribbler.beat.event_id, beat.event_id),
                     beaten=(beat.name,),
+                    beaten_zones=(_zone(facts, dribbler.beat),),
                     under_pressure=dribbler.beat.under_pressure,
                 )
             )
@@ -390,6 +442,7 @@ def story(facts: Facts) -> Story:
                     event_ids=(beat.event_id,),
                     action=beat.action,
                     under_pressure=beat.under_pressure,
+                    zone=_zone(facts, beat),
                 )
             )
             continue
@@ -401,6 +454,7 @@ def story(facts: Facts) -> Story:
                     team=beat.team,
                     event_ids=(beat.event_id,),
                     under_pressure=beat.under_pressure,
+                    zone=_zone(facts, beat),
                 )
             )
             continue
@@ -422,6 +476,8 @@ def story(facts: Facts) -> Story:
                     again=beat.event_id in again,
                     in_the_box=bool(beat.end and beat.end.in_the_box),
                     under_pressure=beat.under_pressure,
+                    zone=_zone(facts, beat),
+                    landed=_landing(facts, beat),
                 )
             )
             continue
@@ -442,6 +498,7 @@ def story(facts: Facts) -> Story:
                     long_carry=True,
                     in_the_box=bool(beat.end and beat.end.in_the_box),
                     under_pressure=beat.under_pressure,
+                    zone=_zone(facts, beat),
                 )
             )
             continue
@@ -465,6 +522,7 @@ def story(facts: Facts) -> Story:
                 event_ids=(beat.event_id,),
                 action=beat.action,
                 under_pressure=beat.under_pressure,
+                zone=_zone(facts, beat),
             )
         )
 
@@ -474,12 +532,55 @@ def story(facts: Facts) -> Story:
         if fact.beat.team == facts.moment.team and fact.beat.start
     ]
     return Story(
-        beats=_grouped(tuple(enumerate(beats))),
+        beats=_placed(_grouped(tuple(enumerate(beats)))),
         team=facts.moment.team,
         play_pattern=next(iter(sorted(facts.play_patterns)), None),
         started_in_own_half=bool(ours and ours[0].start.in_own_half),
         records=len(facts.facts),
     )
+
+
+def _placed(beats: Sequence[StoryBeat]) -> tuple[StoryBeat, ...]:
+    """The beats with a place on the ones that get one, and on no others.
+
+    **Not every beat, which is the whole of this function.** Every record in
+    both passages carries a location, so a zone could go on all ten 1986
+    beats and all six 2022 ones, and a telling built off that list would
+    place every pass: the same label reading that put "Alvarez to
+    MacAllister forward" in four of five candidates on 2026-11-05. Shawn's
+    list is where the move starts, where it turns, and where it ends.
+
+    | Kept on | Why |
+    | ------- | --- |
+    | the first beat | a listener has to be put somewhere before anything happens |
+    | a ball recovery | the move starts where it was won |
+    | a dribble past | the turning points, one place per defender |
+    | a long ball | the turn of the move, at both ends |
+    | the assist | where the goal was made from |
+    | the finish | where it was scored from |
+
+    The zones were computed on every beat above and are blanked here rather
+    than never computed, so this reads as the one rule it is instead of a
+    condition repeated in nine branches.
+    """
+    out: list[StoryBeat] = []
+    for index, beat in enumerate(beats):
+        keeps = (
+            index == 0
+            or beat.kind in (RECOVERY, FINISH)
+            or (beat.kind == PASS and (beat.long_ball or beat.assist))
+        )
+        # A long ball is the one beat that says where the ball came down as
+        # well as where it was struck.
+        lands = beat.kind == PASS and beat.long_ball
+        if keeps and lands:
+            out.append(beat)
+            continue
+        if keeps:
+            out.append(replace(beat, landed=""))
+            continue
+        out.append(replace(beat, zone="", landed=""))
+    return tuple(out)
 
 
 def beat_line(beat: StoryBeat) -> str:
@@ -502,8 +603,18 @@ def beat_line(beat: StoryBeat) -> str:
     telling it says a move rather than reading a label.
     """
     where = beat.player, beat.team
+    # The place sits straight after the player, as an appositive, which is
+    # where a commentator puts it and where the claim attaches to this
+    # player's own action: "Alvarez, just inside France's half on the right,
+    # hit a long ball" rather than a place tacked on at the end, which is
+    # the label reading this rendering exists to avoid. A dribble past has
+    # one place per defender instead, and a long ball says where it landed
+    # after the player it reached.
+    place = ", {},".format(beat.zone) if beat.zone else ""
     if beat.kind == DRIBBLE_PAST:
-        said = "{} ({}) dribbled past {}".format(*where, _and(beat.beaten))
+        said = "{} ({}) dribbled past {}".format(
+            *where, _and(_beaten_with_zones(beat))
+        )
         if beat.carried:
             said += ", carrying the ball{} between them".format(
                 " " + beat.direction if beat.direction else ""
@@ -511,8 +622,9 @@ def beat_line(beat: StoryBeat) -> str:
     elif beat.kind == PRESSURE:
         said = "{} ({}) pressed the player on the ball".format(*where)
     elif beat.kind == PASS:
-        said = "{} ({}) {}{} to {}{}".format(
+        said = "{} ({}){} {}{} to {}{}".format(
             *where,
+            place,
             "hit a long ball" if beat.long_ball else "passed it",
             " " + beat.direction if beat.direction else "",
             beat.recipient or "nobody recorded",
@@ -525,33 +637,59 @@ def beat_line(beat: StoryBeat) -> str:
         # own position, which `player_spots` refuses and should.
         if beat.in_the_box:
             said += ", into the box"
+        if beat.landed:
+            said += ", landing {}".format(beat.landed)
         if beat.assist:
             said += ", which is the assist"
     elif beat.kind == RUN:
-        said = "{} ({}) carried the ball{} on a long run".format(
-            *where, " " + beat.direction if beat.direction else ""
+        said = "{} ({}){} carried the ball{} on a long run".format(
+            *where, place, " " + beat.direction if beat.direction else ""
         )
         if beat.in_the_box:
             said += ", ending in the box"
     elif beat.kind == RECOVERY:
-        said = "{} ({}) won the ball back".format(*where)
+        said = "{} ({}){} won the ball back".format(*where, place)
     elif beat.kind == FINISH:
-        said = "{} ({}) shot{}{}{}".format(
+        # The zone says where the shot was struck from, so "from inside the
+        # box" would be the same claim twice over: the box band is the
+        # eighteen yard line and the box's own width, which is the line that
+        # phrase was read against and one more besides.
+        said = "{} ({}){} shot{}{}{}".format(
             *where,
+            place,
             " first time" if beat.first_time else "",
             " with his {}".format(beat.body_part.lower())
             if beat.body_part
             else "",
-            " from inside the box" if beat.in_the_box else "",
+            "" if beat.zone else
+            (" from inside the box" if beat.in_the_box else ""),
         )
     else:
-        said = "{} ({}) {}".format(
+        said = "{} ({}){} {}".format(
             *where,
+            place,
             EVENT_VERBS.get(beat.action or "", beat.action or "had the ball"),
         )
     if beat.under_pressure:
         said += ", under pressure"
     return said
+
+
+def _beaten_with_zones(beat: StoryBeat) -> tuple[str, ...]:
+    """Each defender beaten, with the place he was beaten in after his name.
+
+    "Peter Beardsley just inside his own half", "Terry Butcher in the final
+    third on the right". Three of the 1986 dribbles are one beat and thirty
+    yards apart, so the places belong to the defenders rather than to the
+    beat. A beat with no zones recorded reads as it did before them.
+    """
+    zones = beat.beaten_zones
+    return tuple(
+        "{} {}".format(name, zones[index])
+        if index < len(zones) and zones[index]
+        else name
+        for index, name in enumerate(beat.beaten)
+    )
 
 
 def _and(names: Sequence[str]) -> str:
@@ -630,6 +768,14 @@ def _grouped(placed: Sequence[tuple[int, StoryBeat]]) -> tuple[StoryBeat, ...]:
                 beaten=tuple(
                     name for one in members for name in beats[one].beaten
                 ),
+                # One zone per defender, in the same order: the three
+                # consecutive 1986 dribbles are one beat and they happen
+                # thirty yards apart.
+                beaten_zones=tuple(
+                    zone
+                    for one in members
+                    for zone in beats[one].beaten_zones
+                ),
                 carried=bool(carries),
                 direction=ways.pop() if len(ways) == 1 else "",
                 # Said only where every record in the group holds it, so the
@@ -694,7 +840,7 @@ def beats_block(one: Story) -> str:
             "may only be",
             "told with these players, these passes, these defenders, these "
             "carries, this",
-            "body part and these two positions on the pitch; anything else "
+            "body part and these places on the pitch; anything else "
             "is rejected,",
             "whether or not it happened. Where one beat names several "
             "defenders, say them",

@@ -66,3 +66,30 @@ def recorded_nicknames(match_id: int) -> Mapping[str, str]:
                 continue
             out[full] = short
     return out
+
+
+def recorded_teams(match_id: int) -> tuple[str, ...]:
+    """The two team names the lineups file records for a match, in its order.
+
+    **Why a passage needs it.** `Facts.teams` is read off the records of the
+    passage, and the 2022 counter is thirteen Argentina records with nothing
+    of France's in it at all, so the side being attacked is not in the facts.
+    A zone phrase says whose half the ball was in ("just inside France's
+    half"), and the name has to come from somewhere the records of that one
+    passage are not.
+
+    It is the same file the nicknames come from and the same StatsBomb open
+    data as the event feed, so it is not a fourth input. It names the two
+    teams of the fixture and nothing about the play.
+
+    Raises if the file is missing, for the reason `recorded_nicknames` does:
+    an empty answer would look like a match with no teams in it.
+    """
+    path = lineups_path(match_id)
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"{path} is missing, so the teams of match {match_id} cannot be "
+            f"read: run scripts/fetch_statsbomb.py"
+        )
+    teams = json.loads(path.read_text(encoding="utf-8"))
+    return tuple(team["team_name"] for team in teams)

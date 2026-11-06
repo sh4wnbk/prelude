@@ -122,7 +122,7 @@ from app.narration_provider import (  # noqa: E402
     WatsonxProvider,
 )
 from app.personas import THE_BUDDY, THE_STORYTELLER  # noqa: E402
-from app.recorded_names import recorded_nicknames  # noqa: E402
+from app.recorded_names import recorded_nicknames, recorded_teams  # noqa: E402
 from app.statsbomb_event_feed import StatsBombEventFeed  # noqa: E402
 from app.tts import speech_text  # noqa: E402
 
@@ -479,7 +479,9 @@ def gather(
             break
         moment = moment_at(feed, match_id, minute, second)
         facts = facts_from_buildup(
-            feed.buildup(match_id, moment), recorded_nicknames(match_id)
+            feed.buildup(match_id, moment),
+        recorded_nicknames(match_id),
+        recorded_teams(match_id),
         )
         print("{} match {} {}:{:02d}: {} ({}), {} records, {} players".format(
             year, match_id, minute, second, moment.player, moment.team,
@@ -1155,7 +1157,9 @@ def main(argv: Sequence[str]) -> int:
     for _, match_id, minute, second in heroes:
         moment = moment_at(feed, match_id, minute, second)
         facts = facts_from_buildup(
-            feed.buildup(match_id, moment), recorded_nicknames(match_id)
+            feed.buildup(match_id, moment),
+        recorded_nicknames(match_id),
+        recorded_teams(match_id),
         )
         for key, _side in slots_for(match_id, moment.team, args.slot):
             slots.append((match_id, key))

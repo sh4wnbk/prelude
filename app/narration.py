@@ -66,7 +66,7 @@ from app.narration_provider import (
     provider as default_provider,
 )
 from app.plain_characters import plain
-from app.recorded_names import recorded_nicknames
+from app.recorded_names import recorded_nicknames, recorded_teams
 from app.personas import Persona
 
 #: Regenerations allowed after the first attempt, so three attempts at most.
@@ -235,7 +235,9 @@ def narrate(
     reason rather than as a narration the model produced.
     """
     facts = facts_from_buildup(
-        feed.buildup(match_id, moment), recorded_nicknames(match_id)
+        feed.buildup(match_id, moment),
+        recorded_nicknames(match_id),
+        recorded_teams(match_id),
     )
     chosen = narration_provider or default_provider()
     if goal_call:

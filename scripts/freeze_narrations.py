@@ -58,7 +58,7 @@ from app.narration_provider import (  # noqa: E402
     COMPARISON_MAX_NEW_TOKENS,
     WatsonxProvider,
 )
-from app.recorded_names import recorded_nicknames  # noqa: E402
+from app.recorded_names import recorded_nicknames, recorded_teams  # noqa: E402
 from app.statsbomb_event_feed import StatsBombEventFeed  # noqa: E402
 
 #: Where the frozen narrations go. Beside `matches.json`, because the browser
@@ -140,7 +140,9 @@ def freeze(backend: WatsonxProvider) -> dict:
     for year, match_id, minute, second in HEROES:
         moment = moment_at(feed, match_id, minute, second)
         facts = facts_from_buildup(
-            feed.buildup(match_id, moment), recorded_nicknames(match_id)
+            feed.buildup(match_id, moment),
+        recorded_nicknames(match_id),
+        recorded_teams(match_id),
         )
         print("{} match {} {}:{:02d}: {} ({}), {} facts".format(
             year, match_id, minute, second, moment.player, moment.team,
@@ -347,7 +349,9 @@ def freeze_picked(doc: dict, path: Path, picks: Sequence[str]) -> dict:
         )
         moment = moment_at(feed, match_id, minute, second)
         facts = facts_from_buildup(
-            feed.buildup(match_id, moment), recorded_nicknames(match_id)
+            feed.buildup(match_id, moment),
+        recorded_nicknames(match_id),
+        recorded_teams(match_id),
         )
         print("{} match {} {}:{:02d}: candidate {}".format(
             year, match_id, minute, second, candidate["slot"]

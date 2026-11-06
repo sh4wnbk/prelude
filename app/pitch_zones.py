@@ -1,0 +1,213 @@
+"""Where on the pitch something happened, as a phrase a narrator can say.
+
+**Read aloud, the six candidates of 2026-11-05 have no field position in
+them.** "Dribbled past Butcher" and "a long ball to MacAllister" give a
+listener nothing to place: the move could be happening anywhere between the
+two goals. The records hold the answer on every event, because StatsBomb
+writes a location on almost all of them, and the only reason a narration was
+not saying it is that nothing turned a coordinate into words.
+
+`Spot.in_own_half` and `Spot.in_the_box` in `app/narration_prompt.py` already
+read a coordinate against a line, and they are two lines on a pitch a hundred
+and twenty yards long. This is the same arithmetic at the resolution a
+commentator speaks at: eight bands up the pitch and three across it, each one
+a phrase, each one a claim `app/narration_grammar.py` can refuse.
+
+**The vocabulary is Shawn's and the geometry is StatsBomb's.** The pitch is
+120 by 80 with `x` running towards the goal the recorded player's own team is
+attacking, which is what lets one set of bands read correctly for either side.
+
+| Said | Where |
+| ---- | ----- |
+| "deep in his own half" | `x` under 40 |
+| "in his own half" | 40 to 50 |
+| "just inside his own half" | 50 to 60 |
+| "just inside their half" | 60 to 70 |
+| "in their half" | 70 to 80 |
+| "in the final third" | 80 to 96, and 96 and up outside the box's width |
+| "on the edge of the box" | 96 to 102, within the box's width |
+| "in the box" | 102 and up, within the box's width |
+| "on the left" | `y` under 26.7 |
+| "on the right" | `y` over 53.3 |
+
+**The two halves of a phrase are two claims.** "In the final third on the
+right" is a band up the pitch and a third across it, and either can be wrong
+on its own, so `zone_of` and `side_of` answer separately and
+`app/narration_grammar.py` reads them as two moves. A spot in the middle third
+by width gets no side at all, which is why four of the eight zone phrases in
+the two hero passages are said with no side after them.
+
+**The box needs its width and the final third is what is left.** A ball at
+`x` 110 and `y` 10 is past the eighteen yard line and nowhere near the box: it
+is by the byline with the goal frame between it and the posts. So both box
+bands ask for `y` between 18 and 62, and anything from 80 up that is not one
+of them is the final third. That last clause is this module's own reading
+rather than Shawn's vocabulary, which names no zone for a ball past the
+eighteen yard line and wide of the box; the final third is true of it and is
+the band it is in.
+
+**It is not `Spot.in_the_box`, and the difference is the width.** That
+property is `x >= 102` alone, so it calls a ball at `x` 110 and `y` 10 inside
+the box, and the position claim built on it reads the same way. Nothing in
+either hero passage sits there (every recorded location from 102 up has `y`
+between 32.1 and 55.1), so the two readings agree on all the real data and
+the difference is a hole in the older one rather than a disagreement. It is
+left alone here because no step asked for it and tightening it would move
+`in_the_box` on every beat and every position claim; `HANDOFF.md` records it.
+
+Standard library only, and no judgement about the play: every answer is one
+coordinate against one number.
+"""
+
+from app.narration_prompt import BOX_X, HALFWAY_X, Spot
+
+#: Where a team's own half stops being deep, in StatsBomb's yards of `x`.
+DEEP_X = 40.0
+
+#: Where "in his own half" gives way to "just inside his own half".
+OWN_HALF_X = 50.0
+
+#: Where "just inside their half" gives way to "in their half". The halfway
+#: line itself is `HALFWAY_X` in `app/narration_prompt.py`, which is the one
+#: line these bands share with the older position claim.
+JUST_INSIDE_X = 70.0
+
+#: Where the final third starts, which is also where "in their half" stops.
+FINAL_THIRD_X = 80.0
+
+#: Where the edge of the box starts. Eighteen yards short of `BOX_X`, which is
+#: the eighteen yard line itself.
+EDGE_X = 96.0
+
+#: The box's width, in StatsBomb's yards of `y`. The pitch is 80 wide and the
+#: box is 44, so it runs from 18 to 62 with 18 either side of it.
+BOX_TOP_Y = 18.0
+BOX_BOTTOM_Y = 62.0
+
+#: The two lines across the pitch that make a left, a middle and a right.
+#: Shawn's numbers, which are the thirds of an 80 yard pitch to one decimal.
+LEFT_Y = 26.7
+RIGHT_Y = 53.3
+
+#: The eight bands up the pitch, as the words for them.
+DEEP_IN_OWN_HALF = "deep in his own half"
+IN_OWN_HALF = "in his own half"
+JUST_INSIDE_OWN_HALF = "just inside his own half"
+JUST_INSIDE_THEIR_HALF = "just inside their half"
+IN_THEIR_HALF = "in their half"
+FINAL_THIRD = "in the final third"
+EDGE_OF_THE_BOX = "on the edge of the box"
+THE_BOX = "in the box"
+
+#: The two sides, as the words for them. A spot between the two lines is in
+#: neither and is said with no side.
+ON_THE_LEFT = "on the left"
+ON_THE_RIGHT = "on the right"
+
+#: Every band, in the order they run up the pitch. `tests/test_pitch_zones.py`
+#: reads it to check the vocabulary is a partition rather than a list.
+ZONES: tuple[str, ...] = (
+    DEEP_IN_OWN_HALF,
+    IN_OWN_HALF,
+    JUST_INSIDE_OWN_HALF,
+    JUST_INSIDE_THEIR_HALF,
+    IN_THEIR_HALF,
+    FINAL_THIRD,
+    EDGE_OF_THE_BOX,
+    THE_BOX,
+)
+
+#: Both sides, in the order `y` runs.
+SIDES: tuple[str, ...] = (ON_THE_LEFT, ON_THE_RIGHT)
+
+#: The two bands whose words say "their", which is the opponent's half and is
+#: the one place a zone phrase can be said with a team's name in it.
+THEIR_HALF_ZONES = frozenset({JUST_INSIDE_THEIR_HALF, IN_THEIR_HALF})
+
+
+def in_the_box_width(place: Spot) -> bool:
+    """Whether a spot is between the two sides of the penalty area."""
+    return BOX_TOP_Y <= place.y <= BOX_BOTTOM_Y
+
+
+def zone_of(place: Spot) -> str:
+    """Which band up the pitch a spot is in, as the phrase for it.
+
+    Read in the frame of the team whose record it is, so it may only be
+    called with the attacking side's own location: a `Dribbled Past` is
+    written on the defender's record, which StatsBomb mirrors, and the band
+    it falls in there is the band at the other end of the pitch. Terry
+    Butcher's `Dribbled Past` is at `x` 33.0 and the `Dribble` that beat him
+    is at 87.1, which is the same place said twice from two ends.
+    """
+    if place.x < DEEP_X:
+        return DEEP_IN_OWN_HALF
+    if place.x < OWN_HALF_X:
+        return IN_OWN_HALF
+    if place.x < HALFWAY_X:
+        return JUST_INSIDE_OWN_HALF
+    if place.x < JUST_INSIDE_X:
+        return JUST_INSIDE_THEIR_HALF
+    if place.x < FINAL_THIRD_X:
+        return IN_THEIR_HALF
+    if place.x < EDGE_X:
+        return FINAL_THIRD
+    if not in_the_box_width(place):
+        # Past the edge of the box and wide of it, which is the final third
+        # and is not the box however far up the pitch it is.
+        return FINAL_THIRD
+    if place.x < BOX_X:
+        return EDGE_OF_THE_BOX
+    return THE_BOX
+
+
+def side_of(place: Spot) -> str:
+    """Which side of the pitch a spot is on, or "" for the middle third."""
+    if place.y < LEFT_Y:
+        return ON_THE_LEFT
+    if place.y > RIGHT_Y:
+        return ON_THE_RIGHT
+    return ""
+
+
+def zone_for(place: Spot, opponent: str | None = None) -> str:
+    """One spot as the whole phrase: the band, and the side where there is one.
+
+    "In the final third on the right" for Maradona's dribble past Butcher at
+    (87.1, 68.6), and "deep in his own half" with nothing after it for
+    Cuciuffo's recovery at (35.2, 50.4), which is in the middle third by
+    width. `opponent` is passed on to `said_as`, so the two bands that say
+    "their" are said with the other side's name where the caller knows it.
+    """
+    side = side_of(place)
+    zone = said_as(zone_of(place), opponent)
+    return "{} {}".format(zone, side) if side else zone
+
+
+def holds(zone: str, place: Spot) -> bool:
+    """Whether a spot is where this phrase says, band or side.
+
+    The bands are exclusive, so a phrase naming the wrong one is wrong even
+    where the two overlap in plain English: a ball at `x` 35 is in its own
+    half and the phrase for it is "deep in his own half", so "just inside his
+    own half" over it is refused. The one phrase this is not true of is "in
+    his own half", which `app/narration_grammar.py` reads as the half claim it
+    already had rather than as a band; the reason is written down there.
+    """
+    if zone in SIDES:
+        return side_of(place) == zone
+    return zone_of(place) == zone
+
+
+def said_as(zone: str, opponent: str | None) -> str:
+    """One zone phrase with "their" replaced by the opponent's own name.
+
+    "Just inside France's half" rather than "just inside their half", which
+    is what a listener needs to place the 2022 long ball: "their" in a
+    narration told for a France fan is the side he is not on. The two bands
+    that say "their" are the only ones this touches, and a caller with no
+    opponent name in hand gets the phrase as it stands.
+    """
+    if opponent is None or zone not in THEIR_HALF_ZONES:
+        return zone
+    return zone.replace("their half", "{}'s half".format(opponent))

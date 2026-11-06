@@ -80,7 +80,7 @@ from app.narration_provider import (  # noqa: E402
     COMPARISON_MAX_NEW_TOKENS,
     WatsonxProvider,
 )
-from app.recorded_names import recorded_nicknames  # noqa: E402
+from app.recorded_names import recorded_nicknames, recorded_teams  # noqa: E402
 from app.statsbomb_event_feed import StatsBombEventFeed  # noqa: E402
 from app.tts import speech_text  # noqa: E402
 from scripts.tts_hero import DEFAULT_BUDGET  # noqa: E402
@@ -380,7 +380,9 @@ def gather(
     for year, match_id, minute, second in heroes:
         moment = moment_at(feed, match_id, minute, second)
         facts = facts_from_buildup(
-            feed.buildup(match_id, moment), recorded_nicknames(match_id)
+            feed.buildup(match_id, moment),
+        recorded_nicknames(match_id),
+        recorded_teams(match_id),
         )
         print("{} match {} {}:{:02d}: {} ({}), {} facts, {} players".format(
             year, match_id, minute, second, moment.player, moment.team,
@@ -744,7 +746,9 @@ def refreshed(doc: dict) -> dict:
             feed, match_id, goal["minute"], goal["second"]
         )
         facts = facts_from_buildup(
-            feed.buildup(match_id, moment), recorded_nicknames(match_id)
+            feed.buildup(match_id, moment),
+        recorded_nicknames(match_id),
+        recorded_teams(match_id),
         )
         for candidate in goal["candidates"]:
             result = check(candidate["tagged_text"], facts)

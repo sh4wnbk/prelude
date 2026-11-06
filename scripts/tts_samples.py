@@ -70,7 +70,7 @@ from app.orchestrator_contract import (  # noqa: E402
     SCORED,
     STORYTELLER,
 )
-from app.recorded_names import recorded_nicknames  # noqa: E402
+from app.recorded_names import recorded_nicknames, recorded_teams  # noqa: E402
 from app.statsbomb_event_feed import StatsBombEventFeed  # noqa: E402
 from app.tts import SpeechRequest, WatsonTextToSpeech, without_markup  # noqa: E402
 from write_headers import openings  # noqa: E402
@@ -136,7 +136,9 @@ def narration_for(feed: StatsBombEventFeed, match_id: int, minute: int,
             )
         )
     facts = facts_from_buildup(
-        feed.buildup(match_id, found[0]), recorded_nicknames(match_id)
+        feed.buildup(match_id, found[0]),
+        recorded_nicknames(match_id),
+        recorded_teams(match_id),
     )
     return strip_citations(template_narration(facts))
 
