@@ -1,0 +1,121 @@
+{
+  "_note": "The six narrations of the first run of 2026-11-05, kept in the repo in scripts/fallback_narrations.py and re-checked against data/raw/ by that script. Not generated here and not frozen: app/web/narrations.json is not written by it.",
+  "written_on": "2026-11-05",
+  "rechecked_on": "2026-11-05",
+  "goals": [
+    {
+      "year": 1986,
+      "match_id": 3750191,
+      "minute": 54,
+      "second": 18,
+      "player": "Diego Armando Maradona",
+      "team": "Argentina",
+      "opponent": "England",
+      "records": 24,
+      "slots": [
+        {
+          "slot": "buddy_conceded",
+          "narrator": "buddy",
+          "side": "England",
+          "text": "Cuciuffo recovered and played it to Enrique, who set up Maradona; pressed by Beardsley and Reid, Maradona dribbled past Beardsley, Butcher and Fenwick, carried it forward into the box, slipped past Shilton and struck with his left foot. Ah, no.",
+          "grounded": true,
+          "claims_checked": 19,
+          "summary": "grounded: 19 claim(s) all traced to the data",
+          "refusals": [],
+          "billed_characters": 310,
+          "characters": 244,
+          "words": 40,
+          "who": 1,
+          "zones": []
+        },
+        {
+          "slot": "buddy_scored",
+          "narrator": "buddy",
+          "side": "Argentina",
+          "text": "We won it back through Cuciuffo, who found Enrique and he set up Maradona; Maradona dribbled past Beardsley, Butcher and Fenwick, carried it forward into the box, dribbled past Shilton and shot with his left foot! What a finish!",
+          "grounded": true,
+          "claims_checked": 18,
+          "summary": "grounded: 18 claim(s) all traced to the data",
+          "refusals": [],
+          "billed_characters": 295,
+          "characters": 228,
+          "words": 39,
+          "who": 1,
+          "zones": []
+        },
+        {
+          "slot": "storyteller_neutral",
+          "narrator": "storyteller",
+          "side": null,
+          "text": "Cuciuffo recovered and passed to Enrique, who set up Maradona, pressed by Beardsley and Reid; Maradona dribbled past Beardsley, Butcher and Fenwick, carried it forward into the box, faced another press from Butcher, slipped past Shilton and shot with his left foot. What a moment.",
+          "grounded": true,
+          "claims_checked": 22,
+          "summary": "grounded: 22 claim(s) all traced to the data",
+          "refusals": [],
+          "billed_characters": 341,
+          "characters": 280,
+          "words": 45,
+          "who": 1,
+          "zones": []
+        }
+      ]
+    },
+    {
+      "year": 2022,
+      "match_id": 3869685,
+      "minute": 35,
+      "second": 22,
+      "player": "Ángel Fabián Di María Hernández",
+      "team": "Argentina",
+      "opponent": "France",
+      "records": 13,
+      "slots": [
+        {
+          "slot": "buddy_conceded",
+          "narrator": "buddy",
+          "side": "France",
+          "text": "Molina to MacAllister, MacAllister to Messi, Messi to Álvarez, Álvarez sent a long ball to MacAllister, MacAllister set up Di María in the box and he struck first-time with his left foot. Ah, no.",
+          "grounded": true,
+          "claims_checked": 15,
+          "summary": "grounded: 15 claim(s) all traced to the data",
+          "refusals": [],
+          "billed_characters": 307,
+          "characters": 195,
+          "words": 34,
+          "who": 0,
+          "zones": []
+        },
+        {
+          "slot": "buddy_scored",
+          "narrator": "buddy",
+          "side": "Argentina",
+          "text": "We started from our own half, Molina to MacAllister, who fed Messi, Messi to Álvarez, Álvarez sent a long ball to MacAllister, MacAllister set up Di María, and he struck with his left foot first time and it went in! Pure magic!",
+          "grounded": true,
+          "claims_checked": 17,
+          "summary": "grounded: 17 claim(s) all traced to the data",
+          "refusals": [],
+          "billed_characters": 331,
+          "characters": 227,
+          "words": 42,
+          "who": 1,
+          "zones": []
+        },
+        {
+          "slot": "storyteller_neutral",
+          "narrator": "storyteller",
+          "side": null,
+          "text": "Molina passed forward to MacAllister, who found Messi, who gave it to Álvarez; Álvarez sent a long ball forward to MacAllister, who set up Di María, and Di María shot first time with his left foot and scored. What a moment.",
+          "grounded": true,
+          "claims_checked": 16,
+          "summary": "grounded: 16 claim(s) all traced to the data",
+          "refusals": [],
+          "billed_characters": 369,
+          "characters": 223,
+          "words": 41,
+          "who": 3,
+          "zones": []
+        }
+      ]
+    }
+  ]
+}
