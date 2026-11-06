@@ -91,6 +91,20 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Mapping, Sequence
 
+from app.pitch_zones import (
+    EDGE_OF_THE_BOX,
+    FINAL_THIRD,
+    IN_THEIR_HALF,
+    JUST_INSIDE_OWN_HALF,
+    JUST_INSIDE_THEIR_HALF,
+    ON_THE_LEFT,
+    ON_THE_RIGHT,
+    SIDES,
+    THE_BOX,
+    DEEP_IN_OWN_HALF,
+    holds,
+    zone_for,
+)
 from app.narration_prompt import (
     LONG_PASS_YARDS,
     TOUCH_ACTIONS,
@@ -232,6 +246,53 @@ PHRASES: Sequence[tuple[str, str, object]] = (
     # where there is one, so that one record has to be both.
     (r"long ball", "long_pass", None),
     (r"long pass", "long_pass", None),
+    # Where on the pitch, at the resolution a commentator speaks at. The
+    # bands and the geometry are `app/pitch_zones.py`; these are the
+    # spellings a narration says them in, and each one is a claim about the
+    # location of the action it was said beside.
+    #
+    # **Every one of them says more than "his own half" does**, which is why
+    # they are a kind of their own and the two broad phrases below are left
+    # as they were. A band is exclusive, so "just inside his own half" over a
+    # ball at `x` 35 is refused although the ball is indeed in his own half:
+    # the word for `x` 35 is "deep". That is the right reading of a phrase
+    # that picks out part of a half and the wrong one for a phrase that names
+    # the whole of it, and `Reader.read` says what happens to the whole-half
+    # one.
+    (
+        r"deep in (?:his|her|their|our|its) own half",
+        "zone",
+        DEEP_IN_OWN_HALF,
+    ),
+    (
+        r"just inside (?:his|her|their|our|its) own half",
+        "zone",
+        JUST_INSIDE_OWN_HALF,
+    ),
+    # "Just inside France's half", which is how the beats say it: "their" in
+    # a narration told for a France fan is the side he is not on. The name is
+    # a claim of its own and has to be the side being attacked.
+    (
+        r"just inside ([\w'’À-ɏ-]+)['’]s half",
+        "zone",
+        JUST_INSIDE_THEIR_HALF,
+    ),
+    (r"just inside their half", "zone", JUST_INSIDE_THEIR_HALF),
+    (
+        r"in ([\w'’À-ɏ-]+)['’]s half",
+        "zone",
+        IN_THEIR_HALF,
+    ),
+    (r"in their half", "zone", IN_THEIR_HALF),
+    (r"in the final third", "zone", FINAL_THIRD),
+    (r"the final third", "zone", FINAL_THIRD),
+    (r"on the edge of the box", "zone", EDGE_OF_THE_BOX),
+    (r"the edge of the box", "zone", EDGE_OF_THE_BOX),
+    # The side, by `y`, which is a second claim and can be wrong on its own:
+    # Maradona went past Butcher in the final third and he did it on the
+    # right, so "in the final third on the left" is half true and refused.
+    (r"on the left", "zone", ON_THE_LEFT),
+    (r"on the right", "zone", ON_THE_RIGHT),
     # Where on the pitch, which is a coordinate against one of two lines.
     (r"his own half", "position", "own half"),
     (r"their own half", "position", "own half"),
@@ -470,6 +531,13 @@ def _phrase_hits(text: str) -> list[_Hit]:
             value = detail
             if kind == "duration":
                 value = (detail, NUMBER_WORDS[match.group(1).lower()])
+            if kind == "zone":
+                # The band or the side, and the team whose half was named
+                # where the phrase named one.
+                value = (
+                    detail,
+                    match.group(1) if match.re.groups else None,
+                )
             found.append(
                 _Hit(kind, match.group(0), match.start(), match.end(), value)
             )
@@ -844,12 +912,30 @@ class Reader:
             ):
                 claim(hit, hit.kind, hit.detail)
 
+            elif hit.kind == "zone":
+                # A place is not an actor's claim the way an action is: it is
+                # about the action it was said beside, and `_about` is what
+                # pairs the two once the sentence has been read. Nothing in
+                # the reader's state changes, so "past Beardsley just inside
+                # his own half, Butcher in the final third" still reads
+                # Butcher as the next defender beaten.
+                zone, team_said = hit.detail
+                moves.append(
+                    Move(
+                        "zone",
+                        hit.said,
+                        hit.at,
+                        actor=self.tracked,
+                        detail={"zone": zone, "team": team_said},
+                    )
+                )
+
             elif hit.kind == "duration":
                 moves.append(
                     Move("duration", hit.said, hit.at, detail=hit.detail)
                 )
 
-        return tuple(moves)
+        return tuple(_about(moves))
 
     def _chain_source(
         self,
@@ -972,8 +1058,112 @@ class Reader:
                 )
                 moves.pop(index)
                 return
-            if earlier.kind not in ("name", "team", "direction", "run"):
+            # A place said between the two is still about the one pass:
+            # "a long ball just inside France's half to MacAllister".
+            if earlier.kind not in (
+                "name", "team", "direction", "run", "zone"
+            ):
                 return
+
+
+#: The kinds of move a zone phrase may not be about.
+#:
+#: Another zone, because "in the final third on the right" is two phrases
+#: about one action and the side would otherwise be about the band. And a
+#: team, because a team is eleven players and a whole passage of records: a
+#: place pinned to a team name is pinned to everything the side did, which is
+#: no claim at all. "Argentina won it back deep in their own half" still
+#: reads, because the recovery between the two is what the place is about.
+_NOT_PLACED = frozenset({"zone", "team"})
+
+
+def _about(moves: Sequence[Move]) -> list[Move]:
+    """Every zone move pointed at the move whose action it places.
+
+    The move before it, which is where a narration usually puts the place:
+    "dribbled past Butcher in the final third", "a long ball to MacAllister
+    on the edge of the box". Failing that the move after it, which is the
+    appositive the beats are written in and the one the prompt invites:
+    "Alvarez, just inside France's half, hit a long ball".
+
+    **It is the action and not the player.** `player_spots` answers where a
+    player was at any point in the passage, which is the right reading for
+    "in his own half" and far too loose for a band thirty yards wide: three
+    of Maradona's four dribbles are in different bands, so a place read
+    against all of his records would hold any of them. The claim is about the
+    one action it was said beside.
+    """
+    out = list(moves)
+    for index, move in enumerate(out):
+        if move.kind != "zone":
+            continue
+        before = next(
+            (
+                one
+                for one in reversed(out[:index])
+                if one.kind not in _NOT_PLACED
+            ),
+            None,
+        )
+        after = next(
+            (
+                one
+                for one in out[index + 1:]
+                if one.kind not in _NOT_PLACED
+            ),
+            None,
+        )
+        detail = dict(move.detail or {})
+        detail["about"] = before or after
+        out[index] = Move(
+            move.kind,
+            move.said,
+            move.at,
+            actor=move.actor,
+            target=move.target,
+            detail=detail,
+        )
+    return out
+
+
+def zone_spots(beat: Beat) -> tuple[Spot, ...]:
+    """The locations a zone claim about one record may be held by.
+
+    Where it happened, and where the ball it sent came down for a pass or a
+    carry: "a long ball from just inside France's half" and "a long ball on
+    to the edge of the box" are both true of the one record, which is what
+    "where it was struck and where it landed" comes to.
+
+    **A shot's end is left out.** It is where the ball finished rather than
+    where anybody was, and both hero shots end on the goal line inside the
+    box, so counting it would hold "in the box" over a shot struck from
+    anywhere.
+    """
+    places = [beat.start] if beat.start else []
+    if beat.action in ("Pass", "Carry") and beat.end:
+        places.append(beat.end)
+    return tuple(places)
+
+
+def names_the_other_side(said: str, facts: Facts) -> bool:
+    """Whether a half said with a team's name names the side being attacked.
+
+    "Just inside France's half" in the 2022 counter is France's half, and
+    "just inside Argentina's half" is a different place with the same words
+    around it. The side in possession is always known, so naming it is always
+    refused; the side being attacked is known when a caller read the
+    fixture's teams, and then nothing else will do either.
+    """
+    name = bare(fold(said))
+    if name == fold(facts.moment.team):
+        return False
+    other = facts.opponent
+    if other is None:
+        # No name for the other side in hand, so the only thing that can be
+        # refused is the narration naming its own side's half. See
+        # `Facts.opponent`.
+        return True
+    return name == fold(other)
 
 
 def player_spots(facts: Facts, player: str) -> tuple[Spot, ...]:
@@ -1199,6 +1389,27 @@ def support(move: Move, facts: Facts) -> tuple[Beat, ...]:
                     return (beat,)
         return ()
 
+    if kind == "zone":
+        detail = move.detail or {}
+        about, zone = detail.get("about"), detail.get("zone")
+        said_team = detail.get("team")
+        if about is None:
+            return ()
+        if said_team is not None and not names_the_other_side(
+            said_team, facts
+        ):
+            return ()
+        return tuple(
+            beat
+            # The attacking side's own records and no others: StatsBomb
+            # mirrors a defending record, so Beardsley's `Dribbled Past` at
+            # (65.7, 23.7) would hold both "just inside their half" and "on
+            # the left" over a dribble that happened at (54.4, 56.4).
+            for beat in support(about, facts)
+            if beat.team == facts.moment.team
+            and any(holds(zone, place) for place in zone_spots(beat))
+        )
+
     if kind == "pattern":
         return tuple(
             beat
@@ -1334,6 +1545,49 @@ def why(move: Move, facts: Facts) -> str:
         return (
             f"{move.said!r}: no recorded position of {actor} in this passage "
             f"is {move.detail}"
+        )
+    if move.kind == "zone":
+        detail = move.detail or {}
+        about, zone = detail.get("about"), detail.get("zone")
+        said_team = detail.get("team")
+        if about is None:
+            return (
+                f"{move.said!r} places nothing: no action is said beside it"
+            )
+        if said_team is not None and not names_the_other_side(
+            said_team, facts
+        ):
+            whose = (
+                "the side in possession here"
+                if bare(fold(said_team)) == fold(facts.moment.team)
+                else "not the side being attacked here, which is {}".format(
+                    facts.opponent
+                )
+            )
+            return f"{move.said!r}: {said_team} is {whose}"
+        ours = [
+            beat
+            for beat in support(about, facts)
+            if beat.team == facts.moment.team
+        ]
+        if not ours:
+            return (
+                f"{move.said!r}: no record of {facts.moment.team}'s in this "
+                f"passage holds {str(about)!r} for it to place, and a place "
+                "is read off the attacking side's own location"
+            )
+        places = sorted(
+            {
+                zone_for(place, facts.opponent)
+                for beat in ours
+                for place in zone_spots(beat)
+            }
+        )
+        said = " and ".join(places) or "nowhere the records locate"
+        kind = "side of the pitch" if zone in SIDES else "part of the pitch"
+        return (
+            f"{move.said!r}: the records put that action {said}, which is "
+            f"another {kind}"
         )
     if move.kind == "pattern":
         held = ", ".join(sorted(facts.play_patterns)) or "nothing"

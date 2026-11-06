@@ -33,7 +33,8 @@ from app.narration_grammar import (
     why,
 )
 from app.narration_prompt import Beat, Spot, facts_from_buildup
-from app.recorded_names import recorded_nicknames
+from app.pitch_zones import zone_for
+from app.recorded_names import recorded_nicknames, recorded_teams
 from app.statsbomb_event_feed import StatsBombEventFeed
 
 MATCH_1986 = 3750191
@@ -65,7 +66,9 @@ def hero(feed, match_id, clock):
         if (m.minute, m.second) == clock
     )
     return facts_from_buildup(
-        feed.buildup(match_id, moment), recorded_nicknames(match_id)
+        feed.buildup(match_id, moment),
+        recorded_nicknames(match_id),
+        recorded_teams(match_id),
     )
 
 
@@ -1319,3 +1322,219 @@ class TestAHyphenIsTheSameClaimAsASpace:
             "\u00c1lvarez passed it back-to MacAllister.",
         ):
             assert ungrounded(facts_2022, moves(facts_2022, said))
+
+
+class TestAPlaceOnThePitchIsAClaim:
+    """Where the move was is a claim about the location of one record.
+
+    Shawn's reading of 2026-11-05: "dribbled past Butcher" places nothing, so
+    the beats say where now and a narration may say it back. A place that is
+    read out is a place that has to be checked, and this is where that
+    happens: the band and the side are two moves, each one about the action
+    they were said beside, each one refused when the records put that action
+    somewhere else.
+
+    The coordinates in these docstrings are in `data/raw/`.
+    """
+
+    def test_the_band_and_the_side_are_two_moves(self, facts_1986):
+        found = moves(
+            facts_1986,
+            "Maradona dribbled past Butcher in the final third on the "
+            "right.",
+        )
+        places = [move for move in found if move.kind == "zone"]
+        assert [move.said for move in places] == [
+            "in the final third",
+            "on the right",
+        ]
+        for move in places:
+            assert support(move, facts_1986)
+
+    def test_a_wrong_side_is_refused_over_a_right_band(self, facts_1986):
+        """Maradona went past Butcher in the final third and he did it at
+        `y` 68.6, which is the right."""
+        found = moves(
+            facts_1986,
+            "Maradona dribbled past Butcher in the final third on the left.",
+        )
+        wrong = next(
+            move
+            for move in found
+            if move.kind == "zone" and move.said == "on the left"
+        )
+        assert not support(wrong, facts_1986)
+        assert "on the left" in why(wrong, facts_1986)
+        assert "on the right" in why(wrong, facts_1986)
+
+    def test_beat_butcher_on_the_left_is_refused(self, facts_1986):
+        """Shawn's test, in the words he wrote it in. "Beat" is nobody's
+        claim about a record, so the place is about the Butcher beside it,
+        and every record of Butcher's in this passage is England's: a place
+        is read off the attacking side's own location and there is none."""
+        found = moves(facts_1986, "He beat Butcher on the left.")
+        place = next(move for move in found if move.kind == "zone")
+        assert not support(place, facts_1986)
+        assert "read off the attacking side's own location" in why(
+            place, facts_1986
+        )
+
+    def test_the_mirrored_record_cannot_hold_a_place(self, facts_1986):
+        """Beardsley's `Dribbled Past` is at (65.7, 23.7), which is just
+        inside their half and on the left read as written, and the dribble
+        that beat him happened at (54.4, 56.4)."""
+        beardsley = next(
+            beat
+            for beat in facts_1986.beats
+            if beat.action == "Dribbled Past" and beat.player == BEARDSLEY
+        )
+        assert zone_for(beardsley.start) == "just inside their half on the left"
+        for said in (
+            "Maradona dribbled past Beardsley just inside their half.",
+            "Maradona dribbled past Beardsley on the left.",
+        ):
+            found = moves(facts_1986, said)
+            place = next(move for move in found if move.kind == "zone")
+            assert not support(place, facts_1986)
+
+    def test_the_true_places_of_the_1986_move_pass(self, facts_1986):
+        """The beats' own phrasings, one claim at a time: the recovery deep
+        in his own half, Beardsley just inside it, Butcher in the final
+        third, Fenwick on the edge of the box and Shilton in the box."""
+        said = (
+            "Cuciuffo won it back deep in his own half, Maradona went past "
+            "Beardsley just inside his own half, past Butcher in the final "
+            "third on the right, past Fenwick on the edge of the box, and "
+            "around Shilton in the box."
+        )
+        found = [
+            move
+            for move in moves(facts_1986, said)
+            if move.kind == "zone"
+        ]
+        # Five places, and "in the box" is not one of them: the broad box
+        # phrase is read as the position claim it already was.
+        assert len(found) == 5
+        for move in found:
+            assert support(move, facts_1986), why(move, facts_1986)
+
+    def test_the_true_places_of_the_2022_move_pass(self, facts_2022):
+        said = (
+            "Molina played it forward deep in his own half on the right, "
+            "and Álvarez hit a long ball just inside France's half to "
+            "MacAllister on the edge of the box, who set up Di María in "
+            "the box."
+        )
+        found = [
+            move for move in moves(facts_2022, said) if move.kind == "zone"
+        ]
+        assert len(found) == 4
+        for move in found:
+            assert support(move, facts_2022), why(move, facts_2022)
+
+    def test_alvarez_deep_in_his_own_half_is_refused(self, facts_2022):
+        """Shawn's other test. Álvarez's three records are at (62.5, 68.2),
+        (63.2, 68.2) and the pass that lands at (99.3, 54.9), so nothing of
+        his is under `x` 40."""
+        found = moves(
+            facts_2022, "Álvarez, deep in his own half, hit a long ball."
+        )
+        place = next(move for move in found if move.kind == "zone")
+        assert place.detail["zone"] == "deep in his own half"
+        assert not support(place, facts_2022)
+        said = why(place, facts_2022)
+        assert "just inside France's half on the right" in said
+        assert "on the edge of the box on the right" in said
+
+    def test_a_place_said_before_the_action_is_about_it(self, facts_2022):
+        """The appositive the beats are written in: "Álvarez, just inside
+        France's half, hit a long ball". The move before it is the name, so
+        the place is about the next one when there is nothing behind it."""
+        found = moves(
+            facts_2022,
+            "Just inside France's half, Álvarez hit a long ball forward.",
+        )
+        place = next(move for move in found if move.kind == "zone")
+        assert support(place, facts_2022)
+
+    def test_a_long_ball_is_placed_at_either_end(self, facts_2022):
+        """Struck at (63.2, 68.2) and down at (99.3, 54.9): one record, two
+        locations, and a claim about either one holds."""
+        for said in (
+            "Álvarez hit a long ball to MacAllister just inside France's "
+            "half.",
+            "Álvarez hit a long ball to MacAllister on the edge of the box.",
+        ):
+            found = moves(facts_2022, said)
+            place = next(move for move in found if move.kind == "zone")
+            assert support(place, facts_2022), why(place, facts_2022)
+        found = moves(
+            facts_2022, "Álvarez hit a long ball to MacAllister in the final "
+            "third."
+        )
+        place = next(move for move in found if move.kind == "zone")
+        assert not support(place, facts_2022)
+
+    def test_a_half_said_with_the_wrong_name_is_refused(self, facts_2022):
+        """"Just inside Argentina's half" is a different place with the same
+        words around it, and the side in possession is always known."""
+        found = moves(
+            facts_2022,
+            "Álvarez hit a long ball just inside Argentina's half.",
+        )
+        place = next(move for move in found if move.kind == "zone")
+        assert not support(place, facts_2022)
+        assert "the side in possession here" in why(place, facts_2022)
+
+    def test_a_half_said_with_a_third_teams_name_is_refused(self, facts_2022):
+        found = moves(
+            facts_2022, "Álvarez hit a long ball just inside Brazil's half."
+        )
+        place = next(move for move in found if move.kind == "zone")
+        assert not support(place, facts_2022)
+        assert "not the side being attacked here, which is France" in why(
+            place, facts_2022
+        )
+
+    def test_a_hyphen_reads_as_the_space_it_stands_in_for(self, facts_1986):
+        """The fix of Task 12, applied to a vocabulary written after it: a
+        hyphen between two words is the same claim as a space."""
+        found = moves(
+            facts_1986,
+            "Maradona went past Butcher in the final-third on the right.",
+        )
+        places = [move for move in found if move.kind == "zone"]
+        assert [move.said for move in places] == [
+            "in the final-third",
+            "on the right",
+        ]
+        assert support(places[0], facts_1986)
+        found = moves(
+            facts_1986,
+            "Cuciuffo won it back deep-in-his-own-half.",
+        )
+        place = next(move for move in found if move.kind == "zone")
+        assert support(place, facts_1986)
+
+    def test_the_broad_half_is_still_the_half_and_not_a_band(
+        self, facts_1986
+    ):
+        """"In his own half" is read as the half it names, which is what
+        three of the eight references say and what Maradona's first touch at
+        `x` 55.2 is: the band for 55.2 is "just inside his own half", and
+        refusing the broad phrase over it would refuse a true sentence and a
+        reference with it."""
+        found = moves(facts_1986, "Maradona picked it up in his own half.")
+        kinds_said = [move.kind for move in found]
+        assert "zone" not in kinds_said
+        place = next(move for move in found if move.kind == "position")
+        assert place.detail == "own half"
+        assert support(place, facts_1986)
+
+    def test_a_place_with_no_action_beside_it_places_nothing(
+        self, facts_1986
+    ):
+        found = moves(facts_1986, "On the left.")
+        place = next(move for move in found if move.kind == "zone")
+        assert not support(place, facts_1986)
+        assert "places nothing" in why(place, facts_1986)

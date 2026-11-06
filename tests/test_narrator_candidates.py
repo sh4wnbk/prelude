@@ -833,6 +833,23 @@ class TestTheBeatsCarryAPlaceOnThePitch:
             block = beats_block(story(facts))
             assert not any(character.isdigit() for character in block)
 
+    def test_a_beat_shaped_telling_with_its_places_is_grounded(
+        self, facts_2022
+    ):
+        """The point of the vocabulary: a narration that says the places in
+        the beats' own words passes the check. A prompt that invites a
+        refusal is a prompt that costs a candidate."""
+        told = (
+            "Molina, deep in his own half on the right, passed it forward "
+            "to MacAllister, who found Messi, and Messi played it on to "
+            "Álvarez, who hit a long ball forward from just inside "
+            "France's half to MacAllister again on the edge of the box, "
+            "and MacAllister set up Di María in the box, who shot "
+            "first time with his left foot and it went in."
+        )
+        result = check(told, facts_2022, THE_STORYTELLER, None)
+        assert result.grounded, result.summary
+
     def test_a_beat_shaped_telling_of_the_1986_places_is_grounded(
         self, facts_1986
     ):

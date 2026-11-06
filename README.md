@@ -308,7 +308,7 @@ Everything above it is structure.
   including the misdescription it refuses by pairing a name with an action and
   the first person, which only the Mate may use and only over its own side's
   facts. All pass.
-- `tests/test_narration_grammar.py`: 110 tests over the goal-call reading in
+- `tests/test_narration_grammar.py`: 124 tests over the goal-call reading in
   `app/narration_grammar.py`, one mechanism at a time: the name parts that
   pick out one player, the pronoun that means the player with the ball, the
   chains, which name owns a claim, who a move is attributed to when a second
@@ -325,7 +325,7 @@ Everything above it is structure.
   reaction layer: where a reaction may stand, who may cheer in one, what
   makes a short sentence play instead, and the match's own names rather than
   capitalisation deciding whether a reaction names anybody. All pass.
-- `tests/test_narrator_candidates.py`: 206 tests over
+- `tests/test_narrator_candidates.py`: 207 tests over
   `app/goal_call_prompt.py`, `app/story_beats.py` and
   `scripts/narrator_candidates.py`: the four
   styles, one per narrator and situation, the invented match their examples
