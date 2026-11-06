@@ -1381,14 +1381,16 @@ class TestAPlaceOnThePitchIsAClaim:
 
     def test_the_mirrored_record_cannot_hold_a_place(self, facts_1986):
         """Beardsley's `Dribbled Past` is at (65.7, 23.7), which is just
-        inside their half and on the left read as written, and the dribble
-        that beat him happened at (54.4, 56.4)."""
+        inside their half read as written, and the dribble that beat him
+        happened at (54.4, 56.4), which is just inside his own. Both spots
+        are between the sides of the box by width, so the band is what shows
+        the mirroring and neither of them is on a side at all."""
         beardsley = next(
             beat
             for beat in facts_1986.beats
             if beat.action == "Dribbled Past" and beat.player == BEARDSLEY
         )
-        assert zone_for(beardsley.start) == "just inside their half on the left"
+        assert zone_for(beardsley.start) == "just inside their half"
         for said in (
             "Maradona dribbled past Beardsley just inside their half.",
             "Maradona dribbled past Beardsley on the left.",
@@ -1444,7 +1446,7 @@ class TestAPlaceOnThePitchIsAClaim:
         assert not support(place, facts_2022)
         said = why(place, facts_2022)
         assert "just inside France's half on the right" in said
-        assert "on the edge of the box on the right" in said
+        assert "on the edge of the box" in said
 
     def test_a_place_said_before_the_action_is_about_it(self, facts_2022):
         """The appositive the beats are written in: "Álvarez, just inside

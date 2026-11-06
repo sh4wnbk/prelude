@@ -27,15 +27,29 @@ attacking, which is what lets one set of bands read correctly for either side.
 | "in the final third" | 80 to 96, and 96 and up outside the box's width |
 | "on the edge of the box" | 96 to 102, within the box's width |
 | "in the box" | 102 and up, within the box's width |
-| "on the left" | `y` under 26.7 |
-| "on the right" | `y` over 53.3 |
+| "on the left" | `y` under 18 |
+| "on the right" | `y` over 62 |
 
 **The two halves of a phrase are two claims.** "In the final third on the
 right" is a band up the pitch and a third across it, and either can be wrong
 on its own, so `zone_of` and `side_of` answer separately and
-`app/narration_grammar.py` reads them as two moves. A spot in the middle third
-by width gets no side at all, which is why four of the eight zone phrases in
-the two hero passages are said with no side after them.
+`app/narration_grammar.py` reads them as two moves. A spot between the two
+lines gets no side at all, which is most of the pitch by width and is why nine
+of the twelve zone phrases the two hero passages carry are said with no side
+after them.
+
+**A side is said only where the ball is clear of the middle, and the first
+rule was not.** The thirds of an eighty yard pitch put the lines at 26.7 and
+53.3, and on that reading three beats of the 1986 dribble and the 2022 long
+ball's landing were "on the right" at `y` 54.9, 55.1, 56.4 and 60.5, which is
+a yard or two past the middle and reads as a claim a listener would not make.
+It also made the grouped 1986 dribble beat say "on the right" three times in
+one line. So the lines are the sides of the penalty area instead: a ball wide
+of the box's width is wide, and anything between them is central and is said
+with no side. `BOX_TOP_Y` and `BOX_BOTTOM_Y` are the same two numbers, and
+they stay separate constants because they answer a different question: the box
+bands ask whether a spot is inside the box, and these ask whether it is out
+wide.
 
 **The box needs its width and the final third is what is left.** A ball at
 `x` 110 and `y` 10 is past the eighteen yard line and nowhere near the box: it
@@ -85,9 +99,12 @@ BOX_TOP_Y = 18.0
 BOX_BOTTOM_Y = 62.0
 
 #: The two lines across the pitch that make a left, a middle and a right.
-#: Shawn's numbers, which are the thirds of an 80 yard pitch to one decimal.
-LEFT_Y = 26.7
-RIGHT_Y = 53.3
+#: Shawn's numbers: the sides of the penalty area, so a side is said only
+#: where the ball is clear of the middle. They are `BOX_TOP_Y` and
+#: `BOX_BOTTOM_Y` by value and not by meaning; the module docstring has the
+#: reading the thirds of the pitch gave and why it was dropped.
+LEFT_Y = 18.0
+RIGHT_Y = 62.0
 
 #: The eight bands up the pitch, as the words for them.
 DEEP_IN_OWN_HALF = "deep in his own half"

@@ -87,7 +87,7 @@ class TestTheBandsUpThePitch:
         assert (JUST_INSIDE_X, FINAL_THIRD_X) == (70.0, 80.0)
         assert (EDGE_X, BOX_X) == (96.0, 102.0)
         assert (BOX_TOP_Y, BOX_BOTTOM_Y) == (18.0, 62.0)
-        assert (LEFT_Y, RIGHT_Y) == (26.7, 53.3)
+        assert (LEFT_Y, RIGHT_Y) == (18.0, 62.0)
 
     @pytest.mark.parametrize(
         "x, zone",
@@ -142,23 +142,43 @@ class TestTheBandsUpThePitch:
 
 
 class TestTheSidesAcrossIt:
-    """Two lines across an eighty yard pitch, and a middle third with no
-    word for it."""
+    """The sides of the penalty area, and everything between them central
+    and said with no side.
+
+    The first rule was the thirds of an eighty yard pitch, 26.7 and 53.3,
+    and it put "on the right" on four beats between `y` 54.9 and 60.5: a
+    yard or two past the middle, and three of them in one line. The lines
+    are the box's width now, so a side is said only where the ball is clear
+    of the middle.
+    """
 
     @pytest.mark.parametrize(
         "y, side",
         [
             (0.0, ON_THE_LEFT),
-            (26.6, ON_THE_LEFT),
+            (17.9, ON_THE_LEFT),
+            (18.0, ""),
             (26.7, ""),
             (40.0, ""),
             (53.3, ""),
-            (53.4, ON_THE_RIGHT),
+            (53.4, ""),
+            (62.0, ""),
+            (62.1, ON_THE_RIGHT),
             (80.0, ON_THE_RIGHT),
         ],
     )
     def test_the_side_is_read_off_y_alone(self, y, side):
         assert side_of(at(60.0, y)) == side
+
+    def test_the_lines_are_the_sides_of_the_box(self):
+        """By value and not by meaning: `in_the_box_width` asks whether a
+        spot is inside the box and `side_of` asks whether it is out wide,
+        and the two questions share a number."""
+        assert (LEFT_Y, RIGHT_Y) == (BOX_TOP_Y, BOX_BOTTOM_Y)
+        assert side_of(at(60.0, LEFT_Y)) == ""
+        assert in_the_box_width(at(110.0, LEFT_Y))
+        assert side_of(at(60.0, RIGHT_Y)) == ""
+        assert in_the_box_width(at(110.0, RIGHT_Y))
 
     def test_the_middle_third_is_said_with_no_side(self):
         assert zone_for(at(35.2, 50.4)) == DEEP_IN_OWN_HALF
@@ -168,6 +188,7 @@ class TestTheSidesAcrossIt:
         assert zone_for(at(87.1, 68.6)) == "in the final third on the right"
         assert zone_for(at(25.9, 71.8)) == "deep in his own half on the right"
         assert zone_for(at(23.0, 10.0)) == "deep in his own half on the left"
+        assert zone_for(at(97.1, 55.1)) == "on the edge of the box"
 
 
 class TestTheirHalfIsSaidWithTheirName:
@@ -231,15 +252,11 @@ class TestTheTwoHeroPassages:
         """Cuciuffo's recovery, and the four `Dribble` records, which are
         the attacking side's own half of each dribble past."""
         assert zone_for(self.spot(facts_1986, 1)) == DEEP_IN_OWN_HALF
-        assert zone_for(self.spot(facts_1986, 11)) == (
-            "just inside his own half on the right"
-        )
+        assert zone_for(self.spot(facts_1986, 11)) == JUST_INSIDE_OWN_HALF
         assert zone_for(self.spot(facts_1986, 15)) == (
             "in the final third on the right"
         )
-        assert zone_for(self.spot(facts_1986, 18)) == (
-            "on the edge of the box on the right"
-        )
+        assert zone_for(self.spot(facts_1986, 18)) == EDGE_OF_THE_BOX
         assert zone_for(self.spot(facts_1986, 22)) == THE_BOX
         assert zone_for(self.spot(facts_1986, 24)) == THE_BOX
 
@@ -266,11 +283,9 @@ class TestTheTwoHeroPassages:
         assert zone_for(long_ball.start, opponent) == (
             "just inside France's half on the right"
         )
-        assert zone_for(long_ball.end, opponent) == (
-            "on the edge of the box on the right"
-        )
+        assert zone_for(long_ball.end, opponent) == EDGE_OF_THE_BOX
         assert zone_for(self.spot(facts_2022, 11), opponent) == (
-            "on the edge of the box on the right"
+            EDGE_OF_THE_BOX
         )
         assert zone_for(self.spot(facts_2022, 13), opponent) == THE_BOX
 
@@ -286,3 +301,72 @@ class TestTheTwoHeroPassages:
                         continue
                     assert in_the_box_width(place), place
                     assert place.in_the_box
+
+
+class TestTheSixPlacesTheSideRuleIsSetOn:
+    """Shawn's six: three beats that are out wide and three that are not.
+
+    The rule moved because of the three in the second half of this class.
+    On the thirds of the pitch, 26.7 and 53.3, Beardsley's dribble at `y`
+    56.4, Fenwick's at 55.1 and the long ball's landing at 54.9 were all
+    "on the right" by a yard or two, and the grouped 1986 dribble beat said
+    it three times in one line. The sides of the box leave them central and
+    keep the three that are genuinely wide.
+
+    Read off `data/raw/` by fact number, and the attacking side's own record
+    every time: a `Dribble` and never the `Dribbled Past` it answers.
+    """
+
+    def spot(self, facts, number):
+        return facts.facts[number - 1].beat.start
+
+    def test_butchers_dribble_is_on_the_right(self, facts_1986):
+        """Fact 15, the `Dribble` at (87.1, 68.6)."""
+        place = self.spot(facts_1986, 15)
+        assert round(place.y, 1) == 68.6
+        assert side_of(place) == ON_THE_RIGHT
+
+    def test_molinas_pass_is_on_the_right(self, facts_2022):
+        """Fact 1, struck at (25.9, 71.8)."""
+        place = self.spot(facts_2022, 1)
+        assert round(place.y, 1) == 71.8
+        assert side_of(place) == ON_THE_RIGHT
+
+    def test_the_long_ball_is_struck_from_the_right(self, facts_2022):
+        """Fact 9, struck at (63.2, 68.2)."""
+        place = self.spot(facts_2022, 9)
+        assert round(place.y, 1) == 68.2
+        assert side_of(place) == ON_THE_RIGHT
+
+    def test_beardsleys_dribble_has_no_side(self, facts_1986):
+        """Fact 11, the `Dribble` at (54.4, 56.4), four yards right of the
+        middle of an eighty yard pitch."""
+        place = self.spot(facts_1986, 11)
+        assert round(place.y, 1) == 56.4
+        assert side_of(place) == ""
+        assert zone_for(place) == JUST_INSIDE_OWN_HALF
+
+    def test_fenwicks_dribble_has_no_side(self, facts_1986):
+        """Fact 18, the `Dribble` at (97.1, 55.1)."""
+        place = self.spot(facts_1986, 18)
+        assert round(place.y, 1) == 55.1
+        assert side_of(place) == ""
+        assert zone_for(place) == EDGE_OF_THE_BOX
+
+    def test_the_long_balls_landing_has_no_side(self, facts_2022):
+        """Fact 9 again, at the other end: the ball comes down at (99.3,
+        54.9), which is the one pass in either passage that is placed
+        twice."""
+        place = facts_2022.facts[8].beat.end
+        assert round(place.y, 1) == 54.9
+        assert side_of(place) == ""
+        assert zone_for(place, facts_2022.opponent) == EDGE_OF_THE_BOX
+
+    def test_the_grouped_dribble_beat_says_a_side_once(self, facts_1986):
+        """Which is the cost the old rule carried: three defenders beaten
+        thirty yards apart, and only Butcher's is out wide."""
+        sides = [
+            side_of(self.spot(facts_1986, number))
+            for number in (11, 15, 18)
+        ]
+        assert sides == ["", ON_THE_RIGHT, ""]

@@ -629,8 +629,13 @@ and three of `y`, each one a phrase and each one a claim: "deep in his
 own half" is `x` under 40, "just inside his own half" is 50 to 60,
 "just inside their half" is 60 to 70, "in the final third" is 80 up,
 "on the edge of the box" is 96 to 102 within the box's width, and "on
-the left" and "on the right" are the outer thirds of an eighty yard
-pitch. The bands are exclusive, so a phrase naming the wrong one is
+the left" and "on the right" are the pitch outside the sides of the
+penalty area, `y` under 18 and over 62. The sides were the outer thirds
+of the pitch first, 26.7 and 53.3, and Task 14 moved them: four beats
+between `y` 54.9 and 60.5 were "on the right" by a yard or two, and
+three of them fell in one line. A side is said only where the ball is
+clear of the middle now, so nine of the twelve places the two hero
+passages carry are said with no side at all. The bands are exclusive, so a phrase naming the wrong one is
 refused: Cuciuffo won the ball back at `x` 35.2, and "just inside his
 own half" over it is a wrong place although it is indeed his own half.
 The two broad phrases above are not bands and are read as the half and

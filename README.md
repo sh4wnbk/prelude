@@ -150,13 +150,15 @@ Everything above it is structure.
 - `app/pitch_zones.py`: turns one recorded location into the phrase a
   narrator says it with: eight bands up the pitch ("deep in his own half",
   "just inside their half", "in the final third", "on the edge of the box",
-  "in the box") and three across it ("on the left", "on the right", and
-  nothing for the middle third). Arithmetic and a word list: one coordinate
-  against one number, read in the frame of the team whose record it is, so a
-  place is never read off a mirrored defending record.
-- `tests/test_pitch_zones.py`: 41 tests over the bands, the sides, the
-  box's width, the opponent's name in "their half" and the zones the two
-  hero passages put their beats in. All 41 pass.
+  "in the box") and three across it ("on the left" and "on the right"
+  outside the sides of the penalty area, and nothing for the middle).
+  Arithmetic and a word list: one coordinate against one number, read in the
+  frame of the team whose record it is, so a place is never read off a
+  mirrored defending record.
+- `tests/test_pitch_zones.py`: 52 tests over the bands, the sides, the
+  box's width, the opponent's name in "their half", the zones the two hero
+  passages put their beats in and the six places the side rule is set on.
+  All 52 pass.
 - `app/story_beats.py`: curates one buildup down to the beats a goal call
   tells, which is what `app/goal_call_prompt.py` shows the model: the
   recovery, each pass, each carry of ten yards or more, each dribble past an

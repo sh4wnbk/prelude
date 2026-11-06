@@ -366,10 +366,9 @@ class TestTheBeatsInThePrompt:
         )
         assert beat_line(first) == (
             "Diego Armando Maradona (Argentina) dribbled past Peter "
-            "Beardsley just inside his own half on the right, Terry Butcher "
-            "in the final third on the right and Terry Fenwick on the edge "
-            "of the box on the right, carrying the ball forward between "
-            "them, under pressure"
+            "Beardsley just inside his own half, Terry Butcher in the final "
+            "third on the right and Terry Fenwick on the edge of the box, "
+            "carrying the ball forward between them, under pressure"
         )
         # Two Dribble and two Dribbled Past records per defender beaten, and
         # the two carries between them.
@@ -447,9 +446,8 @@ class TestTheBeatsInThePrompt:
             "passed it forward to Alexis MacAllister"
         )
         assert beat_line(one.beats[4]) == (
-            "Alexis MacAllister (Argentina), on the edge of the box on the "
-            "right, passed it forward to Ángel Di María, into the box, "
-            "which is the assist"
+            "Alexis MacAllister (Argentina), on the edge of the box, passed "
+            "it forward to Ángel Di María, into the box, which is the assist"
         )
         # The two passes in the middle of the move carry no place at all:
         # `_placed` is what says which beats get one.
@@ -702,9 +700,9 @@ class TestTheBeatsCarryAPlaceOnThePitch:
             "Peter Beardsley", "Terry Butcher", "Terry Fenwick"
         )
         assert first.beaten_zones == (
-            "just inside his own half on the right",
+            "just inside his own half",
             "in the final third on the right",
-            "on the edge of the box on the right",
+            "on the edge of the box",
         )
 
     def test_shilton_is_beaten_in_the_box(self, facts_1986):
@@ -764,14 +762,14 @@ class TestTheBeatsCarryAPlaceOnThePitch:
         )
         assert facts_2022.opponent == "France"
         assert long_ball.zone == "just inside France's half on the right"
-        assert long_ball.landed == "on the edge of the box on the right"
+        assert long_ball.landed == "on the edge of the box"
 
     def test_the_2022_assist_and_finish(self, facts_2022):
         """MacAllister plays it from (99.3, 54.9), four yards outside the
         box, and Di Maria shoots from (111.8, 32.1)."""
         one = story(facts_2022)
         assist = next(beat for beat in one.beats if beat.assist)
-        assert assist.zone == "on the edge of the box on the right"
+        assert assist.zone == "on the edge of the box"
         assert one.beats[-1].zone == "in the box"
 
     def test_not_every_pass_gets_a_place(self, facts_1986, facts_2022):
@@ -812,16 +810,16 @@ class TestTheBeatsCarryAPlaceOnThePitch:
     def test_the_block_carries_the_places(self, facts_1986, facts_2022):
         for phrase in (
             "deep in his own half",
-            "just inside his own half on the right",
+            "just inside his own half",
             "in the final third on the right",
-            "on the edge of the box on the right",
+            "on the edge of the box",
             "in the box",
         ):
             assert phrase in beats_block(story(facts_1986))
         for phrase in (
             "deep in his own half on the right",
             "just inside France's half on the right",
-            "landing on the edge of the box on the right",
+            "landing on the edge of the box",
             "in the box",
         ):
             assert phrase in beats_block(story(facts_2022))
