@@ -30,6 +30,15 @@ at most `MAX_RETRIES + 1` attempts per candidate, and a candidate that reaches
 the code's template fallback yields nothing rather than a narration the code
 wrote. So a run can come back with fewer than it asked for, and says so.
 
+**A telling that places the move nowhere is not a candidate either.** Rule 17
+asks for two or three places and the zones run of 2026-11-05 answered with one:
+two of its eight kept candidates placed the move nowhere at all. So
+`places_missing` refuses a grounded narration that says fewer than
+`PLACES_WANTED` places, and one that says nothing about where a long ball was
+struck from in a passage that holds one. It is here and not in
+`app/grounding.py` on purpose: the check is about whether a claim is true, and
+a narration making no claim about position is true.
+
 **A near copy is not a candidate, and it is tested twice.** `play_shape`
 asks whether two tellings make the same moves in the same order, and
 `near_copy_ratio` asks how alike the words are once the player names are
@@ -122,6 +131,7 @@ from app.narration_provider import (  # noqa: E402
     WatsonxProvider,
 )
 from app.personas import THE_BUDDY, THE_STORYTELLER  # noqa: E402
+from app.pitch_zones import holds, zone_for  # noqa: E402
 from app.recorded_names import recorded_nicknames, recorded_teams  # noqa: E402
 from app.statsbomb_event_feed import StatsBombEventFeed  # noqa: E402
 from app.tts import speech_text  # noqa: E402
@@ -153,6 +163,22 @@ DEFAULT_PER_SLOT = 3
 #: and 0.773. Nothing in either passage sits between 0.773 and 0.912, so the
 #: threshold has room on both sides of it.
 NEAR_COPY_RATIO = 0.8
+
+#: The fewest places a telling may put the move in and still be a candidate.
+#:
+#: **Rule 17 asks for two or three and the run of 2026-11-05 gave one.** Eight
+#: candidates were kept over the six slots, both 1986 Buddy tellings placed the
+#: move nowhere at all, four of the other six placed it once, and one placed it
+#: three times. The vocabulary in `app/pitch_zones.py` was built and the asking
+#: was what was weak, so the asking is now a refusal: a place is required the
+#: way a name is, and a telling that gives a listener nowhere to stand is not a
+#: candidate however true it is.
+#:
+#: It is two rather than three because three is the top of what rule 17 asks
+#: for and the 1986 move has a grouped dribble beat carrying three places of
+#: its own: a floor of three would refuse a telling that placed the start and
+#: the finish and said nothing wrong.
+PLACES_WANTED = 2
 
 #: A possessive ending, taken off before a name lookup, as
 #: `app/narration_grammar.py` does: `WORD` keeps the apostrophe, so
@@ -261,13 +287,20 @@ def said_who(text: str) -> int:
     return len(re.findall(r"\bwho\b", text, flags=re.IGNORECASE))
 
 
-def zones_said(text: str, facts: Facts) -> tuple[str, ...]:
-    """The places a candidate puts the move, in the order it says them.
+def zone_claims(text: str, facts: Facts) -> tuple[tuple[str, str], ...]:
+    """Every place a candidate says, as (the words said, the phrase held).
 
     Read with the same grammar the check reads them with, so what is counted
     here is what was verified: a phrase outside the vocabulary in
     `app/pitch_zones.py` is not a place and is not counted, and a place the
     records did not hold never reached a kept candidate at all.
+
+    The two strings differ wherever the narration spells a phrase its own
+    way. "Just inside France's half" is said with a name and is held by
+    `just inside their half`, "the final-third" is said with a hyphen, and a
+    side is said as it is written. The first is what a reader is told the
+    candidate said and the second is what `holds` in `app/pitch_zones.py`
+    can be asked about a coordinate.
 
     One reader over the whole narration, because a reader follows the ball
     across a full stop.
@@ -278,12 +311,89 @@ def zones_said(text: str, facts: Facts) -> tuple[str, ...]:
         demonyms=TEAM_DEMONYMS,
         actions=ACTION_CLAIMS,
     )
-    said: list[str] = []
+    said: list[tuple[str, str]] = []
     for one in sentences(text):
         for move in reader.read(one.text):
             if move.kind == "zone":
-                said.append(move.said)
+                said.append((move.said, (move.detail or {})["zone"]))
     return tuple(said)
+
+
+def zones_said(text: str, facts: Facts) -> tuple[str, ...]:
+    """The places a candidate puts the move, in the words it said them in."""
+    return tuple(said for said, _ in zone_claims(text, facts))
+
+
+def long_ball_of(facts: Facts):
+    """The attacking side's long ball in this passage, as the record, or None.
+
+    One in the 2022 counter, Álvarez's 38.5 yard pass, and none in the 1986
+    move: `Beat.long_pass` is `pass.length` against `LONG_PASS_YARDS`. The
+    record rather than the beat, because what is wanted is the coordinate it
+    was struck from and a `StoryBeat` carries the phrase instead.
+    """
+    for fact in facts.facts:
+        beat = fact.beat
+        if (
+            beat.team == facts.moment.team
+            and beat.action == "Pass"
+            and beat.long_pass
+        ):
+            return beat
+    return None
+
+
+def places_missing(text: str, facts: Facts) -> str:
+    """Why a candidate does not place the move, or "" where it does.
+
+    Two things are asked of a telling here, and neither of them is about
+    truth: `app/grounding.py` refuses a place the records do not hold and
+    says nothing about a telling that names no place at all, which is what
+    the six fallback narrations are. **Grounding stays about truth and this
+    is about what a listener was given**, so it lives in the run rather than
+    in the check and the six still ground.
+
+    1. `PLACES_WANTED` places, which is the floor of what rule 17 asks for.
+    2. Where a long ball was struck from, in the passages that hold one. The
+       finding of the zones run is that all four of its 2022 tellings placed
+       the long ball where it came down and none of them where it was hit,
+       so a listener heard the ball arrive on the edge of the box with
+       nothing said about the thirty six yards it crossed.
+
+    **The second is read phrase by phrase and not by what each phrase was
+    said beside.** A phrase counts when it holds the coordinate the ball was
+    struck from, wherever in the telling it stands: the zones run's 2022
+    Storyteller says "on the right" about Molina's pass, and Molina's pass
+    and Álvarez's strike are both out wide on the right, so that telling
+    passes on a phrase it said about another beat. It is the weaker of the
+    two readings. The stronger one, the phrase the grammar pointed at the
+    long ball itself, is in `app/narration_grammar.py` as the `about` on a
+    zone move; tightening this to it would refuse every candidate the zones
+    run produced, and `HANDOFF.md` records the choice.
+
+    The reason names what is missing, and both can be missing at once.
+    """
+    said = zone_claims(text, facts)
+    missing: list[str] = []
+    if len(said) < PLACES_WANTED:
+        missing.append(
+            "places the move {}, and a telling needs at least {}".format(
+                "nowhere" if not said
+                else "once, {!r}".format(said[0][0]),
+                PLACES_WANTED,
+            )
+        )
+    long_ball = long_ball_of(facts)
+    if long_ball is not None and long_ball.start is not None:
+        struck = long_ball.start
+        if not any(holds(zone, struck) for _, zone in said):
+            missing.append(
+                "says nothing about where the long ball was struck from, "
+                "which the records put {}".format(
+                    zone_for(struck, facts.opponent)
+                )
+            )
+    return "; ".join(missing)
 
 
 def slot_coverage(text: str, facts: Facts) -> dict:
@@ -662,6 +772,21 @@ def gather(
                     one["over_allowance"] = allowance
                     dropped.append(one)
                     continue
+                # A place is required. Rule 17 asked for two or three and the
+                # zones run gave one, so the asking is a refusal now:
+                # `places_missing` is what says a telling gave a listener
+                # nowhere to stand, and it is here rather than in
+                # `app/grounding.py` because the check is about truth.
+                nowhere = places_missing(narrated.text, facts)
+                if nowhere:
+                    print("    candidate {}: grounded on {} claims, and "
+                          "refused for places: {}".format(
+                              number, result.checked, nowhere
+                          ))
+                    print("      | {}".format(narrated.text))
+                    one["missing_places"] = nowhere
+                    dropped.append(one)
+                    continue
                 # A near copy is not a candidate. Rule 13 asks the model for
                 # tellings that differ in structure, and `play_shape` is what
                 # decides whether two of them do; the run of 2026-10-31 at
@@ -813,6 +938,12 @@ def review(
                "grounding check in app/grounding.py, read as a goal call. "
                "Nothing here is frozen.")
     out.append("")
+    out.append("Every candidate also places the move at least {} times, and "
+               "in a passage holding a long ball one of those places is "
+               "where the ball was struck from. A grounded telling short of "
+               "that is in the dropped list for its slot with the "
+               "reason.".format(PLACES_WANTED))
+    out.append("")
     out.append("The billed count is what that one recording would cost, "
                "markup counted and whitespace not, which is the figure IBM "
                "charges and the one scripts/tts_hero.py --budget is set on.")
@@ -843,99 +974,14 @@ def review(
                 out.append("Written for a listener with no side.")
             out.append("")
             if not slot["candidates"]:
+                # And then the dropped list below, which is the only place
+                # that says why. An empty slot used to end here, so a slot
+                # that kept nothing printed nothing about what it threw
+                # away and the console log was the only record of it.
                 out.append("No candidate for this slot passed.")
                 out.append("")
-                continue
-            out.append("| # | Billed | Characters | Words | \"!\" | "
-                       "\"who\" | Digits | Players named | Beats |")
-            out.append("| - | -----: | ---------: | ----: | ---: | -----: | "
-                       "-----: | ------------: | ----- |")
-            for one in slot["candidates"]:
-                cover = one["coverage"]
-                out.append("| {} | {} | {} | {} | {} | {} | {} | {} of {} | "
-                           "{} of {} |".format(
-                               one["candidate"], one["billed_characters"],
-                               one["characters"], one["words"],
-                               cover["cheers"], cover.get("who", 0),
-                               cover["digits"],
-                               len(cover["named_players"]),
-                               len(cover["recorded_players"]),
-                               cover["key_beats_reached"], cover["key_beats"],
-                           ))
-            out.append("")
-            for one in slot["candidates"]:
-                cover = one["coverage"]
-                out.append("**Candidate {}**".format(one["candidate"]))
-                out.append("")
-                out.append("> {}".format(one["text"]))
-                out.append("")
-                out.append("- Billed: {} characters for this recording"
-                           .format(one["billed_characters"]))
-                out.append("- Length: {} characters, {} words".format(
-                    one["characters"], one["words"]
-                ))
-                out.append("- Grounded on {} claims, on attempt {}".format(
-                    one["claims_checked"], one["attempt"]
-                ))
-                places = cover.get("zones") or ()
-                out.append("- Places the move {}{}".format(
-                    "not at all, which rule 17 asks for two or three of"
-                    if not places
-                    else "{} time(s): {}".format(
-                        len(places), "; ".join(places)
-                    ),
-                    "",
-                ))
-                for refused in one.get("refused") or []:
-                    # A refusal is how the check is read, and a kept
-                    # candidate's refused first attempt was recorded as a
-                    # number alone until Task 13.
-                    out.append(
-                        "- **Attempt {} of this candidate was refused:** "
-                        "\"{}\" {}".format(
-                            refused["attempt"],
-                            " ".join(refused["text"].split()),
-                            refused["summary"],
-                        )
-                    )
-                said = cover.get("who", 0)
-                if said > 1:
-                    # Flagged and kept. Rule 14 is cadence rather than a
-                    # claim, so nothing refuses it and the reader decides.
-                    out.append("- **Says \"who\" {}:** rule 14 allows one, "
-                               "and this one is for Shawn to judge "
-                               "aloud".format(
-                                   "twice" if said == 2
-                                   else "{} times".format(said)
-                               ))
-                else:
-                    out.append("- Says \"who\" {}".format(
-                        "once" if said == 1 else "not at all"
-                    ))
-                out.append("- Names {} of the {} recorded players: {}".format(
-                    len(cover["named_players"]),
-                    len(cover["recorded_players"]),
-                    ", ".join(cover["named_players"]) or "none",
-                ))
-                if cover["missing_players"]:
-                    out.append("- Does not name: {}".format(
-                        ", ".join(cover["missing_players"])
-                    ))
-                out.append("- Reaches {} of {} key beats{}".format(
-                    cover["key_beats_reached"], cover["key_beats"],
-                    "" if not cover["beats_missed"]
-                    else ", missing " + "; ".join(cover["beats_missed"]),
-                ))
-                if cover.get("odd_characters"):
-                    out.append("- **Unusual characters, which would be sent "
-                               "to the speech service as written:** "
-                               "{}".format("; ".join(
-                                   "{} ({})".format(
-                                       entry["name"], entry["codepoint"]
-                                   )
-                                   for entry in cover["odd_characters"]
-                               )))
-                out.append("")
+            else:
+                out.append(_slot_candidates(slot))
             if slot["dropped"]:
                 copies = [
                     one for one in slot["dropped"] if one.get("near_copy_of")
@@ -944,7 +990,8 @@ def review(
                     len(slot["dropped"])
                 )
                 if copies:
-                    said += ", {} of them as the same telling as one that "                            "was kept".format(len(copies))
+                    said += (", {} of them as the same telling as one that "
+                             "was kept".format(len(copies)))
                 out.append(said + ".")
                 out.append("")
                 # One line per drop, with the reason. The run of 2026-11-05
@@ -958,12 +1005,114 @@ def review(
     return "\n".join(out) + "\n"
 
 
+def _slot_candidates(slot: Mapping) -> str:
+    """The table and the per-candidate detail for one slot, as markdown.
+
+    Lifted out of `review` whole, so that a slot which kept nothing can
+    print its dropped list without this and `review` can read as the one
+    rule it is.
+    """
+    out: list[str] = []
+    out.append("| # | Billed | Characters | Words | \"!\" | "
+               "\"who\" | Digits | Players named | Beats |")
+    out.append("| - | -----: | ---------: | ----: | ---: | -----: | "
+               "-----: | ------------: | ----- |")
+    for one in slot["candidates"]:
+        cover = one["coverage"]
+        out.append("| {} | {} | {} | {} | {} | {} | {} | {} of {} | "
+                   "{} of {} |".format(
+                       one["candidate"], one["billed_characters"],
+                       one["characters"], one["words"],
+                       cover["cheers"], cover.get("who", 0),
+                       cover["digits"],
+                       len(cover["named_players"]),
+                       len(cover["recorded_players"]),
+                       cover["key_beats_reached"], cover["key_beats"],
+                   ))
+    out.append("")
+    for one in slot["candidates"]:
+        cover = one["coverage"]
+        out.append("**Candidate {}**".format(one["candidate"]))
+        out.append("")
+        out.append("> {}".format(one["text"]))
+        out.append("")
+        out.append("- Billed: {} characters for this recording"
+                   .format(one["billed_characters"]))
+        out.append("- Length: {} characters, {} words".format(
+            one["characters"], one["words"]
+        ))
+        out.append("- Grounded on {} claims, on attempt {}".format(
+            one["claims_checked"], one["attempt"]
+        ))
+        places = cover.get("zones") or ()
+        out.append("- Places the move {}{}".format(
+            "not at all, which rule 17 asks for two or three of"
+            if not places
+            else "{} time(s): {}".format(
+                len(places), "; ".join(places)
+            ),
+            "",
+        ))
+        for refused in one.get("refused") or []:
+            # A refusal is how the check is read, and a kept
+            # candidate's refused first attempt was recorded as a
+            # number alone until Task 13.
+            out.append(
+                "- **Attempt {} of this candidate was refused:** "
+                "\"{}\" {}".format(
+                    refused["attempt"],
+                    " ".join(refused["text"].split()),
+                    refused["summary"],
+                )
+            )
+        said = cover.get("who", 0)
+        if said > 1:
+            # Flagged and kept. Rule 14 is cadence rather than a
+            # claim, so nothing refuses it and the reader decides.
+            out.append("- **Says \"who\" {}:** rule 14 allows one, "
+                       "and this one is for Shawn to judge "
+                       "aloud".format(
+                           "twice" if said == 2
+                           else "{} times".format(said)
+                       ))
+        else:
+            out.append("- Says \"who\" {}".format(
+                "once" if said == 1 else "not at all"
+            ))
+        out.append("- Names {} of the {} recorded players: {}".format(
+            len(cover["named_players"]),
+            len(cover["recorded_players"]),
+            ", ".join(cover["named_players"]) or "none",
+        ))
+        if cover["missing_players"]:
+            out.append("- Does not name: {}".format(
+                ", ".join(cover["missing_players"])
+            ))
+        out.append("- Reaches {} of {} key beats{}".format(
+            cover["key_beats_reached"], cover["key_beats"],
+            "" if not cover["beats_missed"]
+            else ", missing " + "; ".join(cover["beats_missed"]),
+        ))
+        if cover.get("odd_characters"):
+            out.append("- **Unusual characters, which would be sent "
+                       "to the speech service as written:** "
+                       "{}".format("; ".join(
+                           "{} ({})".format(
+                               entry["name"], entry["codepoint"]
+                           )
+                           for entry in cover["odd_characters"]
+                       )))
+        out.append("")
+    return "\n".join(out)
+
+
 def _why_dropped(one: Mapping) -> str:
     """Why one candidate did not reach the review file, in a sentence.
 
-    Four reasons, which are the four the run can produce: a call that never
+    Five reasons, which are the five the run can produce: a call that never
     came back, a near copy of one already kept, a grounded narration costing
-    more than a recording may, and the check refusing every attempt.
+    more than a recording may, a grounded narration that places the move
+    nowhere, and the check refusing every attempt.
     """
     if one.get("lost"):
         return "the call did not come back: {}".format(one["lost"])
@@ -979,6 +1128,12 @@ def _why_dropped(one: Mapping) -> str:
         return (
             "the same telling as candidate {} with other words in it: "
             "\"{}\"".format(one["near_copy_of"], one["text"])
+        )
+    if one.get("missing_places"):
+        return (
+            "grounded, and refused for places: it {}: \"{}\"".format(
+                one["missing_places"], one["text"]
+            )
         )
     if one.get("over_allowance"):
         return (
@@ -1286,6 +1441,9 @@ def main(argv: Sequence[str]) -> int:
     print("slots     {}".format(len(slots)))
     for match_id, key in slots:
         print("            match {} {}".format(match_id, key))
+    print("places    at least {} per telling, and a passage with a long ball "
+          "in it needs one saying where it was struck; a grounded candidate "
+          "short of that is refused".format(PLACES_WANTED))
     print("budget    {} billed for the {} recordings together, so {} a "
           "recording; a grounded candidate over that is dropped".format(
               args.budget, recordings, allowance

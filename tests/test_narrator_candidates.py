@@ -66,8 +66,14 @@ from app.narration import MAX_RETRIES
 from app.narration_config import ACTIVE_CANDIDATE
 from app.narration_provider import IAM_TOKEN_URL, WatsonxProvider
 from scripts.hero_candidates import HEROES
+from app.pitch_zones import holds, zone_for
+import scripts.fallback_narrations as fallbacks
 from scripts.narrator_candidates import (
     DEFAULT_PER_SLOT,
+    PLACES_WANTED,
+    long_ball_of,
+    places_missing,
+    zone_claims,
     zones_said,
     NEAR_COPY_RATIO,
     gather,
@@ -1716,13 +1722,28 @@ class TestTheRunIsCappedInTokens:
         assert "stopped on its token cap" not in text
 
 
+#: A 2022 `buddy_scored` telling that is grounded and places the move three
+#: times: `BUDDY_2022_ARGENTINA` with the two places the beats carry said in
+#: it. The reference itself places the move nowhere, so `places_missing`
+#: refuses it, and a test about the token cap needs an answer the run keeps.
+#: Every place in it is one the records hold: Molina's pass is struck at
+#: (25.9, 71.8) and the long ball comes down at (99.3, 54.9).
+PLACED_BUDDY_2022 = (
+    "We went on the counter, Molina to MacAllister deep in his own half on "
+    "the right, MacAllister to Messi, Messi on to Álvarez, a long ball "
+    "forward to MacAllister again on the edge of the box, and he set up Di "
+    "María, who hit it first time with his left foot and scored!"
+)
+
+
 class TestTheCapStopsTheRunAndKeepsWhatWasWritten:
     """The cap driven through `gather`, against a recorded response.
 
-    The answer replayed here is one of the reference narrations, so it passes
-    the grounding check and the run really does keep a candidate before the
-    cap stops it. Nothing opens a connection: `tests/conftest.py` would fail
-    the test if it did.
+    The answer replayed here is a reference narration with the beats' own
+    places said in it, so it passes the grounding check and the places rule
+    and the run really does keep a candidate before the cap stops it.
+    Nothing opens a connection: `tests/conftest.py` would fail the test if
+    it did.
     """
 
     def backend(self, billed, **kwargs):
@@ -1739,7 +1760,7 @@ class TestTheCapStopsTheRunAndKeepsWhatWasWritten:
                     "finish_reason": "stop",
                     "message": {
                         "role": "assistant",
-                        "content": references.BUDDY_2022_ARGENTINA,
+                        "content": PLACED_BUDDY_2022,
                     },
                 }
             ],
@@ -1775,7 +1796,7 @@ class TestTheCapStopsTheRunAndKeepsWhatWasWritten:
         assert [slot["slot"] for slot in goals[0]["slots"]] == [BUDDY_SCORED]
         kept = goals[0]["slots"][0]["candidates"]
         assert len(kept) == 1
-        assert kept[0]["text"] == references.BUDDY_2022_ARGENTINA
+        assert kept[0]["text"] == PLACED_BUDDY_2022
         # The cap is not a failed candidate: nothing was sent, so there is
         # nothing to record as refused.
         assert goals[0]["slots"][0]["dropped"] == []
@@ -1990,10 +2011,36 @@ class TestANearCopyIsNotACandidate:
         ]
         assert max(apart) < NEAR_COPY_RATIO <= min(copies)
 
+    #: The same pair with the beats' own places said in both. Neither of the
+    #: two above places the move, so `places_missing` refuses them before the
+    #: near copy filter ever sees them, and what is being tested here is the
+    #: filter. One word apart still, and 0.979 alike.
+    PLACED_TWO = (
+        "We passed from Molina to MacAllister deep in his own half on the "
+        "right, he found Messi, Messi to Álvarez, Álvarez to "
+        "MacAllister forward on the edge of the box, MacAllister set up Di "
+        "María who struck with his left foot and it went in! What a "
+        "moment!"
+    )
+    PLACED_THREE = (
+        "We went from Molina to MacAllister deep in his own half on the "
+        "right, he found Messi, Messi to Álvarez, Álvarez to "
+        "MacAllister forward on the edge of the box, MacAllister set up Di "
+        "María who struck with his left foot and it went in! What a "
+        "moment!"
+    )
+
+    def test_the_placed_pair_is_still_a_near_copy(self, facts_2022):
+        ratio = near_copy_ratio(
+            self.PLACED_TWO, self.PLACED_THREE, facts_2022
+        )
+        assert ratio >= NEAR_COPY_RATIO
+        assert round(ratio, 3) == 0.979
+
     def test_the_later_one_is_the_one_dropped(self):
         """The filter runs against the candidates already kept, so the first
         telling of a pair stays and the second goes."""
-        backend = recorded_backend([self.BUDDY_2022_TWO, self.BUDDY_2022_THREE])
+        backend = recorded_backend([self.PLACED_TWO, self.PLACED_THREE])
         hero = next(one for one in HEROES if one[1] == MATCH_2022)
         goals, stopped = gather(
             backend, 2, heroes=(hero,), only=[BUDDY_SCORED]
@@ -2001,24 +2048,24 @@ class TestANearCopyIsNotACandidate:
         assert stopped is None
         slot = goals[0]["slots"][0]
         assert [one["text"] for one in slot["candidates"]] == [
-            self.BUDDY_2022_TWO
+            self.PLACED_TWO
         ]
         assert [one["candidate"] for one in slot["dropped"]] == [2]
         dropped = slot["dropped"][0]
-        assert dropped["text"] == self.BUDDY_2022_THREE
+        assert dropped["text"] == self.PLACED_THREE
         assert dropped["near_copy_of"] == 1
         assert dropped["near_copy_by"] == "words"
-        assert dropped["near_copy_ratio"] == 0.971
+        assert dropped["near_copy_ratio"] == 0.979
 
     def test_the_review_file_says_what_each_drop_matched(self):
-        backend = recorded_backend([self.BUDDY_2022_TWO, self.BUDDY_2022_THREE])
+        backend = recorded_backend([self.PLACED_TWO, self.PLACED_THREE])
         hero = next(one for one in HEROES if one[1] == MATCH_2022)
         goals, _stopped = gather(
             backend, 2, heroes=(hero,), only=[BUDDY_SCORED]
         )
         text = review(goals, "m", "p", "low", 2000)
-        assert "Candidate 2: a near copy of candidate 1 at 0.97" in text
-        assert self.BUDDY_2022_THREE in text
+        assert "Candidate 2: a near copy of candidate 1 at 0.98" in text
+        assert self.PLACED_THREE in text
 
 
 class TestTheStorytellerTellsItInFullSentences:
@@ -2344,6 +2391,165 @@ class TestTheRuleAboutPlacingTheMove:
             beats = story(facts).beats
             assert len([beat for beat in beats if beat.zone]) < len(beats)
 
+
+
+class TestAPlaceIsRequiredOfACandidate:
+    """`places_missing`: rule 17 asked and the run is what refuses now.
+
+    The zones run of 2026-11-05 kept eight candidates over the six slots and
+    rule 17 reached one of them: two placed the move nowhere at all, four
+    placed it once, and the 2022 Storyteller placed it three times. The
+    vocabulary was built and the asking was weak, so a telling that gives a
+    listener nowhere to stand is not a candidate any more.
+
+    **It is not in `app/grounding.py` and that is the point.** The check
+    refuses a place the records do not hold, and a narration that names no
+    place holds nothing wrong: all six fallback narrations are grounded and
+    none of them places the move. Grounding stays about truth.
+    """
+
+    #: The 2022 `buddy_scored` fallback, which is Shawn's first test here.
+    #: Grounded, and it places the move nowhere: "our own half" is the broad
+    #: position claim it always was and not one of the bands.
+    FALLBACK_2022 = fallbacks.FALLBACK[(MATCH_2022, BUDDY_SCORED)]
+
+    #: The zones run's 2022 `storyteller_neutral` candidate, which is the
+    #: other. Read off `narrator_candidates_2026-11-05.json`.
+    ZONES_RUN_2022 = (
+        "Molina, deep in his own half on the right, played it forward to "
+        "MacAllister, who found Messi forward, Messi gave it forward to "
+        "\u00c1lvarez, \u00c1lvarez sent a long ball forward to MacAllister "
+        "on the edge of the box, MacAllister set up Di Mar\u00eda in the box "
+        "and Di Mar\u00eda struck his first-time left-foot shot into the "
+        "net. What a finish."
+    )
+
+    def test_the_fallback_2022_buddy_scored_is_refused_for_places(
+        self, facts_2022
+    ):
+        said = places_missing(self.FALLBACK_2022, facts_2022)
+        assert said
+        assert "places the move nowhere" in said
+        assert "at least {}".format(PLACES_WANTED) in said
+
+    def test_the_same_fallback_is_still_grounded(self, facts_2022):
+        """Both halves of Shawn's instruction: the run refuses it and the
+        check does not, so the six fallback narrations are still a thing to
+        pick from."""
+        result = check(self.FALLBACK_2022, facts_2022, THE_BUDDY, "Argentina")
+        assert result.grounded, result.summary
+
+    def test_the_zones_run_2022_storyteller_passes(self, facts_2022):
+        assert zones_said(self.ZONES_RUN_2022, facts_2022) == (
+            "deep in his own half",
+            "on the right",
+            "on the edge of the box",
+        )
+        assert places_missing(self.ZONES_RUN_2022, facts_2022) == ""
+
+    def test_it_passes_on_a_side_it_said_about_another_beat(self, facts_2022):
+        """The weaker of the two readings, written down. That candidate says
+        "on the right" about Molina's pass, and the long ball is struck out
+        wide on the right too, so the phrase holds the coordinate although
+        the grammar pointed it at a different action."""
+        claims = zone_claims(self.ZONES_RUN_2022, facts_2022)
+        sides = [zone for said, zone in claims if said == "on the right"]
+        assert sides == ["on the right"]
+        struck = long_ball_of(facts_2022).start
+        assert holds("on the right", struck)
+        assert holds("on the right", facts_2022.facts[0].beat.start)
+
+    def test_one_place_is_not_enough(self, facts_1986):
+        """Four of the zones run's eight kept candidates placed the move
+        once, which rule 17 does not ask for and a listener hears once."""
+        said = places_missing(
+            "Cuciuffo won it back deep in his own half, Maradona went past "
+            "Beardsley, Butcher and Fenwick, carried it into the box and "
+            "scored with his left foot.",
+            facts_1986,
+        )
+        assert "places the move once, 'deep in his own half'" in said
+
+    def test_two_places_are_enough_where_there_is_no_long_ball(
+        self, facts_1986
+    ):
+        """The 1986 passage holds no pass of thirty yards, so the only thing
+        asked of a telling of it is the count."""
+        assert long_ball_of(facts_1986) is None
+        assert places_missing(
+            "Cuciuffo won it back deep in his own half, and Maradona went "
+            "past Butcher in the final third and scored with his left foot.",
+            facts_1986,
+        ) == ""
+
+    def test_the_long_ball_has_to_be_placed_where_it_was_struck(
+        self, facts_2022
+    ):
+        """The zones run's finding: all four of its 2022 tellings placed the
+        long ball where it came down and none of them where it was hit, so
+        the thirty six yards it crossed were never said."""
+        said = places_missing(
+            "Molina played it forward to MacAllister, who found Messi, and "
+            "Messi gave it to \u00c1lvarez, whose long ball found "
+            "MacAllister on the edge of the box, and he set up Di "
+            "Mar\u00eda in the box, who scored with his left foot.",
+            facts_2022,
+        )
+        assert "where the long ball was struck from" in said
+        assert "just inside France's half on the right" in said
+
+    def test_the_struck_place_is_the_records_own(self, facts_2022):
+        """The long ball is struck at (63.2, 68.2) and comes down at (99.3,
+        54.9), and `zone_spots` holds both ends for the one record: the
+        count alone would let a telling place the landing twice."""
+        long_ball = long_ball_of(facts_2022)
+        assert round(long_ball.start.x, 1) == 63.2
+        assert round(long_ball.start.y, 1) == 68.2
+        assert round(long_ball.end.x, 1) == 99.3
+        assert zone_for(long_ball.start, facts_2022.opponent) == (
+            "just inside France's half on the right"
+        )
+
+    def test_both_reasons_are_named_at_once(self, facts_2022):
+        said = places_missing(self.FALLBACK_2022, facts_2022)
+        assert said.count(";") == 1
+        assert "at least {}".format(PLACES_WANTED) in said
+        assert "long ball" in said
+
+    def test_a_refused_candidate_is_dropped_with_its_reason(self):
+        """Driven through `gather`: the slot keeps nothing and the dropped
+        record says what was missing."""
+        backend = recorded_backend([self.FALLBACK_2022])
+        hero = next(one for one in HEROES if one[1] == MATCH_2022)
+        goals, stopped = gather(
+            backend, 1, heroes=(hero,), only=[BUDDY_SCORED]
+        )
+        assert stopped is None
+        slot = goals[0]["slots"][0]
+        assert slot["candidates"] == []
+        assert len(slot["dropped"]) == 1
+        dropped = slot["dropped"][0]
+        assert dropped["text"] == self.FALLBACK_2022
+        assert "places the move nowhere" in dropped["missing_places"]
+        # Grounded, and refused all the same: the two verdicts are separate.
+        assert dropped["claims_checked"] == 17
+
+    def test_the_review_file_says_why(self):
+        backend = recorded_backend([self.FALLBACK_2022])
+        hero = next(one for one in HEROES if one[1] == MATCH_2022)
+        goals, _stopped = gather(
+            backend, 1, heroes=(hero,), only=[BUDDY_SCORED]
+        )
+        text = review(goals, "m", "p", "low", 2000)
+        assert "Candidate 1: grounded, and refused for places" in text
+        assert "places the move nowhere" in text
+
+    def test_the_plan_says_the_rule_before_anything_is_sent(self, capsys):
+        assert main(["--plan", "--max-total-tokens", "80000"]) == 0
+        printed = capsys.readouterr().out
+        assert "places    at least {} per telling".format(PLACES_WANTED) \
+            in printed
+        assert "where it was struck" in printed
 
 
 class TestWhatTheReportSaysAboutPlacesAndRefusals:
