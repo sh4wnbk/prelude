@@ -10,9 +10,11 @@ Two behaviours are checked in a browser rather than here, because reading the
 file cannot see them: reopened, the card presses the current choice and fills
 the name; and after Continue, the Profile screen shows the new answer.
 
-The persona cards are not part of this screen yet. A persona is a voice, and no
-voice is chosen until Phase 5, so a picker today would offer a choice that
-changes nothing.
+The persona cards were not part of this screen when it was built. Task 12 added
+them and Task 14 made the choice live, so a fan picks a narrator here and the
+side rule is the default until they do. Those two are held by
+`tests/test_narrators.py` and `tests/test_narrator_picker.py`; this file covers
+the screen itself, which neither task moves.
 """
 
 import re

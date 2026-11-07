@@ -1,10 +1,18 @@
-"""Acceptance tests for "Your narrator" on Profile, written before it exists.
+"""Acceptance tests for "Your narrator" on Profile, written before it existed.
 
 The three personas become visible to the fan as narrators. Shawn's decisions on
 2026-10-30: the heading is "Your narrator", the partisan persona is "The Buddy"
 with id `buddy`, and choosing a narrator is not live yet. Profile shows the
 three, marks the one the fan's answer picked, and tapping another shows that it
 is coming soon. `docs/bob_brief.md` carries the brief as Task 12.
+
+**Choosing a narrator is live now.** Task 14 in the same brief gave a fan the
+choice, with the side rule as the default until they make one, so the note is
+about the one narrator that is still coming soon rather than about every
+narrator the fan did not get. What that task settles is in
+`tests/test_narrator_picker.py`. What stays here is what Task 12 settled and
+the picker does not move: the name, the list written from the personas, the
+heading, a card being marked, and Change as an outline.
 
 The list the browser shows is written from `app/personas.py` by a script, as
 the header and `voice_for` are written by `scripts/write_headers.py`, so the
@@ -38,7 +46,11 @@ EXPECTED = [
      "profile": "Warm, from the next seat."},
 ]
 
-MESSAGE_TAIL = " is coming soon. For now, Prelude picks your narrator from who you're with."
+#: The note under the one narrator that has no recordings. Until Task 14 this
+#: was a tail appended to any narrator the fan tapped and could not have,
+#: ending "For now, Prelude picks your narrator from who you're with.". A fan
+#: picks their own now, so the sentence that said otherwise is gone.
+CALLER_NOTE = "The Caller is coming soon."
 
 
 def narrators():
@@ -102,14 +114,16 @@ class TestTheRenderer:
     def test_it_reads_the_list(self):
         assert "narrators.json" in RENDERER.read_text(encoding="utf-8")
 
-    def test_it_marks_the_current_narrator_from_voice_for(self):
+    def test_it_marks_the_current_narrator(self):
+        """Which narrator is current is `Prelude.slotFor`'s answer since
+        Task 14, and `tests/test_narrator_picker.py` holds that lookup.
+        What is checked here is that a card is still marked at all."""
         text = RENDERER.read_text(encoding="utf-8")
-        assert "voice_for" in text
         assert 'aria-current="true"' in text or "'aria-current', 'true'" in text \
             or '"aria-current", "true"' in text
 
-    def test_the_message(self):
-        assert MESSAGE_TAIL in RENDERER.read_text(encoding="utf-8")
+    def test_the_coming_soon_note(self):
+        assert CALLER_NOTE in RENDERER.read_text(encoding="utf-8")
 
     def test_no_markup_from_data(self):
         """Names and descriptions are set as text."""
