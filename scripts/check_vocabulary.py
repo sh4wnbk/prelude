@@ -93,8 +93,10 @@ from app.pronunciation import (  # noqa: E402
 #: the same file, so these are the names the app actually speaks.
 MATCHES = ROOT / "app" / "web" / "matches.json"
 
-#: The frozen hero narrations. `scripts/tts_hero.py` sends these words to be
-#: spoken, so they are vocabulary in the same way the template's are. They
+#: The frozen hero narrations, both kinds: the six under `slots`, one per
+#: listener, which are the words `scripts/tts_hero.py` sends to be spoken,
+#: and the per-goal one beside them. They are vocabulary in the same way the
+#: template's words are. They
 #: were not collected while that script spoke `template_narration`, whose
 #: words come from `EVENT_VERBS` and `TEMPLATE_WORDS` above; a model writes
 #: from a wider vocabulary than the template does, which is exactly why this
@@ -186,6 +188,15 @@ def speakable() -> dict[str, set[str]]:
         frozen = json.loads(NARRATIONS.read_text(encoding="utf-8"))
         sources["the frozen narrations"] = [
             entry["text"] for entry in frozen["narrations"].values()
+        ]
+        # The six under `slots` are the words `scripts/tts_hero.py` actually
+        # sends now, one per listener, so they are the vocabulary a voice is
+        # about to read aloud. The per-goal narration above stays collected
+        # because it is still on the card's history and in the file.
+        sources["the frozen narrations per listener"] = [
+            slot["text"]
+            for entry in frozen["narrations"].values()
+            for slot in (entry.get("slots") or {}).values()
         ]
 
     for name, texts in _golden_texts().items():

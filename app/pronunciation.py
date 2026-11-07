@@ -152,6 +152,21 @@ CHECKED_NO_ENTRY_NEEDED: Mapping[str, str] = {
     "was": "W AA1 Z and W AH0 Z are accent variants of one word",
     "his": "full and reduced forms of one word, HH IH1 Z and HH IH0 Z",
     "with": "voiced and voiceless th, and both are the same word",
+    # Ten more function words, from the six narrations the team wrote. Each
+    # is the same alternation as the eleven above: a full form and a reduced
+    # one, a stress variant, or the wh cluster said with or without the h.
+    # Not one of them is a heteronym, so there is nothing for a listener to
+    # mishear.
+    "again": "AH0 G EH1 N and AH0 G EY1 N are accent variants of one word",
+    "him": "full and reduced forms of one word, HH IH1 M and IH0 M",
+    "inside": "which syllable carries the stress, and both are the word",
+    "into": "the unstressed second syllable only",
+    "just": "full and reduced forms of one word, JH AH1 S T and JH IH0 S T",
+    "on": "AA1 N and AO1 N are the cot-caught vowel, which the voices merge",
+    "our": "one syllable or two, and both are the word",
+    "to": "full and reduced forms of one word, T UW1 down to T AH0",
+    "what": "the wh cluster, said with or without the h",
+    "when": "the wh cluster and the vowel, and both are the word",
     # A name, from the frozen 2022 narration. Unlike "di" in the same name,
     # the two listed forms here are one name said two ways: the first vowel
     # is the cot-caught vowel, which the voices merge.

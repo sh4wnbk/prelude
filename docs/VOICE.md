@@ -1398,8 +1398,10 @@ limit, and the element itself is already proven on all three voices by the
 `lɛd` arm. Shawn confirms "minute" by ear from the hero recordings, which
 open on "Minute 54" and "Minute 35"; until then what stands behind it is his
 hearing of the problem and the dictionary's agreement that the spelling is
-ambiguous. Those recordings do not exist yet: the service answered 403 on
-2026-10-30, which `HANDOFF.md` records under "Phase 5, task 5".
+ambiguous. Those recordings exist now: the six were recorded on 2026-11-07,
+after the run of 2026-10-30 was refused with 403, which `HANDOFF.md` records
+under "Phase 5, task 5". The header they open on is the orchestrator's and
+says no minute, so "minute" is still waiting for a line that speaks it.
 
 **The markup reaches the speech request and nothing else.** This is the whole
 of the design, and the reason to say it twice is that applying it one step
@@ -1571,18 +1573,18 @@ same pronunciation markup as the samples above; the format is smaller because
 these are committed and served rather than listened to once.
 
 **The words are no longer the samples' words.** The samples speak
-`template_narration`. These speak the narration `openai/gpt-oss-120b` wrote
-and `app/grounding.py` passed, frozen in `app/web/narrations.json` by
-`scripts/freeze_narrations.py` and shown on the moment card under the
-grounding label. What a judge hears and what a judge reads are one text, and
-it is the narration the system actually writes rather than the fallback it
-keeps for when the model drifts.
+`template_narration`. These speak the narration written for this listener,
+one per `hero.voice_for` key, frozen in `app/web/narrations.json` by
+`scripts/freeze_narrations.py --authored` and shown on the moment card under
+the grounding label by the same lookup. What a judge hears and what a judge
+reads are one text.
 
-**None of them exists yet.** The run on 2026-10-30 was refused with HTTP 403
-on its first call, and a five character request in both formats was refused
-the same way, so it is the account and not the request. `HANDOFF.md` holds the
-evidence, the three character counts and what each recording will say under
-"Phase 5, task 5" and "Phase 5, task 6".
+**All six exist, recorded on 2026-11-07 for 2,403 billed characters.** The
+run on 2026-10-30 was refused with HTTP 403 on its first call, and a five
+character request in both formats was refused the same way, so it was the
+account and not the request; `HANDOFF.md` holds that evidence under "Phase 5,
+task 5". The six files are in `app/web/assets/audio/` and `hero.audio` names
+all of them.
 
 **The run of the Task 6 narrations costs 1,959 characters**, which is the
 figure IBM bills: it counts the SSML and not the whitespace, so the price is

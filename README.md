@@ -26,10 +26,12 @@ What the demo is, precisely:
   ticket from the camera and opens that match; manual entry picks the match from
   a list and takes a seat. Both land on ticket details, and Enter match opens the
   match at its pre-moment state.
-- **There is no audio.** Playback and the generated narration arrive in later
-  phases. The play buttons change their own icon and nothing else; the waveforms
-  are static markup, and the timers are empty on purpose, waiting for real
-  values.
+- **The moment card plays its narration.** The play button on that card plays
+  the recording written for this listener, with the waveform and the timer
+  following the audio; `app/web/narration-player.js` is the player and
+  `hero.audio` in `app/web/matches.json` is where it finds the file. The play
+  buttons on the moments list are still markup: they change their own icon and
+  nothing else, because those moments have no recording.
 - **Nothing is live.** The demo replays StatsBomb historical data: the 1986
   Argentina vs England quarter-final and the 2022 Argentina vs France final,
   each presented as if it were unfolding now. There is no live feed, no venue,
@@ -264,7 +266,10 @@ Everything above it is structure.
   call; `--confirm` sends it.
 - `scripts/check_vocabulary.py`: collects every word the app can speak, from
   the header wording, the event verbs, the narration template, the team names
-  in `app/web/matches.json` and the recorded narrations in `tests/golden/`, and
+  in `app/web/matches.json`, the frozen narrations in
+  `app/web/narrations.json` (the six the voices read, one per listener, and
+  the per-goal one beside them) and the recorded narrations in
+  `tests/golden/`, and
   reports the ones the CMU Pronouncing Dictionary lists more than one
   pronunciation for. Exits non-zero when a flagged word has not been reviewed;
   `tests/test_vocabulary.py` is the same condition in the suite. No network:
@@ -280,15 +285,16 @@ Everything above it is structure.
 - `scripts/tts_hero.py`: the recordings the site serves, one per listener per
   match, as MP3 under `app/web/assets/`, with `hero.audio` in
   `app/web/matches.json` written from the files on disk. The words are the
-  orchestrator's header and the frozen narration in `app/web/narrations.json`,
-  which a model wrote and the grounding check passed, so these speak what the
-  moment card shows rather than the template the samples speak.
-  `--plan` prints the character count three ways
-  and makes no call, `--budget` refuses a run above the billed count,
-  `--confirm` sends it, and `--map` rewrites the map alone. **No recording
-  exists yet:** the service answered HTTP 403 to every request on
-  2026-10-30, so `hero.audio` is still empty and the moment card's play
-  button stays disabled.
+  orchestrator's header and the narration for that listener's own
+  `hero.voice_for` key, read from `app/web/narrations.json`, so a fan hears
+  the words the moment card just showed them rather than the template the
+  samples speak. `--plan` prints the character count three ways and makes no
+  call, `--budget` refuses a run above the billed count, `--confirm` sends it,
+  and `--map` rewrites the map alone. **The six exist:** they were recorded on
+  2026-11-07 for 2,403 billed characters of the 3,500 budget, the Storyteller
+  on `en-US_EmmaNatural` and the Buddy on `en-US_EthanNatural`, and
+  `hero.audio` names all six, so the moment card's play button works for every
+  listener.
 - `app/delivery.py`: the delivery table, one row per persona per situation,
   holding the rate, the pitch and the two pauses. The values are Shawn's, set
   by ear, with the rules enforced around them: no lowered pitch, no pause on a
@@ -409,17 +415,19 @@ Everything above it is structure.
 - `app/narration_config.py`: the model ids and which one is active. Values
   only, with no behaviour: it reads no environment variable and opens no
   connection.
-- The play buttons and waveforms on the moment card and the moments list. They
-  change their own icons and nothing else, because there is no audio yet.
+- The play buttons and waveforms on the moments list. They change their own
+  icons and nothing else, because those moments have no recording. The one on
+  the moment card plays the hero narration for this listener.
 
-**Not built yet:** narration on a screen, audio output, and GPS presence
-handling. Narration itself runs: `scripts/narrate_once.py` generates it for one
-goal, the check decides whether it may carry "Verified from play data", and the
-pipeline falls back when it may not. What nothing does yet is measure how often
-a first attempt is grounded across the nine goals, or put a narration in front
-of a reader. The screens read their content from `app/web/matches.json` and
-carry the selected match between them; what they do not have is sound or
-narration. Nothing wires the EventFeed to the screens yet: the module returns
+**Not built yet:** audio for any moment but the two hero goals, and GPS
+presence handling. Narration runs and reaches a reader: `scripts/narrate_once.py`
+generates it for one goal, the check decides whether it may carry "Verified
+from play data", the pipeline falls back when it may not, and the moment card
+shows the frozen narration for this listener with the recording of it beside
+the text. What nothing does yet is measure how often a first attempt is
+grounded across the nine goals. The screens read their content from
+`app/web/matches.json` and carry the selected match between them; the other
+moments have neither sound nor narration. Nothing wires the EventFeed to the screens yet: the module returns
 moments, event windows and buildups, and no screen reads them.
 `docs/narration.md` records what the narration modules are and what they are
 not, and `docs/VOICE.md` is the written voice the prompt and the grounding check

@@ -78,7 +78,11 @@
           "team_b": "buddy_conceded",
           "neutral": "storyteller_neutral"
         },
-        "audio": {}
+        "audio": {
+          "buddy_conceded": "assets/audio/3750191_buddy_conceded.mp3",
+          "buddy_scored": "assets/audio/3750191_buddy_scored.mp3",
+          "storyteller_neutral": "assets/audio/3750191_storyteller_neutral.mp3"
+        }
       },
       "moments_subtitle": "ARGENTINA vs ENGLAND · TONIGHT SO FAR",
       "synced_count": 2,
@@ -199,7 +203,11 @@
           "team_b": "buddy_conceded",
           "neutral": "storyteller_neutral"
         },
-        "audio": {}
+        "audio": {
+          "buddy_conceded": "assets/audio/3869685_buddy_conceded.mp3",
+          "buddy_scored": "assets/audio/3869685_buddy_scored.mp3",
+          "storyteller_neutral": "assets/audio/3869685_storyteller_neutral.mp3"
+        }
       },
       "moments_subtitle": "ARGENTINA vs FRANCE · TONIGHT SO FAR",
       "synced_count": 2,

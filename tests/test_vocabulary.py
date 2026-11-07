@@ -234,14 +234,19 @@ class TestWhatTheCollectorCollects:
 
         A name still arrives when something the app actually speaks says it,
         which is the rule rather than an exception to it: "beardsley" and
-        "shilton" are here because the frozen 1986 narration names them, and
+        "shilton" are here because the frozen 1986 narrations name them, and
         the test below is the same point from the other side. "cuccittini" is
         the one that shows the squads are not being walked: Messi is in both
-        matches and in the 2022 quote, and the 2022 narration does not name
-        him, so his name is not vocabulary.
+        matches and in the 2022 quote, and neither the per-goal narration nor
+        any of the six says his full recorded name, only "Messi", so
+        "cuccittini" is not vocabulary.
         """
         assert "cuccittini" not in vocabulary
-        assert vocabulary["beardsley"] == {"the frozen narrations"}
+        assert vocabulary["beardsley"] == {
+            "the frozen narrations",
+            "the frozen narrations per listener",
+        }
+        assert vocabulary["messi"] == {"the frozen narrations per listener"}
 
     def test_a_name_inside_a_recorded_narration_is_collected(self, vocabulary):
         """The rule is the words in a recorded narration, whatever kind of
@@ -251,11 +256,13 @@ class TestWhatTheCollectorCollects:
         name that was flagged would be a review for a listener rather than a
         table entry, and `allister` is the first that has come up.
 
-        Two sources now, because the hero recordings stopped speaking the
-        template and started speaking the frozen narration, and both say his
-        name.
+        Three sources now. The hero recordings stopped speaking the template
+        and started speaking the frozen narration, and they speak one per
+        listener since the six the team wrote were frozen; the 1986 tellings
+        and the recorded request all name him.
         """
         assert vocabulary["maradona"] == {
             "tests/golden/tts_synthesize.json",
             "the frozen narrations",
+            "the frozen narrations per listener",
         }
