@@ -171,11 +171,12 @@ from app.narration_grammar import (
     Reader,
     bare,
     fold,
+    names_our_half,
     support,
     why,
 )
 from app.narration_prompt import Fact, Facts
-from app.plain_characters import plain
+from app.plain_characters import plain, straight_apostrophes
 from app.orchestrator_contract import CALLER
 from app.personas import Persona
 
@@ -862,8 +863,14 @@ def check(
     so that the words it reads are the words a voice would say, and the
     rewrite reaches no dash: the em dash and the en dash are refused below and
     turning either into a hyphen here would undo that.
+
+    **A curly apostrophe is written as a straight one with it.** "France's
+    half" is a claim about a recorded team and the ending is what a name is
+    read without, so the two spellings of that ending are made one before
+    anything reads a word. `straight_apostrophes` says why it is a second
+    function rather than part of `plain`.
     """
-    text = plain(text)
+    text = straight_apostrophes(plain(text))
     partisan = persona is not None and persona.fans_only
     if partisan and not side:
         raise NoSideForAPartisanVoice(
@@ -1304,6 +1311,18 @@ def _opens_the_sentence(text: str, move: Move) -> bool:
     return not _WORD.search(text, 0, move.at)
 
 
+def _folded_at(text: str, at: int) -> int:
+    """Where a position in a sentence falls in the folded copy of it.
+
+    `fold` strips the accents, so "Álvarez" is a character shorter folded than
+    written and every offset after it has moved. The banned patterns and the
+    first person are matched on the folded text and a `Move` carries its
+    position in the text as written, so a comparison between the two needs
+    one of them translated.
+    """
+    return len(fold(text[:at]))
+
+
 def _clause(text: str, at: int) -> tuple[int, int]:
     """The clause the character at `at` sits in, as a span of `text`."""
     before = [match.end() for match in _CLAUSE_BREAK.finditer(text, 0, at)]
@@ -1425,6 +1444,11 @@ def _goal_call(
         not_a_name=NOT_A_NAME,
         demonyms=TEAM_DEMONYMS,
         actions=ACTION_CLAIMS,
+        # "Our half" and "their half" are a different half of the pitch for a
+        # fan of either side, so the reading needs the side the narration was
+        # written for. `_reads_from_the_other_end` in
+        # `app/narration_grammar.py` is the resolution.
+        side=side,
     )
     failures: list[Claim] = []
     claims_made = 0
@@ -1545,6 +1569,24 @@ def _goal_call(
                         "either side, so there is nobody for the first person "
                         "to be",
                     )
+                    continue
+                # "Our half" is the one first person that stands on itself.
+                # The claim resolved "our" to the listening side before it
+                # was checked, so "Álvarez, just inside our half on the
+                # right" told for a France fan is France's half named by a
+                # France fan, and every record in that clause is Argentina's.
+                # Asking the play for the listener's side there would refuse
+                # a true line, and twice over, because the half claim is
+                # already refused when the resolution does not hold.
+                if any(
+                    _folded_at(sentence.text, move.at)
+                    <= hit.start()
+                    < _folded_at(
+                        sentence.text, move.at + len(move.said)
+                    )
+                    and names_our_half(move)
+                    for move in read[index]
+                ):
                     continue
                 start, end = _clause(sentence.text, hit.start())
                 teams = {

@@ -1540,3 +1540,151 @@ class TestAPlaceOnThePitchIsAClaim:
         place = next(move for move in found if move.kind == "zone")
         assert not support(place, facts_1986)
         assert "places nothing" in why(place, facts_1986)
+
+
+class TestAHalfSaidWithAPossessive:
+    """"Our half" and "their half": whose half, and which end of the pitch.
+
+    A band of a team's own half is read in that team's frame, so the same
+    words are two places depending on who the narration was written for.
+    `_reads_from_the_other_end` in `app/narration_grammar.py` is the
+    resolution and `from_the_other_end` in `app/pitch_zones.py` is the
+    arithmetic. The coordinates behind these: Molina played the first pass
+    at (25.9, 71.8) and Álvarez struck the long ball at (63.2, 68.2), which
+    is 56.8 from France's end.
+    """
+
+    LONG_BALL = (
+        "Álvarez, just inside our half on the right, hit a long ball "
+        "forward to MacAllister."
+    )
+    MOLINA = "Molina, deep in {} own half, played it forward to MacAllister."
+
+    def read(self, facts, text, side):
+        one = Reader(
+            facts=facts,
+            not_a_name=NOT_A_NAME,
+            demonyms=TEAM_DEMONYMS,
+            actions=ACTION_CLAIMS,
+            side=side,
+        )
+        return list(one.read(text))
+
+    def places(self, facts, text, side):
+        return [
+            move for move in self.read(facts, text, side)
+            if move.kind == "zone"
+        ]
+
+    def refusals(self, facts, text, persona, side):
+        """What the check refuses in one line of play, less the ending.
+
+        These lines are a clause of a telling rather than a whole narration,
+        so every one of them is refused for not landing the finish. That is
+        the rule about shape; what is being read here is the claims.
+        """
+        result = check(text, facts, persona, side)
+        return [one for one in result.failures if one.kind != "ending"]
+
+    def test_our_half_for_a_france_fan_is_the_half_france_defends(
+        self, facts_2022
+    ):
+        """Shawn's first test. The long ball was struck 63.2 up the pitch
+        from Argentina's goal, which is just inside France's half and is
+        where a France fan's Buddy says "our half"."""
+        said = self.places(facts_2022, self.LONG_BALL, "France")
+        assert [move.said for move in said] == [
+            "just inside our half",
+            "on the right",
+        ]
+        assert said[0].detail["other_end"] is True
+        for move in said:
+            assert support(move, facts_2022), why(move, facts_2022)
+
+    def test_the_same_line_is_held_for_that_fan(self, facts_2022):
+        """And through the check, which is where the first person is read:
+        every record in that clause is Argentina's, and "our" stands on the
+        half claim rather than on the play."""
+        assert self.refusals(
+            facts_2022, self.LONG_BALL, THE_BUDDY, "France"
+        ) == []
+
+    def test_our_own_half_for_an_argentina_fan_is_where_molina_played_it(
+        self, facts_2022
+    ):
+        said = self.places(facts_2022, self.MOLINA.format("our"), "Argentina")
+        assert [move.said for move in said] == ["deep in our own half"]
+        assert said[0].detail["other_end"] is False
+        assert support(said[0], facts_2022)
+        assert self.refusals(
+            facts_2022, self.MOLINA.format("our"), THE_BUDDY, "Argentina"
+        ) == []
+
+    def test_their_own_half_for_an_argentina_fan_is_refused(self, facts_2022):
+        """The other side of the resolution. For a fan of the side that
+        scored, "their own half" is France's own half, which is ninety yards
+        from where Molina played it."""
+        said = self.places(
+            facts_2022, self.MOLINA.format("their"), "Argentina"
+        )
+        assert said[0].detail["other_end"] is True
+        assert not support(said[0], facts_2022)
+        assert "read from the other end of the pitch" in why(
+            said[0], facts_2022
+        )
+        refused = self.refusals(
+            facts_2022, self.MOLINA.format("their"), THE_BUDDY, "Argentina"
+        )
+        assert [one.kind for one in refused] == ["zone"]
+
+    def test_their_own_half_for_a_france_fan_is_where_molina_played_it(
+        self, facts_2022
+    ):
+        """The 2022 Buddy telling for the side that conceded says it this
+        way, and it is the same place "our own half" is for the other fan."""
+        said = self.places(facts_2022, self.MOLINA.format("their"), "France")
+        assert said[0].detail["other_end"] is False
+        assert support(said[0], facts_2022)
+
+    def test_with_no_side_a_possessive_half_reads_as_it_is_spelled(
+        self, facts_2022
+    ):
+        """Nothing resolves "their" for a narration written for nobody, so
+        "their own half" is the half the side on the ball defends, which is
+        what "his own half" says, and a Storyteller cannot say "our" at
+        all."""
+        said = self.places(facts_2022, self.MOLINA.format("their"), None)
+        assert said[0].detail["other_end"] is False
+        assert support(said[0], facts_2022)
+        # "Just inside their half" with no side is the opponent's half, which
+        # is the band the vocabulary spells that way and is where the long
+        # ball was struck.
+        theirs = self.places(
+            facts_2022,
+            self.LONG_BALL.replace("our half", "their half"),
+            None,
+        )
+        assert theirs[0].detail["other_end"] is True
+        assert support(theirs[0], facts_2022)
+        # And "our" from a voice that is not partisan is nobody's.
+        refused = self.refusals(
+            facts_2022, self.LONG_BALL, THE_STORYTELLER, None
+        )
+        assert [one.kind for one in refused] == ["first person"]
+
+    def test_a_curly_apostrophe_reads_as_a_straight_one(self, facts_2022):
+        """"France's half" is one claim however the ending is spelled: the
+        run of 2026-11-05 wrote it with a RIGHT SINGLE QUOTATION MARK."""
+        said = (
+            "Álvarez hit a long ball just inside France{}s half on the "
+            "right to MacAllister."
+        )
+        straight = self.places(facts_2022, said.format("'"), "Argentina")
+        curly = self.places(facts_2022, said.format("’"), "Argentina")
+        assert [move.said for move in curly] == [move.said for move in straight]
+        assert curly[0].said == "just inside France's half"
+        for move in curly:
+            assert support(move, facts_2022), why(move, facts_2022)
+        assert self.refusals(
+            facts_2022, said.format("’"), THE_BUDDY, "Argentina"
+        ) == []

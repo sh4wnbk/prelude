@@ -642,6 +642,23 @@ The two broad phrases above are not bands and are read as the half and
 the box they always were, which is what three of the eight references
 say.
 
+**A half can be said with a possessive, and whose half it is depends on
+who is listening.** "Deep in our own half" is the deep part of whichever
+half the listener's side defends, so the one place Molina played the 2022
+counter from is "deep in our own half" to an Argentina fan and "deep in
+their own half" to a France fan; said the other way round, to an
+Argentina fan, "deep in their own half" is a patch of France's half
+ninety yards from the ball and is refused. "Our half" and "their half"
+with no "own" in them are the same resolution: "just inside our half" to
+a France fan is where the long ball was struck, `x` 63.2 from
+Argentina's end and 56.8 from France's. The resolution is the listening
+side the check was given, and a narration written for nobody cannot say
+"our" at all, so there "their own half" is the half the side on the ball
+defends and "their half" is the opponent's, which is what the vocabulary
+spells them as. A half said with a team's own name is held to the side
+being attacked, and a curly apostrophe in "France's" is read as a
+straight one.
+
 **Duration** is the difference between two timestamps. The `minute` and
 `second` fields floor the clock, so the 2022 counter reads as exactly ten
 seconds by them and "in under ten seconds" would be false; the timestamps say

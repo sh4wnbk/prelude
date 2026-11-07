@@ -154,11 +154,13 @@ Everything above it is structure.
   outside the sides of the penalty area, and nothing for the middle).
   Arithmetic and a word list: one coordinate against one number, read in the
   frame of the team whose record it is, so a place is never read off a
-  mirrored defending record.
-- `tests/test_pitch_zones.py`: 52 tests over the bands, the sides, the
+  mirrored defending record. `from_the_other_end` reads one spot from the
+  other end of the pitch, which is what a half said with a possessive needs:
+  "our own half" is a different half for a fan of either side.
+- `tests/test_pitch_zones.py`: 59 tests over the bands, the sides, the
   box's width, the opponent's name in "their half", the zones the two hero
-  passages put their beats in and the six places the side rule is set on.
-  All 52 pass.
+  passages put their beats in, the six places the side rule is set on and the
+  spot read from the other end. All 59 pass.
 - `app/story_beats.py`: curates one buildup down to the beats a goal call
   tells, which is what `app/goal_call_prompt.py` shows the model: the
   recovery, each pass, each carry of ten yards or more, each dribble past an
@@ -192,10 +194,11 @@ Everything above it is structure.
   A dash is left exactly as written: the em dash and the en dash are refused
   by the check and banned from copy, so rewriting either as a hyphen would
   undo a ban in the one place nobody would look.
-- `tests/test_plain_characters.py`: 40 tests over the rewrite, including the
+- `tests/test_plain_characters.py`: 45 tests over the rewrite, including the
   two characters live candidates actually arrived with, the sixteen space
-  separators, the dashes left alone and the em dash still being refused after
-  it. All 40 pass.
+  separators, the dashes left alone, the em dash still being refused after it
+  and the curly apostrophe written as a straight one before a name is read.
+  All 45 pass.
 - `app/recorded_names.py`: reads `player_nickname` and the two team names out of
   `data/raw/lineups/<match_id>.json` and maps it to the full name the event
   feed records, so a narration can say "Lionel Messi" rather than "Lionel
@@ -326,7 +329,7 @@ Everything above it is structure.
   including the misdescription it refuses by pairing a name with an action and
   the first person, which only the Mate may use and only over its own side's
   facts. All pass.
-- `tests/test_narration_grammar.py`: 124 tests over the goal-call reading in
+- `tests/test_narration_grammar.py`: 131 tests over the goal-call reading in
   `app/narration_grammar.py`, one mechanism at a time: the name parts that
   pick out one player, the pronoun that means the player with the ball, the
   chains, which name owns a claim, who a move is attributed to when a second
@@ -334,8 +337,9 @@ Everything above it is structure.
   positions, the shape of a run, which way the ball went, a run with yards in
   it, the carry that is asked to deliver the ball, who "under pressure" is
   about, a hyphen reading as the space it stands in for, the place on the
-  pitch a phrase claims and the action it is claimed about, and the recorded
-  fields a goal call says out loud. All pass.
+  pitch a phrase claims and the action it is claimed about, whose half "our
+  half" and "their half" name, and the recorded fields a goal call says out
+  loud. All pass.
 - `tests/test_reference_narrations.py`: 63 tests holding the narration
   standard: the eight reference narrations in `docs/VOICE.md`, checked word
   for word with the narrator and the listener side given, the eleven lines the

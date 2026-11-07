@@ -24,6 +24,8 @@ from app.pitch_zones import (
     JUST_INSIDE_THEIR_HALF,
     JUST_INSIDE_X,
     LEFT_Y,
+    OWN_HALF_ZONES,
+    PITCH_X,
     ON_THE_LEFT,
     ON_THE_RIGHT,
     OWN_HALF_X,
@@ -31,6 +33,7 @@ from app.pitch_zones import (
     SIDES,
     THE_BOX,
     ZONES,
+    from_the_other_end,
     holds,
     in_the_box_width,
     said_as,
@@ -370,3 +373,69 @@ class TestTheSixPlacesTheSideRuleIsSetOn:
             for number in (11, 15, 18)
         ]
         assert sides == ["", ON_THE_RIGHT, ""]
+
+
+class TestTheOtherEndOfThePitch:
+    """`from_the_other_end`: one spot as the other side would place it.
+
+    What a half said with a possessive needs. A location is written in the
+    frame of the team whose record it is, so a band of the other side's own
+    half is `PITCH_X` less the `x` the records carry.
+    """
+
+    def test_the_long_ball_is_just_inside_france_s_half(self, facts_2022):
+        """Álvarez struck it at (63.2, 68.2), which is just inside their
+        half from Argentina's end and just inside their own half from
+        France's."""
+        struck = facts_2022.facts[8].beat.start
+        assert round(struck.x, 1) == 63.2
+        assert zone_of(struck) == JUST_INSIDE_THEIR_HALF
+        assert zone_of(from_the_other_end(struck)) == JUST_INSIDE_OWN_HALF
+        assert round(from_the_other_end(struck).x, 1) == 56.8
+
+    def test_molinas_pass_is_not_deep_in_france_s_half(self, facts_2022):
+        """The refusal the resolution is for: Molina played it from (25.9,
+        71.8), which is deep in Argentina's own half and 94.1 up the pitch
+        from France's goal."""
+        played = facts_2022.facts[0].beat.start
+        assert zone_of(played) == DEEP_IN_OWN_HALF
+        assert zone_of(from_the_other_end(played)) != DEEP_IN_OWN_HALF
+        assert round(from_the_other_end(played).x, 1) == 94.1
+
+    def test_the_side_is_left_where_it_was(self, facts_2022):
+        """`y` is not flipped, because a side said after a band is read in
+        the attacking frame wherever it was said."""
+        struck = facts_2022.facts[8].beat.start
+        assert from_the_other_end(struck).y == struck.y
+        assert side_of(from_the_other_end(struck)) == ON_THE_RIGHT
+
+    def test_reading_both_ends_is_the_same_spot_twice(self):
+        there = Spot(x=41.5, y=20.0)
+        assert from_the_other_end(from_the_other_end(there)) == there
+
+    def test_the_own_half_bands_are_the_three_below_halfway(self):
+        assert OWN_HALF_ZONES == (
+            DEEP_IN_OWN_HALF,
+            IN_OWN_HALF,
+            JUST_INSIDE_OWN_HALF,
+        )
+        assert ZONES[:3] == OWN_HALF_ZONES
+        for zone in OWN_HALF_ZONES:
+            assert "own half" in zone
+
+    def test_the_two_their_half_bands_mirror_two_of_the_own_half_ones(self):
+        """Why the resolution can answer in the own-half bands: "just inside
+        their half" and "just inside their own half" are the one place said
+        from the two ends."""
+        for band, mirrored in (
+            (JUST_INSIDE_THEIR_HALF, JUST_INSIDE_OWN_HALF),
+            (IN_THEIR_HALF, IN_OWN_HALF),
+        ):
+            for x in (61.0, 65.0, 69.0, 71.0, 75.0, 79.0):
+                there = Spot(x=x, y=40.0)
+                if zone_of(there) == band:
+                    assert zone_of(from_the_other_end(there)) == mirrored
+
+    def test_the_pitch_is_the_length_the_records_are_written_on(self):
+        assert PITCH_X == 120.0
+        assert PITCH_X - HALFWAY_X == HALFWAY_X

@@ -22,11 +22,14 @@ import pytest
 from app.grounding import check
 from app.narration_prompt import facts_from_buildup
 from app.plain_characters import (
+    APOSTROPHE,
+    CURLY_APOSTROPHE,
     DASHES,
     HYPHENS,
     REMOVED,
     is_space_to_plain,
     plain,
+    straight_apostrophes,
     unplain,
 )
 from app.recorded_names import recorded_nicknames
@@ -303,3 +306,42 @@ class TestTheSpeechRequestIsPlain:
                 plain(header), plain(narration), "storyteller", "scored"
             )
         )
+
+
+class TestTheCurlyApostrophe:
+    """`straight_apostrophes`: one spelling of a possessive ending.
+
+    "France's half" is a claim about a recorded team, and the run of
+    2026-11-05 wrote the ending as a `RIGHT SINGLE QUOTATION MARK`. A name is
+    read with that ending stripped, so the two spellings are made one before
+    anything reads a word.
+    """
+
+    def test_the_curly_one_becomes_the_straight_one(self):
+        assert straight_apostrophes(
+            "France" + CURLY_APOSTROPHE + "s half"
+        ) == "France's half"
+
+    def test_it_is_one_character_for_one_character(self):
+        """Every offset into the text is where it was, which is what
+        `app/grounding.py` reads a clause span off."""
+        written = "Álvarez, just inside France" + CURLY_APOSTROPHE + "s "
+        written += "half, hit a long ball."
+        assert len(straight_apostrophes(written)) == len(written)
+        assert straight_apostrophes(written).index("half") == written.index(
+            "half"
+        )
+
+    def test_a_straight_apostrophe_is_left_as_written(self):
+        assert straight_apostrophes("France's half") == "France's half"
+        assert APOSTROPHE == "'"
+
+    def test_plain_does_not_touch_it(self):
+        """The two normalisations are asked for separately: `plain` says it
+        touches no word, and an apostrophe is part of one."""
+        written = "France" + CURLY_APOSTROPHE + "s half"
+        assert plain(written) == written
+
+    def test_nothing_else_moves(self):
+        written = "Molina to MacAllister, deep in his own half."
+        assert straight_apostrophes(written) == written

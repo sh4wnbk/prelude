@@ -29,6 +29,7 @@ for:
 | "past Beardsley", "around Shilton" | `past` | a `Dribbled Past` on the defender and a `Dribble` by the player at the same clock |
 | "picked it up", "won it back", "closed him down", "finished" | `touch`, `action` | a record of that type by that player |
 | "in his own half", "into the box" | `position` | a coordinate of that player's against the pitch's own lines |
+| "deep in our own half", "just inside our half" | `zone`, resolved | a coordinate read in the frame of the side the possessive names |
 | "under pressure", "first time", "with his left" | `pressured`, `first_time`, `body_part` | the field of that name on a record |
 | "under pressure from Beardsley" | `pressed_by` | a `Pressure` by Beardsley, beside the carrier's own flag |
 | "on the counter" | `pattern` | `play_pattern` |
@@ -54,6 +55,16 @@ came before ("We won it back through Cuciuffo", which is the framework's action
 before name), and with no name either side it belongs to the player with the
 ball ("and finished with his left"). A name taken as a chain's target or as the
 defender in "past X" is spoken for and does not become anybody's actor.
+
+**A half said with a possessive names a side, and the band is read in that
+side's frame.** "Deep in our own half" is the deep part of whichever half the
+listener's team defends, so the one place Molina played the 2022 counter from
+is "deep in our own half" to an Argentina fan and "deep in their own half" to
+a France fan, and "deep in their own half" told to an Argentina fan is a claim
+about a patch of grass ninety yards away. `_reads_from_the_other_end` is the
+resolution and `from_the_other_end` in `app/pitch_zones.py` is the arithmetic.
+A half with no band word in front of it ("we started from our own half") is
+the broad position claim it always was and places nothing.
 
 **"Under pressure" is the exception, and it belongs to the player on the
 ball.** The words around it are the players applying the pressure, not the
@@ -94,6 +105,7 @@ from typing import Mapping, Sequence
 from app.pitch_zones import (
     EDGE_OF_THE_BOX,
     FINAL_THIRD,
+    IN_OWN_HALF,
     IN_THEIR_HALF,
     JUST_INSIDE_OWN_HALF,
     JUST_INSIDE_THEIR_HALF,
@@ -102,9 +114,12 @@ from app.pitch_zones import (
     SIDES,
     THE_BOX,
     DEEP_IN_OWN_HALF,
+    from_the_other_end,
     holds,
     zone_for,
+    zone_of,
 )
+from app.plain_characters import straight_apostrophes
 from app.narration_prompt import (
     LONG_PASS_YARDS,
     TOUCH_ACTIONS,
@@ -260,15 +275,29 @@ PHRASES: Sequence[tuple[str, str, object]] = (
     # the whole of it, and `Reader.read` says what happens to the whole-half
     # one.
     (
-        r"deep in (?:his|her|their|our|its) own half",
+        r"deep in (?:his|her|its) own half",
         "zone",
         DEEP_IN_OWN_HALF,
     ),
     (
-        r"just inside (?:his|her|their|our|its) own half",
+        r"just inside (?:his|her|its) own half",
         "zone",
         JUST_INSIDE_OWN_HALF,
     ),
+    # A half said with "our" or "their", which names a side rather than the
+    # player on the ball. Which side it names is the listener's own or the
+    # other one, so these are resolved when the narration is read and the
+    # band is held in the frame of the side the words picked out. The detail
+    # is the band of that side's own half, or `None` where the phrase names
+    # the whole of it. `_HALF_OWNERS` has the resolution written out.
+    (r"deep in (our|their) own half", "half", DEEP_IN_OWN_HALF),
+    (r"just inside (our|their) own half", "half", JUST_INSIDE_OWN_HALF),
+    (r"in (our|their) own half", "half", None),
+    (r"(our|their) own half", "half", None),
+    (r"deep in (our|their) half", "half", DEEP_IN_OWN_HALF),
+    (r"just inside (our|their) half", "half", JUST_INSIDE_OWN_HALF),
+    (r"in (our|their) half", "half", IN_OWN_HALF),
+    (r"(our|their) half", "half", IN_OWN_HALF),
     # "Just inside France's half", which is how the beats say it: "their" in
     # a narration told for a France fan is the side he is not on. The name is
     # a claim of its own and has to be the side being attacked.
@@ -295,7 +324,6 @@ PHRASES: Sequence[tuple[str, str, object]] = (
     (r"on the right", "zone", ON_THE_RIGHT),
     # Where on the pitch, which is a coordinate against one of two lines.
     (r"his own half", "position", "own half"),
-    (r"their own half", "position", "own half"),
     (r"own half", "position", "own half"),
     (r"into the box", "position", "the box"),
     (r"in the box", "position", "the box"),
@@ -538,6 +566,10 @@ def _phrase_hits(text: str) -> list[_Hit]:
                     detail,
                     match.group(1) if match.re.groups else None,
                 )
+            if kind == "half":
+                # The band of one side's own half, or `None` for the whole
+                # half, and the word that says whose half it is.
+                value = (detail, match.group(1))
             found.append(
                 _Hit(kind, match.group(0), match.start(), match.end(), value)
             )
@@ -704,6 +736,12 @@ class Reader:
     not_a_name: frozenset[str]
     demonyms: Mapping[str, str]
     actions: Mapping[str, frozenset[str]]
+    #: The team the listener is on, where the narration was written for one.
+    #: It is what resolves "our half" and "their half": the same words are a
+    #: different half of the pitch for a fan of either side. `None` for a
+    #: narration written for nobody in particular, and then a possessive half
+    #: reads as the phrase it is spelled like, which `_half_of` sets out.
+    side: str | None = None
     tracked: str | None = None
 
     def __post_init__(self) -> None:
@@ -712,7 +750,15 @@ class Reader:
         self.text = ""
 
     def read(self, text: str) -> tuple[Move, ...]:
-        """One sentence as the moves it makes, in the order it makes them."""
+        """One sentence as the moves it makes, in the order it makes them.
+
+        The curly apostrophe is written as a straight one first, so
+        "France's half" is one phrase however the ending was spelled.
+        `app/grounding.py` has already done it to the text it checks and the
+        rewrite is one character for one character, so doing it again moves
+        no offset.
+        """
+        text = straight_apostrophes(text)
         self.text = text
         phrases = _phrase_hits(text)
         names = _name_hits(
@@ -930,6 +976,41 @@ class Reader:
                     )
                 )
 
+            elif hit.kind == "half":
+                # A half said with a possessive, resolved to a side and then
+                # read in that side's own frame. A band is a place like any
+                # other zone claim; the whole half is the broad position
+                # claim "in his own half" always was, and is not a place.
+                band, said = hit.detail
+                other_end = _reads_from_the_other_end(
+                    said, hit.said, self.facts, self.side
+                )
+                if band is None:
+                    moves.append(
+                        Move(
+                            "position",
+                            hit.said,
+                            hit.at,
+                            actor=self.tracked,
+                            detail="the other half" if other_end
+                            else "own half",
+                        )
+                    )
+                else:
+                    moves.append(
+                        Move(
+                            "zone",
+                            hit.said,
+                            hit.at,
+                            actor=self.tracked,
+                            detail={
+                                "zone": band,
+                                "team": None,
+                                "other_end": other_end,
+                            },
+                        )
+                    )
+
             elif hit.kind == "duration":
                 moves.append(
                     Move("duration", hit.said, hit.at, detail=hit.detail)
@@ -1143,6 +1224,79 @@ def zone_spots(beat: Beat) -> tuple[Spot, ...]:
     if beat.action in ("Pass", "Carry") and beat.end:
         places.append(beat.end)
     return tuple(places)
+
+
+#: A half said as the listener's own, which is the one phrase that lets a
+#: partisan voice say "our" over the other side's play. "Álvarez, just inside
+#: our half on the right" told for a France fan is France's half said by a
+#: France fan, and every record in that clause is Argentina's, so the first
+#: person has nothing in the play to stand on and does not need it: the claim
+#: itself is what says whose half it is. `app/grounding.py` reads this.
+OUR_HALF = re.compile(
+    r"\bour\b([\s-]+own)?[\s-]+half", re.IGNORECASE
+)
+
+
+def names_our_half(move: Move) -> bool:
+    """Whether this move is a half claim said as the listener's own half."""
+    return move.kind in ("zone", "position") and bool(
+        OUR_HALF.search(move.said)
+    )
+
+
+def _reads_from_the_other_end(
+    said: str, phrase: str, facts: Facts, side: str | None
+) -> bool:
+    """Whether a possessive half is the half the side in possession attacks.
+
+    **The words name a side and the band is read in that side's frame.**
+    "Deep in our own half" is the deep part of whichever half the listener's
+    team defends, so for a fan of the side that scored it is the attacking
+    frame the records are already written in, and for a fan of the other side
+    it is the far end of the pitch. "Their own half" is the same two readings
+    the other way round. That is the whole of the resolution, and it is what
+    makes the 2022 counter sayable in both Buddy voices: "Molina started it
+    deep in our own half" for an Argentina fan and "deep in their own half"
+    for a France fan are the one place, and "deep in their own half" told to
+    an Argentina fan is France's own half, which is ninety yards away from
+    where Molina played it.
+
+    **With no side in hand nothing resolves the possessive**, so the phrase
+    is read as the vocabulary spells it: "their own half" is the half the
+    side on the ball defends, which is what "his own half" says, and "their
+    half" with no "own" in it is the opponent's, which is what
+    `IN_THEIR_HALF` and `JUST_INSIDE_THEIR_HALF` are the words for. A
+    narration written for nobody cannot say "our" at all: `FIRST_PERSON` in
+    `app/grounding.py` refuses the first person from a voice that is not
+    partisan, whatever it was said about.
+
+    A half said with a team's own name is not here. It is read by the two
+    name patterns in `PHRASES`, which `names_the_other_side` holds to the
+    side being attacked, and naming the side in possession is refused rather
+    than resolved.
+    """
+    if side:
+        in_possession = fold(side) == fold(facts.moment.team)
+        if fold(said) == "our":
+            return not in_possession
+        return in_possession
+    return "own" not in fold(phrase)
+
+
+def zone_holds(detail: Mapping, place: Spot) -> bool:
+    """Whether one zone claim is true of one spot, in the frame it was said in.
+
+    Every band and side is held against the spot as the records write it,
+    except a half said with a possessive that resolved to the side being
+    attacked: that one is read from their end of the pitch, which is what
+    `from_the_other_end` answers.
+    """
+    zone = detail.get("zone")
+    if not zone:
+        return False
+    if detail.get("other_end"):
+        place = from_the_other_end(place)
+    return holds(zone, place)
 
 
 def names_the_other_side(said: str, facts: Facts) -> bool:
@@ -1385,6 +1539,11 @@ def support(move: Move, facts: Facts) -> tuple[Beat, ...]:
             for place in player_spots(facts, beat.player):
                 if move.detail == "own half" and place.in_own_half:
                     return (beat,)
+                if (
+                    move.detail == "the other half"
+                    and not place.in_own_half
+                ):
+                    return (beat,)
                 if move.detail == "the box" and place.in_the_box:
                     return (beat,)
         return ()
@@ -1407,7 +1566,9 @@ def support(move: Move, facts: Facts) -> tuple[Beat, ...]:
             # the left" over a dribble that happened at (54.4, 56.4).
             for beat in support(about, facts)
             if beat.team == facts.moment.team
-            and any(holds(zone, place) for place in zone_spots(beat))
+            and any(
+                zone_holds(detail, place) for place in zone_spots(beat)
+            )
         )
 
     if kind == "pattern":
@@ -1576,18 +1737,29 @@ def why(move: Move, facts: Facts) -> str:
                 f"passage holds {str(about)!r} for it to place, and a place "
                 "is read off the attacking side's own location"
             )
+        # A half resolved to the side being attacked is read from their end
+        # of the pitch, so the places it is being held against are said from
+        # that end too, or the reason would name a band on the wrong half.
+        other_end = bool(detail.get("other_end"))
         places = sorted(
+            # A band of the other side's own half is answered from their end
+            # of the pitch, and with no side after it: `from_the_other_end`
+            # leaves `y` alone, because a side is read in the attacking frame
+            # wherever it was said.
             {
-                zone_for(place, facts.opponent)
+                zone_of(from_the_other_end(place))
+                if other_end
+                else zone_for(place, facts.opponent)
                 for beat in ours
                 for place in zone_spots(beat)
             }
         )
         said = " and ".join(places) or "nowhere the records locate"
         kind = "side of the pitch" if zone in SIDES else "part of the pitch"
+        frame = ", read from the other end of the pitch" if other_end else ""
         return (
-            f"{move.said!r}: the records put that action {said}, which is "
-            f"another {kind}"
+            f"{move.said!r}: the records put that action {said}{frame}, "
+            f"which is another {kind}"
         )
     if move.kind == "pattern":
         held = ", ".join(sorted(facts.play_patterns)) or "nothing"

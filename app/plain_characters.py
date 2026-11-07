@@ -103,6 +103,35 @@ def is_space_to_plain(character: str) -> bool:
     return unicodedata.category(character) == "Zs"
 
 
+#: The curly apostrophe, and the straight one it stands in for.
+#:
+#: **A name is read with its possessive ending stripped, and the ending has
+#: two spellings.** "France's half" is a claim about a recorded team, and the
+#: run of 2026-11-05 wrote it with a `RIGHT SINGLE QUOTATION MARK` in the
+#: middle, which is what a model trained on prose writes and what a keyboard
+#: with smart quotes produces. The reading holds either one in the patterns it
+#: matches with, and holding a character in two spellings everywhere it is
+#: read is how one of the two gets missed; so the curly one is written as the
+#: straight one before any of it is read.
+#:
+#: It is a separate function from `plain` on purpose. `plain` rewrites a
+#: disguised space or hyphen and says it touches no word; an apostrophe is
+#: part of a word, so the two normalisations are asked for separately and a
+#: caller can see which it wanted.
+CURLY_APOSTROPHE = "\u2019"
+APOSTROPHE = "'"
+
+
+def straight_apostrophes(text: str) -> str:
+    """`text` with every curly apostrophe written as a straight one.
+
+    One character for one character, so every offset into the text is where it
+    was: `app/grounding.py` reads a clause span off a position in the sentence
+    it checked.
+    """
+    return text.replace(CURLY_APOSTROPHE, APOSTROPHE)
+
+
 def plain(text: str) -> str:
     """`text` with every disguised space and hyphen written plainly.
 

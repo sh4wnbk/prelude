@@ -51,6 +51,14 @@ they stay separate constants because they answer a different question: the box
 bands ask whether a spot is inside the box, and these ask whether it is out
 wide.
 
+**A half can be said with a possessive, and then it is read from that side's
+end of the pitch.** "Deep in our own half" told for a fan of the side that
+conceded is their own half and not the half the records are written in, so
+`from_the_other_end` answers the band `PITCH_X` less the recorded `x`. The
+three own-half bands and the two "their half" ones are the same places read
+from the two ends, which is what lets one set of words answer for either
+side; `app/narration_grammar.py` resolves which side a possessive names.
+
 **The box needs its width and the final third is what is left.** A ball at
 `x` 110 and `y` 10 is past the eighteen yard line and nowhere near the box: it
 is by the byline with the goal frame between it and the posts. So both box
@@ -140,6 +148,39 @@ SIDES: tuple[str, ...] = (ON_THE_LEFT, ON_THE_RIGHT)
 #: The two bands whose words say "their", which is the opponent's half and is
 #: the one place a zone phrase can be said with a team's name in it.
 THEIR_HALF_ZONES = frozenset({JUST_INSIDE_THEIR_HALF, IN_THEIR_HALF})
+
+#: The three bands that are a team's own half, in the order they run away from
+#: that team's own goal. They are the bands a half said with a possessive can
+#: name, because "deep in our own half" and "just inside France's half" are
+#: the same three bands read from one end of the pitch or the other.
+OWN_HALF_ZONES: tuple[str, ...] = (
+    DEEP_IN_OWN_HALF,
+    IN_OWN_HALF,
+    JUST_INSIDE_OWN_HALF,
+)
+
+#: The length of the pitch, in StatsBomb's yards of `x`. A location is written
+#: in the frame of the team whose record it is, so one end's `x` is `PITCH_X`
+#: less the other's: Álvarez struck the long ball at `x` 63.2, which is 56.8
+#: from France's end.
+PITCH_X = 120.0
+
+
+def from_the_other_end(place: Spot) -> Spot:
+    """One spot as the side at the other end of the pitch would place it.
+
+    For a half said with a possessive, which is a claim about one side's own
+    half and has to be read in that side's frame: "just inside our half" told
+    for a France fan is 56.8 up the pitch from France's goal and 63.2 from
+    Argentina's, and only the first reading makes it just inside a half.
+
+    **`y` is left as it was, and that is deliberate.** The bands this is for
+    are the three of a team's own half, which ask about `x` alone, and a side
+    said after one of them ("just inside our half on the right") is a separate
+    claim that `side_of` reads in the attacking frame wherever it was said.
+    Flipping `y` here would move a side claim nothing asked to move.
+    """
+    return Spot(x=PITCH_X - place.x, y=place.y)
 
 
 def in_the_box_width(place: Spot) -> bool:
