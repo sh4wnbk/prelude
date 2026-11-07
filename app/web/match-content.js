@@ -127,6 +127,47 @@
     }
   }
 
+  // The narrator the fan chose for this session. One value across all matches,
+  // held the same way the name is: a preference on the phone, read and written
+  // inside a try, key removed when the id is empty.
+  function narratorFor() {
+    try {
+      return window.sessionStorage.getItem("prelude.narrator") || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function setNarrator(id) {
+    try {
+      if (id) {
+        window.sessionStorage.setItem("prelude.narrator", id);
+      } else {
+        window.sessionStorage.removeItem("prelude.narrator");
+      }
+    } catch (e) {
+      /* nothing to do */
+    }
+  }
+
+  // The one lookup: the slot a fan is about to hear, given the match, an
+  // optional narrator id (defaults to the stored choice) and an optional side
+  // (defaults to the stored answer for this match). Only this function reads
+  // hero.voice_for.
+  function slotFor(match, narratorId, side) {
+    var voiceFor = match && match.hero && match.hero.voice_for;
+    if (!voiceFor) return null;
+    var answer = side || listenerFor(match.match_id) || "neutral";
+    var fallback = voiceFor[answer] || voiceFor.neutral || null;
+    var chosen = narratorId === undefined ? narratorFor() : narratorId;
+    if (!chosen) return fallback;
+    var keys = [voiceFor[answer], voiceFor.neutral];
+    for (var i = 0; i < keys.length; i++) {
+      if (keys[i] && keys[i].indexOf(chosen + "_") === 0) return keys[i];
+    }
+    return fallback;
+  }
+
   // Append the fan's name to the last sentence of a header, replacing the
   // final period with ", name.". The name is joined as a plain string and
   // never passed to replace(): a replacement string reads "$&" and "$1" as
@@ -194,7 +235,8 @@
     resetMoment: resetMoment, ticketFor: ticketFor, setTicket: setTicket,
     ticketLine: ticketLine, whenMatches: whenMatches, matches: null,
     listenerFor: listenerFor, setListener: setListener,
-    nameFor: nameFor, setName: setName, headerWithName: headerWithName
+    nameFor: nameFor, setName: setName, headerWithName: headerWithName,
+    narratorFor: narratorFor, setNarrator: setNarrator, slotFor: slotFor
   };
 
   function field(name, root) {
@@ -294,13 +336,6 @@
   // spelled in the markup and in app/narration.py and never here:
   // scripts/scan_copy.py refuses it in a copy file, because copy data
   // carries no markup that could place it over anything.
-  function narrationKey(match) {
-    var voiceFor = match.hero && match.hero.voice_for;
-    if (!voiceFor) return null;
-    var allegiance = listenerFor(match.match_id) || "neutral";
-    return voiceFor[allegiance] || voiceFor.neutral || null;
-  }
-
   function renderNarration(match) {
     if (!field("hero_narration")) return;
 
@@ -313,7 +348,7 @@
         var frozen = (doc.narrations || {})[String(match.match_id)];
         if (!frozen) return;
         var slots = frozen.slots || {};
-        var key = narrationKey(match);
+        var key = slotFor(match);
         var slot = (key && slots[key]) || slots.storyteller_neutral;
         // No narration for this listener means the words under the grounding
         // label were never checked for them, so the inline copy stays rather
@@ -383,12 +418,13 @@
         return response.json();
       })
       .then(function (doc) {
-        var voiceFor = match.hero && match.hero.voice_for;
-        var allegiance = listenerFor(match.match_id) || "neutral";
-        var voiceKey = voiceFor ? voiceFor[allegiance] : null;
-        var currentId = voiceKey ? voiceKey.split("_")[0] : null;
+        var currentSlot = slotFor(match);
+        var currentId = currentSlot ? currentSlot.split("_")[0] : null;
 
         var narrators = doc.narrators || [];
+
+        while (list.firstChild) list.removeChild(list.firstChild);
+
         for (var i = 0; i < narrators.length; i++) {
           var narrator = narrators[i];
           var isCurrent = narrator.id === currentId;
@@ -414,13 +450,29 @@
           btn.appendChild(nameSpan);
           btn.appendChild(profileSpan);
 
-          (function (n, current) {
-            btn.addEventListener("click", function () {
-              if (current) return;
-              note.textContent = n.name + " is coming soon. For now, Prelude picks your narrator from who you're with.";
-              note.removeAttribute("hidden");
-            });
-          }(narrator, isCurrent));
+          var ownSlot = slotFor(match, narrator.id);
+          var canChoose = ownSlot ? ownSlot.indexOf(narrator.id + "_") === 0 : false;
+
+          (function (n, choosable) {
+            if (choosable && !isCurrent) {
+              btn.addEventListener("click", function () {
+                setNarrator(n.id);
+                renderNarrators(match);
+              });
+            } else if (!choosable) {
+              btn.setAttribute("aria-disabled", "true");
+              btn.addEventListener("click", function () {
+                var hasAnySlot = ["team_a", "team_b", "neutral"].some(function (ans) {
+                  var s = slotFor(match, n.id, ans);
+                  return s ? s.indexOf(n.id + "_") === 0 : false;
+                });
+                note.textContent = hasAnySlot
+                  ? n.name + " needs a team. Choose a team under 'Who are you with.'"
+                  : n.name + " is coming soon.";
+                note.removeAttribute("hidden");
+              });
+            }
+          }(narrator, canChoose));
 
           list.appendChild(btn);
         }

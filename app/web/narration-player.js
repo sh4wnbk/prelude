@@ -41,12 +41,7 @@
         return;
       }
 
-      var allegiance = Prelude.listenerFor(Prelude.matchId) || 'neutral';
-      var voiceFor = match.hero && match.hero.voice_for;
-      if (!voiceFor) {
-        return;
-      }
-      var key = voiceFor[allegiance];
+      var key = Prelude.slotFor(match);
       var audio_map = match.hero && match.hero.audio;
       var file = audio_map && key && audio_map[key];
       if (!file) {
