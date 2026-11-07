@@ -22,10 +22,11 @@
 #
 # What the schedule costs, by GitHub's billing rule that each job is rounded
 # up to the whole minute: six runs an hour is 144 a day, so 144 minutes a day
-# and 4,320 in a 30 day month (4,464 in a 31 day one). A private repository on
-# GitHub Free includes 2,000 Actions minutes a month, so the schedule runs
-# through the allowance in about a fortnight. Minutes are not metered on a
-# public repository. That is the decision the switch is for.
+# and 4,320 in a 30 day month (4,464 in a 31 day one). This account is on
+# GitHub Pro, which includes 3,000 Actions minutes a month on a private
+# repository, so the schedule still runs through the allowance, in about three
+# weeks. Minutes are not metered on a public repository. That is the decision
+# the switch is for.
 
 name: Keep the API awake
 

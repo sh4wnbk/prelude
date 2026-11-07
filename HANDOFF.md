@@ -4,6 +4,23 @@ State of the repo at the end of Phase 2. Every number below came from a command
 that ran; see `docs/data_check.md` and `docs/DESIGN.md` for the generated and
 derived reports.
 
+## Before any Orchestrate test, demo recording or judging
+
+**Standing, kept until submission.** The hosted API is at
+<https://prelude-api.onrender.com>. Render spins the free service down after
+fifteen minutes without traffic, and a cold wake took 82 seconds on the
+keepalive run of 2026-11-07. A tool call that is the first traffic in a quarter
+of an hour waits that long, and Orchestrate gives it less.
+
+1. **Until the repository variable `PRELUDE_KEEPALIVE` reads `on`**, open
+   <https://prelude-api.onrender.com/health> yourself and wait for
+   `{"status": "ok"}` before testing a tool, recording the demo or handing the
+   URL to a judge. The service is warm for fifteen minutes after that.
+2. **Turn `PRELUDE_KEEPALIVE` on before judging**, under Settings, Secrets and
+   variables, Actions, Variables. Do it after the repository goes public, where
+   Actions minutes are not metered; on a private repository the schedule bills
+   144 minutes a day. Then nothing has to be woken by hand.
+
 ## What was built
 
 ### Phase 1
@@ -3101,9 +3118,11 @@ runs below.
 manual dispatch. The URL is the repository variable `PRELUDE_API_URL`, not a
 line in the file. By GitHub's billing rule that each job is rounded up to the
 whole minute, six runs an hour is 144 a day, so 144 Actions minutes a day and
-4,320 in a 30 day month, or 4,464 in a 31 day one, against the 2,000 a month a
-private repository on GitHub Free includes: about a fortnight of allowance.
-Minutes are not metered on a public repository. So the schedule is behind a
+4,320 in a 30 day month, or 4,464 in a 31 day one, against the 3,000 a month
+this account's GitHub Pro plan includes on a private repository: about three
+weeks of allowance. (Corrected 2026-11-07: this paragraph and the comment in
+`.github/workflows/keepalive.yml` first said 2,000 and GitHub Free.) Minutes
+are not metered on a public repository. So the schedule is behind a
 second variable, `PRELUDE_KEEPALIVE`: unless it reads `on` the scheduled job
 is skipped before a runner starts and bills nothing, while a hand run goes
 either way.
@@ -3162,7 +3181,8 @@ reports one warning beside `1595 passed`.
 4. **Set the repository variables.** GitHub, Settings, Secrets and variables,
    Actions, Variables: `PRELUDE_API_URL` to that URL, and `PRELUDE_KEEPALIVE`
    to `on` when the Actions minutes above are acceptable, which on a private
-   repository they are not for long.
+   repository they are not for long. The standing section at the top of this
+   file says when to turn it on and what to do until then.
 5. **Run the keepalive by hand once.** Actions tab, "Keep the API awake", Run
    workflow. A hand run goes whatever the switch says, and its log prints the
    body it got back. This is also what proves the file is valid YAML.
