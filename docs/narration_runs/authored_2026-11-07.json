@@ -1,0 +1,185 @@
+{
+  "_note": "The six hero narrations, written by the team and kept verbatim in scripts/authored_narrations.py, re-checked against data/raw/ by that script. No model wrote them and no model was called for this file. The model runs are in docs/narration_runs/ beside it.",
+  "author": "the team",
+  "authorship": "written by the team, verified by the grounding check",
+  "written_on": "2026-11-07",
+  "rechecked_on": "2026-11-07",
+  "goals": [
+    {
+      "year": 1986,
+      "match_id": 3750191,
+      "minute": 54,
+      "second": 18,
+      "player": "Diego Armando Maradona",
+      "team": "Argentina",
+      "opponent": "England",
+      "records": 24,
+      "slots": [
+        {
+          "slot": "buddy_conceded",
+          "narrator": "buddy",
+          "side": "England",
+          "author": "the team",
+          "authorship": "written by the team, verified by the grounding check",
+          "text": "Maradona picked it up just inside his own half, and though Beardsley and Reid pressed him, he went past Beardsley there, past Butcher in the final third on the right and past Fenwick on the edge of the box, then got past Shilton in the box and scored with his left foot.",
+          "grounded": true,
+          "claims_checked": 17,
+          "summary": "grounded: 17 claim(s) all traced to the data",
+          "refusals": [],
+          "missing_places": "",
+          "missing_opener": "",
+          "billed_characters": 324,
+          "characters": 270,
+          "words": 52,
+          "who": 0,
+          "zones": [
+            "just inside his own half",
+            "in the final third",
+            "on the right",
+            "on the edge of the box"
+          ]
+        },
+        {
+          "slot": "buddy_scored",
+          "narrator": "buddy",
+          "side": "Argentina",
+          "author": "the team",
+          "authorship": "written by the team, verified by the grounding check",
+          "text": "Cuciuffo won it back deep in our own half, Enrique found Maradona just inside his own half, and from there it was all him: past Beardsley, on into the final third, past Butcher on the right, past Fenwick on the edge of the box, into the box, past Shilton, and he scored with his left foot! What a finish!",
+          "grounded": false,
+          "claims_checked": 18,
+          "summary": "not grounded: 1 of 18 claim(s) could not be pointed at: sentence 1: zone \"'the final third': the records put that action just inside his own half, which is another part of the pitch\"",
+          "refusals": [
+            "sentence 1: zone \"'the final third': the records put that action just inside his own half, which is another part of the pitch\""
+          ],
+          "missing_places": "",
+          "missing_opener": "",
+          "billed_characters": 351,
+          "characters": 304,
+          "words": 59,
+          "who": 0,
+          "zones": [
+            "deep in our own half",
+            "just inside his own half",
+            "the final third",
+            "on the right",
+            "on the edge of the box"
+          ]
+        },
+        {
+          "slot": "storyteller_neutral",
+          "narrator": "storyteller",
+          "side": null,
+          "author": "the team",
+          "authorship": "written by the team, verified by the grounding check",
+          "text": "Cuciuffo won it back deep in his own half, and Enrique played it to Maradona just inside his own half. He went past Beardsley there, carried it on into the final third, beat Butcher on the right and Fenwick on the edge of the box, then took it into the box, slipped past Shilton and scored with his left foot. What a moment.",
+          "grounded": false,
+          "claims_checked": 18,
+          "summary": "not grounded: 2 of 18 claim(s) could not be pointed at: sentence 2: zone \"'on the right': no record of Argentina's in this passage holds 'Butcher' for it to place, and a place is read off the attacking side's own location\"; sentence 2: zone \"'on the edge of the box': no record of Argentina's in this passage holds 'Fenwick' for it to place, and a place is read off the attacking side's own location\"",
+          "refusals": [
+            "sentence 2: zone \"'on the right': no record of Argentina's in this passage holds 'Butcher' for it to place, and a place is read off the attacking side's own location\"",
+            "sentence 2: zone \"'on the edge of the box': no record of Argentina's in this passage holds 'Fenwick' for it to place, and a place is read off the attacking side's own location\""
+          ],
+          "missing_places": "",
+          "missing_opener": "",
+          "billed_characters": 367,
+          "characters": 324,
+          "words": 63,
+          "who": 0,
+          "zones": [
+            "deep in his own half",
+            "just inside his own half",
+            "the final third",
+            "on the right",
+            "on the edge of the box"
+          ]
+        }
+      ]
+    },
+    {
+      "year": 2022,
+      "match_id": 3869685,
+      "minute": 35,
+      "second": 22,
+      "player": "Ángel Fabián Di María Hernández",
+      "team": "Argentina",
+      "opponent": "France",
+      "records": 13,
+      "slots": [
+        {
+          "slot": "buddy_conceded",
+          "narrator": "buddy",
+          "side": "France",
+          "author": "the team",
+          "authorship": "written by the team, verified by the grounding check",
+          "text": "Molina started it deep in their own half, on to MacAllister, MacAllister to Messi, Messi to Álvarez, and Álvarez, just inside our half on the right, hit a long ball forward to MacAllister on the edge of the box. He set up Di María in the box, and Di María hit it first time with his left foot. Ah, no.",
+          "grounded": true,
+          "claims_checked": 22,
+          "summary": "grounded: 22 claim(s) all traced to the data",
+          "refusals": [],
+          "missing_places": "",
+          "missing_opener": "",
+          "billed_characters": 428,
+          "characters": 301,
+          "words": 60,
+          "who": 0,
+          "zones": [
+            "deep in their own half",
+            "just inside our half",
+            "on the right",
+            "on the edge of the box"
+          ]
+        },
+        {
+          "slot": "buddy_scored",
+          "narrator": "buddy",
+          "side": "Argentina",
+          "author": "the team",
+          "authorship": "written by the team, verified by the grounding check",
+          "text": "Molina started it deep in our own half, on to MacAllister, MacAllister to Messi, Messi on to Álvarez, and from just inside France's half on the right, Álvarez hit a long ball forward to MacAllister on the edge of the box. He set up Di María in the box, Di María hit it first time with his left foot, and it went in! Oh, lovely!",
+          "grounded": true,
+          "claims_checked": 23,
+          "summary": "grounded: 23 claim(s) all traced to the data",
+          "refusals": [],
+          "missing_places": "",
+          "missing_opener": "",
+          "billed_characters": 449,
+          "characters": 327,
+          "words": 65,
+          "who": 0,
+          "zones": [
+            "deep in our own half",
+            "just inside France's half",
+            "on the right",
+            "on the edge of the box"
+          ]
+        },
+        {
+          "slot": "storyteller_neutral",
+          "narrator": "storyteller",
+          "side": null,
+          "author": "the team",
+          "authorship": "written by the team, verified by the grounding check",
+          "text": "Argentina were on the counter when Molina, deep in his own half on the right, found MacAllister. He played it to Messi, Messi moved it on to Álvarez, and Álvarez, just inside France's half on the right, hit a long ball forward to MacAllister again on the edge of the box. He set up Di María in the box, and Di María finished first time with his left foot. What a finish.",
+          "grounded": true,
+          "claims_checked": 23,
+          "summary": "grounded: 23 claim(s) all traced to the data",
+          "refusals": [],
+          "missing_places": "",
+          "missing_opener": "",
+          "billed_characters": 485,
+          "characters": 370,
+          "words": 72,
+          "who": 0,
+          "zones": [
+            "deep in his own half",
+            "on the right",
+            "just inside France's half",
+            "on the right",
+            "on the edge of the box"
+          ]
+        }
+      ]
+    }
+  ]
+}
