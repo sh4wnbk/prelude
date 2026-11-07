@@ -3049,7 +3049,7 @@ play data" goes over those words and nothing else, and an agent that
 summarises says so and drops the label. `CLAUDE.md` allows no partial credit
 and no softened variant, and an agent is the one writer in this system that
 nobody here reviews, so the rule is written where it will be read.
-`tests/test_orchestrate_agent.py`, 16 tests, holds both rules, reads the label
+`tests/test_orchestrate_agent.py`, 25 tests, holds both rules, reads the label
 from `app/grounding.py` and the three listener values from `app.openapi()`,
 and refuses a verdict nickname in the file at all.
 

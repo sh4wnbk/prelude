@@ -99,6 +99,7 @@ collector from
 | `scripts/make_tickets.py` | one demo ticket QR code per match | `app/web/assets/tickets/` | nothing |
 | `scripts/write_headers.py` | the orchestrator's opening and `hero.voice_for` per match, with `--check` as the gate on drift | `app/web/matches.json` | nothing |
 | `scripts/write_narrators.py` | the three narrators as the browser reads them, from `app/personas.py` | `app/web/narrators.json` | nothing |
+| `scripts/write_served_matches.py` | the matches the agent is told it serves, from `app/web/matches.json` and `data/raw/matches/`, with `--check` as the gate on drift | the list inside `docs/orchestrate_agent.md` | nothing |
 | `scripts/story_beats_report.py` | the beat list for both hero goals, beside the records it was curated from | nothing | nothing |
 | `scripts/scan_copy.py` | gate: banned copy, and the grounding label's placement | nothing | nothing |
 | `scripts/check_match_copy.py` | gate: every factual value in `app/web/matches.json` against `data/raw/` | nothing | nothing |
@@ -202,7 +203,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 1705 tests in thirty five files. Any failure means something is
+The suite is 1714 tests in thirty five files. Any failure means something is
 wrong, with one exception, which is written down below rather than left for a
 reader to discover. It is run from the repo root:
 
