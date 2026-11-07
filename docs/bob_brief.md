@@ -122,7 +122,7 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-1434 passed
+1452 passed
 ```
 
 The total covers far more than this module now. Phase 4 added the narration

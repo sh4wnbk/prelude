@@ -360,7 +360,7 @@ def rules(
 ) -> str:
     """The rules, which are the ones `app/grounding.py` holds a goal call to.
 
-    Sixteen of them are the same for every narrator and rule 11 is the
+    Seventeen of them are the same for every narrator and rule 11 is the
     narrator's own. The one that reads differently per narrator is the one
     the check reads differently: the first person, the exclamation mark and
     how the reaction ends.
@@ -382,6 +382,14 @@ def rules(
     record in both passages carries a location, so a telling that places
     every beat reads as a list of coordinates with words around it. Two or
     three is what the references do.
+
+    **Rule 18 is Shawn's, read off the six narrations the team wrote.** Every
+    one of them opens on a player, a team or a country the records hold, and a
+    telling that opens on "We" starts with the listener rather than with the
+    match. Nothing in `app/grounding.py` answers to it either: an opener is
+    cadence and not a claim, so `opener_missing` in
+    `scripts/narrator_candidates.py` is what refuses one, beside the places
+    rule.
 
     **Rule 14 is a cadence rule and not a claim rule**, which is why nothing
     in `app/grounding.py` answers to it. Every candidate of 2026-10-31 hung
@@ -540,6 +548,13 @@ def rules(
                 "Place the move on the pitch two or three times: where it"
                 " started, where the decisive action happened, and where it"
                 " finished. Do not give every beat a place.",
+            ),
+            _rule(
+                18,
+                "Open on a name. The first word of the narration is a player,"
+                " a team or a country the records above hold, and never"
+                " \"We\", \"It\" or \"The\": a telling starts with the"
+                " match and not with the listener.",
             ),
         )
     )

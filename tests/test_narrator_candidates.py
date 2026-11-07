@@ -72,6 +72,7 @@ from scripts.narrator_candidates import (
     DEFAULT_PER_SLOT,
     PLACES_WANTED,
     long_ball_of,
+    opener_missing,
     places_missing,
     zone_claims,
     zones_said,
@@ -1728,11 +1729,25 @@ class TestTheRunIsCappedInTokens:
 #: refuses it, and a test about the token cap needs an answer the run keeps.
 #: Every place in it is one the records hold: Molina's pass is struck at
 #: (25.9, 71.8) and the long ball comes down at (99.3, 54.9).
+#: Rule 18, the opener, as the prompt prints it. Quoted here rather than
+#: imported because the rules are text a model reads.
+OPENER_RULE = (
+    "Open on a name. The first word of the narration is a player, a team or "
+    "a country the records above hold, and never \"We\", \"It\" or "
+    "\"The\": a telling starts with the match and not with the listener."
+)
+
+
+#: The 2022 Argentina Buddy reference with the beats' own places said in it,
+#: and opening on the team rather than on "We": rule 18 and `opener_missing`
+#: ask the first word to name a player, a team or a country the records hold,
+#: and this one is a candidate the run is meant to keep.
 PLACED_BUDDY_2022 = (
-    "We went on the counter, Molina to MacAllister deep in his own half on "
-    "the right, MacAllister to Messi, Messi on to Álvarez, a long ball "
-    "forward to MacAllister again on the edge of the box, and he set up Di "
-    "María, who hit it first time with his left foot and scored!"
+    "Argentina were on the counter, Molina to MacAllister deep in his own "
+    "half on the right, MacAllister to Messi, Messi on to Álvarez, a "
+    "long ball forward to MacAllister again on the edge of the box, and he "
+    "set up Di María, who hit it first time with his left foot and "
+    "scored!"
 )
 
 
@@ -1740,8 +1755,9 @@ class TestTheCapStopsTheRunAndKeepsWhatWasWritten:
     """The cap driven through `gather`, against a recorded response.
 
     The answer replayed here is a reference narration with the beats' own
-    places said in it, so it passes the grounding check and the places rule
-    and the run really does keep a candidate before the cap stops it.
+    places said in it and the team's name as its first word, so it passes the
+    grounding check, the places rule and the opener rule, and the run really
+    does keep a candidate before the cap stops it.
     Nothing opens a connection: `tests/conftest.py` would fail the test if
     it did.
     """
@@ -2011,20 +2027,22 @@ class TestANearCopyIsNotACandidate:
         ]
         assert max(apart) < NEAR_COPY_RATIO <= min(copies)
 
-    #: The same pair with the beats' own places said in both. Neither of the
-    #: two above places the move, so `places_missing` refuses them before the
-    #: near copy filter ever sees them, and what is being tested here is the
-    #: filter. One word apart still, and 0.979 alike.
+    #: The same pair with the beats' own places said in both, and opening on
+    #: Molina rather than on "We". Neither of the two above places the move,
+    #: so `places_missing` refuses them before the near copy filter ever sees
+    #: them, and `opener_missing` would refuse them for the first word after
+    #: that; what is being tested here is the filter. Still one word apart,
+    #: and still 0.979 alike.
     PLACED_TWO = (
-        "We passed from Molina to MacAllister deep in his own half on the "
-        "right, he found Messi, Messi to Álvarez, Álvarez to "
+        "Molina passed from deep in his own half on the right to "
+        "MacAllister, he found Messi, Messi to Álvarez, Álvarez to "
         "MacAllister forward on the edge of the box, MacAllister set up Di "
         "María who struck with his left foot and it went in! What a "
         "moment!"
     )
     PLACED_THREE = (
-        "We went from Molina to MacAllister deep in his own half on the "
-        "right, he found Messi, Messi to Álvarez, Álvarez to "
+        "Molina went from deep in his own half on the right to "
+        "MacAllister, he found Messi, Messi to Álvarez, Álvarez to "
         "MacAllister forward on the edge of the box, MacAllister set up Di "
         "María who struck with his left foot and it went in! What a "
         "moment!"
@@ -2342,13 +2360,18 @@ class TestTheRuleAboutPlacingTheMove:
             assert self.RULE in flat(build_goal_call_prompt(facts, key))
 
     @pytest.mark.parametrize("key", sorted(STYLES))
-    def test_it_is_the_last_rule_and_the_rest_are_unchanged(
+    def test_it_is_the_second_to_last_rule_and_the_rest_are_unchanged(
         self, key, facts_2022
     ):
+        """Rule 18, the opener, was added after it and is last now. The
+        numbers before 17 do not move, because other rules are referred to by
+        number in `HANDOFF.md` and in this suite."""
         said = flat(
             rules(facts_2022, STYLES[key], GOAL_CALL_TARGET_CHARACTERS)
         )
-        assert said.rstrip().endswith(self.RULE)
+        assert self.RULE in said
+        assert said.index(self.RULE) > said.index("Use the word \"who\"")
+        assert said.rstrip().endswith(OPENER_RULE)
         for earlier in (
             "When a pass is marked long, it is the turn of the move",
             "When the finish is first time, say so, with the foot.",
@@ -2826,3 +2849,124 @@ class TestARunWithNoRetries:
         assert [one["attempts"] for one in slot["dropped"]] == [1, 1, 1]
         # Three candidates, one generation each, plus the IAM exchange.
         assert len(calls) == 4
+
+
+class TestATellingOpensOnAName:
+    """`opener_missing`: Shawn's rule, read off the six the team wrote.
+
+    Every one of those six opens on a player, a team or a country the records
+    hold: Cuciuffo, Maradona, Molina and Argentina. A telling that opens on
+    "We" starts with the listener rather than with the match.
+
+    **It is beside the places rule and not in the check**, for the same
+    reason: a narration opening on "We" makes no false claim, and a check
+    that refused one would be refusing cadence.
+    `tests/test_authored_narrations.py` is where the six themselves are held
+    to it.
+    """
+
+    def test_a_recorded_surname_opens_a_telling(self, facts_1986):
+        assert opener_missing(
+            "Cuciuffo won it back deep in his own half and Maradona scored.",
+            facts_1986,
+        ) == ""
+
+    def test_a_possessive_opens_a_telling(self, facts_1986):
+        """The ending comes off before the lookup, as the grammar does it."""
+        assert opener_missing(
+            "Cuciuffo's recovery started the counter.", facts_1986
+        ) == ""
+
+    def test_a_recorded_team_opens_a_telling(self, facts_2022):
+        assert opener_missing(
+            "Argentina were on the counter when Molina found MacAllister.",
+            facts_2022,
+        ) == ""
+
+    def test_a_demonym_opens_a_telling(self, facts_1986):
+        """"The English defender" is a team by nationality, which
+        `TEAM_DEMONYMS` resolves to England."""
+        assert opener_missing(
+            "English defending left Maradona room.", facts_1986
+        ) == ""
+
+    def test_the_first_person_is_refused(self, facts_2022):
+        """Shawn's test. The one the 2022 `buddy_scored` fallback opens
+        on."""
+        said = opener_missing(
+            "We went from deep in our own half, Molina to MacAllister, and "
+            "Di María scored.",
+            facts_2022,
+        )
+        assert said
+        assert "opens on 'We'" in said
+        assert "names no player, team or country this match records" in said
+
+    @pytest.mark.parametrize("word", ["It", "The", "In", "From", "Pure"])
+    def test_the_other_openers_a_run_has_written_are_refused(
+        self, word, facts_2022
+    ):
+        said = opener_missing(
+            "{} was Molina to MacAllister and Di María scored.".format(word),
+            facts_2022,
+        )
+        assert "opens on {!r}".format(word) in said
+
+    def test_a_player_from_another_match_is_refused(self, facts_2022):
+        """A name the records of this match do not hold is not an opener,
+        whoever it is: `name_keys` is read off this passage."""
+        assert opener_missing(
+            "Maradona was not in this match at all.", facts_2022
+        )
+
+    def test_a_telling_with_no_word_in_it_opens_on_nothing(self, facts_2022):
+        assert "says nothing" in opener_missing("!", facts_2022)
+
+    def test_the_run_drops_a_grounded_telling_that_opens_wrong(self):
+        """Through `gather`, which is where the rule costs a candidate. The
+        2022 Argentina Buddy reference places the move and is grounded, and
+        it opens on "We"."""
+        opens_wrong = PLACED_BUDDY_2022.replace(
+            "Argentina were on the counter", "We went on the counter"
+        )
+        backend = recorded_backend([opens_wrong])
+        hero = next(one for one in HEROES if one[1] == MATCH_2022)
+        goals, stopped = gather(
+            backend, 1, heroes=(hero,), only=[BUDDY_SCORED]
+        )
+        assert stopped is None
+        slot = goals[0]["slots"][0]
+        assert slot["candidates"] == []
+        dropped = slot["dropped"][0]
+        assert "opens on 'We'" in dropped["missing_opener"]
+        text = review(goals, "m", "p", "low", 2000)
+        assert "refused for the opener" in text
+
+    @pytest.mark.parametrize("key", sorted(STYLES))
+    def test_every_prompt_carries_the_rule(self, key, facts_1986, facts_2022):
+        for facts in (facts_1986, facts_2022):
+            assert OPENER_RULE in flat(build_goal_call_prompt(facts, key))
+
+    def test_the_rule_names_no_player_and_no_team(
+        self, facts_1986, facts_2022
+    ):
+        """General to any goal, like rules 15, 16 and 17: the prompt already
+        prints the players and the team above the rules."""
+        for facts in (facts_1986, facts_2022):
+            said = flat(
+                rules(
+                    facts,
+                    STYLES[STORYTELLER_NEUTRAL],
+                    GOAL_CALL_TARGET_CHARACTERS,
+                )
+            )
+            opener = said[said.index("Open on a name"):]
+            for word in (
+                "France",
+                "Argentina",
+                "England",
+                "Molina",
+                "Maradona",
+                "Cuciuffo",
+            ):
+                assert word not in opener

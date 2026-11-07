@@ -39,6 +39,13 @@ struck from in a passage that holds one. It is here and not in
 `app/grounding.py` on purpose: the check is about whether a claim is true, and
 a narration making no claim about position is true.
 
+**A telling opens on a name.** Shawn's rule, read off the six narrations the
+team wrote: the first word is a player, a team or a country the records hold,
+so a telling that opens on "We" or "It" starts with the listener rather than
+with the match. `opener_missing` is beside `places_missing` for the same
+reason both are here rather than in the check: neither is about whether a
+claim is true.
+
 **A near copy is not a candidate, and it is tested twice.** `play_shape`
 asks whether two tellings make the same moves in the same order, and
 `near_copy_ratio` asks how alike the words are once the player names are
@@ -394,6 +401,46 @@ def places_missing(text: str, facts: Facts) -> str:
                 )
             )
     return "; ".join(missing)
+
+
+def opener_missing(text: str, facts: Facts) -> str:
+    """Why a telling does not open on a name, or "" where it does.
+
+    **Shawn's rule, read off the six: the first word names somebody.** A
+    telling that opens on "We" or "It" starts with the listener rather than
+    with the match, and every one of the six narrations the team wrote opens
+    on a player, a team or a country the records hold: Cuciuffo, Maradona,
+    Molina and Argentina. A name first is also what the beats offer, since
+    the first beat of either passage names the player who had the ball.
+
+    Beside `places_missing` and for the same reason: it is about what a
+    listener was given rather than about whether a claim is true, so
+    `app/grounding.py` says nothing about it. A narration opening on "We" is
+    not making a false claim, and a check that refused one would be refusing
+    cadence.
+
+    What counts as a name is what the grammar counts: any part of a recorded
+    player's name that the records spell, a recorded team, or a demonym for
+    one. The possessive ending comes off first, so "Maradona's run" opens on
+    Maradona.
+    """
+    first = WORD.search(text)
+    if first is None:
+        return "says nothing, so it opens on no name"
+    said = _POSSESSIVE.sub("", fold(first.group(0)))
+    teams = {fold(team) for team in facts.teams}
+    if said in name_keys(facts):
+        return ""
+    if said in teams:
+        return ""
+    if said in TEAM_DEMONYMS and fold(TEAM_DEMONYMS[said]) in teams:
+        return ""
+    return (
+        "opens on {!r}, which names no player, team or country this match "
+        "records; a telling opens on a name the records hold".format(
+            first.group(0)
+        )
+    )
 
 
 def slot_coverage(text: str, facts: Facts) -> dict:
@@ -787,6 +834,19 @@ def gather(
                     one["missing_places"] = nowhere
                     dropped.append(one)
                     continue
+                # And a telling opens on a name. Beside the places rule and
+                # for the same reason: it is about what a listener was given
+                # rather than about whether a claim is true.
+                opener = opener_missing(narrated.text, facts)
+                if opener:
+                    print("    candidate {}: grounded on {} claims, and "
+                          "refused for the opener: it {}".format(
+                              number, result.checked, opener
+                          ))
+                    print("      | {}".format(narrated.text))
+                    one["missing_opener"] = opener
+                    dropped.append(one)
+                    continue
                 # A near copy is not a candidate. Rule 13 asks the model for
                 # tellings that differ in structure, and `play_shape` is what
                 # decides whether two of them do; the run of 2026-10-31 at
@@ -940,8 +1000,9 @@ def review(
     out.append("")
     out.append("Every candidate also places the move at least {} times, and "
                "in a passage holding a long ball one of those places is "
-               "where the ball was struck from. A grounded telling short of "
-               "that is in the dropped list for its slot with the "
+               "where the ball was struck from, and opens on a player, a "
+               "team or a country the records hold. A grounded telling short "
+               "of either is in the dropped list for its slot with the "
                "reason.".format(PLACES_WANTED))
     out.append("")
     out.append("The billed count is what that one recording would cost, "
@@ -1109,10 +1170,11 @@ def _slot_candidates(slot: Mapping) -> str:
 def _why_dropped(one: Mapping) -> str:
     """Why one candidate did not reach the review file, in a sentence.
 
-    Five reasons, which are the five the run can produce: a call that never
+    Six reasons, which are the six the run can produce: a call that never
     came back, a near copy of one already kept, a grounded narration costing
     more than a recording may, a grounded narration that places the move
-    nowhere, and the check refusing every attempt.
+    nowhere, one that does not open on a name, and the check refusing every
+    attempt.
     """
     if one.get("lost"):
         return "the call did not come back: {}".format(one["lost"])
@@ -1133,6 +1195,12 @@ def _why_dropped(one: Mapping) -> str:
         return (
             "grounded, and refused for places: it {}: \"{}\"".format(
                 one["missing_places"], one["text"]
+            )
+        )
+    if one.get("missing_opener"):
+        return (
+            "grounded, and refused for the opener: it {}: \"{}\"".format(
+                one["missing_opener"], one["text"]
             )
         )
     if one.get("over_allowance"):
@@ -1444,6 +1512,9 @@ def main(argv: Sequence[str]) -> int:
     print("places    at least {} per telling, and a passage with a long ball "
           "in it needs one saying where it was struck; a grounded candidate "
           "short of that is refused".format(PLACES_WANTED))
+    print("opener    the first word names a player, a team or a country the "
+          "records hold; a grounded candidate opening on anything else is "
+          "refused")
     print("budget    {} billed for the {} recordings together, so {} a "
           "recording; a grounded candidate over that is dropped".format(
               args.budget, recordings, allowance

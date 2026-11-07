@@ -21,7 +21,7 @@ into two places that have to agree:
 | ----- | ------------ |
 | `app/narration_prompt.py` | builds the numbered facts, holds the one style in `NARRATION_STYLE`, and states the rules to the model in the prompt |
 | `app/pitch_zones.py` | one recorded location as the phrase a narrator places the move with: eight bands up the pitch and three across it |
-| `app/goal_call_prompt.py` | builds the goal-call prompt: a style and a worked example per narrator, the story beats with no clock on them, and the seventeen rules |
+| `app/goal_call_prompt.py` | builds the goal-call prompt: a style and a worked example per narrator, the story beats with no clock on them, and the eighteen rules |
 | `app/story_beats.py` | curates the passage down to the beats the prompt shows, so the model is not handed every recorded event |
 | `app/narration_grammar.py` | reads a goal call that cites nothing, and holds the yard thresholds the words are measured against |
 | `app/personas.py` | the three voices the one narration can be spoken in, which is Phase 5 and not this document |
@@ -460,6 +460,20 @@ Four rules, and they are about the prose rather than about the data:
   sentence ended on is what the next one starts from.
 - **Setup builds to payoff.** The order is not decoration: the catalyst exists
   so that the finish lands.
+
+**And a telling opens on a name.** Rule 18 of the goal-call prompt asks the
+first word of a narration to be a player, a team or a country the records
+hold, because a telling that opens on "We" or "It" starts with the listener
+rather than with the match. It is not a claim rule: `app/grounding.py` says
+nothing about an opener, and `opener_missing` in
+`scripts/narrator_candidates.py` is what refuses a candidate that opens
+elsewhere, beside the places rule and for the same reason. The six hero
+narrations open on Cuciuffo, Maradona, Molina and Argentina. **Four of the
+eight references below do not**, and the rule is newer than they are: the
+1986 Argentina Buddy opens on "We", the 1986 Caller on "It", the 2022
+Argentina Buddy on "We" and the 2022 France Buddy on "In". They are the
+standard for the writing and they are still checked word for word; whether
+rule 18 should reach them is Shawn's call and nothing here has changed them.
 
 ### Each narrator has its own text
 

@@ -348,7 +348,7 @@ Everything above it is structure.
   reaction layer: where a reaction may stand, who may cheer in one, what
   makes a short sentence play instead, and the match's own names rather than
   capitalisation deciding whether a reaction names anybody. All pass.
-- `tests/test_narrator_candidates.py`: 238 tests over
+- `tests/test_narrator_candidates.py`: 256 tests over
   `app/goal_call_prompt.py`, `app/story_beats.py` and
   `scripts/narrator_candidates.py`: the four
   styles, one per narrator and situation, the invented match their examples
@@ -361,7 +361,7 @@ Everything above it is structure.
   tellings from one telling written twice, the rule against hanging the move
   off "who" and the count printed beside each candidate, the places a
   telling has to put the move in and the refusal a telling short of them
-  meets, the call count and
+  meets, the name a telling has to open on, the call count and
   token estimate the run prints before it sends anything, the hard token
   cap that stops the run and keeps what it had written, and the run with no
   retries. All pass, and none calls a model.
