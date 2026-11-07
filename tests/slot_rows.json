@@ -1,0 +1,54 @@
+{
+  "_note": "The slot rule, one table, read by two test files. The rule picks the narration a listener hears and the recording that reads it, and it is written twice: Prelude.slotFor in app/web/match-content.js for the browser, and slot_for in app/api.py for the hosted API. Two copies of a rule drift, so the rows live here instead of in either suite. tests/test_api.py runs each row through slot_for and through GET /buildup. tests/test_narrator_picker.py reads each row against hero.voice_for and hero.audio in app/web/matches.json, which is what the browser's copy indexes. listener is the answer to 'Who are you with'; narrator is null when the fan has chosen none, and otherwise a persona id from app/web/narrators.json; slot is the key the rule returns.",
+  "rows": [
+    {
+      "reads": "2022, Argentina, nothing chosen",
+      "match_id": 3869685,
+      "listener": "team_a",
+      "narrator": null,
+      "slot": "buddy_scored"
+    },
+    {
+      "reads": "2022, Argentina, the Storyteller chosen",
+      "match_id": 3869685,
+      "listener": "team_a",
+      "narrator": "storyteller",
+      "slot": "storyteller_neutral"
+    },
+    {
+      "reads": "2022, Argentina, the Buddy chosen",
+      "match_id": 3869685,
+      "listener": "team_a",
+      "narrator": "buddy",
+      "slot": "buddy_scored"
+    },
+    {
+      "reads": "2022, France, the Storyteller chosen",
+      "match_id": 3869685,
+      "listener": "team_b",
+      "narrator": "storyteller",
+      "slot": "storyteller_neutral"
+    },
+    {
+      "reads": "2022, no side, the Buddy chosen",
+      "match_id": 3869685,
+      "listener": "neutral",
+      "narrator": "buddy",
+      "slot": "storyteller_neutral"
+    },
+    {
+      "reads": "2022, no side, nothing chosen",
+      "match_id": 3869685,
+      "listener": "neutral",
+      "narrator": null,
+      "slot": "storyteller_neutral"
+    },
+    {
+      "reads": "1986, England, the Buddy chosen",
+      "match_id": 3750191,
+      "listener": "team_b",
+      "narrator": "buddy",
+      "slot": "buddy_conceded"
+    }
+  ]
+}

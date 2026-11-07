@@ -51,7 +51,8 @@ twice:
 * **No clock and no digit.** The header already says when the goal came, and a
   colon between two numbers is read aloud as a colon between two numbers.
 
-Standard library only, like the rest of `app/`.
+Standard library only, like every module in `app/` but the hosted
+service in `app/api.py`.
 """
 
 import textwrap

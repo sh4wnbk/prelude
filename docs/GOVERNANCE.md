@@ -34,12 +34,20 @@ data source, a scraped feed or a synthetic substitute.
 the repo has instead is a shape that makes a fourth input visible:
 
 - One script fetches data, `scripts/fetch_statsbomb.py`, and it reads one host.
-- `app/` imports nothing outside the standard library, so a new dependency on a
-  feed would show up in `pyproject.toml`.
-- Nothing in the suite can open a socket at all, which the `no_network` guard in
-  `tests/conftest.py` makes true for every test, including tests nobody has
-  written yet
+- `app/` imports one package outside the standard library, FastAPI, in
+  `app/api.py`, and nothing else, so a new dependency on a feed would show up
+  in `pyproject.toml`. `app/api.py` serves what the repo already holds and
+  reads nothing a screen does not already read, so it is not a fourth input.
+- No test can open a socket to anywhere but loopback, which the `no_network`
+  guard in `tests/conftest.py` makes true for every test, including tests
+  nobody has written yet
   (`tests/test_narration_provider.py::TestNoNetwork::test_the_real_transport_is_blocked_inside_a_test`).
+  Loopback is allowed for one reason, recorded on `LOOPBACK_HOSTS` in that
+  file: `tests/test_api.py` runs the hosted API in process and an asyncio
+  event loop wakes itself through a socket pair on `127.0.0.1`. Nothing this
+  repo talks to is on this machine, and
+  `tests/test_api.py::TestTheNetworkGuardStillHolds::test_a_remote_connection_still_refuses`
+  holds the rest of the guard.
 - The seat and section on the ticket screens are demo fixture data rather than a
   fourth input, and `scripts/make_tickets.py` says so where they are used: a
   seat is the fan's own ticket, not a claim about the match.
@@ -57,8 +65,8 @@ Three things hold it:
 
 | Layer | What it does | Test |
 | ----- | ------------ | ---- |
-| `app/grounding.py` | refuses narration whose claims cannot be pointed at | the tables in `docs/VERIFICATION.md` |
-| `app/narration.py` | writes the phrase once, as `GROUNDING_LABEL`, and returns nothing ungrounded | `tests/test_narration.py::TestFirstAttemptPasses::test_it_is_labelled` |
+| `app/grounding.py` | refuses narration whose claims cannot be pointed at, and writes the phrase once, as `GROUNDING_LABEL` | the tables in `docs/VERIFICATION.md` |
+| `app/narration.py` | labels only what the check passed, and returns nothing ungrounded | `tests/test_narration.py::TestFirstAttemptPasses::test_it_is_labelled` |
 | `scripts/scan_copy.py` | refuses the label on a screen card that holds no narration | nothing; it is a gate |
 
 The no-partial-credit rule is why the pipeline fails a narration whole rather

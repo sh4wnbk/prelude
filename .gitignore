@@ -6,3 +6,7 @@ __pycache__/
 *.pyc
 voice_test/
 data/raw/
+
+# The build stamp the hosted service reads on Render. Written by the build
+# command in render.yaml, never committed.
+build/

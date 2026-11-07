@@ -63,7 +63,8 @@ wrong. `lead` is the one entry, and
 `tests/test_pronunciation.py::TestTheTable` holds the shape the next entry has
 to fit.
 
-Standard library only, like the rest of `app/`.
+Standard library only, like every module in `app/` but the hosted
+service in `app/api.py`.
 """
 
 import re

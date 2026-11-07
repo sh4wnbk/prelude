@@ -158,7 +158,8 @@ is refused as an unknown name, exactly like an invented player, and a player
 the lineups file records no nickname for has only their full name to be named
 by.
 
-Standard library only, like the rest of `app/`.
+Standard library only, like every module in `app/` but the hosted
+service in `app/api.py`.
 """
 
 import re
@@ -179,6 +180,14 @@ from app.narration_prompt import Fact, Facts
 from app.plain_characters import plain, straight_apostrophes
 from app.orchestrator_contract import CALLER
 from app.personas import Persona
+
+#: The label `CLAUDE.md` governs. Written once, here, so no caller spells it
+#: differently or softens it. It sits with the check that earns it rather than
+#: with the pipeline that returns it, because the hosted service in
+#: `app/api.py` serves narration the check already passed and must not import
+#: the watsonx backend to read one string. `app/narration.py` imports it from
+#: here, so `from app.narration import GROUNDING_LABEL` still reads.
+GROUNDING_LABEL = "Verified from play data"
 
 
 class NoSideForAPartisanVoice(ValueError):

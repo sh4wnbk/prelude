@@ -80,7 +80,8 @@ body and headers and returning bytes. `post_audio` is the real one, built on
 suite never opens a socket; `tests/conftest.py` fails the suite if anything
 tries.
 
-Standard library only, like the rest of `app/`.
+Standard library only, like every module in `app/` but the hosted
+service in `app/api.py`.
 """
 
 import base64

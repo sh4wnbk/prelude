@@ -33,6 +33,15 @@ checked here is the tail and the `.name +` in front of it; the sentences a fan
 reads are "The Caller is coming soon." and "The Buddy needs a team. Choose a
 team under 'Who are you with.'".
 
+**The table is seven rows now, and it is a file.** Phase 6 wrote the rule a
+second time, in Python, for the hosted API in `app/api.py`, so the rows moved
+out of this docstring and into `tests/slot_rows.json`. The `slot_rows` fixture
+in `tests/conftest.py` hands them to this file and to `tests/test_api.py`:
+`TestTheSevenRows` below reads each row against `hero.voice_for` and
+`hero.audio`, which is what the browser's copy indexes, and
+`tests/test_api.py::TestTheSevenRows` runs the same rows through the Python
+copy and through `GET /buildup`. One rule, one table, two suites.
+
 **That table and those two sentences are checked in a browser and not here.** The suite has no
 JavaScript runtime, so these tests read the files and hold the contract: where
 the one lookup lives, who calls it, what is stored, and the copy a fan reads.
@@ -268,6 +277,86 @@ class TestTheProfileCards:
     def test_the_note_starts_hidden_in_the_markup(self):
         assert re.search(r'data-field="narrator_note"[^>]*hidden',
                          PROFILE.read_text(encoding="utf-8"))
+
+
+class TestTheSevenRows:
+    """The rule's own table, read against the data the browser's copy indexes.
+
+    This file cannot run `Prelude.slotFor`, so what it can hold is that every
+    row names a real match, a key that match actually carries, and a recording
+    that is in the repo, and that each row is the branch of the rule it claims
+    to be. The branches are the three in the lookup: no choice, a chosen
+    narrator whose slot is in reach, and a chosen narrator whose slot is not.
+    `tests/test_api.py` holds the Python copy to the same seven rows, and the
+    browser run is recorded in `HANDOFF.md`.
+    """
+
+    def test_there_are_seven(self, slot_rows):
+        assert len(slot_rows) == 7
+
+    def test_every_row_names_a_match_the_app_serves(self, slot_rows):
+        assert {row["match_id"] for row in slot_rows} <= set(heroes())
+
+    def test_every_row_names_one_of_the_three_answers(self, slot_rows):
+        for row in slot_rows:
+            assert row["listener"] in ("team_a", "team_b", "neutral"), row["reads"]
+
+    def test_every_rows_slot_is_one_the_match_carries(self, slot_rows):
+        for row in slot_rows:
+            voice_for = heroes()[row["match_id"]]["voice_for"]
+            assert row["slot"] in voice_for.values(), row["reads"]
+
+    def test_every_rows_slot_has_its_recording(self, slot_rows):
+        for row in slot_rows:
+            audio = heroes()[row["match_id"]]["audio"]
+            assert row["slot"] in audio, row["reads"]
+            assert (WEB / audio[row["slot"]]).is_file(), row["reads"]
+
+    def test_a_row_with_no_choice_is_the_side_rule(self, slot_rows):
+        """Today's behaviour, which the choice did not change: with nothing
+        chosen the answer to "Who are you with" decides."""
+        rows = [row for row in slot_rows if not row["narrator"]]
+        assert rows, "no row covers a fan who has chosen nothing"
+        for row in rows:
+            voice_for = heroes()[row["match_id"]]["voice_for"]
+            assert row["slot"] == voice_for[row["listener"]], row["reads"]
+
+    def test_a_chosen_narrator_in_reach_is_heard(self, slot_rows):
+        """The two slots in reach are the side's own and the neutral one, and
+        a slot belongs to the narrator whose id starts it."""
+        covered = 0
+        for row in slot_rows:
+            if not row["narrator"]:
+                continue
+            voice_for = heroes()[row["match_id"]]["voice_for"]
+            reach = [voice_for.get(row["listener"]), voice_for.get("neutral")]
+            theirs = [
+                key for key in reach
+                if key and key.startswith(row["narrator"] + "_")
+            ]
+            if not theirs:
+                continue
+            assert row["slot"] == theirs[0], row["reads"]
+            covered += 1
+        assert covered >= 3, "the chosen-narrator branch is barely covered"
+
+    def test_a_chosen_narrator_out_of_reach_falls_back(self, slot_rows):
+        """A fan who picks a narrator with no slot for their answer hears the
+        telling their side was written, rather than nothing."""
+        covered = 0
+        for row in slot_rows:
+            if not row["narrator"]:
+                continue
+            voice_for = heroes()[row["match_id"]]["voice_for"]
+            reach = [voice_for.get(row["listener"]), voice_for.get("neutral")]
+            if any(key and key.startswith(row["narrator"] + "_") for key in reach):
+                continue
+            assert row["slot"] == voice_for[row["listener"]], row["reads"]
+            covered += 1
+        assert covered >= 1, "no row covers the fallback"
+
+    def test_the_rows_cover_both_matches(self, slot_rows):
+        assert {row["match_id"] for row in slot_rows} == set(heroes())
 
 
 class TestWhatDoesNotChange:

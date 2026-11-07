@@ -35,7 +35,8 @@ two; it carries no sound and nothing in this pipeline writes one, so it comes
 out. A line break is a space separator this does not touch either: the
 narration is one sentence per line and `app/grounding.py` reads those lines.
 
-Standard library only, like the rest of `app/`.
+Standard library only, like every module in `app/` but the hosted
+service in `app/api.py`.
 """
 
 import unicodedata

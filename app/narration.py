@@ -53,7 +53,7 @@ from app.goal_call_prompt import (
     situation_for,
     slot_key,
 )
-from app.grounding import Claim, check, strip_citations
+from app.grounding import GROUNDING_LABEL, Claim, check, strip_citations
 from app.narration_prompt import (
     DEFAULT_SENTENCES,
     build_prompt,
@@ -75,11 +75,6 @@ MAX_RETRIES = 2
 #: What produced a narration.
 MODEL = "model"
 TEMPLATE = "template"
-
-#: The label `CLAUDE.md` governs. Written once, here, so no caller spells it
-#: differently or softens it.
-GROUNDING_LABEL = "Verified from play data"
-
 
 class NarrationNotGrounded(RuntimeError):
     """Even the fallback failed the grounding check.

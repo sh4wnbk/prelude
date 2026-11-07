@@ -27,7 +27,8 @@ every beat keeps its `event_id`, so a cited number leads back to one record in
 clock values are the raw StatsBomb minute and second, which floor the match
 clock; nothing adds one.
 
-Standard library only, like the rest of `app/`.
+Standard library only, like every module in `app/` but the hosted
+service in `app/api.py`.
 """
 
 import textwrap

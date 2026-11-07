@@ -22,7 +22,8 @@ This file never opens the credentials file itself. `app/credentials.py` does
 that, reading from outside the repo, and a missing variable is reported here by
 name for the user to go and look at themselves.
 
-Standard library only, like the rest of `app/`.
+Standard library only, like every module in `app/` but the hosted
+service in `app/api.py`.
 """
 
 import json

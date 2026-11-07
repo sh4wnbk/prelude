@@ -94,7 +94,8 @@ narrow on purpose, like `ACTION_CLAIMS`: a word that is not in the tables below
 is prose rather than a claim, so "turned", "advanced" and "the whole way" are
 checked against nothing.
 
-Standard library only, like the rest of `app/`.
+Standard library only, like every module in `app/` but the hosted
+service in `app/api.py`.
 """
 
 import re

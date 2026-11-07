@@ -30,7 +30,8 @@ The process environment wins over the file. A variable exported in a shell is a
 deliberate override for one run, and it would be surprising for a file on disk
 to quietly beat it.
 
-Standard library only, like the rest of `app/`.
+Standard library only, like every module in `app/` but the hosted
+service in `app/api.py`.
 """
 
 import os

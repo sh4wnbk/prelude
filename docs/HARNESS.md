@@ -14,21 +14,26 @@ screens are `docs/DESIGN.md`.
 | ---- | ----- | ------------------- |
 | Python | 3.13 | `.python-version`, and `requires-python` in `pyproject.toml` |
 | Virtualenv | `.venv-prelude`, managed with `uv` | `CLAUDE.md` |
-| Runtime dependency | `segno` | `pyproject.toml` |
-| Dev dependencies | `pytest`, `pillow`, `zxing-cpp`, `cmudict` | `pyproject.toml` |
+| Runtime dependencies | `segno`, `fastapi`, `uvicorn` | `pyproject.toml` |
+| Dev dependencies | `pytest`, `pillow`, `zxing-cpp`, `cmudict`, `httpx` | `pyproject.toml` |
 
 Python is run as `.\.venv-prelude\Scripts\python.exe`, which is what `CLAUDE.md`
 requires and what every script's own docstring shows.
 
-**`app/` imports nothing outside the standard library.** Every module in it says
-so in its docstring (`app/credentials.py`, `app/grounding.py`,
-`app/narration_prompt.py`, `app/narration_provider.py`,
+**Every module in `app/` but one imports nothing outside the standard
+library.** Each of them says so in its docstring (`app/credentials.py`,
+`app/grounding.py`, `app/narration_prompt.py`, `app/narration_provider.py`,
 `app/pronunciation.py`), and the imports bear it out: `json`, `os`, `re`,
 `unicodedata`, `urllib`, `dataclasses`, `pathlib`, `types` and `typing`, and
-nothing else. The one place a third-party package is
-needed is `scripts/make_tickets.py`, which uses `segno` to write a QR code and
-`zxing-cpp` with `pillow` to read it back off the PNG before it counts as
-written.
+nothing else.
+
+The one is `app/api.py`, the hosted read-only service, which imports FastAPI
+and is served by `uvicorn`. It is the only module in `app/` that takes a
+third-party package, and `tests/test_api.py::TestWhatItDoesNotReach` holds
+what it may not import: `app/tts.py`, the watsonx backend, the credentials
+loader, and `os` itself. Outside `app/`, `scripts/make_tickets.py` uses
+`segno` to write a QR code and `zxing-cpp` with `pillow` to read it back off
+the PNG before it counts as written.
 
 Nothing in this repo pins or installs a model. `app/narration_config.py` holds
 model ids and no behaviour, which
@@ -197,10 +202,8 @@ generating anything:
 
 ## The test harness
 
-The suite is 1524 tests in thirty two files, and 1504 of them pass. The twenty
-that fail are Task 14's: the acceptance tests for the narrator picker, written
-before it exists, and three tests it makes stale. Any other failure means
-something is wrong. It is run from the repo root:
+The suite is 1595 tests in thirty three files, and they all pass. Any failure
+means something is wrong. It is run from the repo root:
 
 ```
 .\.venv-prelude\Scripts\python.exe -m pytest
@@ -247,7 +250,7 @@ remembered.
 
 | Guard | What it does | What would otherwise happen |
 | ----- | ------------ | --------------------------- |
-| `no_network` | replaces `urllib.request.urlopen` and `socket.socket.connect` with functions that raise | a provider test would open a socket, and a watsonx one would spend money |
+| `no_network` | replaces `urllib.request.urlopen` and `socket.socket.connect` with functions that raise, loopback excepted | a provider test would open a socket, and a watsonx one would spend money |
 | `no_real_credentials` | points `PRELUDE_ENV_FILE` at an absent path under pytest's temporary directory | `tests/test_narration_provider.py::TestWatsonxBackend::test_missing_credentials_are_named_and_nothing_is_sent` reports which file it read, and the default is the real one |
 
 The network guard is tested through the exception it raises, which the suite

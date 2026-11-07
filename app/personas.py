@@ -61,7 +61,8 @@ parameters, pitch moves up but not down, and pauses exist on
 `tests/test_personas.py::TestProfileCopy` holds it to them. Nothing in this
 file is said to a model any more, which is what the style field was.
 
-Standard library only, like the rest of `app/`.
+Standard library only, like every module in `app/` but the hosted
+service in `app/api.py`.
 """
 
 from dataclasses import dataclass

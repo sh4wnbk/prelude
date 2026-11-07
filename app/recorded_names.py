@@ -23,7 +23,8 @@ narration still says the full name.
 It is also not a fourth input. The lineups file is the same StatsBomb open data
 as the event feed, for the same match, fetched by the same script.
 
-Standard library only, like the rest of `app/`.
+Standard library only, like every module in `app/` but the hosted
+service in `app/api.py`.
 """
 
 import json

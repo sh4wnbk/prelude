@@ -158,9 +158,13 @@ re-checks the text that comes back, over four different model behaviours.
 
 ## Verifying the label
 
-The phrase is written once, as `GROUNDING_LABEL` in `app/narration.py`, so
+The phrase is written once, as `GROUNDING_LABEL` in `app/grounding.py`, so
 nothing spells it differently or softens it
-(`tests/test_narration.py::TestFirstAttemptPasses::test_it_is_labelled`).
+(`tests/test_narration.py::TestFirstAttemptPasses::test_it_is_labelled`). It
+sits with the check that earns it: `app/narration.py` imports it from there to
+label what passed, and the hosted service in `app/api.py` imports it to put it
+beside a frozen narration, so neither spells it again
+(`tests/test_api.py::TestTheLabel::test_the_label_is_the_one_the_check_writes`).
 
 On the screens it is a placement rule rather than a string, which a regex sweep
 cannot see: the words are correct and the position is not. So

@@ -122,7 +122,7 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-1524 passed
+1595 passed
 ```
 
 The total covers far more than this module now. Phase 4 added the narration
@@ -1554,8 +1554,12 @@ becomes a function, and it is the only reader of `hero.voice_for`.
 
 ### The tests to pass
 
-`tests/test_narrator_picker.py`, 30 tests. Seventeen of them fail until this is
-built. The thirteen that pass are what the picker has to leave alone: the keys
+`tests/test_narrator_picker.py`, 39 tests. It held 30 when this brief was
+written and seventeen of those failed until the picker was built; the nine
+after them are `TestTheSevenRows`, which Phase 6 added when the rule was
+written a second time in Python and the rows moved into
+`tests/slot_rows.json`. The thirteen that passed all along are what the picker
+had to leave alone: the keys
 in `app/web/matches.json`, the six recordings, the list in
 `app/web/narrators.json`, the side rule in `app/orchestrator.py`, and the
 Caller having no recording for a fan to choose.

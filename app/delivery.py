@@ -60,7 +60,8 @@ a listener with no side would be telling them they support a team they did not
 choose, so there is no neutral Buddy row to write. `validate` requires exactly
 the rows that can exist.
 
-Standard library only, like the rest of `app/`.
+Standard library only, like every module in `app/` but the hosted
+service in `app/api.py`.
 """
 
 from dataclasses import dataclass

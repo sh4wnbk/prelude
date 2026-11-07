@@ -36,7 +36,8 @@ regulation time rather than a count of minutes, so a 60 minute game and a 90
 minute one are read the same way. Nothing in this module names football, and
 `tests/test_orchestrator.py` proves it with a sport that does not exist.
 
-Standard library only, like the rest of `app/`.
+Standard library only, like every module in `app/` but the hosted
+service in `app/api.py`.
 """
 
 from dataclasses import dataclass

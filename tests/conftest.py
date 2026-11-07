@@ -16,9 +16,14 @@ call a model. It is a script, not a test, so it never passes through here.
 
 The second guard is about credentials rather than the network. It is documented
 on the fixture below.
+
+The last fixture here is not a guard. `slot_rows` is the slot rule's table,
+which two test files read because the rule itself is written twice.
 """
 
+import json
 import socket
+from pathlib import Path
 
 import pytest
 
@@ -41,6 +46,24 @@ def no_real_credentials(monkeypatch, tmp_path):
     the repo, which the loader requires.
     """
     monkeypatch.setenv(ENV_FILE_VARIABLE, str(tmp_path / "absent.env"))
+
+
+#: The addresses the guard below lets through. asyncio wakes its own event
+#: loop through a socket pair, and on Windows CPython builds one by connecting
+#: a socket to a listening socket on `127.0.0.1`
+#: (`socket._fallback_socketpair`). `tests/test_api.py` runs the FastAPI
+#: application in process, which starts an event loop, so refusing this would
+#: mean no test could reach the API at all.
+#:
+#: It is not a hole in the guarantee the guard is for. Nothing in this repo
+#: serves on a port, and watsonx, Watson Text to Speech and StatsBomb are all
+#: somewhere else, so a loopback connection cannot reach any of them. Every
+#: other address still refuses, and so does `urlopen`, whatever it is given.
+LOOPBACK_HOSTS = frozenset({"127.0.0.1", "::1", "localhost"})
+
+#: Kept before the guard replaces it, so a loopback connection can still be
+#: made by the real method.
+_REAL_CONNECT = socket.socket.connect
 
 
 class NetworkCallInTest(RuntimeError):
@@ -68,6 +91,10 @@ def no_network(monkeypatch):
     blocking it gives the clearest message. `socket.socket.connect` is the
     floor underneath every other client library, so blocking it covers a
     backend added later that does not go through `urllib`.
+
+    The one address it lets through is loopback, for the reason recorded on
+    `LOOPBACK_HOSTS`: an event loop has to be able to wake itself, and no
+    service this repo talks to is on this machine.
     """
 
     def blocked(what):
@@ -80,7 +107,38 @@ def no_network(monkeypatch):
 
         return refuse
 
+    def connect(self, address, *args, **kwargs):
+        host = address[0] if isinstance(address, tuple) else None
+        if host in LOOPBACK_HOSTS:
+            return _REAL_CONNECT(self, address, *args, **kwargs)
+        raise NetworkCallInTest(
+            "a test tried to open a network connection through socket.connect "
+            f"with {address!r}. Tests replay responses from tests/golden/; "
+            "see tests/conftest.py."
+        )
+
     monkeypatch.setattr(
         "urllib.request.urlopen", blocked("urllib.request.urlopen")
     )
-    monkeypatch.setattr(socket.socket, "connect", blocked("socket.connect"))
+    monkeypatch.setattr(socket.socket, "connect", connect)
+
+
+SLOT_ROWS = Path(__file__).resolve().parent / "slot_rows.json"
+
+
+@pytest.fixture
+def slot_rows():
+    """The seven rows of the slot rule, from `tests/slot_rows.json`.
+
+    The rule is written twice, once for the browser in
+    `app/web/match-content.js` and once for the hosted API in `app/api.py`,
+    so the table it answers lives in neither suite. `tests/test_api.py` runs
+    each row through the Python copy and through `GET /buildup`;
+    `tests/test_narrator_picker.py` reads each row against `hero.voice_for`
+    and `hero.audio` in `app/web/matches.json`, which is what the browser's
+    copy indexes. Handed over as a fixture for the reason
+    `network_call_error` is: both files get this one object rather than their
+    own parse of it.
+    """
+    with SLOT_ROWS.open(encoding="utf-8") as handle:
+        return json.load(handle)["rows"]
