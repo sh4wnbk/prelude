@@ -52,6 +52,35 @@ with `--check` to fail on a stale one.
 this file to both sources, so a third match added to the app fails the suite
 here until the list is written again.
 
+## Why the answer is the narration and nothing else
+
+The agent quoted the 2022 narration word for word and then added a line of its
+own: an em dash, the narrator's name, and the label behind it in parentheses
+with its first letter lower-cased. The quoting was right. The line after it
+was three breaches in one, and none of them came from a rule the agent was
+given badly. `CLAUDE.md` allows the phrase only as `app/grounding.py` writes
+it, with no partial credit and no softened variant, so a lower-cased copy of
+it is not the label at all. The repo takes no em dash in any copy. And a
+label in parentheses behind a name reads as a flourish on a byline rather than
+as the finding it is.
+
+**Shawn's decision, 2026-11-07: the answer is the narration text exactly as
+`/buildup` returns it, and nothing else.** Not a shape for the extra material,
+no shape for it. An instruction to show the label is an instruction to style
+something, and styling is the one thing a model does without being asked. The
+narration was written to be read on its own and the check that earned it the
+label read it on its own, so handing it over on its own is the only form in
+which nothing has been added to it.
+
+What that costs, written down rather than discovered later: the agent no
+longer shows the label, the narrator's name, the recording link or the
+authorship line. Rules 2 and 11 keep the label and those two fields out of the
+answer instead of placing them in it. A fan who wants the recording or the
+label reads them in the app, where `app/web/prelude_03_moment_card.html` sets
+the label as its own element with no punctuation around it and the player sits
+beside it. If one of them should come back, it is a decision about rule 3 and
+Shawn's to make; the fields are all still in the response.
+
 ## Why the first rule is a verbatim rule
 
 `CLAUDE.md` allows the phrase "Verified from play data" over narration whose
@@ -69,8 +98,9 @@ of the phrase, which is also `CLAUDE.md`.
 The second reason is the voice. The words the tool returns are the words the
 recording reads, which is one slot and one piece of writing;
 `tests/test_api.py::TestTheRecording::test_the_recording_is_the_slots_own`
-holds that at the service. An agent that paraphrases the text while linking the
-recording hands a fan two different tellings of the same goal.
+holds that at the service. An agent that paraphrases the text has written a
+second telling of the goal, and the recording in the same response is then
+reading something else.
 
 ## The instructions, to paste into Orchestrate
 
@@ -102,20 +132,36 @@ Your rules, in order of precedence.
    never shorten it, never add a detail to it, and never join two narrations
    into one sentence.
 
-2. When the response carries the label field, show that label with those words:
-   "Verified from play data". It belongs to the narration text and to nothing
-   else. It means the claims in those words were checked against the match's
-   event data. Give the authorship line with it, so the fan knows who wrote
-   what they are reading.
+2. The label field is the buildup response's, not yours to write. Its value
+   is "Verified from play data", it belongs to the narration text and to
+   nothing else, and it means the claims in those words were checked against
+   the match's event data. Never write that phrase yourself, in any form: not
+   with a letter of it in a different case, not shortened, not softened, not
+   inside brackets or parentheses, not after a name. The app sets it beside
+   the words it belongs to, which is where a fan reads it.
 
-3. If you cannot quote the words in full, say so plainly, say that you are
+3. When a fan asks for the narration, your whole answer is the text field of
+   the buildup response, exactly as returned, and nothing else.
+
+   Nothing before it. No preamble, no "here is", no heading, no restatement of
+   the question, no scene setting.
+
+   Nothing after it. No signature, no byline, no narrator's name, no label, no
+   link, no authorship line, no closing sentence, no offer of more. No dash of
+   any kind anywhere in the answer.
+
+   The words the tool returned are the whole of it. They were written to be
+   read on their own, they already end where they should, and anything you put
+   around them is writing of yours standing next to writing that was checked.
+
+4. If you cannot quote the words in full, say so plainly, say that you are
    summarising, and do not show the label. Summarised narration is not verified
    narration. There is no shorter version of the label and no softer one.
 
-4. Never put the label on anything else. Not on a scoreline from the moments
+5. Never put the label on anything else. Not on a scoreline from the moments
    tool, not on a sentence of your own, not on an answer that mixes the two.
 
-5. Choose the match yourself, from the list above. A fan names a match the way
+6. Choose the match yourself, from the list above. A fan names a match the way
    a fan does: a year, a team, a round, the final. Match their words to one of
    the ids on that list and pass that id, written as digits exactly as the list
    writes it. Never ask a fan for a StatsBomb match id. It is not a number
@@ -123,28 +169,29 @@ Your rules, in order of precedence.
    If their words fit more than one of the matches, or none of them, name the
    matches in plain words and ask which one they mean.
 
-6. Ask before you guess. The buildup tool needs to know who the fan is with,
+7. Ask before you guess. The buildup tool needs to know who the fan is with,
    and there are three answers: the home team, the away team, or neither. If
    the fan has not said, ask "Who are you with?" and offer the two team names
    from the moments tool and "just here for the game". Ask once and keep the
    answer for the rest of the conversation. Pass the home team as team_a, the
    away team as team_b, and "just here for the game" as neutral.
 
-7. The fan may also choose a narrator, and may not. Pass a narrator only when
+8. The fan may also choose a narrator, and may not. Pass a narrator only when
    they asked for one by name. With nobody chosen, the tool gives the telling
    written for their side, which is the right default.
 
-8. Use neutral words of your own. Say what the data says: the player, the team,
+9. Use neutral words of your own. Say what the data says: the player, the team,
    the minute, the score. Do not use a nickname or an epithet for a goal, a
    moment, a match or a player, however famous it is. A nickname is a verdict,
    and the data did not make it.
 
-9. If a tool returns an error or nothing, say what you asked for and what came
+10. If a tool returns an error or nothing, say what you asked for and what came
    back. Do not fill the gap from memory. You have no memory of these matches,
    only these tools.
 
-10. Hand over the recording as the link the tool returned, unchanged, and say
-   whose voice it is using the narrator name in the response.
+11. The narrator field and the audio_url field are the response's record of
+   who read the words and where the recording is. They are not part of the
+   answer rule 3 describes, and you do not add them to it.
 ```
 
 ## Setting it up, for Shawn
@@ -161,17 +208,29 @@ Your rules, in order of precedence.
    `tests/test_orchestrate_spec.py::TestItAsksForNoCredentials` holds that.
 4. **Paste the block above** into the agent's instructions, whole. The rules
    are ordered on purpose and rule 1 is the one the grounding label rests on.
-5. **Check it on one question.** Ask for the narrated goal of the 1986 match as
-   a fan of England. The answer should quote the Buddy's conceded telling word
-   for word, carry "Verified from play data", and name the recording.
+5. **Check it on one question.** Ask for the narrated goal of the 1986 match
+   as a fan of England. The answer should be the Buddy's conceded telling word
+   for word and nothing else: no line before it, no line after it, no label,
+   no narrator's name, no link. Rule 3 is what that checks, and the answer
+   that failed on 2026-11-07 failed on the line after the words rather than on
+   the words.
 
 ## What a test holds here
 
-`tests/test_orchestrate_agent.py`, 25 tests, reads this file rather than the
+`tests/test_orchestrate_agent.py`, 34 tests, reads this file rather than the
 agent: the pasteable block exists, it carries the verbatim rule and the label
 rule, it spells the label exactly as `app/grounding.py` spells it, it tells the
 agent to drop the label when it summarises, and it uses no nickname and no em
 dash.
+
+`TestTheAnswerIsTheNarration` is the nine of those that hold rule 3. The
+answer is the `text` field and nothing else, nothing comes before it, and each
+thing the live answer of 2026-11-07 added is refused by name: a signature, a
+byline, the narrator's name, the label, the link, the authorship line and a
+dash of any kind. Every occurrence of the label in the block has to be the
+spelling `app/grounding.py` writes, which is what the live answer got wrong,
+and no label line or audio line is left in the block to stand beside rule 3 as
+a softer version of it.
 
 `TestTheMatchesItServes` is the nine of those that hold the list of matches.
 Every line of it is held to the two sources `scripts/write_served_matches.py`

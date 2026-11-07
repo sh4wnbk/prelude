@@ -3004,6 +3004,73 @@ the second is dropped, and the reaction is left out of the shape. Shawn's
 four references for each hero goal come out as four shapes, so it is not
 over-eager. Applied to the eighteen this run produced it flags two.
 
+### Task 20: the answer is the narration, and nothing else (done)
+
+**The live result, Shawn, 2026-11-07.** The agent was asked for the 2022
+narration and it quoted the Buddy's telling word for word. The quoting was
+right: rules 1 and 2 of `docs/orchestrate_agent.md` did their job, and the
+words a fan read were the words the grounding check passed and the recording
+reads. Then the agent added a line of its own under them, and that line was
+wrong in three ways at once:
+
+| What it put there | Why it is a breach |
+| ----------------- | ------------------ |
+| an em dash to open the line | `CLAUDE.md` takes no em dash in any doc or UI copy, and this is UI copy a fan reads |
+| the narrator's name as a signature | the telling is not signed anywhere else in the product, and a signature makes the words read as a personality's rather than as a checked record |
+| the label behind the name in parentheses, its first letter lower-cased | `CLAUDE.md` allows "Verified from play data" only exactly as written, with no partial credit and no softened variant. A lower-cased copy in brackets is not the label |
+
+**None of the three came from a rule given badly.** The old rule 2 said to
+show the label with the words it belongs to and said nothing about where on
+the answer it goes or what may sit around it. An instruction to show
+something is an instruction to place and style it, and placing and styling is
+what a model does with a free hand.
+
+**Shawn's decision: the answer is the narration text exactly as `/buildup`
+returns it, and nothing else.** Not a shape for the extra material; no extra
+material. The narration was written to be read on its own, and
+`app/grounding.py` read it on its own when it earned the label, so handing it
+over on its own is the only form in which nothing has been added to it. It
+also removes the whole class of failure rather than this instance of it: there
+is no styling decision left to make.
+
+**Rule 3 in `docs/orchestrate_agent.md` is that decision**, and the old rules
+3 to 10 are 4 to 11. It says the whole answer is the `text` field exactly as
+returned, then refuses by name each thing the live answer added: nothing
+before it, and after it no signature, no byline, no narrator's name, no label,
+no link, no authorship line, no closing sentence, and no dash of any kind
+anywhere in the answer. Rule 2 no longer tells the agent to show the label; it
+says the label field is the response's and never the agent's to write, in any
+case, shortened, softened, bracketed or placed after a name. Rule 11 keeps the
+`narrator` and `audio_url` fields out of the answer in the same way, instead
+of placing them in it.
+
+**What the decision costs, recorded rather than left to be discovered.** The
+agent no longer shows the label, the narrator's name, the recording link or
+the authorship line. The authorship line is the one worth naming twice: it is
+what told a fan the words were drafted with an AI assistant and edited by a
+person, and the old rule 2 asked for it. A fan reads the label and hears the
+recording in the app, where
+`app/web/prelude_03_moment_card.html` sets the label as its own element with
+no punctuation around it. Every one of those fields is still in the buildup
+response, so bringing one back is a change to rule 3 and Shawn's to make.
+
+**`tests/test_orchestrate_agent.py::TestTheAnswerIsTheNarration`, 9 tests.**
+The rule itself, the nothing before and the nothing after with each refused
+item named, the no dash clause, the label as never the agent's to write, and
+two that read the block against the failure rather than against the rule:
+every occurrence of the label in the block has to be the spelling
+`app/grounding.py` writes, which is what the live answer got wrong, and no
+label line or audio line may be left in the block to stand beside rule 3 as a
+softer version of it. The four label tests written in Task 18 still pass
+unchanged, because the label rules became prohibitions rather than going away.
+
+**What a test cannot do here.** The same limit as Task 18 and Task 19: nothing
+in this environment has a watsonx Orchestrate account, so these tests hold the
+instructions and not the agent. Step 5 of the setup list in
+`docs/orchestrate_agent.md` is the check, and it now reads that the answer
+should be the telling word for word and nothing else, which is the thing that
+failed.
+
 ### Task 19: the match parameter Orchestrate can send, and the matches the agent is told about (done)
 
 **Two things the first live test of the agent found**, Shawn, 2026-11-07, with
@@ -3171,7 +3238,7 @@ play data" goes over those words and nothing else, and an agent that
 summarises says so and drops the label. `CLAUDE.md` allows no partial credit
 and no softened variant, and an agent is the one writer in this system that
 nobody here reviews, so the rule is written where it will be read.
-`tests/test_orchestrate_agent.py`, 25 tests, holds both rules, reads the label
+`tests/test_orchestrate_agent.py`, 34 tests, holds both rules, reads the label
 from `app/grounding.py` and the three listener values from `app.openapi()`,
 and refuses a verdict nickname in the file at all.
 

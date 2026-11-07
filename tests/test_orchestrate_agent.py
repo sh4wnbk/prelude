@@ -17,6 +17,15 @@ over nothing else, and an agent that summarises says so and drops the label.
 could keep the phrase over its own retelling would be the one way this repo's
 central claim could be broken by a machine nobody here wrote.
 
+**The shape rule.** The whole answer to a request for the narration is the
+narration text, and nothing else. It is Shawn's decision of 2026-11-07, taken
+after the live agent quoted the 2022 narration word for word and then added a
+line of its own: an em dash, the narrator's name, and the label behind it in
+parentheses with its first letter lower-cased. The quoting was right and the
+line after it broke three rules at once. So there is no shape for the extra
+material, because there is none of it, which is what `TestTheAnswerIsTheNarration`
+holds.
+
 The label is read from `app/grounding.py` rather than spelled here, which is
 the same thing `tests/test_api.py` does for the endpoint.
 
@@ -143,6 +152,87 @@ class TestTheLabelRule:
         """`CLAUDE.md`: no partial credit and no softened variant. An agent
         told only "do not paraphrase" would still invent "partly verified"."""
         assert "no shorter version of the label" in flat()
+
+
+class TestTheAnswerIsTheNarration:
+    """Rule 3, and the live answer that is the reason for it.
+
+    The agent quoted the 2022 narration word for word and then added a line of
+    its own: an em dash, the narrator's name, and the label behind it in
+    parentheses, lower-cased. `CLAUDE.md` allows the phrase only as
+    `app/grounding.py` writes it and allows no em dash in any copy, so that one
+    line was three breaches.
+
+    Shawn's decision was not to give the extra material a shape. The answer is
+    the `text` field and nothing else, so each test here is either the rule
+    itself or one of the things the live answer added.
+    """
+
+    def test_the_answer_is_the_text_field_and_nothing_else(self):
+        block = flat()
+        assert "your whole answer is the text field" in block
+        assert "exactly as returned, and nothing else" in block
+
+    def test_nothing_comes_before_the_narration(self):
+        block = flat()
+        assert "nothing before it" in block
+        assert "no preamble" in block
+
+    def test_nothing_comes_after_the_narration(self):
+        """Each thing the live answer added, named, so that none of them is
+        left to the agent's own judgement."""
+        block = flat()
+        assert "nothing after it" in block
+        for banned in (
+            "no signature",
+            "no byline",
+            "no narrator's name",
+            "no label",
+            "no link",
+            "no authorship line",
+        ):
+            assert banned in block, banned
+
+    def test_no_dash_of_any_kind_goes_in_the_answer(self):
+        """The live line opened with an em dash, and `CLAUDE.md` takes none in
+        any copy. Said as every dash rather than as that one, because an en
+        dash or a hyphen in its place would read the same way."""
+        assert "no dash of any kind anywhere in the answer" in flat()
+
+    def test_the_label_is_never_the_agents_to_write(self):
+        block = flat()
+        assert "not yours to write" in block
+        assert "never write that phrase yourself" in block
+
+    def test_the_label_in_the_block_is_the_checks_own_spelling(self):
+        """Read from `app/grounding.py`, and every occurrence of it in the
+        block has to be that exact spelling. The live answer lower-cased the
+        first letter, and `CLAUDE.md` allows no softened variant, so a block
+        that spelled it loosely anywhere would be teaching the thing that went
+        wrong."""
+        found = re.findall(re.escape(GROUNDING_LABEL), instructions(), re.I)
+        assert found, "the block does not carry the label at all"
+        assert set(found) == {GROUNDING_LABEL}
+
+    def test_the_narrator_and_the_recording_stay_out_of_the_answer(self):
+        """They are fields of the response, and rule 11 keeps them out rather
+        than placing them somewhere."""
+        block = flat()
+        assert "audio_url" in block
+        assert "not part of the answer" in block
+
+    def test_the_block_carries_no_em_dash(self):
+        """Scoped to the pasteable block. The whole file is held to the same
+        rule by `test_it_carries_no_em_dash_and_no_stand_in_for_one`, and this
+        one says it of the words the agent is actually given."""
+        assert "—" not in instructions()
+
+    def test_no_shape_for_the_extra_material_is_left_in_the_block(self):
+        """A leftover label line or audio line would be a second and softer
+        instruction standing beside rule 3."""
+        block = instructions()
+        assert "Listen:" not in block
+        assert "·" not in block
 
 
 class TestTheMatchesItServes:
