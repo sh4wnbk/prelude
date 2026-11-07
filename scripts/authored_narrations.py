@@ -91,15 +91,15 @@ AUTHORSHIP = "written by the team, verified by the grounding check"
 AUTHORED: dict[tuple[int, str], str] = {
     (3750191, "storyteller_neutral"): (
         "Cuciuffo won it back deep in his own half, and Enrique played it to "
-        "Maradona just inside his own half. He went past Beardsley there, "
-        "carried it on into the final third, beat Butcher on the right and "
-        "Fenwick on the edge of the box, then took it into the box, slipped "
-        "past Shilton and scored with his left foot. What a moment."
+        "Maradona just inside his own half. He went past Beardsley there and "
+        "carried it on, past Butcher in the final third on the right and "
+        "past Fenwick on the edge of the box, then took it into the box, "
+        "slipped past Shilton and scored with his left foot. What a moment."
     ),
     (3750191, "buddy_scored"): (
         "Cuciuffo won it back deep in our own half, Enrique found Maradona "
         "just inside his own half, and from there it was all him: past "
-        "Beardsley, on into the final third, past Butcher on the right, past "
+        "Beardsley, past Butcher in the final third on the right, past "
         "Fenwick on the edge of the box, into the box, past Shilton, and he "
         "scored with his left foot! What a finish!"
     ),

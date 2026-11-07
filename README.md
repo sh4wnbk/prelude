@@ -115,10 +115,9 @@ Everything above it is structure.
   `app/grounding.py` as a goal call, in the persona and for the listening
   side its slot is written for, the places rule and the opener rule. It
   writes `docs/narration_runs/authored_2026-11-07.md` and the same answers as
-  JSON, calls no model and freezes nothing. **Four of the six pass all three
-  today and two do not:** the 1986 Buddy telling for the side that scored and
-  the 1986 Storyteller are each refused for a place, which `HANDOFF.md`
-  records, so the script exits 1.
+  JSON, calls no model and freezes nothing. All six pass all three, so it
+  exits 0; it exits 1 if one of them stops passing, which is what makes a
+  check change that would cost a hero narration visible.
 - `scripts/tts_probe.py`: measures which delivery controls change the audio on
   each of the three candidate IBM voices, by synthesizing one fixed sentence
   per arm and reading the duration, the pitch and the bytes back. `--plan`
@@ -375,11 +374,11 @@ Everything above it is structure.
   token estimate the run prints before it sends anything, the hard token
   cap that stops the run and keeps what it had written, and the run with no
   retries. All pass, and none calls a model.
-- `tests/test_authored_narrations.py`: 28 tests over the six the team wrote:
+- `tests/test_authored_narrations.py`: 32 tests over the six the team wrote:
   one narration per recorded slot, the authorship carried beside every one of
-  them, the opener each of them is held to, the places each of them says, the
-  four that are grounded today and the two that are refused for a place. All
-  pass, and none calls a model.
+  them, the opener each of them is held to, the places each of them says, all
+  six being grounded, and the two earlier 1986 wordings that are still
+  refused for a place. All pass, and none calls a model.
 - `tests/test_narration.py`: 31 tests over the pipeline, covering the retries,
   the fallback, the citation stripping, the failure log, the first-attempt pass
   rate, the characters made plain as a model's text arrives and the attempt
