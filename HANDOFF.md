@@ -3088,6 +3088,33 @@ which is empty again. `docs/HARNESS.md` loses the exception the suite no
 longer has, and its `tests/test_narrator_picker.py` row no longer claims
 seventeen failures.
 
+**Checked against the deployed service**, 2026-11-07, after Render reported
+`9e3d67d` on `/health`, which is this task's own commit. The two calls are the
+value Orchestrate should send now and the value it actually sent in the failed
+live test.
+
+`GET /buildup?match=3869685&listener=team_b&narrator=buddy` answered **200 in
+0.18s**: `match_id` 3869685 as a number, slot `buddy_conceded`, narrator "The
+Buddy", the authorship line, the recording at
+`https://sh4wnbk.github.io/prelude/assets/audio/3869685_buddy_conceded.mp3`,
+and the grounding label present, which is the slot's own record and not
+attached by the endpoint.
+
+`GET /buildup?match=3.869685e+06&listener=team_b&narrator=buddy` answered
+**422 in 0.17s**, with the form and the value in the body:
+
+```
+{"detail":[{"type":"string_pattern_mismatch","loc":["query","match"],
+"msg":"String should match pattern '^[0-9]+$'","input":"3.869685e+06",
+"ctx":{"pattern":"^[0-9]+$"}}]}
+```
+
+That second one is still a refusal, and it is meant to be: the service serves
+integer match ids and `3.869685e+06` is not one of them. What changed is that
+the parameter no longer asks Orchestrate for the type it cannot send, so the
+agent has a value it can pass, and a refusal it can read if it passes
+something else.
+
 **Cold wake, measured again.** `/health` answered in 31.5 seconds from asleep
 on 2026-11-07, in line with the 32 seconds Task 18 measured twice and well
 under the 82 the keepalive run recorded. The standing section at the top of

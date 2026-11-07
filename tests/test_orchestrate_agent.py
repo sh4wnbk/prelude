@@ -193,6 +193,13 @@ class TestTheMatchesItServes:
         """`app/web/matches.json` holds neither, so these are read off the
         match files `scripts/fetch_statsbomb.py` downloads. Nothing about the
         competition or the round is typed into this repo."""
+        if not RAW_MATCHES.is_dir():
+            pytest.fail(
+                f"{RAW_MATCHES.relative_to(ROOT).as_posix()} is not there. "
+                "Run scripts/fetch_statsbomb.py; data/raw is gitignored and "
+                "reproducible, which is what the fixture in "
+                "tests/test_event_feed.py says for the same reason."
+            )
         raw = {}
         for path in sorted(RAW_MATCHES.glob("*/*.json")):
             with path.open(encoding="utf-8") as handle:

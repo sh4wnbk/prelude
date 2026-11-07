@@ -77,7 +77,7 @@ script to run. So the first command in a new clone is
 
 ## Entry points
 
-Twenty-three scripts, each runnable on its own, and the table below names
+Twenty-four scripts, each runnable on its own, and the table below names
 every one of them.
 
 Several are imported as well as run, always for the same reason: the
