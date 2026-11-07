@@ -8,15 +8,19 @@ moment card's player looks its answer up in `hero.audio`. This script is what
 fills that map: one file per key per match, under
 `app/web/assets/audio/<match_id>_<key>.mp3`.
 
-**The header is the orchestrator's and the narration is the model's.** The
-header comes through `openings` in `scripts/write_headers.py`, with no
-listener name in it. The narration is read from `app/web/narrations.json`,
-where `scripts/freeze_narrations.py` put the words `openai/gpt-oss-120b`
-wrote once and `app/grounding.py` passed. It used to be `template_narration`,
-the fallback assembled out of the numbered facts, and that is what the hero
-samples in `scripts/tts_samples.py` still speak: those are for judging the
-voices, where the words only have to be representative. These are what judges
-hear, and what judges hear is the narration the system actually writes.
+**The header is the orchestrator's and the narration is the one this
+listener reads.** The header comes through `openings` in
+`scripts/write_headers.py`, with no listener name in it. The narration is
+read from `app/web/narrations.json` under `slots`, one per
+`hero.voice_for` key: six narrations written by the team and verified by the
+grounding check, which the moment card shows by the same lookup this script
+records them by. So a fan hears the words they just read, in the voice their
+own narrator speaks.
+
+It used to be one narration per goal spoken three ways, and before that
+`template_narration`, the fallback assembled out of the numbered facts, which
+is what the hero samples in `scripts/tts_samples.py` still speak: those are
+for judging the voices, where the words only have to be representative.
 
 Nothing is generated here. The frozen file is read, so a recording is still
 reproducible, and `tests/test_frozen_narrations.py` is what holds the words
@@ -148,23 +152,27 @@ def listener_label(match: dict, allegiance: str) -> str:
     return "no side"
 
 
-def frozen_narrations() -> dict[int, str]:
-    """The frozen narration per match, by match id.
+def frozen_narrations() -> dict[tuple[int, str], dict]:
+    """The frozen narration per `hero.voice_for` key, by match and key.
 
-    `text` and not `tagged_text`: the citation tags are the audit trail, and
-    `app/tts.py` refuses them outright rather than reading fact numbers aloud.
+    **One narration per listener, not one per goal.** Each slot of each hero
+    goal has its own text under `slots`, written by the team and verified by
+    the grounding check, and the moment card shows the one for the listener's
+    own key. So the recording a fan hears and the words they read are the
+    same piece of writing, and that is what this speaks.
     """
     if not NARRATIONS.is_file():
         raise SystemExit(
-            "{} does not exist, so there are no model narrations to speak. "
-            "Run scripts/freeze_narrations.py --confirm, which is a paid "
-            "watsonx run.".format(NARRATIONS.relative_to(ROOT))
+            "{} does not exist, so there are no narrations to speak. Run "
+            "scripts/freeze_narrations.py --authored --confirm, which calls "
+            "no model.".format(NARRATIONS.relative_to(ROOT))
         )
     doc = json.loads(NARRATIONS.read_text(encoding="utf-8"))
-    return {
-        int(match_id): entry["text"]
-        for match_id, entry in doc["narrations"].items()
-    }
+    found: dict[tuple[int, str], dict] = {}
+    for match_id, entry in doc["narrations"].items():
+        for key, slot in (entry.get("slots") or {}).items():
+            found[(int(match_id), key)] = slot
+    return found
 
 
 def recordings(backend: WatsonTextToSpeech) -> tuple[Recording, ...]:
@@ -183,12 +191,6 @@ def recordings(backend: WatsonTextToSpeech) -> tuple[Recording, ...]:
         match_id = match["match_id"]
         hero = match["hero"]
         header = heroes[match_id]["header"]
-        if match_id not in narrations:
-            raise SystemExit(
-                "no frozen narration for match {}; a recording of the "
-                "template is not what this ships".format(match_id)
-            )
-        narration = narrations[match_id]
         seen = set()
         for allegiance, key in hero["voice_for"].items():
             if key in seen:
@@ -196,6 +198,20 @@ def recordings(backend: WatsonTextToSpeech) -> tuple[Recording, ...]:
                 # one file and one call rather than the same audio twice.
                 continue
             seen.add(key)
+            slot = narrations.get((match_id, key))
+            if slot is None:
+                raise SystemExit(
+                    "no frozen narration for match {} slot {}; a recording "
+                    "of another listener's telling is not what this "
+                    "ships".format(match_id, key)
+                )
+            if not slot.get("check", {}).get("grounded"):
+                raise SystemExit(
+                    "the frozen {} narration for match {} is not recorded as "
+                    "grounded, so it is not a narration this app may "
+                    "speak".format(key, match_id)
+                )
+            narration = slot["text"]
             persona_id, situation = key.rsplit("_", 1)
             built.append(
                 Recording(
