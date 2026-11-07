@@ -2660,8 +2660,9 @@ has the whole arc rather than one task at a time.
 
 **Everything in this section is planned work except where a task is marked
 done.** Tasks 3d, 4a, 4b, 4c, 5, 6a, 6b, 6c, 6d, 7, 8 and 9 are built, and so
-are Bob's tasks through task 13; what is left is the pick, the freeze and the
-recordings, and then Phases 6 and 7. Paths a doc
+are Bob's tasks through task 13; the pick is made, the six are written and in
+the repo, and what is left is two decisions about how a place is read, the
+freeze, the disclosure and the recordings, and then Phases 6 and 7. Paths a doc
 names before they are written go on `DELIBERATELY_ABSENT` in
 `scripts/check_docs.py`, so the docs gate fails if one appears and this section
 was not updated with it. That list is empty now:
@@ -2985,6 +2986,15 @@ the second is dropped, and the reaction is left out of the shape. Shawn's
 four references for each hero goal come out as four shapes, so it is not
 over-eager. Applied to the eighteen this run produced it flags two.
 
+### Task 15: the six written by the team, and the two the check still refuses (steps 1 to 3 done, stopped at step 3)
+
+The record is above. Listed here so the plan reads in order: a half said with
+a possessive resolved from the listener's side, a telling required to open on
+a name, the six hero narrations the team wrote put in the repo and read
+against the records, and a stop: two of the six are refused for a place, so
+the freeze, the disclosure and the recordings were not done. Steps 4, 5 and 6
+are still owed and are the three things under "Next first action".
+
 ### Task 14: the fallback back in the repo, the side rule, and places required (done, the run kept one)
 
 The record is above. Listed here so the plan reads in order: the six fallback
@@ -3300,6 +3310,127 @@ it is one line of `support` plus a test.
 Shilton" is grounded, because the records hold a dribble past him; the manner
 is unsaid in the data and uncheckable, like "smashed" before it was banned
 outright. No candidate of the rerun used one, and nothing was changed for it.
+
+### Task 15: the writing moved to the team, and the two places the check still refuses (steps 1 to 3, stopped at step 3)
+
+**Shawn, 2026-11-05: at effort low the model would not place the move, so the
+six hero narrations are written by the team and verified by Prelude's
+grounding check like any model output.** "Verified from play data" still means
+every claim traces to the records; the check is what proves it. The authorship
+is disclosed rather than implied, and the model runs stay in
+`docs/narration_runs/` as the evidence of the pipeline.
+
+**Step 1, `35db706`: whose half "our half" is.** A half said with a possessive
+names a side, and the band is read in that side's own frame.
+`from_the_other_end` in `app/pitch_zones.py` is the arithmetic, `PITCH_X` less
+the recorded `x`, and `_reads_from_the_other_end` in
+`app/narration_grammar.py` is the resolution: "our" is the listening side,
+"their" is the side they are not on, and with no listener in hand the phrase
+is read as the vocabulary spells it, so a Storyteller's "their own half" is
+still the half the side on the ball defends.
+
+| Said | For a fan of Argentina | For a fan of France |
+| ---- | ---------------------- | ------------------- |
+| "deep in our own half" | where Molina played it, `x` 25.9 | France's own half, refused |
+| "deep in their own half" | France's own half, refused | where Molina played it |
+| "just inside our half" | `x` 50 to 60 | where the long ball was struck, 63.2, which is 56.8 from France's end |
+
+Three more things came with it. A half with no band word in front of it ("we
+started from our own half") is the broad position claim it always was and
+places nothing, so the old 2022 `buddy_scored` fallback still places the move
+nowhere. "Our half" is the one first person that stands on itself: every
+record in "Álvarez, just inside our half on the right" is Argentina's, so
+asking the play for a France listener's own side refused a true line. And a
+curly apostrophe is written as a straight one before anything is read, which
+is what the kept candidate of Task 14 carried.
+
+**Step 2, `26a461a`: a telling opens on a name.** The first word is a player,
+a team or a country the records hold. `opener_missing` in
+`scripts/narrator_candidates.py` is the acceptance rule, beside
+`places_missing` and not in the check, because a narration opening on "We"
+makes no false claim and a check that refused one would be refusing cadence.
+Rule 18 of the goal-call prompt asks every narrator for it and the rule
+numbers before it do not move.
+
+**Four of the eight references open elsewhere, and the rule is newer than they
+are.** The 1986 Argentina Buddy and the 2022 Argentina Buddy open on "We", the
+1986 Caller on "It" and the 2022 France Buddy on "In". They are still the
+standard for the writing and are still checked word for word; `docs/VOICE.md`
+records the tension beside the rule. Whether rule 18 should reach them is
+Shawn's call and nothing here changed them. Two recorded test fixtures did
+change, because both are candidates their tests mean the run to keep: the
+near-copy pair opens on Molina now and the cap test's answer on Argentina.
+
+**Step 3, `776b4a1`: the six are in the repo and read against the records.**
+`scripts/authored_narrations.py` holds them verbatim with straight
+apostrophes, carries `AUTHOR` ("the team") and `AUTHORSHIP` ("written by the
+team, verified by the grounding check") beside every one of them, and reads
+each through the three rules a candidate meets. It calls no model, freezes
+nothing, writes `docs/narration_runs/authored_2026-11-07.md` and the same
+answers as JSON, and exits 1.
+
+| Slot | Check | Claims | Places | Opener | Billed |
+| ---- | ----- | -----: | -----: | ------ | -----: |
+| 1986 `storyteller_neutral` | **refused** | 18 | 5 | Cuciuffo | 367 |
+| 1986 `buddy_scored` | **refused** | 18 | 5 | Cuciuffo | 351 |
+| 1986 `buddy_conceded` | grounded | 17 | 4 | Maradona | 324 |
+| 2022 `storyteller_neutral` | grounded | 23 | 5 | Argentina | 485 |
+| 2022 `buddy_scored` | grounded | 23 | 4 | Molina | 449 |
+| 2022 `buddy_conceded` | grounded | 22 | 4 | Molina | 428 |
+
+All six open on a name, all six place the move four or five times, not one of
+them says "who", and the six together are 2,404 billed characters of the 3,500
+the budget allows. **The three 2022 slots and the 1986 `buddy_conceded` slot
+are grounded. The other two 1986 slots are refused, and both refusals are the
+reading pairing a place with the wrong action.**
+
+**The first: "on into the final third" is read as being about Beardsley.** The
+1986 `buddy_scored` line says "past Beardsley, on into the final third, past
+Butcher on the right". `_about` in `app/narration_grammar.py` points a place at
+the move before it, which is the dribble past Beardsley at (54.4, 56.4), and
+that is just inside his own half. The carry the words mean ends at (87.1,
+68.6), which is the final third, and "on into" is not a move the grammar
+reads, so there is nothing between the place and Beardsley. The claim is true
+of the records and the pairing cannot see it. Reading a place as being about
+the move after it when the move before it refuses is a change to `_about` and
+a judgement about which of the two is meant.
+
+**The second: "beat Butcher on the right" leaves Butcher a bare name.**
+`PAST_MARKERS` is "past", "around" and "round", so "beat" is not read as a
+dribble past anybody: Butcher and Fenwick become name moves, and the zone
+branch reads a place off the attacking side's own records, which a defender's
+name holds none of. The 1986 `storyteller_neutral` line is refused twice over
+for it, on "on the right" and on "on the edge of the box". Both places are
+true: Maradona's dribbles past Butcher and Fenwick are at (87.1, 68.6) and
+(97.1, 55.1). Adding "beat" to `PAST_MARKERS` would read the line as written
+and would also make "beat" a claim everywhere else it is said, which is the
+decision.
+
+**Neither was reworded**, which is what the task asked: the words are Shawn's,
+the refusals are the check's, and a narration bent to fit a reading is not the
+thing that was written. `tests/test_authored_narrations.py` holds both
+refusals in the suite, in the words the check uses, so a change to either
+reading fails there rather than passing unnoticed.
+
+**Steps 4, 5 and 6 were not done**, and all three depend on the two refusals:
+the freeze requires a narration the check passes, the README disclosure would
+be claiming six verified narrations when four are, and the recordings are the
+frozen text spoken. Nothing was sent to the speech service and `hero.audio` is
+still empty.
+
+**The moment card was left alone.** Shawn said so during the task, so step 5's
+label change ("AI AUDIO NARRATION" to "AUDIO NARRATION") was not made and
+nothing in `app/web/prelude_03_moment_card.html` was touched. It also settles a
+question the freeze would have raised: `app/web/narrations.json` holds one
+narration per goal and the card reads `text` from it, and
+`scripts/check_match_copy.py` holds the card's inline copy to that same text,
+so writing six per-slot narrations into that file is a change to the card as
+well unless the per-goal `text` stays as it is. That is the first thing to
+settle in step 4.
+
+**The suite and the gates.** `pytest -q` reports `1480 passed` and all five
+gates exit 0. Sixty five of those tests were added by this task, over the
+resolution, the opener rule and the six themselves.
 
 ### Task 14: the fallback restored, the side rule and places required (done)
 
@@ -3917,91 +4048,101 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Shawn reads aloud and picks six, from three places)
+## Next first action (two decisions about the reading, then the freeze)
 
-**Every slot can be picked from, and no one file holds all six any more.**
-There are three places to read from, and the first is the only one that is in
-the repo:
+**The six hero narrations are in the repo and four of them ground.** They are
+in `scripts/authored_narrations.py`, written by the team and verified by the
+grounding check, and the script reads all three rules over them:
+
+```
+.\.venv-prelude\Scripts\python.exe -I scripts\authored_narrations.py
+```
+
+It exits 1 today, because two of the six are refused, and both refusals are
+the reading rather than the words. The Task 15 record above has the
+coordinates; this is the decision each one needs.
+
+| Slot | Refused for | What it would take |
+| ---- | ----------- | ------------------ |
+| 1986 `buddy_scored` | "the final third", read as being about the dribble past Beardsley | `_about` in `app/narration_grammar.py` may look at the move after a place when the move before it does not hold |
+| 1986 `storyteller_neutral` | "on the right" and "on the edge of the box", read off Butcher's and Fenwick's own records | "beat" joins `PAST_MARKERS`, which makes it a dribble claim everywhere it is said |
+
+**Both are Shawn's call**, because each widens what the check reads and
+neither is a bug with one right answer. The first changes how a place finds
+its action, which touches every zone claim in both passages. The second turns
+a word that is unchecked prose today into a claim about a `Dribble` and a
+`Dribbled Past` pair, which is the stricter and the more useful of the two.
+Nothing was changed for either, and the two lines were not reworded.
+
+**Then three things are owed, and they are steps 4, 5 and 6 of Task 15.**
+
+1. **The freeze.** The six into `app/web/narrations.json`, each carrying its
+   authorship, with a test that fails if a frozen narration has no authorship
+   or stops grounding. `scripts/freeze_narrations.py` writes one narration per
+   goal and that file holds one per goal, so this is a change to both. **The
+   moment card is not to be touched**, which settles the shape: the card reads
+   `text` for the goal and `scripts/check_match_copy.py` holds the card's
+   inline copy to it, so the six go in beside that field rather than in place
+   of it, or the card changes with them.
+2. **The disclosure.** `README.md` says, in the present tense, that the six
+   hero narrations were written by the team and verified by Prelude's
+   grounding check against StatsBomb play data, and that the model pipeline
+   and its runs are in `docs/narration_runs/`. It cannot say six until six
+   ground. The label's own meaning is unchanged and `docs/GOVERNANCE.md`
+   needs nothing.
+3. **The recordings.** `scripts/tts_hero.py --confirm` with `--budget 3500`,
+   Storyteller on `en-US_EmmaNatural` and Buddy on `en-US_EthanNatural`, six
+   files under `app/web/assets/audio/`, and `hero.audio` filled per
+   `voice_for` key. **Before any call, Shawn confirms the Text to Speech
+   instance shows no November usage.** The script speaks one narration per
+   match today, read from `narrations.json`, so six narrations and two voices
+   is a change to it as well as to the frozen file.
+
+**The six fit the budget with room.** 2,404 billed characters for the six
+against the 3,500 `scripts/tts_hero.py --budget` allows, so 1,096 unspent:
+1986 is 324 to 367 a slot and 2022 is 428 to 485.
+
+**What Shawn listens for after the recordings**, which is the last line of
+the task: Di María, Álvarez, MacAllister, Cuciuffo and Beardsley, and the
+pacing, before anything else is tuned.
+
+### The six fallback narrations are still in the repo, and they are not these
+
+`scripts/fallback_narrations.py` holds the six Shawn kept from the first run
+of 2026-11-05 and `docs/narration_runs/fallback_2026-11-05.md` is their
+re-check. All six of those ground and none of them places the move, which is
+what Task 14 built the places rule for; they are the earlier answer to the
+same question and are kept because a run is never the only copy of a
+narration.
+
+### The candidate runs, and where they are
+
+**No run was made in Task 15 and no watsonx call was sent.** The review
+files outside the repo are as Task 14 left them:
 
 | Where | What is in it |
 | ----- | ------------- |
-| `docs/narration_runs/fallback_2026-11-05.md` | the six fallback narrations, one per slot, all grounded, none placing the move |
-| `C:\Users\shawn\prelude-review\narrator_candidates_2026-11-05.md` | this run's one candidate (2022 `buddy_conceded`) and the carried 2022 Storyteller |
-| `C:\Users\shawn\prelude-review\narrator_candidates_2026-11-05.before-task14-20261105T2027.md` | the zones run's eight, including the five 1986 ones this run replaced |
+| `C:\Users\shawn\prelude-review\narrator_candidates_2026-11-05.md` | Task 14's one kept candidate (2022 `buddy_conceded`) and the carried 2022 Storyteller |
+| `C:\Users\shawn\prelude-review\narrator_candidates_2026-11-05.before-task14-20261105T2027.md` | the zones run's eight, including the five 1986 ones Task 14's run replaced |
 
-| Slot | In the review file | In the repo's fallback | Places the move |
-| ---- | -----------------: | ---------------------: | --------------- |
-| 1986 `buddy_conceded` | 0 | 1 | not at all |
-| 1986 `buddy_scored` | 0 | 1 | not at all |
-| 1986 `storyteller_neutral` | 0 | 1 | not at all |
-| 2022 `buddy_conceded` | 1 | 1 | five times, and one of them is where the long ball was struck |
-| 2022 `buddy_scored` | 0 | 1 | not at all |
-| 2022 `storyteller_neutral` | 1 (carried) | 1 | three times |
+**Copy both aside before any rerun.** It is still not automated.
 
-**The film is set in 2022, so the Di María narration is the one the video
-plays**, and both 2022 slots with a candidate in them place the move. The
-2022 `buddy_conceded` candidate is the only narration any run has produced
-that says where the long ball was struck from, and it is the one to read
-aloud first.
-
-**Two things to listen for.** The kept 2022 `buddy_conceded` candidate says
-"France's" with a curly apostrophe (U+2019) and says "who" twice, where rule
-14 allows one. And the fallback 1986 `buddy_scored` line is the one Shawn
-wrote out, not the "in half" one the zones run kept, so the dropped word is
-gone.
-
-**Why the 1986 slots are empty in the review file.** This run produced all
-three and kept none: nine grounded 1986 tellings were refused because not one
-of them placed the move anywhere. The zones run's five are in the timestamped
-copy above, and two of those five are refused by the check today, because the
-side rule moved and they say "on the right" over the grouped dribble.
-
-**What this run cost: 77,480 tokens of the 80,000 it was allowed**, every one
-counted off watsonx's `usage` object, over 24 generations and one IAM
-exchange. It stopped on the cap in the 2022 `buddy_scored` slot, so that
-slot's third candidate and the whole 2022 `storyteller_neutral` slot were
-never asked for.
-
-**Copy both review files aside before any rerun.** It is still not automated
-and this run is the second reason for it: the copy made at 20:27 is the only
-place the zones run's 1986 candidates survive.
-
-**The rerun command, if a slot is to be asked again.** A slot this run
-produced replaces its older self and a slot it did not touch is carried
-across:
+**The rerun command, if a slot is to be asked again.** A slot a run produces
+replaces its older self and a slot it does not touch is carried across:
 
 ```
 .\.venv-prelude\Scripts\python.exe -I scripts\narrator_candidates.py --confirm --match 3750191 --slot buddy_scored --reasoning-effort low --per-slot 3 --max-retries 2 --max-total-tokens 20000
 ```
 
 `--plan` prints what it would spend and sends nothing; `--confirm` sends it.
-Add or drop a `--slot` flag to change which slots are asked.
-
-**One thing a rerun of the 1986 slots would want, and it is not built.** The
-1986 move has no long ball and nine grounded tellings of it placed the move
-nowhere, so the places rule refuses the slot rather than teaching it. What
-the beats offer that voice is "deep in his own half" on the recovery, three
-places on the grouped dribble and "in the box" on the finish, and the prompt
-asks for two or three of them in a rule that is general to any goal. Whether
-rule 17 should name the beats' own places for the goal being told is a
-prompt change and a judgement, which is why it was not made here.
-
-**Still owed after the pick.** Three things, and the first is Shawn's:
-
-1. Shawn picks one candidate per slot, reading them aloud. All six slots can
-   be picked from, four of them only from the fallback.
-2. The freeze. `scripts/freeze_narrations.py` writes one narration per goal
-   and `app/web/narrations.json` holds one per goal, so writing six picks
-   into it is a change to both and is not built.
-   `scripts/narrator_candidates.py` freezes nothing on purpose.
-3. The recordings. `scripts/tts_hero.py --confirm` has not been sent and
-   `hero.audio` is still `{}`.
+A run now also refuses a grounded telling that does not open on a name, which
+is rule 18 and `opener_missing`.
 
 **The Caller has a style and no recording.** `hero.voice_for` sends no
-listener to it, so nothing generated for it and there are six slots rather
-than eight. Its style is in `app/goal_call_prompt.py` and its two reference
-narrations are in `tests/test_reference_narrations.py`, so adding the
-recording later is a change to `hero.voice_for` and not to the writing.
+listener to it, so there are six slots rather than eight. Its style is in
+`app/goal_call_prompt.py` and its two reference narrations are in
+`tests/test_reference_narrations.py`, so adding the recording later is a
+change to `hero.voice_for` and not to the writing.
 
 
 ### Task 10's run: the ten candidates the fixes replaced
