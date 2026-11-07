@@ -3007,13 +3007,15 @@ against `app/web/` served over HTTP: in each one the words the moment card
 showed and the file the player loaded were the same slot, which is the thing
 this task could have broken and did not.
 
-**The README says who wrote the six.** The authorship line said they were
-written by the team. It now says what that was: drafted with an AI assistant,
-edited by Shawn, and verified by Prelude's grounding check against StatsBomb
-play data. The watsonx pipeline and its runs stay named under it. The
-authorship frozen beside each narration in `app/web/narrations.json` is
-unchanged, so the README now says who the team was rather than contradicting
-the field.
+**The README says who wrote the six, and so does the frozen field.** The
+authorship line said they were written by the team. It now says what that was:
+drafted with an AI assistant, edited by Shawn, and verified by Prelude's
+grounding check against StatsBomb play data. The watsonx pipeline and its runs
+stay named under it. The field frozen beside each narration said the old
+sentence for one commit; `AUTHORSHIP` in `scripts/authored_narrations.py` now
+carries the README's wording, and the six were refrozen with it, so the one
+string the review file, the JSON and `app/web/narrations.json` all read from
+says what the README says.
 
 **One lookup is the whole of the design.** `Prelude.slotFor(match)` becomes the
 only reader of `hero.voice_for`. The words the moment card shows, the recording

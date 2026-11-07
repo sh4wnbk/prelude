@@ -137,7 +137,8 @@ class TestTheAuthorshipIsCarried:
 
     def test_the_authorship_says_both_halves(self):
         assert authored.AUTHORSHIP == (
-            "written by the team, verified by the grounding check"
+            "drafted with an AI assistant, edited by Shawn, verified by the "
+            "grounding check"
         )
 
     def test_every_slot_carries_it(self, heroes):
@@ -174,7 +175,7 @@ class TestTheAuthorshipIsCarried:
         ]
         text = authored.review(goals)
         assert authored.AUTHORSHIP in text
-        assert "No model wrote these" in text
+        assert "No watsonx call wrote these" in text
         assert "—" not in text
         document = authored.document(goals)
         assert document["author"] == authored.AUTHOR

@@ -1,10 +1,10 @@
 r"""The six hero narrations the team wrote, re-checked against `data/raw/`.
 
-**These six were written by the team and not by a model.** At
-`reasoning_effort` low the model would not place the move on the pitch: the
-run of 2026-11-05 produced nine grounded 1986 tellings and not one of them
-said a band or a side, so `places_missing` refused eleven of the fourteen
-candidates it reached. The answer Shawn settled on is that the writing is the
+**These six are the team's writing and not the watsonx pipeline's output.**
+At `reasoning_effort` low the model would not place the move on the pitch:
+the run of 2026-11-05 produced nine grounded 1986 tellings and not one of
+them said a band or a side, so `places_missing` refused eleven of the
+fourteen candidates it reached. The answer Shawn settled on is that the writing is the
 team's and the verifying is Prelude's: each of these six goes through
 `app/grounding.py` as a goal call, in the persona and for the listening side
 its slot is written for, exactly as a model's candidate does.
@@ -75,10 +75,14 @@ WRITTEN_ON = "2026-11-07"
 #: reader of the frozen file, the review file and the JSON sees one answer.
 AUTHOR = "the team"
 
-#: The authorship, as a sentence a reader cannot take for model output. It is
-#: carried beside every frozen narration and
-#: `tests/test_authored_narrations.py` fails if one loses it.
-AUTHORSHIP = "written by the team, verified by the grounding check"
+#: The authorship, as one sentence saying who drafted the words, who edited
+#: them and what verified them. It matches `README.md`, it is carried beside
+#: every frozen narration, and `tests/test_authored_narrations.py` fails if
+#: one loses it.
+AUTHORSHIP = (
+    "drafted with an AI assistant, edited by Shawn, verified by the "
+    "grounding check"
+)
 
 #: The six, verbatim as Shawn wrote them, by match and slot. One per slot of
 #: the two hero goals, which is every slot `hero.voice_for` sends a listener
@@ -139,7 +143,8 @@ AUTHORED: dict[tuple[int, str], str] = {
 _NOTE = (
     "The six hero narrations, written by the team and kept verbatim in "
     "scripts/authored_narrations.py, re-checked against data/raw/ by that "
-    "script. No model wrote them and no model was called for this file. The "
+    "script. No watsonx call wrote them and no model is called for this "
+    "file. The "
     "model runs are in docs/narration_runs/ beside it."
 )
 
@@ -223,7 +228,8 @@ def review(goals: Sequence[dict]) -> str:
                "scripts/authored_narrations.py. Re-checked by that script on "
                "{}.".format(AUTHOR, date.today().isoformat()))
     out.append("")
-    out.append("No model wrote these and no model was called for this file. "
+    out.append("No watsonx call wrote these and no model is called for this "
+               "file. "
                "Each line was read against data/raw/ by app/grounding.py as "
                "a goal call, in the persona and for the listening side its "
                "slot is written for, and then by the two acceptance rules a "

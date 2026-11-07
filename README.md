@@ -467,9 +467,10 @@ other goals, no words for how hard the ball was struck, and never "you".
 **The six hero narrations were drafted with an AI assistant, edited by Shawn,
 and verified by Prelude's grounding check against StatsBomb play data.** There
 is one per listener per hero goal, in `scripts/authored_narrations.py` and
-frozen into `app/web/narrations.json`, which records beside each of them that
-it was written by the team and verified by the grounding check; the team there
-is that draft and that edit, and not the watsonx pipeline below. The moment
+frozen into `app/web/narrations.json`, which records that same sentence beside
+each of them: drafted with an AI assistant, edited by Shawn, verified by the
+grounding check. The draft and the edit are the team, and the team is not the
+watsonx pipeline below. The moment
 card shows the one for the listener's own key while `scripts/tts_hero.py`
 speaks it. The check reads them exactly as it reads a model's: as a goal
 call, in the persona and for the listening side the slot is written for, claim
