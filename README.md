@@ -507,8 +507,11 @@ test per kind of claim and one per kind of mistake.
 
 ## Hosted API
 
-**Live URL: added after deploy.** The service is in the repo and runs locally;
-nothing is deployed from here yet, so there is no URL to paste.
+**Live URL: <https://prelude-api.onrender.com>.** Deployed on 2026-11-07 and
+answering; `/health` reports the commit Render built. The free service sleeps
+after fifteen minutes without traffic and a cold wake took 82 seconds, so open
+`/health` and wait for `{"status": "ok"}` before the first real call. `HANDOFF.md`
+has the standing note.
 
 `app/api.py` is a read-only FastAPI service, GET only, with CORS open for GET.
 It exists so watsonx Orchestrate has a stable public URL to call: GitHub Pages

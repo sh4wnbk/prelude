@@ -1730,9 +1730,10 @@ forgotten:
 
 ## Task 15: the OpenAPI file watsonx Orchestrate imports
 
-**Status: not built.** `tests/test_orchestrate_spec.py` holds the contract, and
-all 64 of its tests fail until the file exists. Nothing else in the suite
-fails.
+**Status: not built, and dry run once.** `tests/test_orchestrate_spec.py`
+holds the contract, and all 64 of its tests fail until the file exists. Nothing
+else in the suite fails. The dry run is recorded below, and so is the one gate
+failure to expect.
 
 Write one file, `orchestrate/prelude_tools.yaml`, so that watsonx Orchestrate
 can import the hosted API as tools. That is the whole task. No Python changes,
@@ -1781,8 +1782,9 @@ and is refused.
 
 ### What you build
 
-**`orchestrate/prelude_tools.yaml`, one file, nothing else.** The directory
-exists and is otherwise empty.
+**`orchestrate/prelude_tools.yaml`, one file, nothing else.** Create the
+directory as well: git does not track an empty one, so it is not in the repo
+yet and this file is the first thing in it.
 
 1. **`openapi: 3.0.3`**, and an `info` block with a title and a version.
 2. **One server**, `https://prelude-api.onrender.com`, with no trailing slash,
@@ -1894,6 +1896,74 @@ descriptions are read by an agent and then by a judge.
 service returns, and `app/grounding.py` is what earned it. A description may
 say that the response carries the label when the words earned it. It may not
 claim the label for the tool.
+
+### What a dry run of this brief found
+
+This brief was implemented once on a scratch branch, checked against the
+deployed service, and the branch deleted, so what you are reading has been
+built at least once. The spec was 197 lines in one file and nothing else
+changed. All 64 tests in `tests/test_orchestrate_spec.py` passed on the first
+run of the file, so the contract is satisfiable as written; if one of them
+fails for you and this section does not explain why, the file is the thing to
+change.
+
+The suite then came out at 1675 passed, and the five gates were at exit 0
+except `check_docs.py`, which failed on exactly the one claim this brief
+predicts: the quoted `pytest -q` result near the top of this file, which quotes
+the failing run while the task is waiting. Two more claims go stale at the same
+moment and the gate does not read them, because they are prose: the sentence
+about the one failing file in `docs/HARNESS.md`, and this task's status line.
+All three are the follow-up's.
+
+Seven things the run taught, which are yours to use rather than to rediscover.
+
+- **Read the goal fields off the live body, not off the screens.** Describing
+  the 200 schema is allowed and is worth doing, because `app.openapi()` says
+  only "an object", but every field named has to be a field the service
+  returns, including the fields of each item in `goals`. They are `scorer`,
+  `team`, `display_minute`, `score_after` (with `home` and `away`) and
+  `narrated`. `app/web/matches.json` carries differently named things, and
+  guessing from it costs a test.
+- **`label` is in both matches' bodies**, because all six frozen narrations
+  earned it. So naming it in the schema passes. Describe it as conditional
+  anyway: `app/api.py` adds it only when the frozen slot says the words earned
+  it, and an agent that assumes it is always there is an agent that will show
+  it when it is not.
+- **An unknown narrator is a 200, not an error.** The live service answered 200
+  for `narrator=caller` and fell back to the side's own telling. That is why
+  `narrator` is a narrowing in the file and not a validated value, and why 404
+  on `/buildup` is about the match and the slot rather than about the narrator.
+- **The three codes the file may declare are the three the service answers**,
+  and the live service answered all three: 200, 404 for `match=1`, and 422 for
+  a listener that is not one of the three. The test demonstrates them in
+  process before it lets the file name them, so a fourth code fails rather than
+  becoming a promise nothing keeps.
+- **Do not try to export the file.** `app.openapi()` is 3.1.0, and two tests
+  refuse it: one reads the version and one compares the file with the code. The
+  file is written, not generated. Copying the shapes out of `app.openapi()` by
+  hand is the quick way, and that is what the parameter tests compare.
+- **The file validated as OpenAPI 3.0.3** under a validator run outside the
+  project, which is the one thing the suite cannot tell you:
+  `uv run --no-project --with openapi-spec-validator --with pyyaml`. Nothing was
+  added to `pyproject.toml` for it, and the import in Orchestrate is still the
+  real check.
+- **Create `orchestrate/` yourself.** git does not track an empty directory, so
+  the directory is not in the repo; the file is the first thing in it.
+
+What the live service answered, with the two example calls the file carries,
+2026-11-07:
+
+| Call | Answer |
+| ---- | ------ |
+| `/health` | 200, and the deployed commit, after a 32 second cold wake |
+| `/moments?match=3750191` | 200 in 0.56s: Argentina 2 England 1, three goals, the second narrated |
+| `/buildup?match=3750191&listener=team_b&narrator=buddy` | 200 in 0.18s: the `buddy_conceded` slot, The Buddy, the text, the authorship, the recording and the label |
+| `/moments?match=1` | 404 |
+| `/buildup?match=3750191&listener=nope` | 422 |
+| `/buildup?match=3750191&listener=team_a&narrator=caller` | 200, fallen back to `buddy_scored` |
+
+The cold wake was 32 seconds on two measurements that day, against the 82
+seconds the keepalive run recorded. Plan on the 82.
 
 ### Stop conditions
 

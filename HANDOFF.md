@@ -3004,7 +3004,97 @@ the second is dropped, and the reaction is left out of the shape. Shawn's
 four references for each hero goal come out as four shapes, so it is not
 over-eager. Applied to the eighteen this run produced it flags two.
 
-### Task 17: the hosted read-only API, and the slot rule in one table (done, not deployed)
+### Task 18: the Orchestrate tool contract, the agent instructions, and the dry run (done, the spec is Bob's)
+
+**The API is deployed and answering.** <https://prelude-api.onrender.com>
+reports `833dbed` from `/health`, which is the commit Render built, and the
+standing section at the top of this file is what a cold wake costs. Everything
+below was checked against that service rather than against a local uvicorn.
+
+**What Bob gets, and what he does not.** The OpenAPI file Orchestrate imports,
+`orchestrate/prelude_tools.yaml`, is Task 15 in `docs/bob_brief.md`. It is not
+in the repo: this task wrote the brief, the acceptance tests and the agent's
+instructions, and the file itself is the session Shawn runs.
+
+**`tests/test_orchestrate_spec.py`, 64 tests, all failing.** They are the
+contract for that one file: OpenAPI 3.0 because IBM requires it, one server
+and that server the deployed URL, exactly two operations and `/health` not
+among them, an operationId and a description an agent can choose by, the
+parameters and enums the service takes, a JSON 200 per operation, and no
+authentication block because the service takes none.
+
+**Almost nothing in those tests is spelled twice.** The parameter names, the
+required flags, the types, the listener enum and the response types are read
+out of `app.api`'s own `app.openapi()` inside the tests and compared with the
+file, so a change to `app/api.py` fails the spec here rather than in
+Orchestrate, where the symptom is an agent calling with an argument the
+service drops. The status codes the file may declare are demonstrated against
+the application in process, 200, 404 and 422, before the file is allowed to
+name one. That is the same answer Task 17 gave the slot rule: when a rule is
+written twice, the second copy is held to the first by a table or by a read.
+
+**Three things the tests do assert on their own**, because the code does not
+hold them: the 3.0 version, which is the one place the file may not match
+`app.openapi()`; the narrator enum, which is the persona ids that have a
+recording, read off `hero.audio` in `app/web/matches.json` and so two of the
+three; and a description on every operation and parameter plus an example on
+every parameter, none of which FastAPI writes.
+
+**`docs/orchestrate_agent.md` is the agent, as far as this repo can hold it.**
+The agent is created in Orchestrate's UI and its model is fixed by the lab
+admins, so what is here is the block Shawn pastes into it. Its first rule is
+the verbatim rule: quote the narration the tool returned word for word, never
+paraphrase, shorten or add to it. Its second is the label rule: "Verified from
+play data" goes over those words and nothing else, and an agent that
+summarises says so and drops the label. `CLAUDE.md` allows no partial credit
+and no softened variant, and an agent is the one writer in this system that
+nobody here reviews, so the rule is written where it will be read.
+`tests/test_orchestrate_agent.py`, 16 tests, holds both rules, reads the label
+from `app/grounding.py` and the three listener values from `app.openapi()`,
+and refuses a verdict nickname in the file at all.
+
+**The dry run, on a scratch branch that was deleted.** The spec was written
+once to the brief, 197 lines in one file and nothing else changed, and all 64
+tests in `tests/test_orchestrate_spec.py` passed on the first run of it, so the
+contract is satisfiable as written. The suite then came out at 1675 passed and the five gates were at
+exit 0 except `check_docs.py`, which failed on exactly the claim the brief
+predicts: the quoted `pytest -q` result in `docs/bob_brief.md`. The file also
+validated as OpenAPI 3.0.3 under `openapi-spec-validator`, run outside the
+project with `uv run --no-project`, so nothing was added to `pyproject.toml`
+for it. `docs/bob_brief.md` carries the seven things the run taught; the
+longest of them is that describing the 200 body is worth doing and that every
+field named has to be read off the live body, including the fields inside
+`goals`.
+
+**What the live service answered during the dry run**, 2026-11-07, which is
+the half of the check a test cannot do:
+
+| Call | Answer |
+| ---- | ------ |
+| `/health` | 200 with the deployed commit, after a 32 second cold wake |
+| `/moments?match=3750191` | 200 in 0.56s, Argentina 2 England 1, the second goal narrated |
+| `/buildup?match=3750191&listener=team_b&narrator=buddy` | 200 in 0.18s, the `buddy_conceded` slot with its text, authorship, recording and label |
+| `/moments?match=1` | 404 |
+| `/buildup?match=3750191&listener=nope` | 422 |
+| `/buildup?match=3750191&listener=team_a&narrator=caller` | 200, fallen back to `buddy_scored` |
+
+A cold wake measured 32 seconds twice that day, against the 82 seconds the
+keepalive run recorded. The standing section plans on the 82.
+
+**`pyyaml` joins the dev group.** The suite had no way to parse YAML, which is
+why the two YAML files in Task 17 were read by eye. It is dev only, so the
+deployed service still installs `fastapi`, `uvicorn` and `segno` and nothing
+else, and `docs/HARNESS.md`'s dependency table says so.
+
+**What was not verified, and cannot be here.** Nothing has been imported into
+watsonx Orchestrate: there is no account in this environment, the import is
+Toolset, Add tool, Import, Import from file in the lab's UI, and the agent and
+its instructions go in beside it. So "Orchestrate accepts this file" is
+checked by IBM's published conditions and by an OpenAPI validator, and not by
+Orchestrate. The agent's behaviour under the two rules is checked by asking
+it, which is step 5 of the setup list in `docs/orchestrate_agent.md`.
+
+### Task 17: the hosted read-only API, and the slot rule in one table (done, and deployed since)
 
 **Shawn, 2026-11-07: the hosted service holds no keys.** The Plan's Phase 6
 below was written for a backend holding the IBM keys with rate limiting, so
@@ -3154,9 +3244,11 @@ GET carrying `Origin: https://sh4wnbk.github.io` came back with
 `access-control-allow-origin: *`, and a POST to each of the three paths
 answered 405.
 
-**What was not verified, and cannot be here.** Nothing is deployed: no Render
-service exists, so no public URL has been called, the keepalive has never run,
-and `/health` has never reported a real commit. The two YAML files were not
+**What was not verified when this was written, and was afterwards.** Nothing
+was deployed at the time: no Render service existed, so no public URL had been
+called, the keepalive had never run, and `/health` had never reported a real
+commit. Shawn deployed it the same day, the keepalive ran by hand and passed,
+and Task 18 above is where the live service is checked. The two YAML files were not
 parsed by a YAML library, because the repo has none and `npx` was refused;
 they are read by eye, and GitHub validates the workflow when it is listed. The
 warning in the suite output is starlette asking for `httpx2` instead of
@@ -3164,6 +3256,10 @@ warning in the suite output is starlette asking for `httpx2` instead of
 reports one warning beside `1595 passed`.
 
 ### The deploy checklist, for Shawn
+
+**Done on 2026-11-07**, except for turning `PRELUDE_KEEPALIVE` on in step 4,
+which the standing section at the top of this file covers. Kept as the record
+of how the service was created and what to do if it has to be created again.
 
 1. **Create the service from the Blueprint.** Render dashboard, New, then
    Blueprint, and point it at `sh4wnbk/prelude` on `main`. Render's GitHub app
@@ -4454,17 +4550,27 @@ hears whether or not it is up. Task 17 above is the record.
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Phase 6: Shawn deploys, then Bob's spec)
+## Next first action (Phase 6: Shawn runs Bob, then the Orchestrate import)
 
-**The hosted endpoint is built and is not deployed.** Task 17 above is the
-record and the checklist: `app/api.py` serves `/health`, `/moments` and
-`/buildup` read-only, `render.yaml` is the Blueprint for one free web service,
-`.github/workflows/keepalive.yml` is the ping, and `tests/test_api.py` holds
-all three. **The first action is Shawn's: create the Render service from the
-Blueprint, set `PRELUDE_API_URL`, run the keepalive by hand once, and hand the
-URL back.** Nothing Claude Code can do comes before it. The OpenAPI spec Bob
-writes next describes an endpoint, and a spec cannot be checked against one
-that has no address.
+**The endpoint is deployed and the spec is briefed.** Task 18 above is the
+record: <https://prelude-api.onrender.com> answers, Task 15 in
+`docs/bob_brief.md` is the brief for `orchestrate/prelude_tools.yaml`, its 64
+acceptance tests are in `tests/test_orchestrate_spec.py` and all of them fail,
+and `docs/orchestrate_agent.md` is the agent's instructions.
+
+**The first action is Shawn's: run Bob on Task 15.** Nothing Claude Code can
+do comes before it; the file is reserved for that session the way every other
+task of Bob's was. Then, in the lab's Orchestrate UI, import the file (Toolset,
+Add tool, Import, Import from file), select both operations, skip the
+connection because the API takes none, and paste the block from
+`docs/orchestrate_agent.md` into the agent. Wake `/health` first: the standing
+section at the top of this file says why.
+
+Afterwards, three things come back to Claude Code: the export committed to
+`bob_sessions/`, the follow-up the brief predicts (the quoted `pytest -q`
+result in `docs/bob_brief.md`, the suite's state in `docs/HARNESS.md` and Task
+15's status line), and `docs/IBM_STACK.md` finished with the Orchestrate layer
+in it.
 
 The paragraphs below are Phase 5's close and still read true, except where
 Task 17 says otherwise: the hosted service holds no keys, so the first of the
