@@ -303,29 +303,66 @@ WEB = ROOT / "app" / "web"
 DEFAULT_MATCH = 3750191
 NARRATIONS = WEB / "narrations.json"
 
+#: The slot a listener with no side hears, which is what the markup carries:
+#: the inline copy stands before the renderer has run and before the fan has
+#: said who they are with, and `renderNarration` falls back to this key.
+NEUTRAL_SLOT = "storyteller_neutral"
 
-def frozen_narration(match_id, fail):
-    """The frozen narration for one match, as the card should show it.
 
-    It is checked here for the same reason the rest of the inline copy is:
-    the markup carries the default match's words for the moment before the
-    renderer runs, and those words sit under "Verified from play data". A
-    regenerated narrations.json that left the markup behind would leave the
-    label over text the check never passed.
+def frozen_narration(doc, match_id, fail):
+    """The narration the card shows for each listener, and the one it carries.
+
+    **The card shows what the fan hears.** There is one frozen narration per
+    `hero.voice_for` key, the renderer picks it by the listener's own
+    allegiance and `app/web/narration-player.js` picks the recording by the
+    same lookup, so the words under "Verified from play data" are the words
+    the voice reads. Every key a match sends a listener to therefore needs a
+    narration: a key with none would leave that fan reading another
+    listener's telling.
+
+    The returned string is the one the markup has to carry, which is the
+    neutral slot: the inline copy is what stands before the renderer runs and
+    before any listener answer, and that is the key the renderer falls back
+    to.
 
     Whether the words are still grounded is a different question and is
-    `tests/test_frozen_narrations.py`'s. This only asks whether the two
-    copies agree.
+    `tests/test_frozen_narrations.py`'s. This only asks whether the copies
+    agree and whether every listener has one.
     """
     if not NARRATIONS.is_file():
         fail("narrations.json", "is missing; run scripts/freeze_narrations.py")
         return None
-    doc = json.loads(NARRATIONS.read_text(encoding="utf-8"))
-    entry = doc.get("narrations", {}).get(str(match_id))
+    frozen = json.loads(NARRATIONS.read_text(encoding="utf-8"))
+    entry = frozen.get("narrations", {}).get(str(match_id))
     if not entry:
         fail("narrations.json", f"has no frozen narration for match {match_id}")
         return None
-    return entry["text"]
+    slots = entry.get("slots") or {}
+    for match in doc["matches"]:
+        keys = sorted(set(match["hero"]["voice_for"].values()))
+        theirs = (
+            frozen.get("narrations", {})
+            .get(str(match["match_id"]), {})
+            .get("slots")
+            or {}
+        )
+        for key in keys:
+            said = theirs.get(key) or {}
+            if not said.get("text"):
+                fail("narrations.json",
+                     f"has no narration for match {match['match_id']} slot "
+                     f"{key}, which hero.voice_for sends a listener to")
+            elif not said.get("authorship"):
+                fail("narrations.json",
+                     f"match {match['match_id']} slot {key} carries no "
+                     "authorship, so a reader cannot tell who wrote it")
+    neutral = (slots.get(NEUTRAL_SLOT) or {}).get("text")
+    if not neutral:
+        fail("narrations.json",
+             f"has no {NEUTRAL_SLOT} narration for match {match_id}, which is "
+             "what the card shows before the fan has answered")
+        return None
+    return neutral
 
 
 def check_screens(doc, fail, note):
@@ -373,7 +410,7 @@ def check_screens(doc, fail, note):
         ],
         "prelude_03_moment_card.html": [
             default["hero"]["caption"], default["hero"]["quote"],
-            frozen_narration(DEFAULT_MATCH, fail),
+            frozen_narration(doc, DEFAULT_MATCH, fail),
         ],
         "prelude_04_moments.html": [default["moments_subtitle"]]
             + [m["title"] for m in default["moments"]]

@@ -277,13 +277,30 @@
     }
   }
 
-  // The narration the model wrote once and scripts/freeze_narrations.py
-  // froze. It is fetched rather than carried in matches.json because it is
-  // not hand-written copy: narrations.json records the check's verdict and
-  // the facts cited beside the words, and the moment card needs only the
-  // words. The inline markup already holds the default match's narration, so
-  // a failed fetch leaves a correct screen rather than an empty one, which is
-  // the same bargain the rest of this file makes.
+  // The narration this fan is about to hear, frozen by
+  // scripts/freeze_narrations.py. It is fetched rather than carried in
+  // matches.json because it is not hand-written copy: narrations.json records
+  // who wrote each one and the check's verdict beside the words, and the
+  // moment card needs only the words. The inline markup already holds the
+  // default match's neutral narration, so a failed fetch leaves a correct
+  // screen rather than an empty one, which is the same bargain the rest of
+  // this file makes.
+  //
+  // The card shows what the fan hears. There is one narration per
+  // hero.voice_for key and narration-player.js picks the recording by the
+  // same lookup, so the text under the grounding label and the voice reading
+  // it are one piece of writing. With no listener answer the key is the
+  // neutral one, which is what the inline copy holds. The label itself is
+  // spelled in the markup and in app/narration.py and never here:
+  // scripts/scan_copy.py refuses it in a copy file, because copy data
+  // carries no markup that could place it over anything.
+  function narrationKey(match) {
+    var voiceFor = match.hero && match.hero.voice_for;
+    if (!voiceFor) return null;
+    var allegiance = listenerFor(match.match_id) || "neutral";
+    return voiceFor[allegiance] || voiceFor.neutral || null;
+  }
+
   function renderNarration(match) {
     if (!field("hero_narration")) return;
 
@@ -294,10 +311,14 @@
       })
       .then(function (doc) {
         var frozen = (doc.narrations || {})[String(match.match_id)];
-        // No frozen narration for this match means the words under the
-        // grounding label were never checked for it, so the inline copy
-        // stays rather than a blank sitting under a label it did not earn.
-        if (frozen && frozen.text) setText("hero_narration", frozen.text);
+        if (!frozen) return;
+        var slots = frozen.slots || {};
+        var key = narrationKey(match);
+        var slot = (key && slots[key]) || slots.storyteller_neutral;
+        // No narration for this listener means the words under the grounding
+        // label were never checked for them, so the inline copy stays rather
+        // than a blank sitting under a label it did not earn.
+        if (slot && slot.text) setText("hero_narration", slot.text);
       })
       .catch(function () {
         /* Left on the inline copy, which is the default match. */

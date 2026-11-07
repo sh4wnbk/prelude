@@ -20,6 +20,16 @@ these words.
 three attempts each, so at most six generations plus one IAM exchange. Nothing
 is sent without `--confirm`.
 
+**`--authored` writes the six the team wrote, and calls no model.** Each hero
+goal has three slots in `hero.voice_for`, one per listener, and
+`scripts/authored_narrations.py` holds a narration for each of the six. They
+go into the same document beside the per-goal narration a model wrote, under
+`slots`, each carrying who wrote it and the check's verdict on it. The moment
+card shows the one for the listener's own key and `scripts/tts_hero.py`
+speaks it, so a fan reads the words they are about to hear. Every one of the
+six is re-checked against `data/raw/` here, and one that no longer passes
+stops the write.
+
 What is written beside each narration is the text as it is shown and voiced,
 the tagged text the check actually passed, the facts the narration cited with
 the `event_id` each one was read from, and the check's own verdict.
@@ -60,6 +70,11 @@ from app.narration_provider import (  # noqa: E402
 )
 from app.recorded_names import recorded_nicknames, recorded_teams  # noqa: E402
 from app.statsbomb_event_feed import StatsBombEventFeed  # noqa: E402
+# `scripts/authored_narrations.py` and the run it shares its rules with are
+# imported inside `authored_slots` rather than here: `hero_candidates` imports
+# `newest_candidates` from this module, so importing either of them at the top
+# of this file is a cycle. See `_authored_rules`.
+
 
 #: Where the frozen narrations go. Beside `matches.json`, because the browser
 #: fetches it from `app/web/` like the rest of the site's copy.
@@ -81,7 +96,11 @@ _NOTE = (
     "voice reads, tagged_text is what the check passed, and cited_facts names "
     "the event_id in data/raw/ behind every fact the narration used. "
     "tests/test_frozen_narrations.py re-runs the check against data/raw/ and "
-    "fails if a narration here stops passing."
+    "fails if a narration here stops passing. slots holds one narration per "
+    "hero.voice_for key, written by the team and verified by the same check; "
+    "the moment card shows the one for the listener's own key and "
+    "scripts/tts_hero.py speaks it. Write them with "
+    "scripts/freeze_narrations.py --authored --confirm, which calls no model."
 )
 
 
@@ -422,6 +441,136 @@ def freeze_picked(doc: dict, path: Path, picks: Sequence[str]) -> dict:
     return {"_note": _NOTE, "narrations": frozen}
 
 
+def read_frozen(path: Path) -> dict:
+    """The document as it stands, or a refusal naming what is missing.
+
+    The authored path adds to the file rather than replacing it: the per-goal
+    narration a model wrote is evidence of the pipeline and the six the team
+    wrote sit beside it, so the write needs what is already there.
+    """
+    if not path.is_file():
+        raise SystemExit(
+            "{} does not exist, so there is nothing to write the six "
+            "beside".format(path)
+        )
+    document = json.loads(path.read_text(encoding="utf-8"))
+    if "narrations" not in document:
+        raise SystemExit(
+            "{} carries no narrations, so it is not the frozen "
+            "document".format(path)
+        )
+    return document
+
+
+def _authored_rules():
+    """The authored six and the slots of a match, imported late.
+
+    `scripts/hero_candidates.py` imports `newest_candidates` from this
+    module, and `scripts/authored_narrations.py` reaches that module through
+    the run's own acceptance rules, so an import at the top of this file is a
+    cycle. Nothing here runs at import time either way.
+    """
+    from scripts.authored_narrations import answers
+    from scripts.narrator_candidates import slots_for
+
+    return answers, slots_for
+
+
+def authored_slots(match_id: int, facts, moment) -> dict:
+    """The three slots of one hero goal, checked, as the frozen file holds them.
+
+    One entry per `hero.voice_for` key, with the narrator it is written in,
+    the listening side it is written for, who wrote it, the authorship a
+    reader is owed and the verdict the check reached on these exact words.
+    The places are kept too, because what a narration gives a listener to
+    stand on is the thing Task 14 and Task 15 were about.
+
+    A narration the check refuses stops the freeze, and so does one the
+    places rule or the opener rule refuses: all three are what made it a
+    narration this app may speak.
+    """
+    answers, slots_for = _authored_rules()
+    out: dict[str, dict] = {}
+    for key, side in slots_for(match_id, moment.team):
+        said = answers(facts, match_id, key, side)
+        if not said["grounded"]:
+            raise SystemExit(
+                "the {} narration for match {} does not pass the check "
+                "against data/raw/, so it is not what gets committed: "
+                "{}".format(key, match_id, said["summary"])
+            )
+        for rule, why in (
+            ("places", said["missing_places"]),
+            ("opener", said["missing_opener"]),
+        ):
+            if why:
+                raise SystemExit(
+                    "the {} narration for match {} is refused for the {}: "
+                    "it {}".format(key, match_id, rule, why)
+                )
+        out[key] = {
+            "slot": key,
+            "narrator": said["narrator"],
+            "listener_side": side,
+            "text": said["text"],
+            "author": said["author"],
+            "authorship": said["authorship"],
+            "source": said["author"],
+            "labelled": True,
+            "check": {
+                "grounded": said["grounded"],
+                "claims_checked": said["claims_checked"],
+                "failures": said["refusals"],
+                "summary": said["summary"],
+            },
+            "places": said["zones"],
+            "billed_characters": said["billed_characters"],
+            "characters": said["characters"],
+            "frozen_on": date.today().isoformat(),
+        }
+    return out
+
+
+def freeze_authored(path: Path) -> dict:
+    """The six the team wrote, into the document, with no model call.
+
+    The check is run again here against `data/raw/`, as the pick path does
+    it: a verdict read out of a file is not a verdict, and these are the
+    words a fan reads under "Verified from play data" and hears a voice say.
+    """
+    document = read_frozen(path)
+    feed = StatsBombEventFeed()
+    for year, match_id, minute, second in HEROES:
+        entry = document["narrations"].get(str(match_id))
+        if entry is None:
+            raise SystemExit(
+                "{} holds no narration for match {}, so there is nothing to "
+                "write the six beside".format(path, match_id)
+            )
+        moment = moment_at(feed, match_id, minute, second)
+        facts = facts_from_buildup(
+            feed.buildup(match_id, moment),
+            recorded_nicknames(match_id),
+            recorded_teams(match_id),
+        )
+        slots = authored_slots(match_id, facts, moment)
+        entry["slots"] = slots
+        print("{} match {} {}:{:02d}: {} slot(s)".format(
+            year, match_id, minute, second, len(slots)
+        ))
+        for key, slot in slots.items():
+            print("  {} ({}, {}): {}".format(
+                key, slot["narrator"],
+                "a fan of {}".format(slot["listener_side"])
+                if slot["listener_side"] else "no side",
+                slot["check"]["summary"],
+            ))
+            print("    | {}".format(slot["text"]))
+        print()
+    document["_note"] = _NOTE
+    return document
+
+
 def main(argv: Sequence[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
@@ -442,6 +591,13 @@ def main(argv: Sequence[str]) -> int:
              "model is called",
     )
     parser.add_argument(
+        "--authored",
+        action="store_true",
+        help="write the six narrations the team wrote, one per "
+             "hero.voice_for key, beside the per-goal one; no model is "
+             "called",
+    )
+    parser.add_argument(
         "--candidates",
         type=Path,
         default=None,
@@ -449,6 +605,30 @@ def main(argv: Sequence[str]) -> int:
              "{})".format(CANDIDATES_DIR),
     )
     args = parser.parse_args(argv)
+
+    # The authored path calls no model either, and writes beside what is
+    # already in the file rather than over it. It still takes --confirm,
+    # because the app reads what it writes.
+    if args.authored:
+        print("writing  the six narrations the team wrote, from "
+              "scripts/authored_narrations.py")
+        print("calls    none: the narrations are already written and are "
+              "re-checked against data/raw/ here")
+        print("goals    {}, three slots each".format(len(HEROES)))
+        print("beside   the per-goal narration already in the file, which is "
+              "not touched")
+        print()
+        if args.plan or not args.confirm:
+            print("nothing was written. --confirm is what writes it.")
+            return 0
+        document = freeze_authored(NARRATIONS)
+        NARRATIONS.write_text(
+            json.dumps(document, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        print("wrote {}".format(NARRATIONS.relative_to(ROOT)))
+        return 0
 
     # The pick path calls no model: the words already exist and were already
     # checked once. It still takes --confirm, because it overwrites a file the

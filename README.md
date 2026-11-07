@@ -106,9 +106,13 @@ Everything above it is structure.
   `app/web/narrations.json`, with the facts each cited and the check's
   verdict beside the text. A narration that reaches the template fallback is
   not frozen: the run writes nothing and exits 1. `--plan` prints the call
-  count and makes no call; `--confirm` sends it. The moment card shows what it
-  writes and `scripts/tts_hero.py` speaks it, so a rerun changes the words in
-  both places and costs a paid call.
+  count and makes no call; `--confirm` sends it. `--authored` calls no model:
+  it writes the six narrations the team wrote, one per `hero.voice_for` key,
+  beside the per-goal one and under `slots`, each carrying who wrote it and
+  the check's verdict on it, and it refuses to write a narration the check,
+  the places rule or the opener rule turns down. The moment card shows the
+  narration for the listener's own key and `scripts/tts_hero.py` speaks it,
+  so a fan reads the words they are about to hear.
 - `scripts/authored_narrations.py`: holds the six hero narrations the team
   wrote, one per slot of the two hero goals, and reads each of them against
   `data/raw/` with the three rules a candidate meets: the grounding check in

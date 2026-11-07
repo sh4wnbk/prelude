@@ -45,6 +45,10 @@ SCAN = ROOT / "scripts" / "scan_copy.py"
 #: runs. The same default `app/web/match-content.js` uses.
 DEFAULT_MATCH = 3750191
 
+#: The slot a listener with no side hears, which is the one the markup
+#: carries and the one the renderer falls back to.
+NEUTRAL_SLOT = "storyteller_neutral"
+
 #: The two hero goals, by the match they are in and the clock they are at.
 #: Literals, so a narrations.json that quietly pointed at a different moment
 #: would be caught rather than checked against whatever it named.
@@ -218,10 +222,34 @@ class TestTheNarrationOnTheMomentCard:
     def test_the_card_has_a_narration_field(self):
         assert 'data-field="hero_narration"' in self.card()
 
-    def test_the_inline_narration_is_the_frozen_1986_text(self):
+    def test_the_inline_narration_is_the_frozen_neutral_1986_text(self):
         """The copy shown before the renderer runs is the default match's,
-        as with every other field on this card."""
-        assert frozen()[str(DEFAULT_MATCH)]["text"] in self.card()
+        as with every other field on this card, and it is the neutral slot's:
+        the inline copy stands before the fan has said who they are with, and
+        that is the key `renderNarration` falls back to."""
+        slots = frozen()[str(DEFAULT_MATCH)]["slots"]
+        assert slots[NEUTRAL_SLOT]["text"] in self.card()
+
+    def test_the_other_listeners_tellings_are_not_in_the_markup(self):
+        """One inline copy, and it is the one a fan with no answer reads.
+        The other two arrive from narrations.json when the renderer runs."""
+        slots = frozen()[str(DEFAULT_MATCH)]["slots"]
+        for key, slot in slots.items():
+            if key == NEUTRAL_SLOT:
+                continue
+            assert slot["text"] not in self.card()
+
+    def test_the_renderer_picks_the_narration_by_the_listeners_key(self):
+        """The card shows what the fan hears: the same lookup
+        `app/web/narration-player.js` uses to pick the recording, so the text
+        under the label and the voice reading it are one piece of writing."""
+        renderer = RENDERER.read_text(encoding="utf-8")
+        player = (WEB / "narration-player.js").read_text(encoding="utf-8")
+        for source in (renderer, player):
+            assert "voice_for" in source
+            assert "listenerFor" in source or "Prelude.listenerFor" in source
+        assert "slots" in renderer
+        assert NEUTRAL_SLOT in renderer
 
     def test_the_narration_sits_under_the_header(self):
         markup = self.card()
