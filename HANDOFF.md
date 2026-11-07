@@ -4240,10 +4240,55 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Shawn listens to the six)
+## Next first action (Phase 6: hosting and the Orchestrate spec)
 
-**The six recordings are in the repo and the moment card plays them.** Nothing
-else is tuned until they have been heard. What to listen for, which is the
+**Phase 5 is finished.** The six narrations are written, verified, frozen and
+recorded, the moment card shows the words and plays the recording, and a fan
+chooses their narrator on Profile. The authorship beside each of the six says
+what `README.md` says: drafted with an AI assistant, edited by Shawn, verified
+by the grounding check. The suite is at 1524 passed and the five gates are at
+exit 0.
+
+**The first action is the hosted narration endpoint**, because the OpenAPI
+spec describes an endpoint and the endpoint has to exist before a spec can be
+checked against it. The Plan's Phase 6 above is the order: a small hosted
+backend holding the IBM keys with rate limiting (Claude Code), then the
+OpenAPI tool spec for that endpoint (Bob, in a brief written the way the
+others were, with its acceptance tests first), then the agent and the tool
+import in Orchestrate (Shawn), then the spec checked against the live
+endpoint, a keepalive against a cold start, and `docs/IBM_STACK.md` finished
+(Claude Code).
+
+Three things are settled before any of it is written:
+
+- **The keys stay outside the repo.** `~/.prelude/.env`, or wherever
+  `PRELUDE_ENV_FILE` points, is read by `app/credentials.py` and by nothing
+  else, and the hosting provider's own environment is where the deployed copy
+  goes. Nothing reads that file to put it there.
+- **The saved audio is the fallback.** The six recordings in
+  `app/web/assets/audio/` are what a judge hears if the endpoint is down,
+  which is what the Plan says and what the player already does.
+- **Hosting adds no input.** The three real inputs in `CLAUDE.md` are play
+  data, GPS presence and audio narration. A hosted endpoint is where the
+  existing pipeline runs, not a fourth one.
+
+**`docs/IBM_STACK.md` is the last Phase 6 bullet and it has drifted.** Three
+claims in it describe a repo that moved on, found while reading it for this
+handoff and left for that bullet rather than patched here:
+
+| What it says | What is true now |
+| ------------ | ---------------- |
+| `app/tts.py`: "No screen reaches it, so no fan hears anything yet" | the moment card's player plays the six recordings |
+| under "What this document deliberately does not claim": "That a narration has been spoken. None has." | six have been spoken, in `app/web/assets/audio/`, for 2,403 billed characters |
+| the third voice belongs to "the Mate" | `app/personas.py` declares `THE_BUDDY` with `en-US_EthanNatural`; Task 13 renamed the id and the docs were the follow-up's |
+
+None of the three is caught by `scripts/check_docs.py`: it checks paths, test
+citations, counts, quoted output and dashes, and these are prose.
+
+### Still open from Phase 5: Shawn listens to the six
+
+**The six recordings are in the repo and the moment card plays them.** No
+prosody is tuned until they have been heard. What to listen for, which is the
 last line of Task 15: Di María, Álvarez, MacAllister, Cuciuffo and Beardsley,
 and the pacing.
 
