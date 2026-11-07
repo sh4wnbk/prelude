@@ -4242,12 +4242,19 @@ The rules Shawn settled for them, before any of it is built:
 
 ## Next first action (Phase 6: hosting and the Orchestrate spec)
 
-**Phase 5 is finished.** The six narrations are written, verified, frozen and
-recorded, the moment card shows the words and plays the recording, and a fan
-chooses their narrator on Profile. The authorship beside each of the six says
-what `README.md` says: drafted with an AI assistant, edited by Shawn, verified
-by the grounding check. The suite is at 1524 passed and the five gates are at
-exit 0.
+**Phase 5 is finished and the documents agree with the code again.** The six
+narrations are written, verified, frozen and recorded, the moment card shows
+the words and plays the recording, and a fan chooses their narrator on
+Profile. The authorship beside each of the six says what `README.md` says:
+drafted with an AI assistant, edited by Shawn, verified by the grounding
+check. `docs/IBM_STACK.md`, `bob_sessions/README.md`, `docs/HARNESS.md`,
+`.env.example` and the `scripts/tts_hero.py` docstring were read against the
+code and corrected, so nothing on the list below is waiting on a doc fix. The
+suite is at 1524 passed and the five gates are at exit 0.
+
+**Nothing is in front of the endpoint.** The hosted narration backend is the
+first thing to build, and the three settled points under it have not
+changed.
 
 **The first action is the hosted narration endpoint**, because the OpenAPI
 spec describes an endpoint and the endpoint has to exist before a spec can be
@@ -4295,15 +4302,41 @@ the pipeline did not write the six, that the Caller has never been heard
 because it has no recording, and that the delivery numbers are Shawn's by ear
 rather than measured.
 
-**Three more stale passages are outside that document and are not fixed.**
-They are recorded here rather than patched, because each belongs to a document
-or a script with its own owner:
+**The three passages outside that document are fixed too, and so is the
+`.env.example` comment.** `bob_sessions/README.md` lists all fourteen sessions,
+each with its export, its screenshot, the commit the work landed in and the
+commit that added the export; the five Bobcoin figures that were read as the
+sessions ran are kept and the other nine say they come from the Bobalytics
+export at submission, which is Phase 7's line above. `docs/HARNESS.md` names
+the five gates instead of three, in both places, and labels
+`scripts/data_check.py` and `scripts/check_vocabulary.py` as gates in its
+script table. The `scripts/tts_hero.py` docstring says `buddy_scored` and
+`buddy_conceded`. `.env.example` says that nothing reads either George voice
+name or `TTS_VOICE`, and that `TTS_API_KEY` and `TTS_URL` are read by
+`app/tts.py` through `app/credentials.py`.
+
+**`tests/test_buddy_rename.py` now catches the name inside an identifier**,
+which is why that docstring survived three tasks: the pattern was a word-bounded
+`mate`, and an underscore is a word character, so `mate_scored` never matched.
+It is a letter on either side that makes it another word now, which leaves
+"estimate" and "teammate" alone and catches `MATE`, `THE_MATE` and
+`mate_scored`. Widening it caught two more: two tests in
+`tests/test_grounding.py::TestThePartisanVoice` still had `_the_mate_` in their
+names, and they are renamed with the citation of one of them in
+`docs/VOICE.md`.
+
+**What is still stale, and is not fixed.** Three bullets under "What the
+harness does not do" in `docs/HARNESS.md` describe the app before Phase 5, its
+entry-point count is behind, and one sentence in `docs/VOICE.md` keeps the old
+persona name alive in that whole file:
 
 | Where | What is stale |
 | ----- | ------------- |
-| `bob_sessions/README.md` | the session table holds the first five of the fourteen exports, and the Bobcoin figures stop at task 5 |
-| `docs/HARNESS.md` | "The three gates" in two places, and its script table does not label `scripts/data_check.py` or `scripts/check_vocabulary.py` as gates |
-| `scripts/tts_hero.py` | the docstring still names the keys `mate_scored` and `mate_conceded`, which Task 13 renamed to `buddy_scored` and `buddy_conceded` |
+| `docs/HARNESS.md`, "No screen plays audio" | the moment card plays the six MP3s, and `app/tts.py` is no longer WAV only |
+| `docs/HARNESS.md`, "No screen reads narration" | the moment card reads `app/web/narrations.json` and shows the slot the listener is sent to |
+| `docs/HARNESS.md`, "Nothing measures the narration pass rate" | `scripts/narration_eval.py` has its own `pass_rate` and reports the first-attempt rate over nine goals in `docs/narration_eval.md` |
+| `docs/HARNESS.md`, "Fourteen scripts" | there are 23 files in `scripts/`, and the table below that line names 16 of them |
+| `docs/VOICE.md`, "the rest of this file and the code still say Mate" | the code does not: Task 13 renamed the id. That sentence is what licenses the old name elsewhere in the file, where 29 lines still spell it, so it is the one to settle first |
 
 ### Still open from Phase 5: Shawn listens to the six
 

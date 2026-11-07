@@ -931,7 +931,7 @@ record the sentence cited.
 **"You" is refused in every voice, the Mate included.** The narration is not
 addressed to the fan in any register, which is the ending rule below: the
 header goes before the narration and nothing goes after it.
-`tests/test_grounding.py::TestThePartisanVoice::test_you_is_refused_from_the_mate_too`
+`tests/test_grounding.py::TestThePartisanVoice::test_you_is_refused_from_the_buddy_too`
 holds the partisan voice to it.
 
 **A Mate narration from a neutral listener is refused rather than softened.**

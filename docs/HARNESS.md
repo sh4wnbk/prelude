@@ -82,7 +82,7 @@ place for the same construction to be wrong.
 | Script | What it does | What it writes | What it reaches |
 | ------ | ------------ | -------------- | --------------- |
 | `scripts/fetch_statsbomb.py` | downloads the open data this project uses | `data/raw/` | GitHub over https |
-| `scripts/data_check.py` | lists the 1986 goals and the shot counts per team | `docs/data_check.md` | nothing |
+| `scripts/data_check.py` | gate: the 1986 goals, the shot counts per team and the 13-of-15 claim | `docs/data_check.md` | nothing |
 | `scripts/make_tickets.py` | one demo ticket QR code per match | `app/web/assets/tickets/` | nothing |
 | `scripts/scan_copy.py` | gate: banned copy, and the grounding label's placement | nothing | nothing |
 | `scripts/check_match_copy.py` | gate: every factual value in `app/web/matches.json` against `data/raw/` | nothing | nothing |
@@ -96,10 +96,16 @@ place for the same construction to be wrong.
 | `scripts/tts_samples.py` | both hero goals in every voice, for Shawn to listen to | WAV files outside the repo | Watson Text to Speech |
 | `scripts/tts_hero.py` | the recordings the site serves: each hero goal in the voice each listener is sent to | MP3 files under `app/web/assets/`, and `hero.audio` in `app/web/matches.json` | Watson Text to Speech |
 | `scripts/freeze_narrations.py` | narrates both hero goals with the active model and freezes the ones the grounding check passes | `app/web/narrations.json` | watsonx.ai, and IBM Cloud IAM |
-| `scripts/check_vocabulary.py` | every word the app can speak, against the CMU dictionary | nothing | nothing |
+| `scripts/check_vocabulary.py` | gate: every word the app can speak, against the CMU dictionary | nothing | nothing |
 
-The three gates exit non-zero on any finding, which is what lets them gate a
-commit; each says so in its own docstring.
+The five gates are `scripts/data_check.py`, `scripts/scan_copy.py`,
+`scripts/check_match_copy.py`, `scripts/check_docs.py` and
+`scripts/check_vocabulary.py`, and they are run together. Four of them exit
+non-zero on any finding, which is what lets them gate a commit, and each of
+those four says so in its own docstring. `scripts/data_check.py` is the
+exception: it writes its report either way and exits non-zero only when the raw
+data is missing, so a refuted claim is a sentence in `docs/data_check.md`
+rather than a failing run.
 
 **Nine scripts reach a paid or local service, and all nine are run by
 hand.** They are `scripts/record_narration_golden.py`,
@@ -284,7 +290,7 @@ because a skip would have let the suite go green with nothing built.
 
 - **No continuous integration runs the suite.** The only workflow in the repo is
   `.github/workflows/pages.yml`, which uploads `app/web/` to GitHub Pages and
-  runs no tests and no gates. The three gates are run by hand before a commit.
+  runs no tests and no gates. The five gates are run by hand before a commit.
 - **No gate runs the other gates.** `scripts/check_docs.py` runs `pytest`, and
   nothing runs `scripts/scan_copy.py` or `scripts/check_match_copy.py` for you.
 - **Nothing measures the narration pass rate.** `app/narration.py` exposes

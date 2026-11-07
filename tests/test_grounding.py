@@ -1013,7 +1013,7 @@ class TestThePartisanVoice:
             assert not result.grounded, line
             assert "first person" in kinds(result), line
 
-    def test_you_is_refused_from_the_mate_too(self, facts_1986):
+    def test_you_is_refused_from_the_buddy_too(self, facts_1986):
         """The narration is not addressed to the fan in any voice."""
         result = check(
             narration("[11] Your captain dribbled past a defender."),
@@ -1024,7 +1024,7 @@ class TestThePartisanVoice:
         assert not result.grounded
         assert "address to the reader" in kinds(result)
 
-    def test_the_mate_with_a_neutral_listener_is_refused(self, facts_1986):
+    def test_the_buddy_with_a_neutral_listener_is_refused(self, facts_1986):
         """A voice written as the listener's side needs one to be written as.
 
         Checking it as though nobody were partisan would be answering a

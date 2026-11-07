@@ -1,9 +1,9 @@
 r"""The hero recordings the site ships: three listeners, two matches, six MP3s.
 
 `hero.voice_for` in `app/web/matches.json` already says which recording each
-listener hears: `mate_scored` for a fan of the side that scored,
-`mate_conceded` for a fan of the side that conceded, `storyteller_neutral` for
-a fan with no side. `scripts/write_headers.py` computes those keys and the
+listener hears: `buddy_scored` for a fan of the side that scored,
+`buddy_conceded` for a fan of the side that conceded, `storyteller_neutral`
+for a fan with no side. `scripts/write_headers.py` computes those keys and the
 moment card's player looks its answer up in `hero.audio`. This script is what
 fills that map: one file per key per match, under
 `app/web/assets/audio/<match_id>_<key>.mp3`.

@@ -45,16 +45,27 @@ Bob session of Phase 4, so it is `phase4_task3_buildup.md`.
 
 ## Sessions
 
-Each row is one session: the export, the screenshot of its task summary, and
-the commit it produced.
+Each row is one session: the export, the screenshot of its task summary, the
+commit the work landed in and the commit that added the export. The two differ
+because an export is committed after the work it records, and sometimes
+alongside another session's.
 
-| Phase | Task | Export | Screenshot | Commit | Bobcoins |
-| ----: | ---- | ------ | ---------- | ------ | -------: |
-| 3 | 1. Build `StatsBombEventFeed` | [`bob_sessions/phase3_task1_eventfeed.md`](phase3_task1_eventfeed.md) | [`bob_sessions/phase3_task1_eventfeed.png`](phase3_task1_eventfeed.png) | `3ce6bca` | 0.463 |
-| 3 | 2. End event windows at the goal shot | [`bob_sessions/phase3_task2_window_fix.md`](phase3_task2_window_fix.md) | [`bob_sessions/phase3_task2_window_fix.png`](phase3_task2_window_fix.png) | `343c712` | 0.508 |
-| 4 | 3. Add `buildup` | [`bob_sessions/phase4_task3_buildup.md`](phase4_task3_buildup.md) | [`bob_sessions/phase4_task3_buildup.png`](phase4_task3_buildup.png) | `24e1a8d` | 1.22 |
-| 4 | 4. Build the orchestrator | [`bob_sessions/phase4_task4_orchestrator.md`](phase4_task4_orchestrator.md) | [`bob_sessions/phase4_task4_orchestrator.png`](phase4_task4_orchestrator.png) | `1c4063a` | 4.02 |
-| 4 | 5. The game-focused header | [`bob_sessions/phase4_task5_header.md`](phase4_task5_header.md) | [`bob_sessions/phase4_task5_header.png`](phase4_task5_header.png) | `7f1b21e` | 3.16 |
+| Phase | Task | Export | Screenshot | Work | Export | Bobcoins |
+| ----: | ---- | ------ | ---------- | ---- | ------ | -------- |
+| 3 | 1. Build `StatsBombEventFeed` | [`bob_sessions/phase3_task1_eventfeed.md`](phase3_task1_eventfeed.md) | [`bob_sessions/phase3_task1_eventfeed.png`](phase3_task1_eventfeed.png) | `3ce6bca` | `7970216` | 0.463 |
+| 3 | 2. End event windows at the goal shot | [`bob_sessions/phase3_task2_window_fix.md`](phase3_task2_window_fix.md) | [`bob_sessions/phase3_task2_window_fix.png`](phase3_task2_window_fix.png) | `343c712` | `7970216` | 0.508 |
+| 4 | 3. Add `buildup` | [`bob_sessions/phase4_task3_buildup.md`](phase4_task3_buildup.md) | [`bob_sessions/phase4_task3_buildup.png`](phase4_task3_buildup.png) | `24e1a8d` | `e0bbbdd` | 1.22 |
+| 4 | 4. Build the orchestrator | [`bob_sessions/phase4_task4_orchestrator.md`](phase4_task4_orchestrator.md) | [`bob_sessions/phase4_task4_orchestrator.png`](phase4_task4_orchestrator.png) | `1c4063a` | `be0426f` | 4.02 |
+| 4 | 5. The game-focused header | [`bob_sessions/phase4_task5_header.md`](phase4_task5_header.md) | [`bob_sessions/phase4_task5_header.png`](phase4_task5_header.png) | `7f1b21e` | `4826671` | 3.16 |
+| 4 | 6. The header on the moment card | [`bob_sessions/phase4_task6_card_header.md`](phase4_task6_card_header.md) | [`bob_sessions/phase4_task6_card_header.png`](phase4_task6_card_header.png) | `aab7093` | `95341d1` | from the Bobalytics export at submission |
+| 4 | 7. The screen copy | [`bob_sessions/phase4_task7_screen_copy.md`](phase4_task7_screen_copy.md) | [`bob_sessions/phase4_task7_screen_copy.png`](phase4_task7_screen_copy.png) | `8215108` | `76e0d15` | from the Bobalytics export at submission |
+| 4 | 8. Where the 1986 fan steps away | [`bob_sessions/phase4_task8_step_away.md`](phase4_task8_step_away.md) | [`bob_sessions/phase4_task8_step_away.png`](phase4_task8_step_away.png) | `30116a2` | `3380bf3` | from the Bobalytics export at submission |
+| 4 | 9. The "Who are you with" card | [`bob_sessions/phase4_task9_listener_card.md`](phase4_task9_listener_card.md) | [`bob_sessions/phase4_task9_listener_card.png`](phase4_task9_listener_card.png) | `c6fc1ad` | `4f12bea` | from the Bobalytics export at submission |
+| 4 | 10. The Profile screen | [`bob_sessions/phase4_task10_profile.md`](phase4_task10_profile.md) | [`bob_sessions/phase4_task10_profile.png`](phase4_task10_profile.png) | `4ef3aa0` | `b2d29a2` | from the Bobalytics export at submission |
+| 5 | 11. Audio playback on the moment card | [`bob_sessions/phase5_task11_player.md`](phase5_task11_player.md) | [`bob_sessions/phase5_task11_player.png`](phase5_task11_player.png) | `35708cd` | `076e914` | from the Bobalytics export at submission |
+| 5 | 12. "Your narrator" on Profile | [`bob_sessions/phase5_task12_narrators.md`](phase5_task12_narrators.md) | [`bob_sessions/phase5_task12_narrators.png`](phase5_task12_narrators.png) | `35c91b6` | `d0837ac` | from the Bobalytics export at submission |
+| 5 | 13. Rename the persona id from mate to buddy | [`bob_sessions/phase5_task13_buddy_rename.md`](phase5_task13_buddy_rename.md) | [`bob_sessions/phase5_task13_buddy_rename.png`](phase5_task13_buddy_rename.png) | `4e61a10` | `473b98e` | from the Bobalytics export at submission |
+| 5 | 14. The narrator picker | [`bob_sessions/phase5_task14_narrator_picker.md`](phase5_task14_narrator_picker.md) | [`bob_sessions/phase5_task14_narrator_picker.png`](phase5_task14_narrator_picker.png) | `d5dc9c2` | `9f98e91` | from the Bobalytics export at submission |
 
 Task 1 built the module against `docs/bob_brief.md` and took all 14 acceptance
 tests from failing to passing. Task 2 fixed `event_window`, which filtered by
@@ -92,7 +103,10 @@ file path and two test names. The screenshot shows a task id and a Bobcoin
 figure, which identify the session rather than authorising anything.
 
 The Bobcoin figures are read from each session's task summary, which is what
-the screenshots record.
+the screenshots record. Five were read that way as the sessions ran. The other
+nine are not guessed and not left blank: Phase 7 exports Bobalytics once, from
+User scope over the full lab period, and the figures for those rows come from
+that export.
 
 The exports are transcripts and are kept verbatim, including the dashes Bob
 typed. The repo's no-em-dash rule covers doc and UI copy written here, not a

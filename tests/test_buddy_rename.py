@@ -9,6 +9,13 @@ brief as Task 13.
 The past is not renamed. `scripts/narration_eval.py` writes the report of runs
 made while the persona was called the Mate, and those runs keep their name;
 so do `docs/narration_eval.md`, `HANDOFF.md`'s history and `bob_sessions/`.
+
+**The name is caught inside an identifier too.** The pattern was `\bmate\b`,
+and an underscore is a word character, so a `mate_scored` in a docstring and
+two test names with `_the_mate_` in them sat in live files for three tasks
+without failing this. A letter on either side is what makes it another word:
+"estimate" and "teammate" are not the persona, while `MATE`, `THE_MATE` and
+`mate_scored` are.
 """
 
 import json
@@ -18,7 +25,7 @@ from pathlib import Path
 from app.personas import PERSONAS
 
 ROOT = Path(__file__).resolve().parent.parent
-MATE = re.compile(r"\bmate\b", re.IGNORECASE)
+MATE = re.compile(r"(?<![A-Za-z])mate(?![A-Za-z])", re.IGNORECASE)
 
 #: Live code and data, where the name has to be the current one.
 LIVE = (
