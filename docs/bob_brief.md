@@ -122,7 +122,7 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-1595 passed
+64 failed, 1611 passed
 ```
 
 The total covers far more than this module now. Phase 4 added the narration
@@ -130,11 +130,13 @@ provider, the prompt, the grounding check and the evaluation, each with its
 own tests; run `pytest tests/test_event_feed.py` to see this module's tests
 alone.
 
-**There are no failures left.** The twenty that were Task 14's are gone with
-the task: seventeen in `tests/test_narrator_picker.py` and three the picker
-made stale, one each in `tests/test_narrators.py`,
-`tests/test_narration_player.py` and `tests/test_frozen_narrations.py`. **A
-failure anywhere means something is actually wrong.**
+**The failures are Task 15's, and they are all in one file.** Task 14's twenty
+went with the task: seventeen in `tests/test_narrator_picker.py` and three the
+picker made stale, one each in `tests/test_narrators.py`,
+`tests/test_narration_player.py` and `tests/test_frozen_narrations.py`. What
+fails now is the acceptance file for the OpenAPI spec, and nothing else. **A
+failure outside `tests/test_orchestrate_spec.py` means something is actually
+wrong.**
 
 The suite still guards the import, and three messages mean three different
 things if that changes. In `tests/test_event_feed.py`, every test that builds
@@ -1723,5 +1725,199 @@ narration.
 forgotten:
 
 > Export this session to `bob_sessions/phase5_task14_narrator_picker.md` and
+> `.png`, scrub it against the list in `bob_sessions/README.md` before
+> committing, and check the diff rather than the commit.
+
+## Task 15: the OpenAPI file watsonx Orchestrate imports
+
+**Status: not built.** `tests/test_orchestrate_spec.py` holds the contract, and
+all 64 of its tests fail until the file exists. Nothing else in the suite
+fails.
+
+Write one file, `orchestrate/prelude_tools.yaml`, so that watsonx Orchestrate
+can import the hosted API as tools. That is the whole task. No Python changes,
+no screen changes, no new endpoint.
+
+### Why it exists
+
+The read-only API is deployed and live at
+<https://prelude-api.onrender.com>; Task 17 in `HANDOFF.md` is the record, and
+`/health` answered with the deployed commit on 2026-11-07. Orchestrate reaches
+an API by importing an OpenAPI file: in the lab's UI it is Toolset, then Add
+tool, Import, Import from file, and each operation in the file is created as a
+separate tool. The agent itself is made in Orchestrate's UI and its model is
+fixed by the lab admins, so the file is the only part of that wiring this repo
+can hold, and `docs/orchestrate_agent.md` is the only part of the agent it can
+hold.
+
+**FastAPI cannot produce this file.** `app.openapi()` serves OpenAPI 3.1.0 and
+IBM requires 3.0 for an imported tool, so the file is written by hand and is a
+second description of a service that already describes itself. A second
+description drifts, which is the same problem the slot rule had in Task 17. The
+answer is the same: almost nothing in the file is spelled in the tests.
+`tests/test_orchestrate_spec.py` reads `app.openapi()` and compares the
+parameters, the required flags, the types, the listener enum and the response
+types against the file, so a change to `app/api.py` fails this file rather than
+failing in Orchestrate, where the symptom is an agent calling with an argument
+the service quietly drops.
+
+### What IBM requires of the file
+
+Read off IBM's own pages, 2026-11-07:
+
+| Requirement | Where it is written |
+| ----------- | ------------------- |
+| The OpenAPI version must be 3.0 | [Authoring OpenAPI based tools](https://developer.watson-orchestrate.ibm.com/tools/create_openapi_tool) |
+| Endpoints must accept and return JSON | the same page |
+| A `servers` block with exactly one URL, and that URL cannot contain parameterization | the same page |
+| Each path that exposes an endpoint must include an `operationId`, which becomes the tool name; snake_case is recommended | the same page |
+| Each path that exposes an endpoint must include a `description`, which the agent uses to decide when to use the tool and what it does | the same page |
+| `x-ibm-` extensions, from the older Skills, are not supported | the same page |
+| A header parameter named `callbackUrl` is how a tool runs past the forty second execution timeout | the same page |
+| Each operation selected on import is created as a separate tool, and a connection is chosen at import time | [Import tools from an OpenAPI](https://www.ibm.com/docs/en/watsonx/watson-orchestrate/base?topic=tools-importing-from-openapi) |
+
+The version is the one to be careful with: an exported 3.1.0 file looks right
+and is refused.
+
+### What you build
+
+**`orchestrate/prelude_tools.yaml`, one file, nothing else.** The directory
+exists and is otherwise empty.
+
+1. **`openapi: 3.0.3`**, and an `info` block with a title and a version.
+2. **One server**, `https://prelude-api.onrender.com`, with no trailing slash,
+   no template braces and no `variables` key.
+3. **Exactly two operations**, `GET /moments` and `GET /buildup`. `/health` is
+   deliberately left out: it belongs to the keepalive and to a judge waking the
+   service, and a third tool is a third thing an agent can choose wrongly.
+4. **An `operationId` and a `description` on each**, in snake_case, the
+   description long enough to choose by. The two must read differently: the
+   moments description says it lists the goals of a match, the buildup
+   description says it returns one narration.
+5. **The parameters the service takes**, as query parameters, with the same
+   names and the same required flags `app.openapi()` carries:
+   `/moments` takes `match`; `/buildup` takes `match`, `listener` and an
+   optional `narrator`. Each parameter carries a `description` and an
+   `example`, neither of which FastAPI writes and both of which an agent reads.
+6. **Two enums.** `listener` is the three answers to "Who are you with",
+   exactly as `app.openapi()` lists them. `narrator` is the persona ids that
+   have a recording, which is two of the three: read them off `hero.audio` in
+   `app/web/matches.json` rather than typing a list. The Caller has no
+   recording and is not offered.
+7. **A 200 response per operation, `application/json`, type `object`.** You may
+   describe the fields of the body, and if you do, every field you name has to
+   be a field the service actually returns. You may also declare 404 and 422,
+   which the service answers; nothing else.
+8. **No authentication.** No `security`, no `securitySchemes`, no parameter
+   that looks like a key. The service holds no credentials, so Orchestrate has
+   no connection to make, and a tool waiting on a connection does not run.
+
+The narrator enum is the one place the file narrows what the code accepts.
+`app/api.py` takes any string and falls back, on purpose: a fan who picks a
+narrator with no recording for their answer still hears the telling written for
+them. An agent offered a free-text narrator will invent one, so the file offers
+the two that change what a fan hears, and the test checks the narrowing against
+the recordings rather than against a list in the test.
+
+### The tests to pass
+
+`tests/test_orchestrate_spec.py`, 64 tests, all of them failing now. Run them
+first:
+
+```
+.\.venv-prelude\Scripts\python.exe -m pytest tests/test_orchestrate_spec.py
+```
+
+Then the full suite, target 0 failed:
+
+```
+.\.venv-prelude\Scripts\python.exe -m pytest
+```
+
+Then the five gates, each at exit 0:
+
+```
+.\.venv-prelude\Scripts\python.exe -I scripts\data_check.py
+.\.venv-prelude\Scripts\python.exe -I scripts\scan_copy.py
+.\.venv-prelude\Scripts\python.exe -I scripts\check_match_copy.py
+.\.venv-prelude\Scripts\python.exe -I scripts\check_docs.py
+.\.venv-prelude\Scripts\python.exe -I scripts\check_vocabulary.py
+```
+
+**`check_docs.py` will fail once the suite goes green, and that one is
+expected.** The block near the top of this file quotes what `pytest -q` prints,
+and while this task is waiting it quotes a failing run; the same is true of the
+suite's state in `docs/HARNESS.md` and of this task's status line. Those three
+are the follow-up's, and they are Shawn's to make, not yours. Report any other
+gate failure.
+
+`tests/test_orchestrate_agent.py`, 16 tests, passes already and is not yours.
+It holds `docs/orchestrate_agent.md`, the agent instructions Shawn pastes into
+Orchestrate: the verbatim rule and the label rule. Read that file before you
+write the descriptions in the spec, because the agent reading your descriptions
+is the agent those rules are written for.
+
+### Checking it against the live service
+
+The suite has no network (`tests/conftest.py`), so it checks your examples
+against the application in process and cannot check them against the deploy.
+Do that by hand, with the two example calls your own file carries:
+
+```
+curl -sS "https://prelude-api.onrender.com/moments?match=3750191"
+curl -sS "https://prelude-api.onrender.com/buildup?match=3750191&listener=team_b&narrator=buddy"
+```
+
+**Wake the service first.** It sleeps after fifteen minutes without traffic and
+a cold wake took 82 seconds, so open `/health` and wait for `{"status": "ok"}`
+before you time anything. The standing section at the top of `HANDOFF.md` is
+the full note.
+
+Both calls must answer 200, and the body must carry the fields your 200 schema
+names. If one of them 404s, the match id is wrong; read it from
+`app/web/matches.json` rather than from memory.
+
+### The rules
+
+**The file describes the service as it is.** If something about `app/api.py`
+seems wrong while you write this, say so and stop. Do not describe the API you
+would have written.
+
+**Nothing in the file is a fourth input.** The three real inputs in `CLAUDE.md`
+are play data, GPS presence and audio narration. The file points at one host,
+plus the Pages site the recordings are served from, and at nothing else.
+
+**No verdict nicknames**, in a description, an example or a title. The
+descriptions are read by an agent and then by a judge.
+
+**"Verified from play data" is not yours to attach.** The label is a field the
+service returns, and `app/grounding.py` is what earned it. A description may
+say that the response carries the label when the words earned it. It may not
+claim the label for the tool.
+
+### Stop conditions
+
+**One new file, and no other file changed.** Not `app/api.py`, not the tests,
+not the docs, not `render.yaml`, not `.github/workflows/keepalive.yml`, not
+anything under `app/web/`.
+
+**Do not change a test and do not change a doc.** If a test fails for a reason
+this brief does not describe, stop and report it rather than editing what it
+asserts.
+
+**No deploy, no Orchestrate account, no import.** The import is Shawn's to do
+in the lab's UI, and the agent is created there too.
+
+**No TTS call and no watsonx call.** Nothing in this task needs one.
+
+**Never open the credentials file**, wherever `PRELUDE_ENV_FILE` points. The
+service this file describes holds no credentials, which is the point of it.
+
+### When you are done
+
+**Print this reminder at the end of the session**, so the export is not
+forgotten:
+
+> Export this session to `bob_sessions/phase6_task15_orchestrate_spec.md` and
 > `.png`, scrub it against the list in `bob_sessions/README.md` before
 > committing, and check the diff rather than the commit.

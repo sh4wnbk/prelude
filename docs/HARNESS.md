@@ -15,7 +15,7 @@ screens are `docs/DESIGN.md`.
 | Python | 3.13 | `.python-version`, and `requires-python` in `pyproject.toml` |
 | Virtualenv | `.venv-prelude`, managed with `uv` | `CLAUDE.md` |
 | Runtime dependencies | `segno`, `fastapi`, `uvicorn` | `pyproject.toml` |
-| Dev dependencies | `pytest`, `pillow`, `zxing-cpp`, `cmudict`, `httpx` | `pyproject.toml` |
+| Dev dependencies | `pytest`, `pillow`, `zxing-cpp`, `cmudict`, `httpx`, `pyyaml` | `pyproject.toml` |
 
 Python is run as `.\.venv-prelude\Scripts\python.exe`, which is what `CLAUDE.md`
 requires and what every script's own docstring shows.
@@ -202,8 +202,9 @@ generating anything:
 
 ## The test harness
 
-The suite is 1595 tests in thirty three files, and they all pass. Any failure
-means something is wrong. It is run from the repo root:
+The suite is 1675 tests in thirty five files. Any failure means something is
+wrong, with one exception, which is written down below rather than left for a
+reader to discover. It is run from the repo root:
 
 ```
 .\.venv-prelude\Scripts\python.exe -m pytest
@@ -211,6 +212,12 @@ means something is wrong. It is run from the repo root:
 
 No path setting is needed: `pyproject.toml` sets `pythonpath = ["."]` and
 `testpaths = ["tests"]` under `[tool.pytest.ini_options]`.
+
+The exception is `tests/test_orchestrate_spec.py`, whose 64 tests are the
+contract for `orchestrate/prelude_tools.yaml`, the OpenAPI file watsonx
+Orchestrate imports. The file is IBM Bob's to write, so all 64 fail until it
+exists, in the way the acceptance tests for every other task of Bob's did.
+Everything else passes.
 
 | File | What it covers |
 | ---- | -------------- |

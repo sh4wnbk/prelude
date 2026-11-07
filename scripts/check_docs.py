@@ -50,6 +50,7 @@ DOCS = [
     ROOT / "docs" / "narration.md",
     ROOT / "docs" / "narration_eval.md",
     ROOT / "docs" / "VOICE.md",
+    ROOT / "docs" / "orchestrate_agent.md",
     ROOT / "bob_sessions" / "README.md",
 ]
 
@@ -72,9 +73,15 @@ DOCS = [
 # it was committed in `76e0d15`, and Task 8's after it, and Task 11's export
 # when it was committed in `076e914`, and Task 13's export when it was
 # committed in `473b98e`, and Task 14's export when it was committed in
-# `9f98e91`. The list is empty: every path the docs name now exists. Add a path
-# here when a doc names one before it is written.
-DELIBERATELY_ABSENT: set[str] = set()
+# `9f98e91`.
+#
+# Task 15's export went back on it when the brief was written: the task is
+# briefed and not yet run, so `bob_sessions/phase6_task15_orchestrate_spec.md`
+# is named by the brief and does not exist. It comes off when the session is
+# run and the export committed.
+DELIBERATELY_ABSENT: set[str] = {
+    "bob_sessions/phase6_task15_orchestrate_spec.md",
+}
 
 PATH_IN_BACKTICKS = re.compile(
     r"`((?:app|docs|scripts|tests|bob_sessions)/[A-Za-z0-9_./-]+)`"
