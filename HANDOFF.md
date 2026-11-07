@@ -2987,13 +2987,25 @@ the second is dropped, and the reaction is left out of the shape. Shawn's
 four references for each hero goal come out as four shapes, so it is not
 over-eager. Applied to the eighteen this run produced it flags two.
 
-### Task 16: the narrator picker, briefed and dry run (waiting on Bob)
+### Task 16: the narrator picker (done, built by Bob and verified)
 
-**Shawn, 2026-11-07: the narrator picker goes live.** Today the side decides
-the recording and Profile's narrator cards only say "coming soon". A fan may
-now choose, and the side rule stays the default until they do. Bob builds it
-against Task 14 in `docs/bob_brief.md`; what is on `main` is the README
-change, the acceptance tests failing, and the brief.
+**Shawn, 2026-11-07: the narrator picker goes live.** Until this task the side
+decided the recording and Profile's narrator cards only said "coming soon". A
+fan may now choose, and the side rule stays the default until they do. Bob
+built it against Task 14 in `docs/bob_brief.md`, in `d5dc9c2`, and the session
+export is in `9f98e91`.
+
+**What the build came out as.** 73 lines added and 26 removed across
+`app/web/match-content.js` and `app/web/narration-player.js`, which is the two
+files the dry run predicted and no more: Profile's markup and the moment card's
+inline script needed nothing. The suite is at 1524 passed and all five gates
+are at exit 0.
+
+**Verified, Claude, 2026-11-07.** The suite printed `1524 passed`, and the
+seven rows of the lookup table below were checked again in a headless browser
+against `app/web/` served over HTTP: in each one the words the moment card
+showed and the file the player loaded were the same slot, which is the thing
+this task could have broken and did not.
 
 **The README says who wrote the six.** The authorship line said they were
 written by the team. It now says what that was: drafted with an AI assistant,
@@ -3013,17 +3025,18 @@ slot for any answer has no recording (the Caller), and one with a slot for some
 other answer is waiting on a side (the Buddy). No list of persona ids is
 spelled in the browser and no rule is written twice.
 
-**The tests on `main` fail, and that is the state Bob is handed.**
-`tests/test_narrator_picker.py` holds 30, seventeen of them failing: where the
-lookup lives, who calls it, what is stored and the copy a fan reads. Thirteen
-pass and are what the picker must leave alone: the keys in
+**The tests that were failing on `main` are the state Bob was handed, and
+they pass now.** `tests/test_narrator_picker.py` holds 30, seventeen of which
+failed until the picker existed: where the lookup lives, who calls it, what is
+stored and the copy a fan reads. Thirteen passed all along and are what the
+picker had to leave alone: the keys in
 `app/web/matches.json`, the six recordings, the list in
 `app/web/narrators.json`, the side rule in `app/orchestrator.py`, and the
-Caller having no recording to choose. Three more fail with them, one each in
+Caller having no recording to choose. Three more failed with them, one each in
 `tests/test_narrators.py`, `tests/test_narration_player.py` and
 `tests/test_frozen_narrations.py`: the note is a tail joined to the name with
 nothing after the period, and the two tests that held the shared-lookup
-invariant by naming `voice_for` now ask for `Prelude.slotFor` instead.
+invariant by naming `voice_for` ask for `Prelude.slotFor` instead.
 
 **The lookup's behaviour is checked in a browser, not in the suite**, which has
 no JavaScript runtime. The brief and the test module both carry the table and
@@ -3032,12 +3045,13 @@ as the list of matches passed every file-reading test and played nothing.
 
 **The dry run.** The brief was implemented on a scratch branch, checked in
 headless Edge against `app/web` served over HTTP, and the branch deleted, so
-`main` holds only the README change, the failing tests and the brief. The diff
-was 112 lines added and 29 removed across `app/web/match-content.js` and
-`app/web/narration-player.js`; Profile's markup and the moment card's inline
-script needed nothing. The suite came out at 1524 passed and the five gates at
-exit 0, except `check_docs.py` failing on the one claim the brief predicts: the
-quoted pytest result, which quotes the failing run and is the follow-up's.
+what landed on `main` first was only the README change, the failing tests and
+the brief. The diff was 112 lines added and 29 removed across
+`app/web/match-content.js` and `app/web/narration-player.js`; Profile's markup
+and the moment card's inline script needed nothing. The suite came out at 1524
+passed and the five gates at exit 0, except `check_docs.py` failing on the one
+claim the brief predicts: the quoted pytest result, which then quoted the
+failing run and was the follow-up's.
 
 Every row the browser showed, with the words read off the moment card and the
 file read off the player, on Argentina vs England:
@@ -3069,9 +3083,10 @@ audio element in the document, so reading the file it chose means replacing
 narrator list with `innerHTML` is refused by the tests, so it is emptied a
 child at a time.
 
-**Still owed: Bob's session.** `docs/bob_brief.md` Task 14 is the brief, and
-`bob_sessions/phase5_task14_narrator_picker.md` is on the deliberately absent
-list in `scripts/check_docs.py` until the export is committed.
+**Bob's session is in.** `docs/bob_brief.md` Task 14 is the brief and
+`bob_sessions/phase5_task14_narrator_picker.md` is the export, committed in
+`9f98e91`, so the entry came off the deliberately absent list in
+`scripts/check_docs.py` and that list is empty again.
 
 ### Task 15: the six written by the team, verified, frozen and recorded (done)
 

@@ -71,14 +71,10 @@ DOCS = [
 # session's export when it was committed in `95341d1`, and Task 7's export when
 # it was committed in `76e0d15`, and Task 8's after it, and Task 11's export
 # when it was committed in `076e914`, and Task 13's export when it was
-# committed in `473b98e`.
-#
-# `bob_sessions/phase5_task14_narrator_picker.md` is on it now: Task 14's brief
-# names the export its session owes, and the session has not been run. It comes
-# off when the export is committed.
-DELIBERATELY_ABSENT: set[str] = {
-    "bob_sessions/phase5_task14_narrator_picker.md",
-}
+# committed in `473b98e`, and Task 14's export when it was committed in
+# `9f98e91`. The list is empty: every path the docs name now exists. Add a path
+# here when a doc names one before it is written.
+DELIBERATELY_ABSENT: set[str] = set()
 
 PATH_IN_BACKTICKS = re.compile(
     r"`((?:app|docs|scripts|tests|bob_sessions)/[A-Za-z0-9_./-]+)`"

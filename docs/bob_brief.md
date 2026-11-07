@@ -122,7 +122,7 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-20 failed, 1504 passed
+1524 passed
 ```
 
 The total covers far more than this module now. Phase 4 added the narration
@@ -130,13 +130,11 @@ provider, the prompt, the grounding check and the evaluation, each with its
 own tests; run `pytest tests/test_event_feed.py` to see this module's tests
 alone.
 
-**Every failure in that run is Task 14's**, which is the last task in this
-file and is waiting to be built: its acceptance tests were written first and
-fail until it exists. Seventeen of them are in `tests/test_narrator_picker.py`
-and three are tests the picker makes stale, one each in
-`tests/test_narrators.py`, `tests/test_narration_player.py` and
-`tests/test_frozen_narrations.py`. **A failure anywhere else means something is
-actually wrong.**
+**There are no failures left.** The twenty that were Task 14's are gone with
+the task: seventeen in `tests/test_narrator_picker.py` and three the picker
+made stale, one each in `tests/test_narrators.py`,
+`tests/test_narration_player.py` and `tests/test_frozen_narrations.py`. **A
+failure anywhere means something is actually wrong.**
 
 The suite still guards the import, and three messages mean three different
 things if that changes. In `tests/test_event_feed.py`, every test that builds
@@ -1429,6 +1427,14 @@ forgotten:
 
 ## Task 14: the narrator picker
 
+**Status: built, in `d5dc9c2`, with the export in `9f98e91`.** The diff was 73
+lines added and 26 removed across `app/web/match-content.js` and
+`app/web/narration-player.js`, the two files the dry run predicted; Profile's
+markup and the moment card's inline script needed nothing. Checked in a
+headless browser against `app/web/` served over HTTP: all seven rows of the
+table below came out as the dry run recorded them, the card's words and the
+player's file on the same slot in every one.
+
 Let a fan choose their narrator on Profile, and put the recording they hear
 behind one lookup. The side rule stays the default until they choose. That is
 the whole task.
@@ -1587,11 +1593,12 @@ Then the five gates, each at exit 0:
 .\.venv-prelude\Scripts\python.exe -I scripts\check_vocabulary.py
 ```
 
-**`check_docs.py` fails once the suite goes green, and that one is expected.**
-The block near the top of this file quotes what `pytest -q` prints, and while
-this task is waiting it quotes a failing run. When you have built it the suite
-prints a passing line instead, and that quote and this task's status line are
-the follow-up's. Report any other gate failure.
+**`check_docs.py` failed once the suite went green, and that one was
+expected.** The block near the top of this file quotes what `pytest -q`
+prints, and while this task was waiting it quoted a failing run. The suite
+prints a passing line now, and that quote, this task's status line and the
+export's entry on `DELIBERATELY_ABSENT` were the follow-up's. All five gates
+are at exit 0.
 
 ### What the lookup is checked against
 
@@ -1626,8 +1633,8 @@ touch two files rather than four.
 
 The suite came out at 1524 passed, all twenty failures gone, and the five gates
 at exit 0 except `check_docs.py`, which failed on exactly the one claim this
-brief predicts: the quoted pytest result at the top of this file, which quotes
-the failing run.
+brief predicts: the quoted pytest result at the top of this file, which then
+quoted the failing run.
 
 Four things the run taught, which are yours to use rather than to rediscover:
 
