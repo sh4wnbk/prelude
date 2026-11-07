@@ -178,9 +178,12 @@ class TestHealth:
         monkeypatch.setattr("app.api.BUILD_COMMIT_FILE", stamp)
         assert build_commit() is None
 
-    def test_the_stamp_is_not_committed(self):
-        """The file is written by the build, so the repo does not carry one."""
-        assert not BUILD_COMMIT_FILE.is_file()
+    def test_the_stamp_is_never_committed(self):
+        """The build writes it, so the repo ignores it. Checked on the rule
+        rather than on the file, because a local run of the build command
+        leaves one behind and that is not a failure."""
+        ignored = (ROOT / ".gitignore").read_text(encoding="utf-8").split()
+        assert BUILD_COMMIT_FILE.parent.name + "/" in ignored
 
 
 class TestMoments:

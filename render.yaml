@@ -1,0 +1,42 @@
+# One free web service: the read-only API in app/api.py.
+#
+# The app itself stays on GitHub Pages, which is static and always on. This is
+# here only so watsonx Orchestrate has a stable public URL it can call.
+#
+# What the free tier means, and why the service is shaped the way it is: Render
+# spins a free service down after fifteen minutes without traffic, takes about
+# a minute to wake, and rebuilds the filesystem from the build when it does.
+# So app/api.py holds no state, writes nothing, needs no credentials and makes
+# no paid call. There is no env var to set here and no secret to carry, which
+# is the whole point: there is nothing to audit on the dashboard.
+#
+# Python version: .python-version in the repo root says 3.13, which Render
+# reads, so nothing sets PYTHON_VERSION here. uv is enabled by uv.lock being
+# in the repo root, which is Render's documented way of turning it on; the
+# build command then uses uv in place of pip, which is what Render documents
+# for a uv project.
+#
+# data/raw/ is gitignored and never committed, so the build downloads it with
+# the same script a developer runs. /moments reads it through Bob's
+# app/statsbomb_event_feed.py.
+#
+# build/commit.txt is the deployed commit, written here rather than read from
+# RENDER_GIT_COMMIT by the service: app/api.py reads no environment variable,
+# and tests/test_api.py::TestWhatItDoesNotReach holds it to that.
+#
+# Create the service from this file in the Render dashboard (New, then
+# Blueprint). The checklist is in HANDOFF.md.
+
+services:
+  - type: web
+    name: prelude-api
+    runtime: python
+    plan: free
+    branch: main
+    healthCheckPath: /health
+    buildCommand: |
+      uv sync --locked --no-dev
+      uv run --no-sync python -I scripts/fetch_statsbomb.py
+      mkdir -p build
+      printf '%s' "$RENDER_GIT_COMMIT" > build/commit.txt
+    startCommand: uv run --no-sync uvicorn app.api:app --host 0.0.0.0 --port $PORT
