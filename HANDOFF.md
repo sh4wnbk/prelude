@@ -2987,6 +2987,92 @@ the second is dropped, and the reaction is left out of the shape. Shawn's
 four references for each hero goal come out as four shapes, so it is not
 over-eager. Applied to the eighteen this run produced it flags two.
 
+### Task 16: the narrator picker, briefed and dry run (waiting on Bob)
+
+**Shawn, 2026-11-07: the narrator picker goes live.** Today the side decides
+the recording and Profile's narrator cards only say "coming soon". A fan may
+now choose, and the side rule stays the default until they do. Bob builds it
+against Task 14 in `docs/bob_brief.md`; what is on `main` is the README
+change, the acceptance tests failing, and the brief.
+
+**The README says who wrote the six.** The authorship line said they were
+written by the team. It now says what that was: drafted with an AI assistant,
+edited by Shawn, and verified by Prelude's grounding check against StatsBomb
+play data. The watsonx pipeline and its runs stay named under it. The
+authorship frozen beside each narration in `app/web/narrations.json` is
+unchanged, so the README now says who the team was rather than contradicting
+the field.
+
+**One lookup is the whole of the design.** `Prelude.slotFor(match)` becomes the
+only reader of `hero.voice_for`. The words the moment card shows, the recording
+its player plays and the card Profile marks are three answers to one question,
+and Task 15 put the first two on one key so the words under the grounding label
+are the words the voice reads. A slot belongs to the narrator whose id starts
+it, so the lookup also answers which narrators a fan can choose: one with no
+slot for any answer has no recording (the Caller), and one with a slot for some
+other answer is waiting on a side (the Buddy). No list of persona ids is
+spelled in the browser and no rule is written twice.
+
+**The tests on `main` fail, and that is the state Bob is handed.**
+`tests/test_narrator_picker.py` holds 30, seventeen of them failing: where the
+lookup lives, who calls it, what is stored and the copy a fan reads. Thirteen
+pass and are what the picker must leave alone: the keys in
+`app/web/matches.json`, the six recordings, the list in
+`app/web/narrators.json`, the side rule in `app/orchestrator.py`, and the
+Caller having no recording to choose. Three more fail with them, one each in
+`tests/test_narrators.py`, `tests/test_narration_player.py` and
+`tests/test_frozen_narrations.py`: the note is a tail joined to the name with
+nothing after the period, and the two tests that held the shared-lookup
+invariant by naming `voice_for` now ask for `Prelude.slotFor` instead.
+
+**The lookup's behaviour is checked in a browser, not in the suite**, which has
+no JavaScript runtime. The brief and the test module both carry the table and
+say so. Task 11 is the precedent: a player that read `whenMatches`'s document
+as the list of matches passed every file-reading test and played nothing.
+
+**The dry run.** The brief was implemented on a scratch branch, checked in
+headless Edge against `app/web` served over HTTP, and the branch deleted, so
+`main` holds only the README change, the failing tests and the brief. The diff
+was 112 lines added and 29 removed across `app/web/match-content.js` and
+`app/web/narration-player.js`; Profile's markup and the moment card's inline
+script needed nothing. The suite came out at 1524 passed and the five gates at
+exit 0, except `check_docs.py` failing on the one claim the brief predicts: the
+quoted pytest result, which quotes the failing run and is the follow-up's.
+
+Every row the browser showed, with the words read off the moment card and the
+file read off the player, on Argentina vs England:
+
+| Answer and choice | The card's words | The player's file |
+| ----------------- | ---------------- | ----------------- |
+| Argentina, nothing chosen | `buddy_scored` | `3750191_buddy_scored.mp3` |
+| Argentina, the Storyteller | `storyteller_neutral` | `3750191_storyteller_neutral.mp3` |
+| Argentina, the Buddy | `buddy_scored` | `3750191_buddy_scored.mp3` |
+| Argentina, the Caller stored | `buddy_scored` | `3750191_buddy_scored.mp3` |
+| Just here for the game, nothing chosen | `storyteller_neutral` | `3750191_storyteller_neutral.mp3` |
+| Just here for the game, the Buddy stored | `storyteller_neutral` | `3750191_storyteller_neutral.mp3` |
+| no answer at all | `storyteller_neutral` | `3750191_storyteller_neutral.mp3` |
+
+The words and the file are the same slot in every row. On Profile, a fan saw
+The Buddy marked and The Caller disabled with "The Caller is coming soon.";
+tapping The Storyteller marked it and stored `storyteller`, tapping The Buddy
+marked it and stored `buddy`. A listener with no side saw The Storyteller
+marked, both others disabled, and "The Buddy needs a team. Choose a team under
+'Who are you with.'". A tap on a disabled card stored nothing. With the Buddy
+stored and the side then dropped, Profile marked The Storyteller and left The
+Buddy disabled, which is the lookup's own fallback showing through rather than
+anything clearing the stored id.
+
+**What the dry run taught, and the brief now carries it**: serve the screens
+over HTTP or every screen keeps its inline copy; the player never puts its
+audio element in the document, so reading the file it chose means replacing
+`window.Audio` in the page before the screens' scripts run; and emptying the
+narrator list with `innerHTML` is refused by the tests, so it is emptied a
+child at a time.
+
+**Still owed: Bob's session.** `docs/bob_brief.md` Task 14 is the brief, and
+`bob_sessions/phase5_task14_narrator_picker.md` is on the deliberately absent
+list in `scripts/check_docs.py` until the export is committed.
+
 ### Task 15: the six written by the team, verified, frozen and recorded (done)
 
 The record is above. Listed here so the plan reads in order: a half said with

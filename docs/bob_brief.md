@@ -1615,6 +1615,69 @@ card's words and the file its player loads are both the Storyteller's. Pick the
 Buddy: both are `buddy_scored`. Answer "Just here for the game" instead: the
 Buddy's card is disabled with its note, and the Storyteller is marked.
 
+### What a dry run of this brief found
+
+This brief was implemented once on a scratch branch, checked, and the branch
+deleted, so what you are reading has been built at least once. The diff was 112
+lines added and 29 removed across `app/web/match-content.js` and
+`app/web/narration-player.js`, and nothing else: `app/web/prelude_07_profile.html`
+and the moment card's inline script needed no change at all, so expect to
+touch two files rather than four.
+
+The suite came out at 1524 passed, all twenty failures gone, and the five gates
+at exit 0 except `check_docs.py`, which failed on exactly the one claim this
+brief predicts: the quoted pytest result at the top of this file, which quotes
+the failing run.
+
+Four things the run taught, which are yours to use rather than to rediscover:
+
+- **Serve the screens over HTTP.** Opened off the filesystem, `matches.json`,
+  `narrations.json` and `narrators.json` all fail to fetch, every screen keeps
+  its inline copy, and the narrator list stays empty. Nothing is broken; you
+  are just looking at the fallback.
+- **The player never puts its audio element in the document**, so the file it
+  chose cannot be read off the DOM. Reading it back means replacing
+  `window.Audio` in the page before the screens' own scripts run and recording
+  what it is constructed with. Without that, the most a browser shows you is
+  that the play button is enabled, which does not say which recording it would
+  play.
+- **Rebuild the narrator list a child at a time.** `list.innerHTML = ""` is the
+  obvious way to empty it before building it again after a choice and is
+  refused by `tests/test_narrator_picker.py`; `while (list.firstChild)
+  list.removeChild(list.firstChild)` is not.
+- **A choice the listener can no longer have resolves on its own.** With the
+  Buddy stored and then "Just here for the game" answered, Profile marks the
+  Storyteller and leaves the Buddy disabled, because the marked card is read
+  from the lookup and the lookup has already fallen back. Nothing has to clear
+  the stored id, and nothing should: answering a side again restores the choice
+  the fan made.
+
+What the browser showed, on the default match, Argentina vs England, with the
+words read off the moment card and the file read off the player:
+
+| Answer and choice | The card's words | The player's file |
+| ----------------- | ---------------- | ----------------- |
+| Argentina, nothing chosen | `buddy_scored` | `3750191_buddy_scored.mp3` |
+| Argentina, the Storyteller | `storyteller_neutral` | `3750191_storyteller_neutral.mp3` |
+| Argentina, the Buddy | `buddy_scored` | `3750191_buddy_scored.mp3` |
+| Argentina, the Caller stored | `buddy_scored` | `3750191_buddy_scored.mp3` |
+| Just here for the game, nothing chosen | `storyteller_neutral` | `3750191_storyteller_neutral.mp3` |
+| Just here for the game, the Buddy stored | `storyteller_neutral` | `3750191_storyteller_neutral.mp3` |
+| no answer at all | `storyteller_neutral` | `3750191_storyteller_neutral.mp3` |
+
+The words and the file are the same slot in every row, which is the thing this
+task must not break. And on Profile:
+
+| Answer | Marked | `aria-disabled` | The note on a tap |
+| ------ | ------ | --------------- | ----------------- |
+| Argentina | The Buddy | The Caller | "The Caller is coming soon." |
+| Argentina, after tapping The Storyteller | The Storyteller | The Caller | the stored id is `storyteller` |
+| Argentina, after tapping The Buddy | The Buddy | The Caller | the stored id is `buddy` |
+| Just here for the game | The Storyteller | The Caller, The Buddy | "The Buddy needs a team. Choose a team under 'Who are you with.'" |
+
+Tapping a disabled card stored nothing, and the marked card moved on a tap
+without a reload.
+
 ### Stop conditions
 
 **Change four files at most**: `app/web/match-content.js`,
