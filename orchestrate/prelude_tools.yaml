@@ -1,0 +1,167 @@
+openapi: 3.0.3
+
+info:
+  title: Prelude API tools for watsonx Orchestrate
+  version: "1.0.0"
+
+servers:
+  - url: https://prelude-api.onrender.com
+
+paths:
+  /moments:
+    get:
+      operationId: list_match_goals
+      description: >
+        Lists every goal scored in a match: who scored, for which team, the
+        display minute, the score after it, and whether Prelude has narration
+        for that goal. Also returns the home and away team names. Use this
+        tool to answer questions about the goals of a match.
+      parameters:
+        - name: match
+          in: query
+          required: true
+          description: >
+            StatsBomb match id for the match to look up. Use the match id from
+            the match the fan is asking about, not a name or a year.
+          example: 3750191
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Goals and team names for the match.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  match_id:
+                    type: integer
+                    description: The StatsBomb match id that was queried.
+                  home_team:
+                    type: string
+                    description: Name of the home team.
+                  away_team:
+                    type: string
+                    description: Name of the away team.
+                  goals:
+                    type: array
+                    description: >
+                      Every goal in the order it fell. Each goal carries
+                      scorer, team, display_minute, score_after (with home
+                      and away subfields), and narrated (true for the one
+                      goal the app narrates).
+                    items:
+                      type: object
+                      properties:
+                        scorer:
+                          type: string
+                        team:
+                          type: string
+                        display_minute:
+                          type: string
+                        score_after:
+                          type: object
+                          properties:
+                            home:
+                              type: integer
+                            away:
+                              type: integer
+                        narrated:
+                          type: boolean
+        "404":
+          description: No match found for the given match id.
+        "422":
+          description: The match parameter is missing or is not an integer.
+
+  /buildup:
+    get:
+      operationId: get_narration
+      description: >
+        Returns one narration for the one narrated goal of a match, in the
+        voice the listener is entitled to hear. The response carries the
+        narration text, the narrator name, who wrote it, a link to the
+        recording, and, when the words earned it, a label. Use this tool
+        when the fan wants to hear the narration or read the telling for
+        their side.
+      parameters:
+        - name: match
+          in: query
+          required: true
+          description: >
+            StatsBomb match id for the match to look up. Use the same id
+            as for list_match_goals.
+          example: 3750191
+          schema:
+            type: integer
+        - name: listener
+          in: query
+          required: true
+          description: >
+            Who the fan is with: team_a for fans of the home team, team_b
+            for fans of the away team, neutral for a fan who is with neither
+            side.
+          example: team_b
+          schema:
+            type: string
+            enum:
+              - team_a
+              - team_b
+              - neutral
+        - name: narrator
+          in: query
+          required: false
+          description: >
+            The persona id of the narrator the fan chose. Pass this only when
+            the fan asked for a named narrator. With no narrator passed the
+            tool gives the telling written for their side.
+          example: buddy
+          schema:
+            type: string
+            enum:
+              - buddy
+              - storyteller
+      responses:
+        "200":
+          description: Narration for the match's narrated goal.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  match_id:
+                    type: integer
+                    description: The StatsBomb match id that was queried.
+                  listener:
+                    type: string
+                    description: The listener value that was passed.
+                  narrator:
+                    type: string
+                    description: The persona id of the narrator whose words were returned.
+                  slot:
+                    type: string
+                    description: >
+                      The slot key that was resolved, which is the narrator
+                      and situation joined by an underscore.
+                  text:
+                    type: string
+                    description: The narration text. Quote this word for word.
+                  authorship:
+                    type: string
+                    description: Who wrote the narration.
+                  audio_url:
+                    type: string
+                    description: >
+                      URL of the recording that reads the narration text.
+                      Hand this to the fan unchanged.
+                  label:
+                    type: string
+                    description: >
+                      Present only when the words in text earned it.
+                      Its value is "Verified from play data", which means the
+                      claims in those words were checked against the match's
+                      event data. Show this label with the narration when the
+                      response carries it.
+        "404":
+          description: No match found for the given match id, or no narrated goal for that match.
+        "422":
+          description: A required parameter is missing or the listener value is not one of the three.
