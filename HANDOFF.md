@@ -2987,6 +2987,189 @@ the second is dropped, and the reaction is left out of the shape. Shawn's
 four references for each hero goal come out as four shapes, so it is not
 over-eager. Applied to the eighteen this run produced it flags two.
 
+### Task 17: the hosted read-only API, and the slot rule in one table (done, not deployed)
+
+**Shawn, 2026-11-07: the hosted service holds no keys.** The Plan's Phase 6
+below was written for a backend holding the IBM keys with rate limiting, so
+judges would get live, varied narration. That is not what was built. The app
+stays on GitHub Pages, which is static and always on, and the hosted part is a
+small read-only API whose only job is to give watsonx Orchestrate a stable
+public URL to call. Render spins a free service down after fifteen minutes
+without traffic, takes about a minute to wake, and rebuilds its filesystem
+from the build when it does, so the service holds no state, writes nothing,
+needs no credentials and makes no paid call: it serves what the repo already
+holds. The six recordings stay the fallback, as the Phase 6 note already says,
+and hosting still adds no input.
+
+**`app/api.py`, three endpoints, GET only, CORS open for GET.**
+
+| Endpoint | What it answers |
+| -------- | --------------- |
+| `/health` | `{"status": "ok"}`, and the commit when the build wrote one |
+| `/moments?match=<id>` | every goal from Bob's `app/statsbomb_event_feed.py`: scorer, team, the minute the app captions, the score after it, and `narrated` true for the hero goal alone |
+| `/buildup?match=<id>&listener=...&narrator=...` | the slot, the narrator's name, the frozen narration and its authorship, the recording's URL on the Pages site, and the grounding label |
+
+An unknown match is a 404 and a listener that is not one of the three is a
+422, which is FastAPI validating a `Literal` rather than a hand-written check.
+
+**The slot rule is now written twice, so the table is a file.** The rule picks
+the narration a listener hears and the recording that reads it, and it had one
+home, `Prelude.slotFor` in `app/web/match-content.js`. `slot_for` in
+`app/api.py` is the second. Two copies of a rule drift, so the seven rows
+moved into `tests/slot_rows.json` and the `slot_rows` fixture in
+`tests/conftest.py` hands them to both suites.
+
+`tests/test_api.py`, 62 tests, runs each row through the Python copy and
+through `/buildup`, so the rule the service answers with is the rule in the
+table.
+
+`tests/test_narrator_picker.py`, 39 tests, reads each row against
+`hero.voice_for` and `hero.audio`, which is what the browser's copy indexes:
+every row names a match the app serves, a key that match carries and a
+recording in the repo, and each row is the branch of the rule it claims to be.
+The nine new ones are `TestTheSevenRows`.
+
+The seven rows, which are the ones Shawn named:
+
+| Row | Slot |
+| --- | ---- |
+| 2022, Argentina, nothing chosen | `buddy_scored` |
+| 2022, Argentina, the Storyteller | `storyteller_neutral` |
+| 2022, Argentina, the Buddy | `buddy_scored` |
+| 2022, France, the Storyteller | `storyteller_neutral` |
+| 2022, no side, the Buddy | `storyteller_neutral` |
+| 2022, no side, nothing chosen | `storyteller_neutral` |
+| 1986, England, the Buddy | `buddy_conceded` |
+
+**Three decisions inside the build, each of which changed something else.**
+
+- **`GROUNDING_LABEL` moved from `app/narration.py` to `app/grounding.py`.**
+  Importing one string from `app/narration.py` would have put the watsonx
+  backend in the deployed process, because that module imports
+  `app/narration_provider.py`. The label now sits with the check that earns
+  it, `app/narration.py` imports it from there so
+  `from app.narration import GROUNDING_LABEL` still reads, and
+  `tests/test_api.py::TestWhatItDoesNotReach::test_it_imports_no_paid_backend_through_anything_else`
+  reads the whole import closure rather than the first line.
+  `docs/GOVERNANCE.md` and `docs/VERIFICATION.md` say where it lives now.
+- **The commit `/health` reports arrives as a file.** Render publishes the
+  deployed commit to the build, and `render.yaml` writes it to
+  `build/commit.txt`, which `.gitignore` ignores. Reading `RENDER_GIT_COMMIT`
+  in the service would have made it an environment reader, and
+  `tests/test_api.py::TestWhatItDoesNotReach::test_it_reads_no_environment_variable`
+  is what says it is not one. A build that wrote no stamp answers without a
+  commit rather than guessing one.
+- **The network guard now lets loopback through.** Running the application in
+  process starts an asyncio event loop, and on Windows the loop wakes itself
+  by connecting a socket pair on `127.0.0.1`, so the old guard failed 36 of
+  the new tests before one of them reached the API. `LOOPBACK_HOSTS` in
+  `tests/conftest.py` records why it is not a hole: nothing in this repo
+  serves on a port, and watsonx, Watson Text to Speech and StatsBomb are all
+  somewhere else. Every other address still refuses, which
+  `tests/test_api.py::TestTheNetworkGuardStillHolds::test_a_remote_connection_still_refuses`
+  holds, and `docs/GOVERNANCE.md` no longer says no test can open a socket at
+  all.
+
+**`app/` takes a third-party package now, and the documents say so.** FastAPI
+is in `app/api.py` and in no other module of `app/`, which
+`tests/test_api.py::TestWhatItDoesNotReach::test_the_only_module_in_app_that_takes_a_third_party_package`
+holds. `docs/HARNESS.md` and `docs/GOVERNANCE.md` said `app/` imported nothing
+outside the standard library, and thirteen module docstrings said "like the
+rest of `app/`"; all of them now name the one exception. The dependency table
+in `docs/HARNESS.md` names `fastapi`, `uvicorn` and `httpx`.
+
+**Steps 1 and 2 landed in one commit, `29dd7a5`.** The doc corrections the
+service forced cite the new tests, so committing the service without them
+would have committed a failing `scripts/check_docs.py`. `render.yaml` is
+`ba32216` and the keepalive is `a5d0d0a`.
+
+**`render.yaml`: one free web service, in Python, with `/health` as the health
+check path.** uv is enabled by `uv.lock` being in the repo root, which is how
+Render documents turning it on, and the build command then uses uv in place of
+pip, which is what Render documents for a uv project. It is
+`uv sync --locked --no-dev`, then `scripts/fetch_statsbomb.py` (`data/raw/`
+stays gitignored and is downloaded by the build), then the commit stamp. The
+start command is `uv run --no-sync uvicorn app.api:app` with Render's own host
+and port. Nothing sets `PYTHON_VERSION`: `.python-version` says 3.13 and
+Render reads it. The locked production sync was run into a throwaway
+environment and installed `fastapi`, `uvicorn` and `segno` and nothing from
+the dev group, and uvicorn from that environment is what answered the curl
+runs below.
+
+**What the keepalive costs, and the switch that decides it.**
+`.github/workflows/keepalive.yml` pings `/health` every ten minutes and on
+manual dispatch. The URL is the repository variable `PRELUDE_API_URL`, not a
+line in the file. By GitHub's billing rule that each job is rounded up to the
+whole minute, six runs an hour is 144 a day, so 144 Actions minutes a day and
+4,320 in a 30 day month, or 4,464 in a 31 day one, against the 2,000 a month a
+private repository on GitHub Free includes: about a fortnight of allowance.
+Minutes are not metered on a public repository. So the schedule is behind a
+second variable, `PRELUDE_KEEPALIVE`: unless it reads `on` the scheduled job
+is skipped before a runner starts and bills nothing, while a hand run goes
+either way.
+
+**Verified, Claude, 2026-11-07.** The suite printed `1595 passed` and the five
+gates exited 0. uvicorn served the three endpoints locally on port 8099, out
+of the production-only environment:
+
+```
+{"status":"ok"}
+```
+
+```
+{"match_id":3750191,"home_team":"Argentina","away_team":"England","goals":[{"scorer":"Diego Armando Maradona","team":"Argentina","display_minute":51,"score_after":{"home":1,"away":0},"narrated":false},{"scorer":"Diego Armando Maradona","team":"Argentina","display_minute":55,"score_after":{"home":2,"away":0},"narrated":true},{"scorer":"Gary Lineker","team":"England","display_minute":81,"score_after":{"home":2,"away":1},"narrated":false}]}
+```
+
+The 2022 final's six goals came back the same way, ending 3 to 3, because the
+shootout is not a goal of the match. One `/buildup`, for a fan of England in
+1986 with nothing chosen:
+
+```
+{"match_id":3750191,"listener":"team_b","slot":"buddy_conceded","narrator":"The Buddy","text":"Maradona picked it up just inside his own half, and though Beardsley and Reid pressed him, he went past Beardsley there, past Butcher in the final third on the right and past Fenwick on the edge of the box, then got past Shilton in the box and scored with his left foot.","authorship":"drafted with an AI assistant, edited by Shawn, verified by the grounding check","audio_url":"https://sh4wnbk.github.io/prelude/assets/audio/3750191_buddy_conceded.mp3","label":"Verified from play data"}
+```
+
+`/moments?match=1` answered 404 and `/buildup?match=3869685&listener=nope`
+answered 422. With `build/commit.txt` written by hand, `/health` answered
+`{"status":"ok","commit":"29dd7a5c0ffee"}`, and the file was removed again. A
+GET carrying `Origin: https://sh4wnbk.github.io` came back with
+`access-control-allow-origin: *`, and a POST to each of the three paths
+answered 405.
+
+**What was not verified, and cannot be here.** Nothing is deployed: no Render
+service exists, so no public URL has been called, the keepalive has never run,
+and `/health` has never reported a real commit. The two YAML files were not
+parsed by a YAML library, because the repo has none and `npx` was refused;
+they are read by eye, and GitHub validates the workflow when it is listed. The
+warning in the suite output is starlette asking for `httpx2` instead of
+`httpx`; `uv add --dev httpx2` was refused by the sandbox, so the suite
+reports one warning beside `1595 passed`.
+
+### The deploy checklist, for Shawn
+
+1. **Create the service from the Blueprint.** Render dashboard, New, then
+   Blueprint, and point it at `sh4wnbk/prelude` on `main`. Render's GitHub app
+   needs access to the repository, which it will ask for; the repository is
+   private, so the grant has to name it.
+2. **Watch the first build.** It runs `uv sync --locked --no-dev`, then
+   `scripts/fetch_statsbomb.py`, which downloads about six megabytes from
+   `github.com/hudl/open-data`, then writes `build/commit.txt`. If uv turns
+   out not to be on the path for the start command, the fallback is
+   `.venv/bin/uvicorn` with the same arguments, because `uv sync` puts the
+   environment in `.venv`.
+3. **Copy the URL** Render gives the service, with no trailing slash, and open
+   `<url>/health`. The first call after a build is warm; a later one may take
+   about a minute while the service wakes.
+4. **Set the repository variables.** GitHub, Settings, Secrets and variables,
+   Actions, Variables: `PRELUDE_API_URL` to that URL, and `PRELUDE_KEEPALIVE`
+   to `on` when the Actions minutes above are acceptable, which on a private
+   repository they are not for long.
+5. **Run the keepalive by hand once.** Actions tab, "Keep the API awake", Run
+   workflow. A hand run goes whatever the switch says, and its log prints the
+   body it got back. This is also what proves the file is valid YAML.
+6. **Hand the URL back**, so the "Live URL: added after deploy" line in
+   `README.md` becomes the real one and the OpenAPI spec Bob writes has an
+   endpoint to be checked against.
+
 ### Task 16: the narrator picker (done, built by Bob and verified)
 
 **Shawn, 2026-11-07: the narrator picker goes live.** Until this task the side
@@ -4216,15 +4399,26 @@ The rules Shawn settled for them, before any of it is built:
 
 ### Phase 6: hosting and Orchestrate
 
-- Claude Code: a small hosted backend (Render, as planned) holding the IBM keys,
-  with rate limiting, so judges get live, varied narration; the saved audio is
-  the fallback if it is down.
-- Bob: write the OpenAPI tool spec for the narration endpoint (the YAML the lab
-  guide's exercise uses).
+**The first bullet was rewritten on 2026-11-07, when Shawn settled what the
+hosted part is.** It was a backend holding the IBM keys with rate limiting, so
+judges would get live, varied narration. It is a read-only API instead, which
+holds no keys and makes no paid call, and the saved audio is what a judge
+hears whether or not it is up. Task 17 above is the record.
+
+- Claude Code: a small hosted read-only API on Render's free tier, so watsonx
+  Orchestrate has a stable public URL to call (done, Task 17, `app/api.py` and
+  `render.yaml`; nothing is deployed yet).
+- Claude Code: a keepalive so a judge never hits a cold start (done,
+  `.github/workflows/keepalive.yml`; it waits on the deployed URL).
+- Shawn: create the Render service and hand the URL back. The checklist is
+  under Task 17 above.
+- Bob: write the OpenAPI tool spec for the endpoint (the YAML the lab guide's
+  exercise uses).
 - Shawn: recreate the prelude agent in Orchestrate and import the spec as its
   tool. Optionally host the orchestrator's routing there.
-- Claude Code: check the spec against the live endpoint, add a keepalive so a
-  judge never hits a cold start, and finish `docs/IBM_STACK.md`.
+- Claude Code: check the spec against the live endpoint, turn the keepalive
+  schedule on or leave it for the public repo, and finish
+  `docs/IBM_STACK.md`.
 
 ### Phase 7: film and submission
 
@@ -4240,7 +4434,22 @@ The rules Shawn settled for them, before any of it is built:
   to `bob_sessions/`.
 - Shawn: make the repo public, check `bob_sessions/` is complete, and submit.
 
-## Next first action (Phase 6: hosting and the Orchestrate spec)
+## Next first action (Phase 6: Shawn deploys, then Bob's spec)
+
+**The hosted endpoint is built and is not deployed.** Task 17 above is the
+record and the checklist: `app/api.py` serves `/health`, `/moments` and
+`/buildup` read-only, `render.yaml` is the Blueprint for one free web service,
+`.github/workflows/keepalive.yml` is the ping, and `tests/test_api.py` holds
+all three. **The first action is Shawn's: create the Render service from the
+Blueprint, set `PRELUDE_API_URL`, run the keepalive by hand once, and hand the
+URL back.** Nothing Claude Code can do comes before it. The OpenAPI spec Bob
+writes next describes an endpoint, and a spec cannot be checked against one
+that has no address.
+
+The paragraphs below are Phase 5's close and still read true, except where
+Task 17 says otherwise: the hosted service holds no keys, so the first of the
+three settled things is now a statement about a service that reads no
+credentials at all.
 
 **Phase 5 is finished and the documents agree with the code.** The six
 narrations are written, verified, frozen and recorded, the moment card shows
