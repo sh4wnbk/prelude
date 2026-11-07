@@ -3126,7 +3126,7 @@ home, `Prelude.slotFor` in `app/web/match-content.js`. `slot_for` in
 moved into `tests/slot_rows.json` and the `slot_rows` fixture in
 `tests/conftest.py` hands them to both suites.
 
-`tests/test_api.py`, 62 tests, runs each row through the Python copy and
+`tests/test_api.py`, 92 tests, runs each row through the Python copy and
 through `/buildup`, so the rule the service answers with is the rule in the
 table.
 

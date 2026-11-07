@@ -37,7 +37,7 @@ Run it locally:
 
 import json
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -66,6 +66,37 @@ PAGES_BASE = "https://sh4wnbk.github.io/prelude/"
 #: The three answers to "Who are you with". The same three values
 #: `app/web/match-content.js` stores, and the only ones the slot rule knows.
 Listener = Literal["team_a", "team_b", "neutral"]
+
+#: The form a match id arrives in: digits, and nothing else.
+#:
+#: `match` was an integer parameter until 2026-11-07. watsonx Orchestrate
+#: serialises an integer tool argument as a float, so the first live test
+#: called `/buildup` with `match=3.869685e+06`. The 422 that came back was
+#: correct and no use to anybody: the service cannot accept that value, and
+#: the agent had no way to learn what it should have sent. So the parameter
+#: takes a string of digits, which Orchestrate passes through unchanged, and
+#: the conversion to an integer happens inside the endpoint.
+#:
+#: The pattern refuses a float, a signed number and a word, and it reaches the
+#: caller: the 422 body names the pattern and echoes what was sent, which is
+#: the whole of what an agent needs to send the next call correctly. It also
+#: reaches `orchestrate/prelude_tools.yaml`, whose `match` parameter carries
+#: the same type and the same pattern;
+#: `tests/test_orchestrate_spec.py::TestTheParameters` reads the type out of
+#: `app.openapi()` and holds the two together.
+MATCH_PATTERN = r"^[0-9]+$"
+
+#: What the parameter's own description tells a caller. An agent choosing an
+#: argument reads this before it reads a 422.
+MATCH_DESCRIPTION = (
+    "StatsBomb match id, written as digits only: 3869685, not 3.869685e+06, "
+    "and not a team name or a year."
+)
+
+#: `match`, on both endpoints, spelled once.
+MatchId = Annotated[
+    str, Query(pattern=MATCH_PATTERN, description=MATCH_DESCRIPTION)
+]
 
 
 def _read(path: Path) -> dict:
@@ -192,20 +223,24 @@ def health() -> dict:
 
 
 @app.get("/moments")
-def moments(match: int = Query(...)) -> dict:
+def moments(match: MatchId) -> dict:
     """Every goal of the match, from Bob's EventFeed, in the order they fell.
 
     `narrated` is true for the one goal the app tells, which is the goal the
     six frozen narrations and the six recordings were made for. The other
     goals are in the data and have no narration, and saying so is what the
     field is for.
+
+    `match` arrives as digits and is an integer from here on; `MATCH_PATTERN`
+    records why it is not an integer at the edge.
     """
-    entry = _match_or_404(match)
+    match_id = int(match)
+    entry = _match_or_404(match_id)
     home, away = entry["home_team"], entry["away_team"]
 
     scored = {home: 0, away: 0}
     goals = []
-    for moment in FEED.defining_moments(match):
+    for moment in FEED.defining_moments(match_id):
         if moment.team in scored:
             scored[moment.team] += 1
         goals.append(
@@ -219,7 +254,7 @@ def moments(match: int = Query(...)) -> dict:
         )
 
     return {
-        "match_id": match,
+        "match_id": match_id,
         "home_team": home,
         "away_team": away,
         "goals": goals,
@@ -228,7 +263,7 @@ def moments(match: int = Query(...)) -> dict:
 
 @app.get("/buildup")
 def buildup(
-    match: int = Query(...),
+    match: MatchId,
     listener: Listener = Query(...),
     narrator: str | None = Query(None),
 ) -> dict:
@@ -242,20 +277,24 @@ def buildup(
     the words earned it. All six do, because nothing else was frozen; it is
     read off the record rather than attached here, because `CLAUDE.md` allows
     the phrase over checked narration and over nothing else.
+
+    `match` arrives as digits and is an integer from here on; `MATCH_PATTERN`
+    records why it is not an integer at the edge.
     """
-    entry = _match_or_404(match)
+    match_id = int(match)
+    entry = _match_or_404(match_id)
     hero = entry["hero"]
 
     slot = slot_for(hero["voice_for"], listener, narrator)
-    frozen = NARRATIONS.get(str(match), {}).get("slots", {}).get(slot)
+    frozen = NARRATIONS.get(str(match_id), {}).get("slots", {}).get(slot)
     if slot is None or frozen is None:
         raise HTTPException(
             status_code=404,
-            detail=f"match {match} has no frozen narration for slot {slot!r}",
+            detail=f"match {match_id} has no frozen narration for slot {slot!r}",
         )
 
     body = {
-        "match_id": match,
+        "match_id": match_id,
         "listener": listener,
         "slot": slot,
         "narrator": NARRATOR_NAMES.get(frozen["narrator"], frozen["narrator"]),

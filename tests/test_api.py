@@ -39,6 +39,7 @@ from fastapi.testclient import TestClient
 
 from app.api import (
     BUILD_COMMIT_FILE,
+    MATCH_PATTERN,
     PAGES_BASE,
     app,
     build_commit,
@@ -60,6 +61,22 @@ MATCH_IDS = sorted(entry["match_id"] for entry in MATCHES["matches"])
 
 #: A match id that is not one of the two, for the 404 paths.
 ABSENT_MATCH = 1
+
+#: Each endpoint, with everything except `match` already filled in, so that
+#: `TestTheMatchParameter` can vary the one parameter it is about and get the
+#: same answer from both.
+MATCH_CALLS = [("/moments", {}), ("/buildup", {"listener": "neutral"})]
+
+#: Values a caller can send for `match` that are not a match id.
+#:
+#: The first of them is the reason the parameter is a string of digits rather
+#: than an integer. watsonx Orchestrate serialises an integer tool argument as
+#: a float, so the first live test of the agent called `/buildup` with
+#: `match=3.869685e+06`; `MATCH_PATTERN` in `app/api.py` records that. A float
+#: in either spelling, a signed number and a word are all refused, and the
+#: 422 says what the expected form is, because the caller that reads it is an
+#: agent choosing the next call.
+NOT_A_MATCH_ID = ["3.869685e+06", "38.5", "-1", "abc"]
 
 #: Every goal of each match as the endpoint reports it: scorer, team, the
 #: minute the app captions, the score after it, and whether the app narrates
@@ -241,6 +258,81 @@ class TestMoments:
 
     def test_a_match_that_is_not_a_number_is_422(self, client):
         assert client.get("/moments", params={"match": "final"}).status_code == 422
+
+
+class TestTheMatchParameter:
+    """`match` is digits on the wire and an integer inside.
+
+    It was an integer parameter until 2026-11-07, when the first live test of
+    the Orchestrate agent called `/buildup` with `match=3.869685e+06`: the
+    product has no float in it, but Orchestrate serialises an integer tool
+    argument as a float. The 422 was correct and told the agent nothing. So
+    the parameter takes the digits a match id is written in, which Orchestrate
+    passes through unchanged, and `app/api.py` converts inside.
+    """
+
+    @pytest.mark.parametrize("path,extra", MATCH_CALLS)
+    @pytest.mark.parametrize("match_id", MATCH_IDS)
+    def test_digits_are_a_match_id(self, client, path, extra, match_id):
+        response = client.get(path, params={"match": str(match_id), **extra})
+        assert response.status_code == 200, response.text
+
+    @pytest.mark.parametrize("path,extra", MATCH_CALLS)
+    @pytest.mark.parametrize("match_id", MATCH_IDS)
+    def test_the_body_reports_it_as_an_integer(self, client, path, extra, match_id):
+        """The digits are the wire form; what comes back is the id itself, so
+        a caller comparing `match_id` with the id it holds is comparing two
+        numbers.
+        """
+        body = client.get(path, params={"match": str(match_id), **extra}).json()
+        assert body["match_id"] == match_id
+        assert isinstance(body["match_id"], int)
+
+    @pytest.mark.parametrize("path,extra", MATCH_CALLS)
+    @pytest.mark.parametrize("bad", NOT_A_MATCH_ID)
+    def test_what_is_not_digits_is_422(self, client, path, extra, bad):
+        response = client.get(path, params={"match": bad, **extra})
+        assert response.status_code == 422, response.text
+
+    @pytest.mark.parametrize("path,extra", MATCH_CALLS)
+    @pytest.mark.parametrize("bad", NOT_A_MATCH_ID)
+    def test_the_422_names_the_expected_form(self, client, path, extra, bad):
+        """An agent reads this body and sends the next call from it, so the
+        refusal carries the form it wanted and the value it got.
+        """
+        body = client.get(path, params={"match": bad, **extra}).text
+        assert MATCH_PATTERN in body
+        assert bad in body
+
+    @pytest.mark.parametrize("path,extra", MATCH_CALLS)
+    def test_digits_that_are_no_match_of_ours_are_still_404(
+        self, client, path, extra
+    ):
+        """The pattern is the form, not the list. A well formed id the service
+        does not serve is a 404, which is the answer it always was.
+        """
+        response = client.get(path, params={"match": str(ABSENT_MATCH), **extra})
+        assert response.status_code == 404
+        assert str(ABSENT_MATCH) in response.json()["detail"]
+
+    @pytest.mark.parametrize("path,extra", MATCH_CALLS)
+    def test_no_match_at_all_is_422(self, client, path, extra):
+        assert client.get(path, params=extra).status_code == 422
+
+    @pytest.mark.parametrize("path,extra", MATCH_CALLS)
+    def test_the_pattern_reaches_the_caller_in_the_schema(self, path, extra):
+        """What the 422 enforces is also what the published schema says, so
+        `orchestrate/prelude_tools.yaml` has one thing to copy and
+        `tests/test_orchestrate_spec.py` has one thing to read.
+        """
+        parameter = next(
+            p
+            for p in app.openapi()["paths"][path]["get"]["parameters"]
+            if p["name"] == "match"
+        )
+        assert parameter["schema"]["type"] == "string"
+        assert parameter["schema"]["pattern"] == MATCH_PATTERN
+        assert (parameter.get("description") or "").strip()
 
 
 class TestTheSevenRows:

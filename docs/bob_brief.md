@@ -1730,10 +1730,28 @@ forgotten:
 
 ## Task 15: the OpenAPI file watsonx Orchestrate imports
 
-**Status: not built, and dry run once.** `tests/test_orchestrate_spec.py`
-holds the contract, and all 64 of its tests fail until the file exists. Nothing
-else in the suite fails. The dry run is recorded below, and so is the one gate
-failure to expect.
+**Status: built by Bob, and changed once since.** The file is
+`orchestrate/prelude_tools.yaml`, the session is exported to
+`bob_sessions/phase6_task15_orchestrate_spec.md`, and all 64 tests in
+`tests/test_orchestrate_spec.py` pass against it.
+
+**The `match` parameter changed after the task closed, and it is not a mistake
+of Bob's.** The first live test of the agent in watsonx Orchestrate, on
+2026-11-07, called `/buildup` with `match=3.869685e+06`. Orchestrate serialises
+an integer tool argument as a float, and this file asked for an integer because
+`app/api.py` did. The service answered 422, which was correct and no use to the
+agent: it could not send that value and had nothing to learn the right one
+from. So `match` is now a string carrying the pattern `^[0-9]+$` on both
+endpoints, converted to an integer inside `app/api.py`, and this file follows
+with the same type, the same pattern and an example quoted so an agent copies
+digits rather than a number. Requirement 5 below still reads as it did, that
+the parameters carry the types `app.openapi()` carries; the types are what
+moved. `tests/test_orchestrate_spec.py::TestTheParameters` is what caught the
+drift when `app/api.py` changed, which is what it was written for, and
+`tests/test_api.py::TestTheMatchParameter` is what holds the service to the new
+form. One test in this file changed with it, the one that reads the `match`
+example, because a served id is now compared in the spelling the parameter
+takes.
 
 Write one file, `orchestrate/prelude_tools.yaml`, so that watsonx Orchestrate
 can import the hosted API as tools. That is the whole task. No Python changes,

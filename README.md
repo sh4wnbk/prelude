@@ -403,10 +403,10 @@ Everything above it is structure.
   no public URL. `render.yaml` is the Blueprint that would create one and
   `.github/workflows/keepalive.yml` is the ping that would keep it awake, and
   neither has been run.
-- `tests/test_api.py`: 62 tests over the three endpoints, their errors, the
-  seven rows of the slot rule, the text matching `app/web/narrations.json`,
-  every audio URL being a file under `app/web/`, and what the module may not
-  import or write. All pass, and none opens a connection to anywhere but the
+- `tests/test_api.py`: 92 tests over the three endpoints, their errors, the
+  form the `match` parameter takes, the seven rows of the slot rule, the text
+  matching `app/web/narrations.json`, every audio URL being a file under
+  `app/web/`, and what the module may not import or write. All pass, and none opens a connection to anywhere but the
   event loop's own wakeup pair.
 
 **Exists but does nothing yet:**

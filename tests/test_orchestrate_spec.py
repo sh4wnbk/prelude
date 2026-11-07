@@ -480,7 +480,15 @@ class TestTheExamples:
             assert parameter["example"] in parameter["schema"]["enum"], name
 
     def test_the_example_match_is_a_match_the_service_serves(self):
-        served = {entry["match_id"] for entry in MATCHES["matches"]}
+        """In the spelling the parameter takes, which is a string of digits.
+
+        `match` stopped being an integer on 2026-11-07: Orchestrate serialises
+        an integer tool argument as a float, so the example an agent copies
+        has to be quoted here or the agent sends `3.869685e+06`. Comparing
+        against the ids as strings holds both halves at once, the spelling and
+        the id.
+        """
+        served = {str(entry["match_id"]) for entry in MATCHES["matches"]}
         for path in TOOL_PATHS:
             assert parameters(operation(path))["match"]["example"] in served
 

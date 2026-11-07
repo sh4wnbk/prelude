@@ -202,7 +202,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 1675 tests in thirty five files. Any failure means something is
+The suite is 1705 tests in thirty five files. Any failure means something is
 wrong, with one exception, which is written down below rather than left for a
 reader to discover. It is run from the repo root:
 

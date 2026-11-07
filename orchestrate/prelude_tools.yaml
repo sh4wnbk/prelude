@@ -21,11 +21,14 @@ paths:
           in: query
           required: true
           description: >
-            StatsBomb match id for the match to look up. Use the match id from
-            the match the fan is asking about, not a name or a year.
-          example: 3750191
+            StatsBomb match id for the match to look up, written as digits
+            only: 3750191. Use the match id of the match the fan is asking
+            about, not a name and not a year. Send it as a string of digits,
+            never in exponent form: 3869685, not 3.869685e+06.
+          example: "3750191"
           schema:
-            type: integer
+            type: string
+            pattern: "^[0-9]+$"
       responses:
         "200":
           description: Goals and team names for the match.
@@ -71,7 +74,9 @@ paths:
         "404":
           description: No match found for the given match id.
         "422":
-          description: The match parameter is missing or is not an integer.
+          description: >
+            The match parameter is missing, or is not a string of digits. The
+            body names the expected form and echoes what was sent.
 
   /buildup:
     get:
@@ -88,11 +93,14 @@ paths:
           in: query
           required: true
           description: >
-            StatsBomb match id for the match to look up. Use the same id
-            as for list_match_goals.
-          example: 3750191
+            StatsBomb match id for the match to look up, written as digits
+            only: 3750191. Use the same id as for list_match_goals. Send it as
+            a string of digits, never in exponent form: 3869685, not
+            3.869685e+06.
+          example: "3750191"
           schema:
-            type: integer
+            type: string
+            pattern: "^[0-9]+$"
         - name: listener
           in: query
           required: true
@@ -164,4 +172,7 @@ paths:
         "404":
           description: No match found for the given match id, or no narrated goal for that match.
         "422":
-          description: A required parameter is missing or the listener value is not one of the three.
+          description: >
+            A required parameter is missing, the match parameter is not a
+            string of digits, or the listener value is not one of the three.
+            The body names the expected form and echoes what was sent.
