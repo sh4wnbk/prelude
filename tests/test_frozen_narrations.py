@@ -1,10 +1,17 @@
 """The frozen hero narrations still pass the grounding check against data/raw/.
 
-`app/web/narrations.json` holds a narration per hero goal that
-`openai/gpt-oss-120b` wrote once and `scripts/freeze_narrations.py` kept
-because `app/grounding.py` passed it. From then on those words are committed
-copy: the moment card shows them under "Verified from play data" and
-`scripts/tts_hero.py` sends them to be spoken.
+`app/web/narrations.json` holds two kinds of frozen narration and this file
+re-checks both. Under `slots` are the six the team wrote, one per
+`hero.voice_for` key: the moment card shows the one for the listener's own
+key under "Verified from play data" and `scripts/tts_hero.py` sends it to be
+spoken, so those are the words a fan reads and hears. Beside them is the
+per-goal narration `openai/gpt-oss-120b` wrote once, which stays as the
+pipeline's own evidence.
+
+**The six carry their authorship and it is checked here.** They were written
+by the team and verified by the check, which is a different claim from model
+output, so a frozen narration that lost either half of that could be taken
+for something it is not. A test fails when one does.
 
 That label is the reason this file exists. A frozen narration is checked once,
 at the moment it is written, and then never again by the thing that froze it,
@@ -32,6 +39,14 @@ import pytest
 
 from app.grounding import check, strip_citations
 from app.narration import GROUNDING_LABEL, MODEL
+
+import scripts.authored_narrations as authored
+from scripts.narrator_candidates import (
+    narrator_for,
+    opener_missing,
+    places_missing,
+    zones_said,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw"
@@ -104,6 +119,162 @@ def facts_for(match_id: str):
         f"{clock[0]}:{clock[1]:02d}; the hero is one"
     )
     return facts_from_buildup(feed.buildup(int(match_id), found[0]))
+
+
+def slot_facts(match_id: str):
+    """The facts for one hero goal, with the names and teams on them.
+
+    The six the team wrote say "MacAllister" and "France's half", so the
+    recorded nicknames and the fixture's two teams have to be on the facts or
+    the check reads a name it does not hold. The per-goal narration above
+    names every player in full and needs neither, which is why there are two
+    builders here.
+    """
+    from app.narration_prompt import facts_from_buildup
+    from app.recorded_names import recorded_nicknames, recorded_teams
+
+    feed = make_feed()
+    clock = HEROES[match_id]
+    found = [
+        moment
+        for moment in feed.defining_moments(int(match_id))
+        if (moment.minute, moment.second) == clock
+    ]
+    assert len(found) == 1
+    return facts_from_buildup(
+        feed.buildup(int(match_id), found[0]),
+        recorded_nicknames(int(match_id)),
+        recorded_teams(int(match_id)),
+    )
+
+
+def missing_authorship(slot) -> str:
+    """Why a frozen narration cannot be read as the team's writing.
+
+    Empty when it can. Both halves are asked for: who wrote it, and the
+    sentence a reader is owed beside it. A frozen narration that lost either
+    could be taken for model output, which is the one thing the disclosure
+    exists to prevent.
+    """
+    if slot.get("author") != authored.AUTHOR:
+        return "the author is {!r} and not {!r}".format(
+            slot.get("author"), authored.AUTHOR
+        )
+    if slot.get("authorship") != authored.AUTHORSHIP:
+        return "the authorship is {!r} and not {!r}".format(
+            slot.get("authorship"), authored.AUTHORSHIP
+        )
+    return ""
+
+
+def voice_for(match_id: str) -> dict:
+    """The keys this match sends a listener to, off `app/web/matches.json`."""
+    doc = json.loads((WEB / "matches.json").read_text(encoding="utf-8"))
+    match = next(
+        one for one in doc["matches"] if str(one["match_id"]) == match_id
+    )
+    return match["hero"]["voice_for"]
+
+
+class TestTheSixTheTeamWroteAreFrozen:
+    """The six under `slots`, each with its authorship and its verdict.
+
+    These are the narrations the moment card shows and `scripts/tts_hero.py`
+    speaks, one per `hero.voice_for` key. They were written by the team and
+    not by a model, so two things are held here: the authorship a reader is
+    owed, and the check still passing on these exact words in the persona and
+    for the listening side the slot is written for.
+    """
+
+    def slots(self, match_id: str) -> dict:
+        return frozen()[match_id].get("slots") or {}
+
+    def every_slot(self):
+        for match_id in sorted(HEROES):
+            for key, slot in sorted(self.slots(match_id).items()):
+                yield match_id, key, slot
+
+    def test_every_listener_has_a_narration(self):
+        for match_id in sorted(HEROES):
+            keys = sorted(set(voice_for(match_id).values()))
+            assert sorted(self.slots(match_id)) == keys
+
+    def test_there_are_six_of_them_and_no_two_are_alike(self):
+        texts = [slot["text"] for _m, _k, slot in self.every_slot()]
+        assert len(texts) == 6
+        assert len(set(texts)) == 6
+
+    def test_each_one_is_the_one_in_the_authored_source(self):
+        """The frozen copy is not a second place the words can be edited:
+        `scripts/authored_narrations.py` holds them and the freeze reads
+        them."""
+        for match_id, key, slot in self.every_slot():
+            assert slot["text"] == authored.AUTHORED[(int(match_id), key)]
+
+    def test_every_one_carries_its_authorship(self):
+        for match_id, key, slot in self.every_slot():
+            why = missing_authorship(slot)
+            assert not why, "match {} slot {}: {}".format(match_id, key, why)
+
+    def test_a_narration_that_lost_its_authorship_is_caught(self):
+        """So the test above is not passing on an assertion nobody made."""
+        _match_id, _key, slot = next(self.every_slot())
+        stripped = {
+            field: value
+            for field, value in slot.items()
+            if field != "authorship"
+        }
+        assert "the authorship is" in missing_authorship(stripped)
+        assert "the author is" in missing_authorship(
+            dict(slot, author="openai/gpt-oss-120b")
+        )
+
+    def test_the_check_still_passes_on_every_one(self):
+        """The verdict, recomputed. This is the test the label rests on."""
+        for match_id in sorted(HEROES):
+            facts = slot_facts(match_id)
+            for key, slot in sorted(self.slots(match_id).items()):
+                result = check(
+                    slot["text"],
+                    facts,
+                    persona=narrator_for(key),
+                    side=slot["listener_side"],
+                )
+                assert result.grounded, (
+                    "the frozen {} narration for match {} no longer passes "
+                    "the grounding check, so it may not carry {!r}: {}".format(
+                        key, match_id, GROUNDING_LABEL, result.summary
+                    )
+                )
+                assert result.checked == slot["check"]["claims_checked"], (
+                    "match {} slot {} was frozen on {} claim(s) and the "
+                    "check now reads {}".format(
+                        match_id,
+                        key,
+                        slot["check"]["claims_checked"],
+                        result.checked,
+                    )
+                )
+
+    def test_each_one_still_places_the_move_and_opens_on_a_name(self):
+        """The two acceptance rules, held on the frozen copy as well: the
+        freeze refuses a narration either one turns down, and this is what
+        says so after the fact."""
+        for match_id in sorted(HEROES):
+            facts = slot_facts(match_id)
+            for key, slot in sorted(self.slots(match_id).items()):
+                assert places_missing(slot["text"], facts) == ""
+                assert opener_missing(slot["text"], facts) == ""
+                assert slot["places"] == list(zones_said(slot["text"], facts))
+
+    def test_the_per_goal_narration_is_still_beside_them(self):
+        """The six sit beside the one a model wrote rather than over it: it is
+        the pipeline's own evidence and `docs/narration_runs/` is the rest."""
+        for match_id in sorted(HEROES):
+            entry = frozen()[match_id]
+            assert entry["text"]
+            assert entry["source"] == MODEL
+            assert entry["model"]
 
 
 class TestTheFrozenNarrationsAreStillGrounded:
