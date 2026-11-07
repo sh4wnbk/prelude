@@ -454,6 +454,30 @@ is the narrator's own voice, and it leaves the label's claim untouched. It is
 still held to everything else: no verdict about where the goal stands among
 other goals, no words for how hard the ball was struck, and never "you".
 
+### Who wrote the six, and who verified them
+
+**The six hero narrations were written by the team and verified by Prelude's
+grounding check against StatsBomb play data.** There is one per listener per
+hero goal, in `scripts/authored_narrations.py` and frozen into
+`app/web/narrations.json` with that authorship beside each of them, and the
+moment card shows the one for the listener's own key while
+`scripts/tts_hero.py` speaks it. The check reads them exactly as it reads a
+model's: as a goal call, in the persona and for the listening side the slot
+is written for, claim by claim against `data/raw/`. The label means what it
+says about them, because the label is about whether the claims trace to the
+records and not about who put the words in that order.
+
+**The model pipeline is real and its runs are in
+[`docs/narration_runs/`](docs/narration_runs).** `openai/gpt-oss-120b` on
+watsonx writes narrations from the story beats through
+`app/goal_call_prompt.py`, the same check reads them, and
+`scripts/narrator_candidates.py` is the run that produces candidates. Those
+runs are why the writing is the team's: at `reasoning_effort` low the model
+would not place the move on the pitch, so the candidates gave a listener
+nowhere to stand. The reports in that directory are what each run produced,
+including the one per-goal narration a model wrote that is still frozen
+beside the six and still re-checked.
+
 [`docs/VOICE.md`](docs/VOICE.md) has the two layers in full, the eight
 reference narrations that are the standard for the play, and what the check
 still cannot decide. [`docs/VERIFICATION.md`](docs/VERIFICATION.md) has one
