@@ -4272,18 +4272,38 @@ Three things are settled before any of it is written:
   data, GPS presence and audio narration. A hosted endpoint is where the
   existing pipeline runs, not a fourth one.
 
-**`docs/IBM_STACK.md` is the last Phase 6 bullet and it has drifted.** Three
-claims in it describe a repo that moved on, found while reading it for this
-handoff and left for that bullet rather than patched here:
+**`docs/IBM_STACK.md` is corrected, which is part of the last Phase 6
+bullet.** Seven passages in it described a repo that had moved on. Three were
+the ones recorded here when the drift was found; reading the rest of the
+document against the code turned up four more. Each is now present tense and
+only what exists, with a file or a test behind it:
 
-| What it says | What is true now |
+| What it said | What it says now |
 | ------------ | ---------------- |
-| `app/tts.py`: "No screen reaches it, so no fan hears anything yet" | the moment card's player plays the six recordings |
-| under "What this document deliberately does not claim": "That a narration has been spoken. None has." | six have been spoken, in `app/web/assets/audio/`, for 2,403 billed characters |
-| the third voice belongs to "the Mate" | `app/personas.py` declares `THE_BUDDY` with `en-US_EthanNatural`; Task 13 renamed the id and the docs were the follow-up's |
+| `app/tts.py` returns WAV and "No screen reaches it, so no fan hears anything yet" | the format is the caller's through `accept`, and the six MP3s under `app/web/assets/audio/` are what the player plays, with the voice and the billed count per file |
+| "That a narration has been spoken. None has." | the six were spoken on 2026-11-07 for 2,403 billed characters, and no screen calls `app/tts.py` at runtime |
+| the third voice belongs to "the Mate" | the Buddy, `en-US_EthanNatural`, which is what `app/personas.py` declares |
+| "Three sessions, one export each" | fourteen, each row with its export, its screenshot and the commit that added it |
+| "The comparison has not been run" | it was Task 4b: 87 narrations over 155 generation calls, reported in `docs/narration_eval.md` |
+| "The prosody fields are still empty and unconfirmed" | the delivery lives in `app/delivery.py`, eight rows, and all three personas carry `prosody_confirmed` true |
+| "the same decision as the three gates" | four of the five gates, with `scripts/check_vocabulary.py` the exception that a test does cover |
 
-None of the three is caught by `scripts/check_docs.py`: it checks paths, test
-citations, counts, quoted output and dashes, and these are prose.
+None of the seven was caught by `scripts/check_docs.py`: it checks paths, test
+citations, counts, quoted output and dashes, and these were all prose. The
+document now also states what it does not claim in terms that are true: that
+the pipeline did not write the six, that the Caller has never been heard
+because it has no recording, and that the delivery numbers are Shawn's by ear
+rather than measured.
+
+**Three more stale passages are outside that document and are not fixed.**
+They are recorded here rather than patched, because each belongs to a document
+or a script with its own owner:
+
+| Where | What is stale |
+| ----- | ------------- |
+| `bob_sessions/README.md` | the session table holds the first five of the fourteen exports, and the Bobcoin figures stop at task 5 |
+| `docs/HARNESS.md` | "The three gates" in two places, and its script table does not label `scripts/data_check.py` or `scripts/check_vocabulary.py` as gates |
+| `scripts/tts_hero.py` | the docstring still names the keys `mate_scored` and `mate_conceded`, which Task 13 renamed to `buddy_scored` and `buddy_conceded` |
 
 ### Still open from Phase 5: Shawn listens to the six
 

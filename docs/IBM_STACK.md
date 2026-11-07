@@ -45,18 +45,35 @@ reads its numbered facts off what comes back.
 
 ### The session exports
 
-Three sessions, one export each, committed rather than ignored because the
-submission guide requires them to be present in the final repo.
-`bob_sessions/README.md` is the index and the scrubbing rule.
+Fourteen sessions, one export each with the screenshot of its task summary,
+committed rather than ignored because the submission guide requires them to be
+present in the final repo. `bob_sessions/README.md` is the index and the
+scrubbing rule.
 
-| Phase | Task | Export | Screenshot | Commit |
-| ----: | ---- | ------ | ---------- | ------ |
-| 3 | build `StatsBombEventFeed` | `bob_sessions/phase3_task1_eventfeed.md` | `bob_sessions/phase3_task1_eventfeed.png` | `3ce6bca` |
-| 3 | end event windows at the goal shot | `bob_sessions/phase3_task2_window_fix.md` | `bob_sessions/phase3_task2_window_fix.png` | `343c712` |
-| 4 | add `buildup` | `bob_sessions/phase4_task3_buildup.md` | `bob_sessions/phase4_task3_buildup.png` | `24e1a8d` |
+| Phase | Task | Export | Screenshot | Export committed in |
+| ----: | ---- | ------ | ---------- | ------------------- |
+| 3 | 1. build `StatsBombEventFeed` | `bob_sessions/phase3_task1_eventfeed.md` | `bob_sessions/phase3_task1_eventfeed.png` | `7970216` |
+| 3 | 2. end event windows at the goal shot | `bob_sessions/phase3_task2_window_fix.md` | `bob_sessions/phase3_task2_window_fix.png` | `7970216` |
+| 4 | 3. add `buildup` | `bob_sessions/phase4_task3_buildup.md` | `bob_sessions/phase4_task3_buildup.png` | `e0bbbdd` |
+| 4 | 4. the orchestrator | `bob_sessions/phase4_task4_orchestrator.md` | `bob_sessions/phase4_task4_orchestrator.png` | `be0426f` |
+| 4 | 5. the game-focused header | `bob_sessions/phase4_task5_header.md` | `bob_sessions/phase4_task5_header.png` | `4826671` |
+| 4 | 6. the header on the moment card | `bob_sessions/phase4_task6_card_header.md` | `bob_sessions/phase4_task6_card_header.png` | `95341d1` |
+| 4 | 7. the screen copy | `bob_sessions/phase4_task7_screen_copy.md` | `bob_sessions/phase4_task7_screen_copy.png` | `76e0d15` |
+| 4 | 8. where the 1986 fan steps away | `bob_sessions/phase4_task8_step_away.md` | `bob_sessions/phase4_task8_step_away.png` | `3380bf3` |
+| 4 | 9. the listener card | `bob_sessions/phase4_task9_listener_card.md` | `bob_sessions/phase4_task9_listener_card.png` | `4f12bea` |
+| 4 | 10. the Profile screen | `bob_sessions/phase4_task10_profile.md` | `bob_sessions/phase4_task10_profile.png` | `b2d29a2` |
+| 5 | 11. audio playback on the moment card | `bob_sessions/phase5_task11_player.md` | `bob_sessions/phase5_task11_player.png` | `076e914` |
+| 5 | 12. the narrators on Profile | `bob_sessions/phase5_task12_narrators.md` | `bob_sessions/phase5_task12_narrators.png` | `d0837ac` |
+| 5 | 13. rename the persona id from mate to buddy | `bob_sessions/phase5_task13_buddy_rename.md` | `bob_sessions/phase5_task13_buddy_rename.png` | `473b98e` |
+| 5 | 14. the narrator picker | `bob_sessions/phase5_task14_narrator_picker.md` | `bob_sessions/phase5_task14_narrator_picker.png` | `9f98e91` |
+
+The commit above is the one that added the export, read with
+`git log --diff-filter=A`. The commit the work itself landed in is the status
+line at the head of that task in `docs/bob_brief.md`.
 
 The Bobcoin figure for each session is read from its own task summary, which is
-what the screenshots record; `bob_sessions/README.md` carries the numbers.
+what the screenshots record; `bob_sessions/README.md` carries that figure for
+the first five sessions.
 
 Exports are transcripts, so they are scrubbed of anything secret before every
 commit, by hand. Nothing in the repo scrubs them. The Task 3 export needed no
@@ -187,10 +204,12 @@ holds both ids, and
 `tests/test_narration_provider.py::TestWatsonxBackend::test_it_requests_the_active_candidate`
 holds that a request asks for the active one.
 
-**The comparison has not been run.** Nothing in the repo has generated narration
-on watsonx, and the number the comparison needs, how often a first attempt is
-grounded, is not measured yet for any model. `app/narration.py` exposes
-`pass_rate` for it
+**The comparison has been run**, which is what Task 4b above was: 87
+narrations over 155 generation calls across the two candidates, with the
+first-attempt grounded rate measured for both and reported per arm.
+`docs/narration_eval.md` holds the run, the arms and what it cost, and the
+records it was written from are in `docs/narration_runs/`. The number it turns
+on is the one `app/narration.py` exposes as `pass_rate`
 (`tests/test_narration.py::TestPassRate::test_it_counts_first_attempts_only`).
 
 ### IBM Granite runs locally too
@@ -207,8 +226,36 @@ garbage output
 ### Watson Text to Speech
 
 Phase 5. `app/tts.py` is the backend: it takes a header, a narration, a
-persona and a situation, and returns the WAV bytes the service sent. No screen
-reaches it, so no fan hears anything yet.
+persona and a situation, and returns the audio bytes the service sent. The
+format is the caller's, through `accept`: `WAV_ACCEPT` is the default and is
+what the probe measured, and `MP3_ACCEPT` is what the recordings the site
+ships are asked for, because a WAV of a twenty second narration is an order of
+magnitude larger than the MP3 of it and these files live in the repo.
+
+**The six recordings the site serves were made with it**, by
+`scripts/tts_hero.py` on 2026-11-07, one file per `hero.voice_for` key per
+hero goal, for 2,403 billed characters against the 3,500 the run's `--budget`
+allowed:
+
+| File, under `app/web/assets/audio/` | Voice | Billed |
+| ----------------------------------- | ----- | -----: |
+| `3750191_storyteller_neutral.mp3` | `en-US_EmmaNatural` | 371 |
+| `3750191_buddy_scored.mp3` | `en-US_EthanNatural` | 346 |
+| `3750191_buddy_conceded.mp3` | `en-US_EthanNatural` | 324 |
+| `3869685_storyteller_neutral.mp3` | `en-US_EmmaNatural` | 485 |
+| `3869685_buddy_scored.mp3` | `en-US_EthanNatural` | 449 |
+| `3869685_buddy_conceded.mp3` | `en-US_EthanNatural` | 428 |
+| **total** | | **2,403** |
+
+2,865 characters were submitted and 2,343 spoken; the difference is the
+pronunciation markup, which IBM bills and does not speak.
+
+**No screen calls `app/tts.py` at runtime.** The moment card's player plays
+the committed MP3 for the listener's own key, looked up in `hero.audio` in
+`app/web/matches.json`, and nothing in `app/web/` names the module or the
+service: the speech is bought once, by hand, and shipped as files
+(`tests/test_narration_player.py::TestTheAudioMap`,
+`tests/test_narration_player.py::TestThePlayer`).
 
 `scripts/tts_probe.py` is what measured the service before any of it was
 written: one fixed sentence per arm on three candidate voices, with the audio
@@ -239,7 +286,7 @@ recording and says so.
 | Service | IBM Watson Text to Speech |
 | Endpoint | `POST /v1/synthesize`, from IBM's published API |
 | Auth | basic, with the literal user name `apikey`, which is IBM's documented example for this service |
-| Format asked for | `audio/wav`, and all three voices answered 24000 Hz, 1 channel, 16 bit |
+| Format the probe asked for | `audio/wav`, and all three voices answered 24000 Hz, 1 channel, 16 bit |
 | Variables read | `TTS_API_KEY`, `TTS_URL`, through `app/credentials.py` |
 | Candidate voices | `en-AU_HeidiNatural`, `en-US_EmmaNatural`, `en-US_EthanNatural` |
 
@@ -251,18 +298,31 @@ and `<phoneme>` works on all three, which took a second arm to establish
 because the first one asked for the pronunciation the voices already used in
 that one sentence.
 
-**No test covers the probe,** and that is the same decision as the three gates:
-it is a measuring instrument whose evidence is its own output, and a test
-standing in for the service would be testing the stand-in. `tests/conftest.py`
-blocks the network in every test, so nothing in the suite can reach the
-service by accident.
+**No test covers the probe,** and that is the same decision as four of the
+five gates: it is a measuring instrument whose evidence is its own output, and
+a test standing in for the service would be testing the stand-in.
+`scripts/check_vocabulary.py` is the one exception, because half of what it
+does is a rule a test can hold instead of a report somebody reads:
+`tests/test_vocabulary.py` imports it and fails when a flagged word is on
+neither review list. `tests/conftest.py` blocks the network in every test, so
+nothing in the suite can reach the service by accident.
 
-**The three voices are now recorded against the personas.** `app/personas.py`
+**The three voices are recorded against the personas.** `app/personas.py`
 carries one each, with `voice_confirmed` true, which says Shawn chose them:
 the Caller is `en-AU_HeidiNatural`, the Storyteller `en-US_EmmaNatural` and
-the Mate `en-US_EthanNatural`
+the Buddy `en-US_EthanNatural`
 (`tests/test_personas.py::TestTheVoices::test_every_voice_is_one_the_probe_measured`).
-The prosody fields are still empty and unconfirmed.
+
+**The delivery is set too, and it does not live on the persona.**
+`app/delivery.py` holds eight rows, one per persona per situation less the
+neutral row the Buddy cannot have, each with a rate, a pitch and, for the
+Caller alone, two pauses; all three personas carry `prosody_confirmed` true
+(`tests/test_delivery.py::TestTheTableHasEveryRowAndNoOthers`,
+`tests/test_delivery.py::TestTheValuesAreShawnsAndTheTableSaysSo`). The values
+are Shawn's by ear. The one figure still unmeasured is the Caller's rate
+ceiling in words per minute, and a test says so rather than leaving it to be
+noticed
+(`tests/test_delivery.py::TestTheValuesAreShawnsAndTheTableSaysSo::test_the_callers_rate_ceiling_is_not_measured_yet`).
 
 **`TTS_VOICE` is still read by no code.** `.env.example` carries it as the
 working default from before the probe, and it names a voice no persona uses.
@@ -284,9 +344,15 @@ the file and the test behind each statement, and this entry goes away.
 
 ## What this document deliberately does not claim
 
-- That the watsonx backend has been run. It has not; see above.
-- That the model comparison has a result. It has not been run.
-- That a narration has been spoken. None has. The audio that exists is one
-  fixed probe sentence, outside the repo, and nothing in the app can reach it.
 - That `granite4:micro` narrates well. `docs/VOICE.md` carries what it actually
   produced, including a run where every model attempt was refused.
+- That the watsonx pipeline wrote the six narrations the site speaks. It did
+  not: they were drafted with an AI assistant, edited by Shawn and verified by
+  the grounding check, which `README.md` and `scripts/authored_narrations.py`
+  both say. The pipeline's own candidates are in `docs/narration_runs/`.
+- That the Caller has been heard in the app. It has no recording:
+  `hero.voice_for` sends no listener to it, so there are six recordings rather
+  than eight.
+- That the delivery numbers have been measured from real audio. They are
+  Shawn's by ear, and the words per minute that would put a ceiling on the
+  Caller's rate is still unmeasured.
