@@ -11,6 +11,11 @@ listener's side and `app/delivery.py`'s `situation` picks the delivery, so
 answer to "Who are you with", and the browser only looks its answer up. No
 rule about personas is written twice.
 
+A fan may choose a narrator since Task 14, and the choice is read in the same
+one place: `Prelude.slotFor` answers with the side rule until the fan has
+chosen, and with the chosen narrator's own key after. No rule about personas is
+written twice and no rule about the choice is either.
+
 `hero.audio` maps those keys to files. It is empty until the hero audio is
 generated after the November 1 TTS reset, and the player has to cope with
 that: with no file for the fan's key, the play button is disabled.
@@ -126,9 +131,14 @@ class TestTheMomentCard:
 
 class TestThePlayer:
     def test_it_looks_up_the_fans_recording(self):
+        """Which recording is `Prelude.slotFor`'s answer since Task 14: the
+        side rule by default, and the narrator the fan chose when they have
+        chosen one. The player no longer indexes `hero.voice_for` itself,
+        because the moment card's words come from the same lookup and the two
+        have to agree. `tests/test_narrator_picker.py` holds it."""
         text = player()
-        assert "voice_for" in text
-        assert "Prelude.listenerFor(" in text
+        assert "Prelude.slotFor(" in text
+        assert "voice_for" not in text
 
     def test_it_reads_the_list_out_of_the_document(self):
         """`Prelude.whenMatches` passes the whole document, or null, not the

@@ -413,12 +413,20 @@ class TestTheNarrationOnTheMomentCard:
     def test_the_renderer_picks_the_narration_by_the_listeners_key(self):
         """The card shows what the fan hears: the same lookup
         `app/web/narration-player.js` uses to pick the recording, so the text
-        under the label and the voice reading it are one piece of writing."""
+        under the label and the voice reading it are one piece of writing.
+
+        Since Task 14 that lookup is `Prelude.slotFor`, in the renderer and
+        the only reader of `hero.voice_for` there, and the player calls it
+        rather than repeating it. A fan who picks a narrator moves both
+        answers or neither, which is what keeps them one piece of writing when
+        the side is no longer the only thing deciding.
+        """
         renderer = RENDERER.read_text(encoding="utf-8")
         player = (WEB / "narration-player.js").read_text(encoding="utf-8")
-        for source in (renderer, player):
-            assert "voice_for" in source
-            assert "listenerFor" in source or "Prelude.listenerFor" in source
+        assert "voice_for" in renderer
+        assert "listenerFor" in renderer
+        assert "slotFor" in renderer
+        assert "Prelude.slotFor(" in player
         assert "slots" in renderer
         assert NEUTRAL_SLOT in renderer
 

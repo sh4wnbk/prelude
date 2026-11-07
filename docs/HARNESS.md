@@ -175,10 +175,10 @@ generating anything:
 
 ## The test harness
 
-The suite is 1524 tests in thirty two files, and 1506 of them pass. The
-eighteen that fail are Task 14's acceptance tests in the table below, written
-before the narrator picker exists, so any other failure means something is
-wrong. It is run from the repo root:
+The suite is 1524 tests in thirty two files, and 1504 of them pass. The twenty
+that fail are Task 14's: the acceptance tests for the narrator picker, written
+before it exists, and three tests it makes stale. Any other failure means
+something is wrong. It is run from the repo root:
 
 ```
 .\.venv-prelude\Scripts\python.exe -m pytest

@@ -122,7 +122,7 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-18 failed, 1506 passed
+20 failed, 1504 passed
 ```
 
 The total covers far more than this module now. Phase 4 added the narration
@@ -132,9 +132,11 @@ alone.
 
 **Every failure in that run is Task 14's**, which is the last task in this
 file and is waiting to be built: its acceptance tests were written first and
-fail until it exists. They are in `tests/test_narrator_picker.py`, with one in
-`tests/test_narrators.py` beside them. **A failure anywhere else means
-something is actually wrong.**
+fail until it exists. Seventeen of them are in `tests/test_narrator_picker.py`
+and three are tests the picker makes stale, one each in
+`tests/test_narrators.py`, `tests/test_narration_player.py` and
+`tests/test_frozen_narrations.py`. **A failure anywhere else means something is
+actually wrong.**
 
 The suite still guards the import, and three messages mean three different
 things if that changes. In `tests/test_event_feed.py`, every test that builds
@@ -1552,14 +1554,21 @@ in `app/web/matches.json`, the six recordings, the list in
 `app/web/narrators.json`, the side rule in `app/orchestrator.py`, and the
 Caller having no recording for a fan to choose.
 
-One test in `tests/test_narrators.py` fails with them, and it is the same
-change: the note is a tail joined to the name, and the sentence after the
-period is gone.
+Three more fail with them, one in each of three files, and all three are the
+same two changes:
 
-Run those two first:
+- `tests/test_narrators.py::TestTheRenderer::test_the_coming_soon_note`: the
+  note is a tail joined to the name and nothing follows the period.
+- `tests/test_narration_player.py::TestThePlayer::test_it_looks_up_the_fans_recording`:
+  the player calls the lookup and no longer indexes `hero.voice_for`.
+- `tests/test_frozen_narrations.py::TestTheNarrationOnTheMomentCard::test_the_renderer_picks_the_narration_by_the_listeners_key`:
+  the words and the recording come from the one lookup, which is what keeps
+  them one piece of writing now that the side is not the only thing deciding.
+
+Run the four files first:
 
 ```
-.\.venv-prelude\Scripts\python.exe -m pytest tests/test_narrator_picker.py tests/test_narrators.py
+.\.venv-prelude\Scripts\python.exe -m pytest tests/test_narrator_picker.py tests/test_narrators.py tests/test_narration_player.py tests/test_frozen_narrations.py
 ```
 
 Then the full suite, target 0 failed:
