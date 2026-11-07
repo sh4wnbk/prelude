@@ -204,8 +204,7 @@ generating anything:
 ## The test harness
 
 The suite is 1714 tests in thirty five files. Any failure means something is
-wrong, with one exception, which is written down below rather than left for a
-reader to discover. It is run from the repo root:
+wrong. It is run from the repo root:
 
 ```
 .\.venv-prelude\Scripts\python.exe -m pytest
@@ -214,11 +213,9 @@ reader to discover. It is run from the repo root:
 No path setting is needed: `pyproject.toml` sets `pythonpath = ["."]` and
 `testpaths = ["tests"]` under `[tool.pytest.ini_options]`.
 
-The exception is `tests/test_orchestrate_spec.py`, whose 64 tests are the
-contract for `orchestrate/prelude_tools.yaml`, the OpenAPI file watsonx
-Orchestrate imports. The file is IBM Bob's to write, so all 64 fail until it
-exists, in the way the acceptance tests for every other task of Bob's did.
-Everything else passes.
+There is no exception left. `tests/test_orchestrate_spec.py`, whose 64 tests
+are the contract for `orchestrate/prelude_tools.yaml`, failed until IBM Bob
+wrote that file as Task 15; it exists now and they pass.
 
 | File | What it covers |
 | ---- | -------------- |
@@ -234,7 +231,7 @@ Everything else passes.
 | `tests/test_narration_provider.py` | the model config and both backends |
 | `tests/test_credentials.py` | where the credentials file lives, and what is refused |
 | `tests/test_buddy_rename.py` | the partisan persona's id is `buddy` in every live file, with the past left as it was, built by Bob in Task 13 |
-| `tests/test_narrator_picker.py` | the narrator picker: one lookup for the recording a fan hears, where the choice is stored, and what Profile shows. Acceptance tests for Task 14, written before it exists, so seventeen of the thirty fail |
+| `tests/test_narrator_picker.py` | the narrator picker: one lookup for the recording a fan hears, where the choice is stored, and what Profile shows. Written as the acceptance tests for Task 14, and all 39 pass since Bob built it |
 | `tests/test_narrators.py` | "Your narrator" on Profile: the Buddy rename, the list written from the personas, the current narrator marked, the coming-soon note, and Change as an outline, built by Bob in Task 12 |
 | `tests/test_narration_player.py` | playback on the moment card: which recording each listener hears, the audio map, the player's wiring, and that it sends nothing, built by Bob in Task 11 |
 | `tests/test_narration_eval.py` | the key beats, the coverage measure, the token recorder and the voices a run is split into |

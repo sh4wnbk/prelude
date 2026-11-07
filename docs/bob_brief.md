@@ -122,7 +122,7 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-64 failed, 1611 passed
+1714 passed
 ```
 
 The total covers far more than this module now. Phase 4 added the narration
@@ -130,13 +130,9 @@ provider, the prompt, the grounding check and the evaluation, each with its
 own tests; run `pytest tests/test_event_feed.py` to see this module's tests
 alone.
 
-**The failures are Task 15's, and they are all in one file.** Task 14's twenty
-went with the task: seventeen in `tests/test_narrator_picker.py` and three the
-picker made stale, one each in `tests/test_narrators.py`,
-`tests/test_narration_player.py` and `tests/test_frozen_narrations.py`. What
-fails now is the acceptance file for the OpenAPI spec, and nothing else. **A
-failure outside `tests/test_orchestrate_spec.py` means something is actually
-wrong.**
+**Nothing fails now.** Task 14's twenty went with the task and Task 15's
+sixty four went with the spec, so the whole suite passes and **any failure
+means something is actually wrong.**
 
 The suite still guards the import, and three messages mean three different
 things if that changes. In `tests/test_event_feed.py`, every test that builds
@@ -1730,10 +1726,29 @@ forgotten:
 
 ## Task 15: the OpenAPI file watsonx Orchestrate imports
 
-**Status: built by Bob, and changed once since.** The file is
-`orchestrate/prelude_tools.yaml`, the session is exported to
-`bob_sessions/phase6_task15_orchestrate_spec.md`, and all 64 tests in
-`tests/test_orchestrate_spec.py` pass against it.
+**Status: done, verified, and changed once since.** The file is
+`orchestrate/prelude_tools.yaml`, 178 lines, and the session is exported to
+`bob_sessions/phase6_task15_orchestrate_spec.md`.
+
+**Verified by Claude, 2026-11-07**, at `39856bd`, the commit the task landed
+on, before anything in this follow-up changed. The commands and what they
+printed:
+
+| Check | Result |
+| ----- | ------ |
+| `.\.venv-prelude\Scripts\python.exe -m pytest -q` | 1675 passed, the 64 of `tests/test_orchestrate_spec.py` among them |
+| `.\.venv-prelude\Scripts\python.exe -m pytest tests/test_orchestrate_spec.py` | 64 passed, re-run on its own after the `match` change below |
+| `openapi_spec_validator.validate` on the parsed file, under `uv run --no-project` | valid, and `openapi` reads `3.0.3` |
+| the parsed file's `servers` | one url, `https://prelude-api.onrender.com` |
+| the parsed file's `paths` | two operations, both GET: `/moments` is `list_match_goals`, `/buildup` is `get_narration` |
+| the parsed file, for a security block | no `security` and no `components.securitySchemes` |
+| `curl` on `/health` | 200 after a 31.5 second cold wake, reporting commit `39856bd` |
+| `curl` on `/moments?match=3750191` | 200 in 0.41s, Argentina 2 England 1, the second goal narrated |
+
+The five gates were at exit 0 except `scripts/check_docs.py`, which failed on
+exactly the two claims this brief predicts: the quoted `pytest -q` result above
+and this task's export, named here while it did not exist. Both are cleared in
+the same commit as this table.
 
 **The `match` parameter changed after the task closed, and it is not a mistake
 of Bob's.** The first live test of the agent in watsonx Orchestrate, on
