@@ -3004,6 +3004,101 @@ the second is dropped, and the reaction is left out of the shape. Shawn's
 four references for each hero goal come out as four shapes, so it is not
 over-eager. Applied to the eighteen this run produced it flags two.
 
+### Task 19: the match parameter Orchestrate can send, and the matches the agent is told about (done)
+
+**Two things the first live test of the agent found**, Shawn, 2026-11-07, with
+Bob's Task 15 spec imported into watsonx Orchestrate and attached to the
+prelude agent. Neither is a fault in the spec and neither was findable from
+here: the suite has no network and nothing in this environment has an
+Orchestrate account, which Task 18 says in the same words.
+
+1. **Orchestrate called `/buildup` with `match=3.869685e+06`.** It serialises
+   an integer tool argument as a float. The service answered 422, which was
+   correct: the parameter was an integer and that is not one. The 422 was also
+   no use, because the agent could not send the value it had and had nothing
+   to read the right form off.
+2. **The agent asked the fan for a StatsBomb match id.** Nothing in its
+   instructions said which matches exist, so the one number it could not get
+   from a fan is the one it asked for.
+
+**`match` is a string of digits now**, on both endpoints, with the pattern
+`^[0-9]+$` in the schema and the conversion to an integer inside `app/api.py`.
+Orchestrate passes a string through unchanged, so the agent can send what it
+has. The 422 that a bad value gets now names the pattern and echoes what was
+sent, which is the whole of what a caller needs for its next attempt:
+
+```
+{"detail": [{"type": "string_pattern_mismatch", "loc": ["query", "match"],
+"msg": "String should match pattern '^[0-9]+$'", "input": "3.869685e+06",
+"ctx": {"pattern": "^[0-9]+$"}}]}
+```
+
+`MATCH_PATTERN` in `app/api.py` carries the reason, and
+`tests/test_api.py::TestTheMatchParameter`, 30 tests, holds it over both
+endpoints: digits answer 200 and report the id as an integer, a float in
+either spelling, a signed number and a word are 422 with the pattern and the
+value in the body, well formed digits the service does not serve are still
+404, and `app.openapi()` carries the pattern so the spec has one thing to
+copy.
+
+**`orchestrate/prelude_tools.yaml` follows**, with `type: string`, the same
+pattern, and the example quoted so an agent copies digits rather than a
+number. It was Bob's file and this is a change to it after the task, which
+`docs/bob_brief.md` Task 15 records along with why.
+`tests/test_orchestrate_spec.py::TestTheParameters` is what caught the drift
+when `app/api.py` changed: it reads the types out of `app.openapi()`, which is
+exactly the job Task 18 wrote it for, and it failed before the file was
+touched. One test in that file changed with it, the one reading the `match`
+example, which now compares against the served ids as strings.
+
+**The agent is told which matches it serves.** The pasteable block in
+`docs/orchestrate_agent.md` carries them, and a new rule 5 tells the agent to
+choose the match from that list, pass the id as digits, never ask a fan for a
+StatsBomb match id, and ask which match is meant when a fan's words fit more
+than one or none. The old rules 5 to 9 are 6 to 10; rule 1 is still the
+verbatim rule, which is what the grounding label rests on.
+
+**The list is generated.** `scripts/write_served_matches.py` writes it and,
+with `--check`, fails on a stale one. The id and the two team names come from
+`app/web/matches.json`, which is the service's own list of what it serves.
+That file records no competition and no stage, so the competition, the season,
+the stage and the date are read from the StatsBomb match files under
+`data/raw/matches/`, which is where both match ids were resolved from in the
+first place and which `scripts/fetch_statsbomb.py` downloads. What it wrote:
+
+```
+- 3750191: Argentina vs England, FIFA World Cup 1986, Quarter-finals, 1986-06-22
+- 3869685: Argentina vs France, FIFA World Cup 2022, Final, 2022-12-18
+```
+
+`tests/test_orchestrate_agent.py::TestTheMatchesItServes`, 9 tests, holds
+every line to both sources and to the ids `app/api.py` serves, holds the list
+inside the pasteable block rather than in the prose around it, and holds the
+three things the rule says. A third match in the app fails the suite here
+until the list is written again.
+
+**Task 15 is verified and `scripts/check_docs.py` is clear.** The brief's
+Task 15 carries the table of what was run against Bob's commit `39856bd`:
+1675 passed with the spec's 64 among them, the file valid as OpenAPI 3.0.3
+under `openapi-spec-validator`, one server, two GET operations, no security
+block, and the live service answering. The two claims the gate was holding
+open are closed: the quoted `pytest -q` result is the current run and
+`bob_sessions/phase6_task15_orchestrate_spec.md` is off `DELIBERATELY_ABSENT`,
+which is empty again. `docs/HARNESS.md` loses the exception the suite no
+longer has, and its `tests/test_narrator_picker.py` row no longer claims
+seventeen failures.
+
+**Cold wake, measured again.** `/health` answered in 31.5 seconds from asleep
+on 2026-11-07, in line with the 32 seconds Task 18 measured twice and well
+under the 82 the keepalive run recorded. The standing section at the top of
+this file still plans on the 82, which is the safe number to plan on.
+
+**What was not verified, and cannot be here.** The same thing Task 18 says:
+nothing in this environment has a watsonx Orchestrate account, so the fix for
+a symptom Orchestrate produced is checked against the service and against the
+suite, and the agent's behaviour under rule 5 is checked by asking it. Step 5
+of the setup list in `docs/orchestrate_agent.md` is how.
+
 ### Task 18: the Orchestrate tool contract, the agent instructions, and the dry run (done, the spec is Bob's)
 
 **The API is deployed and answering.** <https://prelude-api.onrender.com>
