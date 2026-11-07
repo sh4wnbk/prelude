@@ -122,7 +122,7 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-1494 passed
+18 failed, 1506 passed
 ```
 
 The total covers far more than this module now. Phase 4 added the narration
@@ -130,7 +130,11 @@ provider, the prompt, the grounding check and the evaluation, each with its
 own tests; run `pytest tests/test_event_feed.py` to see this module's tests
 alone.
 
-**The suite is green, so any failure means something is actually wrong.**
+**Every failure in that run is Task 14's**, which is the last task in this
+file and is waiting to be built: its acceptance tests were written first and
+fail until it exists. They are in `tests/test_narrator_picker.py`, with one in
+`tests/test_narrators.py` beside them. **A failure anywhere else means
+something is actually wrong.**
 
 The suite still guards the import, and three messages mean three different
 things if that changes. In `tests/test_event_feed.py`, every test that builds
@@ -1262,7 +1266,9 @@ forgotten:
 
 **Status: built, in `35c91b6`.** Checked in Chromium: The Buddy marked for an
 England fan, The Storyteller for a neutral listener, the note on tapping The
-Caller, and Change as an outline.
+Caller, and Change as an outline. **Task 14 makes choosing a narrator work**,
+so the stop condition below that forbids it is that task's own and not the
+current rule.
 
 Show the three narrators on Profile, mark the one the fan's answer picked,
 say "coming soon" when another is tapped, rename the partisan one to "The
@@ -1419,3 +1425,220 @@ forgotten:
 > `.png`, scrub it against the list in `bob_sessions/README.md` before
 > committing, and check the diff rather than the commit.
 
+## Task 14: the narrator picker
+
+Let a fan choose their narrator on Profile, and put the recording they hear
+behind one lookup. The side rule stays the default until they choose. That is
+the whole task.
+
+### Why it exists
+
+Today the side decides. `default_persona` in `app/orchestrator.py` returns the
+Buddy for a fan and the Storyteller for a listener with no side,
+`scripts/write_headers.py` writes that into `hero.voice_for` as one key per
+possible answer, and the browser looks its own answer up. Profile lists the
+three narrators and says "coming soon" when one is tapped, which is what Task
+12 built on purpose: there was one recording per answer, and recording every
+narrator in every situation would have spent about half a month's Text to
+Speech characters.
+
+The six recordings exist now, one per `hero.voice_for` key, and between them
+they are two narrators rather than three. Shawn's decision on 2026-11-07 is
+that a fan may choose between those two, and that nothing changes for a fan who
+does not choose: the side rule is still the default. The Caller has no
+recording in either hero, so it stays coming soon. The Buddy needs a side to be
+partisan about, so with no answer to "Who are you with" it waits for one.
+
+**One lookup, because three answers have to agree.** The words the moment card
+shows, the recording its player plays and the card Profile marks are three
+answers to the same question. Task 15 put the first two on one key so that the
+words under the grounding label are the words the voice reads. All three read
+`hero.voice_for` separately today. A choice honoured in one of them and not in
+another is one narrator's words under another narrator's voice, and that is the
+one way this task could damage something that already works. So the lookup
+becomes a function, and it is the only reader of `hero.voice_for`.
+
+### What you build
+
+1. **`app/web/match-content.js`, the choice.** Beside `nameFor` and `setName`,
+   add `narratorFor()` and `setNarrator(id)`, holding the id under
+   `"prelude.narrator"` in `window.sessionStorage` exactly as the name is held:
+   one value for the session rather than one per match, every read and write
+   inside a `try`, and the key removed when the id is empty. Publish both on
+   `window.Prelude`.
+
+   There is no list of ids in the browser. The ids are the persona ids, they
+   arrive in `app/web/narrators.json`, and an id with no recording falls
+   through the lookup to the default, so a value from a drifted list costs the
+   choice and nothing else.
+
+2. **`app/web/match-content.js`, `slotFor(match, narratorId, side)`.** The one
+   lookup, and the only reader of `hero.voice_for` when you are done.
+   `narratorId` left out means the stored choice, and `side` left out means the
+   stored answer for this match. Publish it on `window.Prelude` as `slotFor`,
+   which is how the other files reach it; they pass the match alone.
+
+   ```
+   var voiceFor = match && match.hero && match.hero.voice_for;
+   if (!voiceFor) return null;
+   var answer = side || listenerFor(match.match_id) || "neutral";
+   var fallback = voiceFor[answer] || voiceFor.neutral || null;
+   var chosen = narratorId === undefined ? narratorFor() : narratorId;
+   if (!chosen) return fallback;
+   var keys = [voiceFor[answer], voiceFor.neutral];
+   for (var i = 0; i < keys.length; i++) {
+     if (keys[i] && keys[i].indexOf(chosen + "_") === 0) return keys[i];
+   }
+   return fallback;
+   ```
+
+   A slot belongs to the narrator whose id starts it, because that is how
+   `scripts/write_headers.py` builds the keys: `default_persona` and then the
+   situation, joined by an underscore. So a chosen narrator gets its own
+   recording for this answer when there is one, its neutral one when there is
+   not, and the default when it has none at all. What that comes to, for a hero
+   carrying `{"team_a": "buddy_scored", "team_b": "buddy_conceded", "neutral": "storyteller_neutral"}`,
+   which is what both heroes carry:
+
+   | Chosen | Listener with a side | Listener with no side |
+   | ------ | -------------------- | --------------------- |
+   | nothing | the side's key, which is today's behaviour | `storyteller_neutral` |
+   | the Storyteller | `storyteller_neutral` | `storyteller_neutral` |
+   | the Buddy | the side's key | the default, `storyteller_neutral` |
+   | the Caller | the default | the default |
+
+3. **`app/web/match-content.js`, the two readers in this file.** In
+   `renderNarration`, replace `narrationKey(match)` with `slotFor(match)` and
+   delete `narrationKey`. Keep the `slots.storyteller_neutral` fallback and the
+   quiet `catch`: a key with no frozen narration still leaves the inline copy
+   rather than a blank under a label it did not earn.
+
+   In `renderNarrators`, the current narrator is the one `slotFor(match)` names,
+   which is the part of that key before the first `_`. Its card keeps the
+   `aria-current="true"` and the amber classes it has now, so the marked card
+   is the narrator the fan will actually hear. Then, for each narrator in the
+   list:
+
+   - `slotFor(match, narrator.id)` is this narrator's own key when it starts
+     with `narrator.id + "_"`, and the default otherwise. When it is this
+     narrator's own key the card can be chosen: on a tap, call
+     `setNarrator(narrator.id)` and build the list again, so the marked card
+     moves without a reload. A tap on the card that is already current does
+     nothing, as it does now.
+   - When it is not, the card takes `aria-disabled="true"` and a tap sets the
+     note rather than the choice. Which note it is, is whether any answer would
+     give this narrator its own key: call `slotFor(match, narrator.id, answer)`
+     for `"team_a"`, `"team_b"` and `"neutral"`, and if one of them starts with
+     `narrator.id + "_"` the note is `narrator.name` followed by
+     ` needs a team. Choose a team under 'Who are you with.'`, and if none does
+     it is `narrator.name` followed by ` is coming soon.`. Nothing follows that
+     period: the sentence about Prelude picking the narrator is what this task
+     retires.
+
+   Un-hide the note as it is un-hidden now. Build the cards with
+   `createElement` and set every name, line and note with `textContent`.
+
+4. **`app/web/narration-player.js`.** Replace the lines that read
+   `match.hero.voice_for` and `Prelude.listenerFor` with
+   `var key = Prelude.slotFor(match);`, and leave the rest alone. A key with no
+   file still leaves the play button disabled, and the player still fetches
+   nothing, parses nothing and sets no `innerHTML`.
+
+### The tests to pass
+
+`tests/test_narrator_picker.py`, 30 tests. Seventeen of them fail until this is
+built. The thirteen that pass are what the picker has to leave alone: the keys
+in `app/web/matches.json`, the six recordings, the list in
+`app/web/narrators.json`, the side rule in `app/orchestrator.py`, and the
+Caller having no recording for a fan to choose.
+
+One test in `tests/test_narrators.py` fails with them, and it is the same
+change: the note is a tail joined to the name, and the sentence after the
+period is gone.
+
+Run those two first:
+
+```
+.\.venv-prelude\Scripts\python.exe -m pytest tests/test_narrator_picker.py tests/test_narrators.py
+```
+
+Then the full suite, target 0 failed:
+
+```
+.\.venv-prelude\Scripts\python.exe -m pytest
+```
+
+Then the five gates, each at exit 0:
+
+```
+.\.venv-prelude\Scripts\python.exe -I scripts\data_check.py
+.\.venv-prelude\Scripts\python.exe -I scripts\scan_copy.py
+.\.venv-prelude\Scripts\python.exe -I scripts\check_match_copy.py
+.\.venv-prelude\Scripts\python.exe -I scripts\check_docs.py
+.\.venv-prelude\Scripts\python.exe -I scripts\check_vocabulary.py
+```
+
+**`check_docs.py` fails once the suite goes green, and that one is expected.**
+The block near the top of this file quotes what `pytest -q` prints, and while
+this task is waiting it quotes a failing run. When you have built it the suite
+prints a passing line instead, and that quote and this task's status line are
+the follow-up's. Report any other gate failure.
+
+### What the lookup is checked against
+
+**The table in step 2 is checked in a browser.** The suite has no JavaScript
+runtime, so `tests/test_narrator_picker.py` reads the files and holds the
+contract: where the lookup lives, who calls it, what is stored, and the copy.
+Its module docstring says so and carries the same table. Task 11 is why the
+browser run is not optional: a player that read `whenMatches`'s document as if
+it were the list of matches passed every file-reading test and played nothing.
+
+Serve `app/web/` over HTTP, because `matches.json`, `narrations.json` and
+`narrators.json` are all fetched and a screen opened off the filesystem keeps
+its inline copy instead:
+
+```
+.\.venv-prelude\Scripts\python.exe -m http.server 8000 --directory app\web
+```
+
+Answer Argentina on Live, then on Profile pick the Storyteller: the moment
+card's words and the file its player loads are both the Storyteller's. Pick the
+Buddy: both are `buddy_scored`. Answer "Just here for the game" instead: the
+Buddy's card is disabled with its note, and the Storyteller is marked.
+
+### Stop conditions
+
+**Change four files at most**: `app/web/match-content.js`,
+`app/web/narration-player.js`, `app/web/prelude_07_profile.html` and the inline
+script in `app/web/prelude_03_moment_card.html`. The last two most likely need
+nothing at all: the cards and the note are built into fields the Profile markup
+already carries, and the moment card's inline script never reads a narrator.
+
+**Do not change `app/orchestrator.py`.** The side rule is still the side rule,
+and it still writes the keys the choice selects among.
+
+**Do not change `app/web/matches.json`, `app/web/narrators.json` or anything in
+`app/web/assets/audio/`**, and do not run `scripts/write_headers.py` or
+`scripts/write_narrators.py`. Nothing about the recordings changes in this
+task.
+
+**No new recording, no Text to Speech call and no watsonx call.** The Caller
+stays coming soon because there is no Caller recording, and making one is a
+spend decision that is Shawn's.
+
+**Do not change a test and do not change a doc.** If a test fails for a reason
+this brief does not describe, stop and report it rather than editing what it
+asserts.
+
+**A stored narrator is a preference on the phone and not a fourth input.** The
+three real inputs in `CLAUDE.md` are unchanged: play data, GPS presence, audio
+narration.
+
+### When you are done
+
+**Print this reminder at the end of the session**, so the export is not
+forgotten:
+
+> Export this session to `bob_sessions/phase5_task14_narrator_picker.md` and
+> `.png`, scrub it against the list in `bob_sessions/README.md` before
+> committing, and check the diff rather than the commit.

@@ -175,8 +175,10 @@ generating anything:
 
 ## The test harness
 
-The suite is 1494 tests in thirty one files, and all 1494 pass, so any failure
-means something is wrong. It is run from the repo root:
+The suite is 1524 tests in thirty two files, and 1506 of them pass. The
+eighteen that fail are Task 14's acceptance tests in the table below, written
+before the narrator picker exists, so any other failure means something is
+wrong. It is run from the repo root:
 
 ```
 .\.venv-prelude\Scripts\python.exe -m pytest
@@ -199,6 +201,7 @@ No path setting is needed: `pyproject.toml` sets `pythonpath = ["."]` and
 | `tests/test_narration_provider.py` | the model config and both backends |
 | `tests/test_credentials.py` | where the credentials file lives, and what is refused |
 | `tests/test_buddy_rename.py` | the partisan persona's id is `buddy` in every live file, with the past left as it was, built by Bob in Task 13 |
+| `tests/test_narrator_picker.py` | the narrator picker: one lookup for the recording a fan hears, where the choice is stored, and what Profile shows. Acceptance tests for Task 14, written before it exists, so seventeen of the thirty fail |
 | `tests/test_narrators.py` | "Your narrator" on Profile: the Buddy rename, the list written from the personas, the current narrator marked, the coming-soon note, and Change as an outline, built by Bob in Task 12 |
 | `tests/test_narration_player.py` | playback on the moment card: which recording each listener hears, the audio map, the player's wiring, and that it sends nothing, built by Bob in Task 11 |
 | `tests/test_narration_eval.py` | the key beats, the coverage measure, the token recorder and the voices a run is split into |
