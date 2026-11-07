@@ -15,7 +15,7 @@ So the live file is **outside the working directory**:
 | Override | whatever `PRELUDE_ENV_FILE` points at |
 
 `.env.example` stays in the repo. It lists the variable names and holds no
-values, which is what makes it safe to read and safe to commit.
+secrets, which is what makes it safe to read and safe to commit.
 
 **A path inside the repo is refused.** Pointing `PRELUDE_ENV_FILE` back into
 the working directory would undo the only thing this module is for, so

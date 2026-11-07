@@ -853,11 +853,19 @@ holds the names to "The" and one common noun, and
 `tests/test_personas.py::TestProfileCopy::test_no_verdict_nickname_or_epithet`
 scans the Profile lines for the words `CLAUDE.md` keeps out of app output.
 
-**Shown to fans as "The Buddy" since 2026-10-30.** "Mate" read British in a
-North American market, so `app/personas.py` renamed the display name and kept
-the id `mate`, which is why the rest of this file and the code still say Mate.
+**It is the Buddy, in the app and in the code.** "Mate" read British in a
+North American market, so on 2026-10-30 `app/personas.py` renamed the display
+name to "The Buddy", and Bob's Task 13 renamed the id to `buddy` with it, in
+`4e61a10`. No live file says Mate, and
+`tests/test_buddy_rename.py::test_no_live_file_says_mate` is what holds that.
 
-**The Mate is the only one that needs a side.** It is the one voice that makes
+**The run records below keep the old name**, because the past is not renamed.
+A run made while the persona was the Mate is reported as it happened, and the
+sample files it wrote are still called `1986_mate_scored.wav`. Everything in
+this file that describes how the app works now says the Buddy, which is what
+the code says.
+
+**The Buddy is the only one that needs a side.** It is the one voice that makes
 no sense without an allegiance: told to a neutral listener it would be saying
 they support a team they did not choose. `fans_only` is true for it and false
 for the other two, and `available` in `app/personas.py` is what leaves it out
@@ -906,8 +914,8 @@ now.
 | no persona | refused | refused |
 | the Caller | refused | refused |
 | the Storyteller | refused | refused |
-| the Mate, with a side | admitted over that side's facts | refused |
-| the Mate, with no side | the check itself is refused | refused |
+| the Buddy, with a side | admitted over that side's facts | refused |
+| the Buddy, with no side | the check itself is refused | refused |
 
 **A partisan sentence has to cite the listener's side.** One cited fact
 recorded against that side is enough, which is the same shape as a name claim:
@@ -928,13 +936,13 @@ and
 Nothing in the words tells the two apart. What decides it is the team on the
 record the sentence cited.
 
-**"You" is refused in every voice, the Mate included.** The narration is not
+**"You" is refused in every voice, the Buddy included.** The narration is not
 addressed to the fan in any register, which is the ending rule below: the
 header goes before the narration and nothing goes after it.
 `tests/test_grounding.py::TestThePartisanVoice::test_you_is_refused_from_the_buddy_too`
 holds the partisan voice to it.
 
-**A Mate narration from a neutral listener is refused rather than softened.**
+**A Buddy narration from a neutral listener is refused rather than softened.**
 `check` raises `NoSideForAPartisanVoice`. Checking it as though nobody were
 partisan would admit "we" with no side behind it, and picking a side would
 tell a listener they support a team they did not choose.
@@ -1152,8 +1160,8 @@ are not a plan; they are what the three voices honour.
 | The Storyteller | scored | 0 | | not available | not available |
 | The Storyteller | conceded | 0 | | not available | not available |
 | The Storyteller | neutral | 0 | | not available | not available |
-| The Mate | scored | +10 | +10 | not available | not available |
-| The Mate | conceded | -10 | 0 | not available | not available |
+| The Buddy | scored | +10 | +10 | not available | not available |
+| The Buddy | conceded | -10 | 0 | not available | not available |
 
 An empty pitch cell is `None`, the parameter not sent at all. `0` is the
 parameter sent at the voice's own value, which the re-recorded golden shows
@@ -1176,7 +1184,7 @@ that wants collapsing: the Storyteller sounding the same whoever scored is a
 decision about this persona, and a row per situation is what lets that change
 for one situation later without the shape changing.
 
-**The Mate lifts for your goal rather than dropping for theirs.** +10 rate and
+**The Buddy lifts for your goal rather than dropping for theirs.** +10 rate and
 +10 pitch when your side scored, -10 rate and pitch back to 0 when the other
 side did. It goes up rather than down because down is not available: a
 `pitch_percentage` below zero is ignored by the service, so 0 is the floor and
@@ -1187,8 +1195,8 @@ probe found a requested 600 ms arriving as 1.36s on the Caller's voice, so a
 request lands at roughly twice what it asks for: 200 and 400 are about 450 ms
 between sentences and 900 ms before the goal.
 
-**Eight rows and not nine.** The Mate is `fans_only`, so there is no neutral
-Mate row to write: a partisan voice told to a listener with no side would be
+**Eight rows and not nine.** The Buddy is `fans_only`, so there is no neutral
+Buddy row to write: a partisan voice told to a listener with no side would be
 telling them they support a team they did not choose. Asking for that row
 raises, and the message says why rather than returning a default delivery that
 would sound like nothing was chosen
@@ -1196,7 +1204,7 @@ would sound like nothing was chosen
 
 **The two break columns are the Caller's alone**, because `<break>` moves its
 voice and neither of the other two. A pause written on the Storyteller or the
-Mate is refused rather than sent and ignored
+Buddy is refused rather than sent and ignored
 (`tests/test_delivery.py::TestOnlyTheCallerMayPause`). That rule reads
 `breaks_work` on the persona, which is where the measurement lives, beside the
 voice it is about.
@@ -1222,7 +1230,7 @@ sending it at its neutral value. They are different requests, so they are
 different values in the table
 (`tests/test_delivery.py::TestTheBounds::test_none_is_not_zero`).
 
-### The Mate is never cheerful when the other side scored
+### The Buddy is never cheerful when the other side scored
 
 This is the one rule in the table that is about taste rather than about what
 the service honours, and it is the one worth a test of its own. A voice that
@@ -1230,7 +1238,7 @@ brightens over a goal against your team is a voice that was not listening with
 you.
 
 Brighter and quicker is what cheerful is made of in the only two controls
-there are, so the rule is written as a comparison between the Mate's own two
+there are, so the rule is written as a comparison between the Buddy's own two
 rows rather than as a fixed number: the conceded row may not carry more pitch
 than the scored row, and may not carry more rate either
 (`tests/test_delivery.py::TestTheBuddyIsNeverCheerfulWhenTheOtherSideScored`).
@@ -1239,7 +1247,7 @@ A comparison rather than a number is the only thing that can be stated while
 the table is empty, and it is also the right shape once it is full: it survives
 Shawn filling both rows in by ear in one sitting, whatever numbers he picks.
 
-The rule is "never brighter", not "always duller". A Mate that sounds the same
+The rule is "never brighter", not "always duller". A Buddy that sounds the same
 either way is not cheerful about a goal against the listener's team; it is
 even, and that is allowed
 (`tests/test_delivery.py::TestTheBuddyIsNeverCheerfulWhenTheOtherSideScored::test_the_same_delivery_in_both_is_allowed`).

@@ -72,18 +72,29 @@ script to run. So the first command in a new clone is
 
 ## Entry points
 
-Fourteen scripts, each runnable on its own. Two are imported, both for the
-same reason: `scripts/tts_samples.py` takes the hero header from
+Twenty-three scripts, each runnable on its own, and the table below names
+every one of them.
+
+Several are imported as well as run, always for the same reason: the
+alternative was a second place for the same construction to be wrong.
+`scripts/tts_hero.py` and `scripts/tts_samples.py` take the hero header from
 `scripts/write_headers.py`, which already builds the moment and calls the
-orchestrator for it, and `tests/test_vocabulary.py` takes the collector from
-`scripts/check_vocabulary.py`. In both cases the alternative was a second
-place for the same construction to be wrong.
+orchestrator for it; `scripts/hero_candidates.py` is where the two hero goals
+and the moment behind each are named, so the four narration scripts read them
+from there; the acceptance rules a candidate meets live in
+`scripts/narrator_candidates.py` and are read from there by the scripts that
+re-check the six and by the freeze; and `tests/test_vocabulary.py` takes the
+collector from
+`scripts/check_vocabulary.py`.
 
 | Script | What it does | What it writes | What it reaches |
 | ------ | ------------ | -------------- | --------------- |
 | `scripts/fetch_statsbomb.py` | downloads the open data this project uses | `data/raw/` | GitHub over https |
 | `scripts/data_check.py` | gate: the 1986 goals, the shot counts per team and the 13-of-15 claim | `docs/data_check.md` | nothing |
 | `scripts/make_tickets.py` | one demo ticket QR code per match | `app/web/assets/tickets/` | nothing |
+| `scripts/write_headers.py` | the orchestrator's opening and `hero.voice_for` per match, with `--check` as the gate on drift | `app/web/matches.json` | nothing |
+| `scripts/write_narrators.py` | the three narrators as the browser reads them, from `app/personas.py` | `app/web/narrators.json` | nothing |
+| `scripts/story_beats_report.py` | the beat list for both hero goals, beside the records it was curated from | nothing | nothing |
 | `scripts/scan_copy.py` | gate: banned copy, and the grounding label's placement | nothing | nothing |
 | `scripts/check_match_copy.py` | gate: every factual value in `app/web/matches.json` against `data/raw/` | nothing | nothing |
 | `scripts/check_docs.py` | gate: the claims these docs make against the code | nothing | runs `pytest` |
@@ -91,11 +102,15 @@ place for the same construction to be wrong.
 | `scripts/narrate_once.py` | narrates one goal and prints every attempt | nothing | a local Ollama server |
 | `scripts/narration_eval.py` | narrates goals several times in one or more personas and measures the result | `docs/narration_eval.md`, and records with `--json` | a local Ollama server |
 | `scripts/narration_compare.py` | gate on spending: the paid comparison of the two watsonx candidates, with `--plan` printing its cost and making no call | records with `--json` | watsonx.ai, and IBM Cloud IAM |
+| `scripts/hero_candidates.py` | several grounded candidate narrations per hero goal, for Shawn to choose from, and nothing frozen | a review file and its JSON, outside the repo | watsonx.ai, and IBM Cloud IAM |
+| `scripts/narrator_candidates.py` | goal-call candidates, three per recorded slot, held to the places rule and the opener rule as well as the check | a review file and its JSON, outside the repo | watsonx.ai, and IBM Cloud IAM |
 | `scripts/tts_probe.py` | measures which delivery controls change the audio on each candidate voice | WAV files outside the repo, and readings with `--json` | Watson Text to Speech |
 | `scripts/record_tts_golden.py` | records one real speech exchange for the suite to replay | `tests/golden/tts_synthesize.json` | Watson Text to Speech |
 | `scripts/tts_samples.py` | both hero goals in every voice, for Shawn to listen to | WAV files outside the repo | Watson Text to Speech |
 | `scripts/tts_hero.py` | the recordings the site serves: each hero goal in the voice each listener is sent to | MP3 files under `app/web/assets/`, and `hero.audio` in `app/web/matches.json` | Watson Text to Speech |
 | `scripts/freeze_narrations.py` | narrates both hero goals with the active model and freezes the ones the grounding check passes | `app/web/narrations.json` | watsonx.ai, and IBM Cloud IAM |
+| `scripts/authored_narrations.py` | the six the team wrote, re-checked against `data/raw/` by the check, the places rule and the opener rule | `docs/narration_runs/authored_2026-11-07.md` and `.json` | nothing |
+| `scripts/fallback_narrations.py` | the six fallback narrations kept in the repo, re-checked the same way | `docs/narration_runs/fallback_2026-11-05.md` and `.json` | nothing |
 | `scripts/check_vocabulary.py` | gate: every word the app can speak, against the CMU dictionary | nothing | nothing |
 
 The five gates are `scripts/data_check.py`, `scripts/scan_copy.py`,
@@ -107,10 +122,11 @@ exception: it writes its report either way and exits non-zero only when the raw
 data is missing, so a refuted claim is a sentence in `docs/data_check.md`
 rather than a failing run.
 
-**Nine scripts reach a paid or local service, and all nine are run by
+**Eleven scripts reach a paid or local service, and all eleven are run by
 hand.** They are `scripts/record_narration_golden.py`,
 `scripts/narrate_once.py`, `scripts/narration_eval.py`,
-`scripts/narration_compare.py`, `scripts/freeze_narrations.py`,
+`scripts/narration_compare.py`, `scripts/hero_candidates.py`,
+`scripts/narrator_candidates.py`, `scripts/freeze_narrations.py`,
 `scripts/tts_probe.py`, `scripts/record_tts_golden.py`,
 `scripts/tts_samples.py` and `scripts/tts_hero.py`, none of which is part of
 the suite, so no test can reach a service through them. The guard that makes that more than a convention
@@ -293,14 +309,32 @@ because a skip would have let the suite go green with nothing built.
   runs no tests and no gates. The five gates are run by hand before a commit.
 - **No gate runs the other gates.** `scripts/check_docs.py` runs `pytest`, and
   nothing runs `scripts/scan_copy.py` or `scripts/check_match_copy.py` for you.
-- **Nothing measures the narration pass rate.** `app/narration.py` exposes
-  `pass_rate` and `tests/test_narration.py::TestPassRate::test_it_counts_first_attempts_only`
-  holds its definition, and no script runs it over the nine goals.
-  `scripts/narrate_once.py` does one goal.
-- **No screen plays audio.** `app/tts.py` turns a header and a narration into
-  WAV and is callable from Python, and `scripts/tts_samples.py` writes files
-  outside the repo for Shawn to listen to. Nothing in `app/web/` reaches
-  either, and no narration is spoken anywhere a fan could hear it.
-- **No screen reads narration.** The screens take their content from
-  `app/web/matches.json`, which `scripts/check_match_copy.py` checks against the
-  data; narration reaches no screen.
+- **No test measures the narration pass rate; a script does.**
+  `app/narration.py` exposes `pass_rate` and
+  `tests/test_narration.py::TestPassRate::test_it_counts_first_attempts_only`
+  holds its definition, and nothing in the suite computes it over real
+  narrations, because `tests/conftest.py` blocks the network and a pass rate
+  needs a model. `scripts/narration_eval.py` is what measures it, with its own
+  `pass_rate` over the runs it records: `docs/narration_eval.md` reports 22 of
+  27 first attempts grounded on the development model over nine goals, three
+  runs each, and the two watsonx candidates arm by arm.
+  `scripts/narrate_once.py` still does one goal and prints every attempt.
+- **No screen calls `app/tts.py`; the screens play files.** The module turns
+  a header and a narration into audio and is callable from Python, and
+  `scripts/tts_hero.py` is what called it: the six MP3s it wrote are committed
+  under `app/web/assets/audio/` and named in `hero.audio` in
+  `app/web/matches.json`. `app/web/narration-player.js` on the moment card
+  plays the one for the listener's own key
+  (`tests/test_narration_player.py::TestTheAudioMap`,
+  `tests/test_narration_player.py::TestThePlayer`). `scripts/tts_samples.py`
+  still writes WAV files outside the repo for Shawn to listen to, and nothing
+  in `app/web/` reaches the service.
+- **The moment card reads narration, by the same key as the recording.** The
+  text comes from `app/web/narrations.json`, which holds one frozen narration
+  per `hero.voice_for` key, and the card and the player ask one lookup in
+  `app/web/match-content.js` which key that is, so the words under the
+  grounding label are the words the voice reads
+  (`tests/test_narrator_picker.py::TestOneLookup`). The factual values on the
+  screens still come from `app/web/matches.json`, which
+  `scripts/check_match_copy.py` checks against `data/raw/`, and it holds the
+  markup's inline copy to the neutral narration as well.

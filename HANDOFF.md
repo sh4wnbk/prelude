@@ -4242,23 +4242,21 @@ The rules Shawn settled for them, before any of it is built:
 
 ## Next first action (Phase 6: hosting and the Orchestrate spec)
 
-**Phase 5 is finished and the documents agree with the code again.** The six
+**Phase 5 is finished and the documents agree with the code.** The six
 narrations are written, verified, frozen and recorded, the moment card shows
 the words and plays the recording, and a fan chooses their narrator on
 Profile. The authorship beside each of the six says what `README.md` says:
 drafted with an AI assistant, edited by Shawn, verified by the grounding
 check. `docs/IBM_STACK.md`, `bob_sessions/README.md`, `docs/HARNESS.md`,
-`.env.example` and the `scripts/tts_hero.py` docstring were read against the
-code and corrected, so nothing on the list below is waiting on a doc fix. The
-suite is at 1524 passed and the five gates are at exit 0.
+`docs/VOICE.md`, `CLAUDE.md`, `app/credentials.py`, `.env.example` and the
+`scripts/tts_hero.py` docstring were each read against the code and corrected.
+The register of stale passages is empty; what is left is three sentences
+parked under "For Phase 7's doc pass" below. The suite is at 1524 passed and
+the five gates are at exit 0.
 
-**Nothing is in front of the endpoint.** The hosted narration backend is the
-first thing to build, and the three settled points under it have not
-changed.
-
-**The first action is the hosted narration endpoint**, because the OpenAPI
-spec describes an endpoint and the endpoint has to exist before a spec can be
-checked against it. The Plan's Phase 6 above is the order: a small hosted
+**The first action is the hosted narration endpoint**, with nothing in front
+of it, because the OpenAPI spec describes an endpoint and the endpoint has to
+exist before a spec can be checked against it. The Plan's Phase 6 above is the order: a small hosted
 backend holding the IBM keys with rate limiting (Claude Code), then the
 OpenAPI tool spec for that endpoint (Bob, in a brief written the way the
 others were, with its acceptance tests first), then the agent and the tool
@@ -4325,18 +4323,49 @@ It is a letter on either side that makes it another word now, which leaves
 names, and they are renamed with the citation of one of them in
 `docs/VOICE.md`.
 
-**What is still stale, and is not fixed.** Three bullets under "What the
-harness does not do" in `docs/HARNESS.md` describe the app before Phase 5, its
-entry-point count is behind, and one sentence in `docs/VOICE.md` keeps the old
-persona name alive in that whole file:
+**The register is clear.** `docs/HARNESS.md` and `docs/VOICE.md` were the
+last two documents describing an app that had moved on, and both are corrected:
 
-| Where | What is stale |
-| ----- | ------------- |
-| `docs/HARNESS.md`, "No screen plays audio" | the moment card plays the six MP3s, and `app/tts.py` is no longer WAV only |
-| `docs/HARNESS.md`, "No screen reads narration" | the moment card reads `app/web/narrations.json` and shows the slot the listener is sent to |
-| `docs/HARNESS.md`, "Nothing measures the narration pass rate" | `scripts/narration_eval.py` has its own `pass_rate` and reports the first-attempt rate over nine goals in `docs/narration_eval.md` |
-| `docs/HARNESS.md`, "Fourteen scripts" | there are 23 files in `scripts/`, and the table below that line names 16 of them |
-| `docs/VOICE.md`, "the rest of this file and the code still say Mate" | the code does not: Task 13 renamed the id. That sentence is what licenses the old name elsewhere in the file, where 29 lines still spell it, so it is the one to settle first |
+- **`docs/HARNESS.md`, what the screens do.** The bullet that said no screen
+  plays audio now says that no screen calls `app/tts.py` and that the moment
+  card plays the committed MP3 for the listener's own key out of `hero.audio`.
+  The bullet that said no screen reads narration now says the moment card
+  reads `app/web/narrations.json` by that same key, through the one lookup in
+  `app/web/match-content.js`, so the words under the label are the words the
+  voice reads.
+- **`docs/HARNESS.md`, the pass rate.** No test measures it, because
+  `tests/conftest.py` blocks the network and a pass rate needs a model;
+  `scripts/narration_eval.py` measures it with its own `pass_rate`, and the
+  figure is the one in `docs/narration_eval.md`: 22 of 27 first attempts
+  grounded on the development model over nine goals, three runs each.
+- **`docs/HARNESS.md`, the scripts.** Twenty-three, read off `scripts/`, and
+  the table names every one of them: the seven it never listed are
+  `write_headers.py`, `write_narrators.py`, `story_beats_report.py`,
+  `hero_candidates.py`, `narrator_candidates.py`, `authored_narrations.py` and
+  `fallback_narrations.py`. Two of those reach watsonx, so eleven scripts reach
+  a paid or local service rather than nine, and the claim that two scripts are
+  imported is replaced by which ones are and why.
+- **`docs/VOICE.md`, the persona name.** The sentence that licensed the old
+  name is settled first: the display name and the id are both the Buddy, and
+  `tests/test_buddy_rename.py::test_no_live_file_says_mate` holds that no live
+  file says otherwise. Fourteen lines of present-tense design text say the
+  Buddy now, and the run records keep Mate, which the new paragraph beside the
+  rename states as the rule rather than leaving to be inferred.
+- **`CLAUDE.md` and `app/credentials.py`** say `.env.example` lists the
+  variable names and holds no secrets, which is what is true of it: the two
+  values in it are a public endpoint URL and a voice name.
+
+### For Phase 7's doc pass
+
+Found while clearing the register and deliberately not fixed, because the
+sweep stops here. Each one is a sentence or two, and none of them is wrong
+about anything a fan or a judge touches:
+
+| Where | What to settle |
+| ----- | -------------- |
+| `docs/VOICE.md`, "The four prosody fields are empty and marked unconfirmed" | `Persona` no longer carries those four fields: the delivery moved to `app/delivery.py`, eight rows, and all three personas carry `prosody_confirmed` true |
+| `docs/VOICE.md`, "the only thing that can be stated while the table is empty" | the delivery table is full, so the sentence should say that the comparison is the right shape now that it is, not that it is all that can be said |
+| "holds no values" in four more places | `.env.example` line 1, `docs/bob_brief.md`, `docs/IBM_STACK.md` and `README.md` still say it; the two Shawn approved are changed and these four are not |
 
 ### Still open from Phase 5: Shawn listens to the six
 

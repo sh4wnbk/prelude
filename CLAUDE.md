@@ -49,7 +49,7 @@ command that searches everything, so the file is out of reach instead.
 
 Do not open, read, print, echo, copy, edit, or commit that file. Not to check a
 key's format, not to debug, not to confirm a variable exists. `.env.example` in
-the repo lists the variable names and holds no values; use that. If a credential
+the repo lists the variable names and holds no secrets; use that. If a credential
 appears to be missing or wrong, report the symptom and let the user inspect the
 file themselves. `app/credentials.py` can report which variable names a file
 defines without reading a single value.
