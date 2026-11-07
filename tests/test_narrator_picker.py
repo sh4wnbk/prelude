@@ -25,7 +25,15 @@ three answers would drift apart.
 | the Buddy | the side's key | the default, `storyteller_neutral` |
 | the Caller | the default | the default |
 
-**That table is checked in a browser and not here.** The suite has no
+**The two notes are composed, so a fan reads the name and this suite reads
+the join.** A narrator with no recording in either hero is coming soon, and a
+narrator that is recorded but not for this listener's answer needs a team. The
+names come from `narrators.json`, which is where Task 12 put them, so what is
+checked here is the tail and the `.name +` in front of it; the sentences a fan
+reads are "The Caller is coming soon." and "The Buddy needs a team. Choose a
+team under 'Who are you with.'".
+
+**That table and those two sentences are checked in a browser and not here.** The suite has no
 JavaScript runtime, so these tests read the files and hold the contract: where
 the one lookup lives, who calls it, what is stored, and the copy a fan reads.
 The table itself is run in a headless browser and recorded in the brief and in
@@ -63,11 +71,16 @@ NARRATORS = WEB / "narrators.json"
 NARRATOR_KEY = '"prelude.narrator"'
 
 #: The note under a narrator that is recorded but cannot be chosen yet, because
-#: the fan has not said who they are with. Shawn's copy, 2026-11-07.
-BUDDY_NOTE = "The Buddy needs a team. Choose a team under 'Who are you with.'"
+#: the fan has not said who they are with. Shawn's copy, 2026-11-07. A fan
+#: reads "The Buddy needs a team. Choose a team under 'Who are you with.'": the
+#: name comes from `narrators.json`, as Task 12's note did, so the copy here is
+#: the tail and the join.
+NEEDS_A_TEAM = '''.name + " needs a team. Choose a team under 'Who are you with.'"'''
 
-#: The note under a narrator with no recordings at all.
-CALLER_NOTE = "The Caller is coming soon."
+#: The note under a narrator with no recordings at all. A fan reads "The Caller
+#: is coming soon.". The closing quote is part of this: Task 12's note carried
+#: a second sentence after the period, and that sentence is what Task 14 drops.
+COMING_SOON = '.name + " is coming soon."'
 
 #: What Task 12 showed when a narrator was tapped. Choosing one works now, so
 #: the half of that sentence about Prelude picking goes.
@@ -236,11 +249,11 @@ class TestTheProfileCards:
     def test_a_card_that_cannot_be_chosen_says_so(self):
         assert '"aria-disabled", "true"' in self.cards()
 
-    def test_the_buddy_needs_a_team(self):
-        assert BUDDY_NOTE in self.cards()
+    def test_a_recorded_narrator_waiting_on_a_side_needs_a_team(self):
+        assert NEEDS_A_TEAM in self.cards()
 
-    def test_the_caller_is_coming_soon(self):
-        assert CALLER_NOTE in self.cards()
+    def test_a_narrator_with_no_recording_is_coming_soon(self):
+        assert COMING_SOON in self.cards()
 
     def test_the_old_message_is_gone(self):
         assert OLD_MESSAGE not in renderer()

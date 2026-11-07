@@ -46,11 +46,13 @@ EXPECTED = [
      "profile": "Warm, from the next seat."},
 ]
 
-#: The note under the one narrator that has no recordings. Until Task 14 this
-#: was a tail appended to any narrator the fan tapped and could not have,
-#: ending "For now, Prelude picks your narrator from who you're with.". A fan
-#: picks their own now, so the sentence that said otherwise is gone.
-CALLER_NOTE = "The Caller is coming soon."
+#: The note under the one narrator that has no recordings, joined to the name
+#: from `narrators.json` so a fan reads "The Caller is coming soon.". Until
+#: Task 14 this tail went on any narrator the fan tapped and could not have,
+#: and carried "For now, Prelude picks your narrator from who you're with."
+#: after it. A fan picks their own now, so that second sentence is gone, which
+#: is what the closing quote here holds.
+COMING_SOON_NOTE = '.name + " is coming soon."'
 
 
 def narrators():
@@ -123,7 +125,7 @@ class TestTheRenderer:
             or '"aria-current", "true"' in text
 
     def test_the_coming_soon_note(self):
-        assert CALLER_NOTE in RENDERER.read_text(encoding="utf-8")
+        assert COMING_SOON_NOTE in RENDERER.read_text(encoding="utf-8")
 
     def test_no_markup_from_data(self):
         """Names and descriptions are set as text."""
