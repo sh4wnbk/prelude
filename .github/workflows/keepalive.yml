@@ -1,0 +1,70 @@
+# Keeps the hosted API awake, so a judge never waits on a cold start.
+#
+# Render spins a free service down after fifteen minutes without traffic and
+# takes about a minute to wake. A ping every ten minutes keeps it inside that
+# window. The app itself is on GitHub Pages and is always on; this is only for
+# the API in app/api.py.
+#
+# Two repository variables, both set under Settings, Secrets and variables,
+# Actions, Variables. Neither is a secret: the URL is public and the switch is
+# a word.
+#
+#   PRELUDE_API_URL    the service's base URL, for example
+#                      https://prelude-api.onrender.com, with no trailing
+#                      slash. The URL is not written in this file, so a
+#                      redeploy under a new name is a dashboard change.
+#   PRELUDE_KEEPALIVE  "on" to let the schedule run. Anything else, including
+#                      unset, and the scheduled job is skipped before a runner
+#                      starts, so it costs no Actions minutes.
+#
+# Run it by hand (the Actions tab, then Run workflow) whatever the switch says.
+# That is how the checklist in HANDOFF.md checks a fresh deploy.
+#
+# What the schedule costs, by GitHub's billing rule that each job is rounded
+# up to the whole minute: six runs an hour is 144 a day, so 144 minutes a day
+# and 4,320 in a 30 day month (4,464 in a 31 day one). A private repository on
+# GitHub Free includes 2,000 Actions minutes a month, so the schedule runs
+# through the allowance in about a fortnight. Minutes are not metered on a
+# public repository. That is the decision the switch is for.
+
+name: Keep the API awake
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A ping is a ping. Two of them at once says nothing a single one does not.
+concurrency:
+  group: keepalive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    # A hand run always goes. The schedule waits for the switch.
+    if: github.event_name == 'workflow_dispatch' || vars.PRELUDE_KEEPALIVE == 'on'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping the health endpoint
+        env:
+          API_URL: ${{ vars.PRELUDE_API_URL }}
+        run: |
+          if [ -z "$API_URL" ]; then
+            echo "::notice::PRELUDE_API_URL is not set, so there is nothing to ping. Set it after the Render service exists; see HANDOFF.md."
+            exit 0
+          fi
+          # A wake takes about a minute and Render holds the request while it
+          # happens, so the timeout is generous and a failure is retried
+          # rather than reported on the first refusal.
+          body=$(curl --silent --show-error --fail \
+                      --max-time 120 \
+                      --retry 5 --retry-delay 15 --retry-all-errors \
+                      "$API_URL/health")
+          echo "$body"
+          case "$body" in
+            *'"status":"ok"'*) echo "::notice::awake: $body" ;;
+            *) echo "::error::$API_URL/health answered without status ok" >&2; exit 1 ;;
+          esac
