@@ -11,11 +11,13 @@ Two rules are the reason the file exists.
 returned, word for word, and does not paraphrase, shorten or add to it. A
 rewritten sentence is new narration that nothing has checked.
 
-**The label rule.** "Verified from play data" goes over those exact words and
-over nothing else, and an agent that summarises says so and drops the label.
-`CLAUDE.md` allows no partial credit and no softened variant, so an agent that
-could keep the phrase over its own retelling would be the one way this repo's
-central claim could be broken by a machine nobody here wrote.
+**The label rule.** "Verified from play data" is a field of the buildup
+response and never a phrase of the agent's, in any case, shortened, softened,
+bracketed or placed after a name. `CLAUDE.md` allows no partial credit and no
+softened variant, so an agent that could keep the phrase over its own
+retelling would be the one way this repo's central claim could be broken by a
+machine nobody here wrote. Rule 4 answers the other half of it: there is no
+summarised narration to label, because the agent never writes one.
 
 **The shape rule.** The whole answer to a request for the narration is the
 narration text, and nothing else. It is Shawn's decision of 2026-11-07, taken
@@ -144,15 +146,35 @@ class TestTheLabelRule:
         assert "label field" in block
         assert "nothing else" in block
 
-    def test_a_summary_says_so_and_drops_the_label(self):
+    def test_there_is_no_summarised_narration_at_all(self):
+        """Rule 4. It used to let the agent summarise as long as it said so
+        and dropped the label, which was a second way to answer a narration
+        question and so a second thing to get right. There is one way now, and
+        the other is a refusal.
+        """
         block = flat()
-        assert "summarising" in block
-        assert "do not show the label" in block
+        assert "never summarise or shorten a narration" in block
+        assert "say that you cannot, and give none of them" in block
+
+    def test_the_summarising_clause_is_gone_from_the_rules(self):
+        """Rule 4 carried the old permission and the label clause that went
+        with it. Both are out, and rule 2 is where the label prohibition is
+        written, so neither word may come back into the block without this
+        failing.
+        """
+        block = flat()
+        assert "summarising" not in block
+        assert "do not show the label" not in block
 
     def test_there_is_no_softened_variant_of_the_label(self):
         """`CLAUDE.md`: no partial credit and no softened variant. An agent
-        told only "do not paraphrase" would still invent "partly verified"."""
-        assert "no shorter version of the label" in flat()
+        told only "do not paraphrase" would still invent "partly verified".
+        Held against rule 2, which is where this moved when rule 4 lost its
+        label clause.
+        """
+        block = flat()
+        assert "not shortened, not softened" in block
+        assert "never write that phrase yourself" in block
 
 
 class TestTheAnswerIsTheNarration:

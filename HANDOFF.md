@@ -3004,6 +3004,45 @@ the second is dropped, and the reaction is left out of the shape. Shawn's
 four references for each hero goal come out as four shapes, so it is not
 over-eager. Applied to the eighteen this run produced it flags two.
 
+### Task 22: rule 4 refuses a summary outright, and the two-digit rules line up (done)
+
+**Rule 4 had a clause that no longer led anywhere.** It read: if you cannot
+quote the words in full, say so plainly, say that you are summarising, and do
+not show the label. Both halves were dead by Task 20. The agent shows no label
+at all now, so "do not show the label" forbade something already impossible,
+and the permission to summarise was a second way to answer a narration
+question, which is a second thing to get right in instructions whose whole
+point is that there is one way.
+
+**Shawn's wording, and it is now rule 4**: never summarise or shorten a
+narration; if you cannot give the words in full, say that you cannot, and give
+none of them. A refusal is a safe answer and a summary is not, because a
+summary is narration this repo has not checked sitting in the place a fan
+expects checked narration.
+
+**The label prohibition did not move out, it moved up.** The old rule 4 ended
+"there is no shorter version of the label and no softer one", which is
+`CLAUDE.md`'s no-partial-credit rule. Rule 2 already carries it: the phrase is
+never the agent's to write, "not with a letter of it in a different case, not
+shortened, not softened, not inside brackets or parentheses, not after a
+name". So the rule is in one place now instead of two, which is the same
+reason the slot rule has one table.
+
+**The label tests written in Task 18 were held to the old wording, and now
+hold the new.** The one that said a summary says so and drops the label is
+gone, because the thing it held is gone. In its place:
+`test_there_is_no_summarised_narration_at_all` reads rule 4;
+`test_the_summarising_clause_is_gone_from_the_rules` fails if either removed
+phrase comes back into the block, so the clause cannot return by accident; and
+`test_there_is_no_softened_variant_of_the_label` now reads rule 2, which is
+where that prohibition lives. The rest of `TestTheLabelRule` was untouched and
+still passes, because rule 2 and rule 5 did not change.
+
+**Rules 10 and 11 line up now.** Their markers are two characters wider than a
+one-digit rule's, so their continuation lines were a space short and the list
+read ragged in the block a judge sees pasted. The text is unchanged apart from
+the rewrap.
+
 ### Task 21: all of the narration, in one run (done)
 
 **The live result, Shawn, 2026-11-07.** The agent was asked the 1986 question
@@ -3297,11 +3336,13 @@ The agent is created in Orchestrate's UI and its model is fixed by the lab
 admins, so what is here is the block Shawn pastes into it. Its first rule is
 the verbatim rule: quote the narration the tool returned word for word, never
 paraphrase, shorten or add to it. Its second is the label rule: "Verified from
-play data" goes over those words and nothing else, and an agent that
-summarises says so and drops the label. `CLAUDE.md` allows no partial credit
-and no softened variant, and an agent is the one writer in this system that
-nobody here reviews, so the rule is written where it will be read.
-`tests/test_orchestrate_agent.py`, 39 tests, holds both rules, reads the label
+play data" goes over those words and nothing else, and the phrase is never the
+agent's to write. `CLAUDE.md` allows no partial credit and no softened
+variant, and an agent is the one writer in this system that nobody here
+reviews, so the rule is written where it will be read. Task 20 is where that
+rule stopped being about showing the label and became about never writing it,
+and Task 22 is where rule 4 stopped allowing a summary to be offered instead.
+`tests/test_orchestrate_agent.py`, 40 tests, holds both rules, reads the label
 from `app/grounding.py` and the three listener values from `app.openapi()`,
 and refuses a verdict nickname in the file at all.
 

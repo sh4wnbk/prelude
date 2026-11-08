@@ -122,7 +122,7 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-1728 passed
+1729 passed
 ```
 
 The total covers far more than this module now. Phase 4 added the narration
@@ -1886,7 +1886,7 @@ suite's state in `docs/HARNESS.md` and of this task's status line. Those three
 are the follow-up's, and they are Shawn's to make, not yours. Report any other
 gate failure.
 
-`tests/test_orchestrate_agent.py`, 39 tests, passes already and is not yours.
+`tests/test_orchestrate_agent.py`, 40 tests, passes already and is not yours.
 It holds `docs/orchestrate_agent.md`, the agent instructions Shawn pastes into
 Orchestrate: the verbatim rule and the label rule. Read that file before you
 write the descriptions in the spec, because the agent reading your descriptions

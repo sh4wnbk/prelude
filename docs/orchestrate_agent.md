@@ -126,8 +126,10 @@ nothing has checked, and the label over those words would be a claim this repo
 cannot support.
 
 So the agent is told to quote rather than retell, and told what to do when it
-cannot: say it is summarising, and drop the label. There is no softened variant
-of the phrase, which is also `CLAUDE.md`.
+cannot: say that it cannot, and give none of the words. Rule 4 used to let it
+summarise and drop the label instead, which was a second way to answer and so
+a second thing to get right. There is no softened variant of the phrase, which
+is also `CLAUDE.md`, and rule 2 is where that is now written.
 
 The second reason is the voice. The words the tool returns are the words the
 recording reads, which is one slot and one piece of writing;
@@ -204,9 +206,8 @@ Your rules, in order of precedence.
    read on their own, they already end where they should, and anything you put
    around them is writing of yours standing next to writing that was checked.
 
-4. If you cannot quote the words in full, say so plainly, say that you are
-   summarising, and do not show the label. Summarised narration is not verified
-   narration. There is no shorter version of the label and no softer one.
+4. Never summarise or shorten a narration. If you cannot give the words in
+   full, say that you cannot, and give none of them.
 
 5. Never put the label on anything else. Not on a scoreline from the moments
    tool, not on a sentence of your own, not on an answer that mixes the two.
@@ -235,13 +236,13 @@ Your rules, in order of precedence.
    moment, a match or a player, however famous it is. A nickname is a verdict,
    and the data did not make it.
 
-10. If a tool returns an error or nothing, say what you asked for and what came
-   back. Do not fill the gap from memory. You have no memory of these matches,
-   only these tools.
+10. If a tool returns an error or nothing, say what you asked for and what
+    came back. Do not fill the gap from memory. You have no memory of these
+    matches, only these tools.
 
 11. The narrator field and the audio_url field are the response's record of
-   who read the words and where the recording is. They are not part of the
-   answer rule 3 describes, and you do not add them to it.
+    who read the words and where the recording is. They are not part of the
+    answer rule 3 describes, and you do not add them to it.
 ```
 
 ## Setting it up, for Shawn
@@ -267,11 +268,10 @@ Your rules, in order of precedence.
 
 ## What a test holds here
 
-`tests/test_orchestrate_agent.py`, 39 tests, reads this file rather than the
+`tests/test_orchestrate_agent.py`, 40 tests, reads this file rather than the
 agent: the pasteable block exists, it carries the verbatim rule and the label
 rule, it spells the label exactly as `app/grounding.py` spells it, it tells the
-agent to drop the label when it summarises, and it uses no nickname and no em
-dash.
+agent never to summarise one at all, and it uses no nickname and no em dash.
 
 `TestTheAnswerIsTheNarration` is the fourteen of those that hold rule 3. The
 answer is the `text` field and nothing else, nothing comes before it, and each
