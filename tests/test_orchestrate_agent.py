@@ -53,6 +53,7 @@ from scripts.write_served_matches import ANCHOR, current, rows
 ROOT = Path(__file__).resolve().parent.parent
 DOC = ROOT / "docs" / "orchestrate_agent.md"
 MATCHES_FILE = ROOT / "app" / "web" / "matches.json"
+NARRATIONS_FILE = ROOT / "app" / "web" / "narrations.json"
 RAW_MATCHES = ROOT / "data" / "raw" / "matches"
 
 FENCE = re.compile(r"^```[a-z]*\n(.*?)^```", re.M | re.S)
@@ -226,6 +227,62 @@ class TestTheAnswerIsTheNarration:
         rule by `test_it_carries_no_em_dash_and_no_stand_in_for_one`, and this
         one says it of the words the agent is actually given."""
         assert "—" not in instructions()
+
+    def test_the_answer_is_the_whole_field(self):
+        """The 1986 neutral answer of 2026-11-07 was the right narration with
+        13 of its 65 words missing, the goal among them."""
+        block = flat()
+        assert "all of it." in block
+        assert "from its first word to its last full stop" in block
+
+    def test_it_refuses_a_cut_and_an_ellipsis(self):
+        """The live answer stopped part way through a sentence and closed with
+        an ellipsis. Rule 1 already forbade shortening; this says it in the
+        terms the failure took."""
+        block = flat()
+        assert "never shorten it, never stop part way through" in block
+        assert "never close it with an ellipsis" in block
+
+    def test_the_fields_last_sentence_is_not_a_closing_sentence_of_the_agents(
+        self,
+    ):
+        """The list of what may not follow the narration says "no closing
+        sentence", and the 1986 narration ends "What a moment.", which is
+        exactly the kind of sentence that list looks like it forbids. So the
+        list says whose, and the rule says the field's own last sentence is
+        the field's.
+        """
+        block = flat()
+        assert "final sentence is part of the field" in block
+        assert "no closing sentence of your own" in block
+
+    def test_no_line_break_is_added(self):
+        """The live answer broke one sentence across two lines."""
+        block = flat()
+        assert "one run of text." in block
+        assert "the field arrives as one unbroken run" in block
+        assert "do not break a sentence across two lines" in block
+
+    def test_the_frozen_narrations_hold_no_line_break_and_no_ellipsis(self):
+        """The premise the rule rests on, read off the file rather than
+        asserted in the block. Every break and every ellipsis in an answer is
+        the agent's, because there is none in what the service returns, and a
+        frozen narration that grew one would make the rule wrong rather than
+        the agent.
+        """
+        with NARRATIONS_FILE.open(encoding="utf-8") as handle:
+            narrations = json.load(handle)["narrations"]
+        slots = [
+            (match, slot, record["text"])
+            for match, entry in narrations.items()
+            for slot, record in entry["slots"].items()
+        ]
+        assert slots, "no frozen narrations to read"
+        for match, slot, text in slots:
+            where = f"{match} {slot}"
+            assert text == " ".join(text.split()), where
+            assert "..." not in text, where
+            assert "…" not in text, where
 
     def test_no_shape_for_the_extra_material_is_left_in_the_block(self):
         """A leftover label line or audio line would be a second and softer

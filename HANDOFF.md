@@ -3004,6 +3004,68 @@ the second is dropped, and the reaction is left out of the shape. Shawn's
 four references for each hero goal come out as four shapes, so it is not
 over-eager. Applied to the eighteen this run produced it flags two.
 
+### Task 21: all of the narration, in one run (done)
+
+**The live result, Shawn, 2026-11-07.** The agent was asked the 1986 question
+as a fan of neither side. It chose the right match, asked the right question
+about sides, and reached the right narration, the Storyteller's neutral
+telling. Then it handed over part of it. The answer stopped at "then took it
+into the box", closed with an ellipsis, and broke one of its sentences across
+two lines. The 2022 answer in the same session was complete, so this is a
+narration given in part, not a rule the agent never read.
+
+**What was missing**, read off `app/web/narrations.json`:
+
+| The field | 65 words, 330 characters, in one run with no line break |
+| --------- | ------------------------------------------------------- |
+| what the answer carried | 53 words, 262 characters, ending part way through a sentence |
+| what it dropped | 13 words, 68 characters: ", slipped past Shilton and scored with his left foot. What a moment." |
+
+**The thirteen words are the goal.** What the answer dropped is the ball going
+past the goalkeeper and in, and the sentence after it. A telling cut before
+the finish is the telling of a goal that never goes in, which is the one thing
+a goal call cannot leave out. It is also narration nothing has checked:
+`app/grounding.py` read all 65 of those words when it passed them, and the
+label the response carries was earned by the field as a whole, so four fifths
+of it is new writing with an old guarantee standing behind it.
+
+**Rule 3 now says it in the terms the failure took.** Rule 1 already said
+never to shorten the text, and that was not enough, because nothing said what
+shortening looks like from the inside. Two paragraphs were added to rule 3:
+all of the field, from its first word to its last full stop, never stopping
+part way through, never leaving its last sentence unfinished, and never closed
+with an ellipsis, three dots, "and so on" or any other mark standing in for
+words left out. And one run of text: the field arrives with no line break in
+it, so the answer has none, is not wrapped, is not split into lines or
+paragraphs, and does not break a sentence across two lines.
+
+**One line of rule 3 may have invited part of this, and it is fixed.** The
+rule's list of what may not follow the narration ended "no closing sentence,
+no offer of more", which meant no closing sentence of the agent's own. The
+1986 narration's last sentence is "What a moment.", which is exactly the kind
+of sentence that list reads as forbidding. It now says "no closing sentence of
+your own", and the paragraph above it says in as many words that the field's
+own final sentence is part of the field. That is a rule written here in Task
+20 and read back by a model two hours later, which is the only way an
+ambiguity in instructions this short gets found.
+
+**Five tests in
+`tests/test_orchestrate_agent.py::TestTheAnswerIsTheNarration`.** Four read
+the block: all of the field to its last full stop, the refusal of a cut and an
+ellipsis, the field's last sentence not being a closing sentence of the
+agent's, and the refusal of an added line break. The fifth reads
+`app/web/narrations.json` instead, and holds the premise the rule rests on:
+each of the six frozen narrations is one run of single-spaced text with no
+line break, no ellipsis and no ellipsis character. So every break in an answer
+is the agent's own, and a frozen narration that grew one would fail here
+rather than leaving the rule quietly wrong.
+
+**What a test cannot do here.** The same limit as Tasks 18, 19 and 20. Nothing
+in this environment has a watsonx Orchestrate account, so these tests hold the
+instructions and not the agent. Step 5 of the setup list in
+`docs/orchestrate_agent.md` is the check, and both live failures so far were
+found by running it.
+
 ### Task 20: the answer is the narration, and nothing else (done)
 
 **The live result, Shawn, 2026-11-07.** The agent was asked for the 2022
@@ -3054,7 +3116,8 @@ recording in the app, where
 no punctuation around it. Every one of those fields is still in the buildup
 response, so bringing one back is a change to rule 3 and Shawn's to make.
 
-**`tests/test_orchestrate_agent.py::TestTheAnswerIsTheNarration`, 9 tests.**
+**`tests/test_orchestrate_agent.py::TestTheAnswerIsTheNarration`, 14 tests**,
+nine of them this task's and five Task 21's.
 The rule itself, the nothing before and the nothing after with each refused
 item named, the no dash clause, the label as never the agent's to write, and
 two that read the block against the failure rather than against the rule:
@@ -3238,7 +3301,7 @@ play data" goes over those words and nothing else, and an agent that
 summarises says so and drops the label. `CLAUDE.md` allows no partial credit
 and no softened variant, and an agent is the one writer in this system that
 nobody here reviews, so the rule is written where it will be read.
-`tests/test_orchestrate_agent.py`, 34 tests, holds both rules, reads the label
+`tests/test_orchestrate_agent.py`, 39 tests, holds both rules, reads the label
 from `app/grounding.py` and the three listener values from `app.openapi()`,
 and refuses a verdict nickname in the file at all.
 

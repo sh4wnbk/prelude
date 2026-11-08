@@ -52,6 +52,40 @@ with `--check` to fail on a stale one.
 this file to both sources, so a third match added to the app fails the suite
 here until the list is written again.
 
+## Why rule 3 says the whole field, and says it twice
+
+The agent was asked the 1986 question as a fan of neither side and it reached
+the right narration, the Storyteller's neutral telling. It then cut the answer
+at "then took it into the box", closed it with an ellipsis, and broke one of
+its sentences across two lines. 13 of the field's 65 words were missing, 68 of
+its 330 characters, and what was missing was the goal: the words that say the
+ball went past the goalkeeper and in, and the sentence after them. The 2022
+answer in the same session was complete, so this is a narration handed over in
+part rather than a rule the agent never read.
+
+**A telling cut before the finish is the telling of a goal that never goes
+in.** It is also narration nothing has checked. `app/grounding.py` read all 65
+of those words when it passed them, and the label the response carries was
+earned by the whole field, so three quarters of it is new writing with an old
+guarantee attached. Rule 1 already said never to shorten the text. Rule 3 now
+says it again in the terms the failure actually took: all of it, to the last
+full stop, with no ellipsis and no unfinished sentence.
+
+**One line of rule 3 may have invited part of it.** The rule's own list of
+what may not follow the narration ended "no closing sentence, no offer of
+more", meaning no closing sentence of the agent's; the narration's last
+sentence here is "What a moment.", which is exactly the kind of sentence that
+list appears to forbid. It now reads "no closing sentence of your own", and
+the paragraph above it says in as many words that the field's final sentence
+belongs to the field.
+
+**The line break is the smaller half and it is still worth a rule.** None of
+the six frozen narrations in `app/web/narrations.json` holds a line break or
+an ellipsis; `tests/test_orchestrate_agent.py::TestTheAnswerIsTheNarration`
+reads the file and says so. So every break in an answer is the agent's, and a
+break mid sentence makes a fan read two fragments where the recording reads
+one sentence.
+
 ## Why the answer is the narration and nothing else
 
 The agent quoted the 2022 narration word for word and then added a line of its
@@ -143,12 +177,28 @@ Your rules, in order of precedence.
 3. When a fan asks for the narration, your whole answer is the text field of
    the buildup response, exactly as returned, and nothing else.
 
+   All of it. The field runs from its first word to its last full stop, and
+   that last full stop is where your answer ends. Never shorten it, never stop
+   part way through, never leave its last sentence unfinished, and never close
+   it with an ellipsis, with three dots, with "and so on", or with any other
+   mark standing in for words you chose not to write out. The field's own
+   final sentence is part of the field, and the line below about a closing
+   sentence means a closing sentence of yours; it never lets you drop one of
+   theirs. A telling cut short of the finish is the telling of a goal that
+   never goes in, and the check that passed those words read every one of
+   them.
+
+   One run of text. The field arrives as one unbroken run, with no line break
+   anywhere in it, so your answer is one unbroken run too. Do not wrap it, do
+   not split it into lines or paragraphs, and do not break a sentence across
+   two lines.
+
    Nothing before it. No preamble, no "here is", no heading, no restatement of
    the question, no scene setting.
 
    Nothing after it. No signature, no byline, no narrator's name, no label, no
-   link, no authorship line, no closing sentence, no offer of more. No dash of
-   any kind anywhere in the answer.
+   link, no authorship line, no closing sentence of your own, no offer of
+   more. No dash of any kind anywhere in the answer.
 
    The words the tool returned are the whole of it. They were written to be
    read on their own, they already end where they should, and anything you put
@@ -217,20 +267,28 @@ Your rules, in order of precedence.
 
 ## What a test holds here
 
-`tests/test_orchestrate_agent.py`, 34 tests, reads this file rather than the
+`tests/test_orchestrate_agent.py`, 39 tests, reads this file rather than the
 agent: the pasteable block exists, it carries the verbatim rule and the label
 rule, it spells the label exactly as `app/grounding.py` spells it, it tells the
 agent to drop the label when it summarises, and it uses no nickname and no em
 dash.
 
-`TestTheAnswerIsTheNarration` is the nine of those that hold rule 3. The
+`TestTheAnswerIsTheNarration` is the fourteen of those that hold rule 3. The
 answer is the `text` field and nothing else, nothing comes before it, and each
-thing the live answer of 2026-11-07 added is refused by name: a signature, a
-byline, the narrator's name, the label, the link, the authorship line and a
-dash of any kind. Every occurrence of the label in the block has to be the
-spelling `app/grounding.py` writes, which is what the live answer got wrong,
-and no label line or audio line is left in the block to stand beside rule 3 as
-a softer version of it.
+thing the first live answer added is refused by name: a signature, a byline,
+the narrator's name, the label, the link, the authorship line and a dash of
+any kind. Every occurrence of the label in the block has to be the spelling
+`app/grounding.py` writes, which is what that answer got wrong, and no label
+line or audio line is left in the block to stand beside rule 3 as a softer
+version of it.
+
+Five of the fourteen are the second live answer's: the rule says all of the
+field to its last full stop, refuses a cut and an ellipsis, says the field's
+own last sentence is not a closing sentence of the agent's, and refuses an
+added line break. The fifth reads `app/web/narrations.json` rather than the
+block, and holds the premise the rule rests on: none of the six frozen
+narrations carries a line break or an ellipsis, so every one in an answer is
+the agent's own.
 
 `TestTheMatchesItServes` is the nine of those that hold the list of matches.
 Every line of it is held to the two sources `scripts/write_served_matches.py`
