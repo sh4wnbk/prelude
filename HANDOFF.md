@@ -3070,7 +3070,8 @@ they were; with no recording for the fan's key the player still returns before
 it builds the element, so there is no scrub handler to fire; and the player
 still sends and parses nothing.
 
-**`tests/test_narration_scrubber.py`, 43 tests.** They read the player's own
+**`tests/test_narration_scrubber.py`, 61 tests**, of which this task wrote the
+first forty three and Task 25 below added eighteen. They read the player's own
 handler bodies, with the line comments stripped first, and 32 of them fail
 against the player at `455939f`. The 11 that pass are the seven about the
 recordings being untouched, the three about what did not change, and the one

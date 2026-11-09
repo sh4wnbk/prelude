@@ -46,7 +46,9 @@ padded files are committed, and `--against <commit>~1` reads it after that.
 **Durations are decoded, not read off the header.** An MP3's header duration is
 an estimate and these files are VBR: `3750191_storyteller_neutral.mp3` reports
 22.72 s and decodes to 24.72 s. Every duration here is a sample count divided
-by the sample rate.
+by the sample rate, and the bitrates are bytes over that decoded duration for
+the same reason: ffprobe divides by the header's figure, so it reports 76450
+bps for a file that carries 70266.
 
 **Where ffmpeg comes from.** `ffmpeg` and `ffprobe` on `PATH` are used if they
 are there. Otherwise set `PRELUDE_FFMPEG` to the directory holding them, or
@@ -336,14 +338,18 @@ def compare(ffmpeg: str, name: str, old_bytes: bytes, new_path: Path,
     new_duration = new_samples / (rate * channels)
     tolerance = FRAME_SAMPLES / rate
     window = int(SILENCE_WINDOW_SECONDS * rate) * channels
+    new_bytes = new_path.stat().st_size
 
     return {
         "name": name,
         "sample_rate": rate,
         "channels": channels,
-        "old_bitrate": spec["bit_rate"],
+        # Over the decoded duration, not the header's estimate of it, so the
+        # figure means the same thing whichever of the two files it describes.
+        "old_bitrate": round(len(old_bytes) * 8 / old_duration),
+        "new_bitrate": round(new_bytes * 8 / new_duration),
         "old_bytes": len(old_bytes),
-        "new_bytes": new_path.stat().st_size,
+        "new_bytes": new_bytes,
         "lead_in_seconds": lead_in,
         "lead_in_samples": offset,
         "lead_in_within_a_frame": abs(lead_in - LEAD_IN_SECONDS) <= tolerance,
@@ -369,9 +375,10 @@ def report(rows: Sequence[dict]) -> int:
     for row in rows:
         print()
         print("  {}".format(row["name"]))
-        print("    {} Hz, {} channel, {} bps, {} bytes in, {} bytes out".format(
-            row["sample_rate"], row["channels"], row["old_bitrate"],
-            row["old_bytes"], row["new_bytes"]))
+        print("    {} Hz, {} channel; {} bytes at {} bps in, {} bytes at {} "
+              "bps out".format(
+                  row["sample_rate"], row["channels"], row["old_bytes"],
+                  row["old_bitrate"], row["new_bytes"], row["new_bitrate"]))
         print("    lead-in: {:.1f} ms, {} samples{}".format(
             row["lead_in_seconds"] * 1000, row["lead_in_samples"],
             "" if row["lead_in_within_a_frame"] else
@@ -487,10 +494,11 @@ def main(argv: Sequence[str]) -> int:
 
     print()
     for name, _path, spec, padded, loudest in state:
-        print("  {}: {} Hz, {} channel, {} bps, opening peak {:.1f} dBFS, "
-              "{}".format(name, spec["sample_rate"], spec["channels"],
-                          spec["bit_rate"], loudest,
-                          "already padded" if padded else "to pad"))
+        print("  {}: {} Hz, {} channel, {} bps by the header, opening peak "
+              "{:.1f} dBFS, {}".format(
+                  name, spec["sample_rate"], spec["channels"],
+                  spec["bit_rate"], loudest,
+                  "already padded" if padded else "to pad"))
     todo = [one for one in state if not one[3]]
     print()
     print("{} of {} to pad, {:.0f} ms of silence each, frames copied and not "

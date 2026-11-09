@@ -10,21 +10,35 @@ rendering nothing, and whatever plays in that gap is gone. So the tap asks for
 `resume()` inside the gesture, waits for it, and only then plays, from the
 start on the first play.
 
+**That was one of the two causes, and Task 25 covered the other.** The order
+was right afterwards and the word was still clipped on the phone, because the
+audio output itself wakes a moment after `play()` starts and the opening of the
+file was landing inside that wake. So every recording now opens with half a
+second of silence, put in front of the spoken frames by
+`scripts/pad_hero_audio.py` and copied rather than re-encoded. The digests
+below moved for it, and `TestTheLeadInIsThere` is what holds the silence to
+being there.
+
 **The waveform only showed a position; it could not set one.** A click handler
 read `e.clientX`, which touch gives too, but there was no drag and no keyboard.
 It is now a pointer-event scrubber: `pointerdown`, `pointermove` and
 `pointerup` with pointer capture, so touch and mouse share one path, with the
 amber fill following the finger whether the recording is playing or paused.
 
-These are source tests, as `tests/test_narration_player.py` and
+Most of these are source tests, as `tests/test_narration_player.py` and
 `tests/test_narration_waveform.py` are; the browser half is a run in headless
 Chromium on both matches, served with Range support, and it is recorded in
-`HANDOFF.md`.
+`HANDOFF.md`. The exception is `TestTheLeadInIsThere`, which reads the MP3s
+themselves, and it decodes nothing: it reads each frame's side information,
+where a frame holding no spectral data is silence by the format's own
+definition. That keeps the suite free of a dependency on an installed ffmpeg,
+which `scripts/pad_hero_audio.py --check` is for.
 """
 
 import hashlib
 import json
 import re
+from itertools import groupby
 from pathlib import Path
 
 import pytest
@@ -38,18 +52,37 @@ MATCHES = WEB / "matches.json"
 #: Five seconds an arrow press, which is what the card is built for.
 ARROW_SECONDS = 5
 
-#: The six recordings as they stand. The fix for the cut word was the order of
-#: resume() and play(), so no audio file was re-encoded: these digests are what
-#: says so. A lead-in of silence would change every one of them, which is a
-#: change to make on purpose and with this list.
+#: The six recordings as they stand.
+#:
+#: **These digests changed in Task 25, and that was the deliberate change the
+#: list existed to force.** Task 24 fixed the order of resume() and play() and
+#: re-encoded nothing, so the list then held the recordings exactly as the
+#: speech service wrote them. It was not enough on an iPhone: the audio output
+#: wakes after play() starts and the opening word was landing inside that wake,
+#: so "Argentina" still came out as "tina". Task 25 put 500 ms of silence in
+#: front of every file to cover the wake, which rewrote all six.
+#:
+#: **The spoken audio is still what the service wrote.** The lead-in was put in
+#: front of the original's frames rather than mixed into them, by
+#: `scripts/pad_hero_audio.py`, and the original frames were copied through and
+#: not re-encoded. So every digest here is new while every spoken sample behind
+#: the lead-in is the one it always was: `--check` decodes both sides and holds
+#: that, and the figures it reported are in `HANDOFF.md`.
 RECORDINGS = {
-    "3750191_buddy_conceded.mp3": "fd5056abe8f0528072f586d36b404421fcc914fdb6f9994e73bed3c8277e58a9",
-    "3750191_buddy_scored.mp3": "d9772ed292cb83a297419125e17a78acb98b946cbfc6052699f44bdc23c8fe8a",
-    "3750191_storyteller_neutral.mp3": "9c28981a5c99a000d18f6d5d52c133e4865a8629e3ad51b070d12193b4e0c71b",
-    "3869685_buddy_conceded.mp3": "db0acf1f8f5698db6a24539b8d90c4382bd17561dc2865193cc3cb73b38a8904",
-    "3869685_buddy_scored.mp3": "07877fc839aa81151928d3f4f6b281868211f7e672ee7de6069c050f8bfc1318",
-    "3869685_storyteller_neutral.mp3": "9ad12f9eaf9cd2296f5f6b0cb8fe812c175db1eb16ba1958d5ac1aa11d961d62",
+    "3750191_buddy_conceded.mp3": "478f1ff283457c59146536aae61969c74784fd103e4d8b2460c3264a8eee8075",
+    "3750191_buddy_scored.mp3": "07899d9ee98747e8aea44de6ffb747f419e1d31c156549abc9443384a9468be3",
+    "3750191_storyteller_neutral.mp3": "b648bb4b7e7532e2833f4a8b4e7689b098855761f262bfcac90946f44272478a",
+    "3869685_buddy_conceded.mp3": "011690eea45ef449136ba146217c165ccd377dae767e69a65e1931dbd1c08a1c",
+    "3869685_buddy_scored.mp3": "951eb973554c307aaa0460c22585fa98b09102448cc52be9811eaaa2ee55e12e",
+    "3869685_storyteller_neutral.mp3": "275355af14536dc189d1116a6b4fb1e7887b73b99f27f754a82fbcf4aaaf534e",
 }
+
+#: The lead-in each recording has to open with, in seconds. Under the 500 ms
+#: `scripts/pad_hero_audio.py` asks ffmpeg for, because an MP3 frame at
+#: 24000 Hz carries 576 samples and half a second is not a whole number of
+#: them: the six landed on 24 frames, which is 576 ms encoded and 506 ms once
+#: the decoder has taken off the encoder's delay.
+LEAD_IN_SECONDS = 0.4
 
 
 def player():
@@ -147,9 +180,9 @@ class TestTheContextIsRunningBeforePlay:
         assert body.count("'play_arrow'") == 2, body
 
 
-class TestTheRecordingsWereNotTouched:
+class TestTheRecordingsAreTheOnesPinnedHere:
     @pytest.mark.parametrize("name", sorted(RECORDINGS))
-    def test_every_recording_is_byte_for_byte_what_it_was(self, name):
+    def test_every_recording_is_byte_for_byte_the_pinned_one(self, name):
         path = WEB / "assets" / "audio" / name
         assert path.is_file(), path
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -164,7 +197,131 @@ class TestTheRecordingsWereNotTouched:
         assert named == set(RECORDINGS)
 
 
-class TestTheWaveformScrubs:
+#: Bitrates in kbps by index, for MPEG-2 and MPEG-2.5 Layer III, and sample
+#: rates by index for MPEG-2. The six recordings are all MPEG-2 Layer III at
+#: 24000 Hz in one channel, which `mp3_frames` asserts rather than assumes, so
+#: a recording that ever arrives in another format fails here instead of being
+#: misread.
+LSF_BITRATES = (
+    None, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, None)
+LSF_RATES = (22050, 24000, 16000, None)
+
+#: Samples one MPEG-2 Layer III frame carries. It is half MPEG-1's 1152, which
+#: is what "low sampling frequency" means, and at 24000 Hz it makes a frame
+#: 24 ms long.
+LSF_FRAME_SAMPLES = 576
+
+#: Bytes of side information in an MPEG-2 Layer III frame with one channel.
+LSF_MONO_SIDE_INFO = 9
+
+
+def mp3_frames(data):
+    """Every Layer III frame in the file, as (bytes, has_crc, sample_rate).
+
+    An ID3v2 tag is skipped by the length in its own header, and the frames are
+    then walked by the length each header gives, which is how a frame holding
+    `0xFF` in its payload is not mistaken for the next header.
+    """
+    at = 0
+    if data[:3] == b"ID3":
+        # A synchsafe 32-bit length: seven bits per byte.
+        at = 10 + ((data[6] << 21) | (data[7] << 14) | (data[8] << 7) | data[9])
+    found = []
+    while at + 4 <= len(data):
+        header = data[at: at + 4]
+        if header[0] != 0xFF or (header[1] & 0xE0) != 0xE0:
+            at += 1
+            continue
+        version = (header[1] >> 3) & 0x03
+        layer = (header[1] >> 1) & 0x03
+        bitrate = LSF_BITRATES[(header[2] >> 4) & 0x0F]
+        rate = LSF_RATES[(header[2] >> 2) & 0x03]
+        channel_mode = (header[3] >> 6) & 0x03
+        assert layer == 1, "not Layer III at byte {}".format(at)
+        assert version == 2, "not MPEG-2 at byte {}".format(at)
+        assert channel_mode == 3, "not one channel at byte {}".format(at)
+        assert bitrate and rate, "no bitrate or rate at byte {}".format(at)
+        size = 72 * bitrate * 1000 // rate + ((header[2] >> 1) & 0x01)
+        # Bit 0 of the second header byte is the protection bit, and it is low
+        # when a 16-bit CRC sits between the header and the side information.
+        found.append((data[at: at + size], not header[1] & 0x01, rate))
+        at += size
+    return found
+
+
+def carries_no_sound(frame, has_crc):
+    """Whether this frame holds no spectral data at all, which is silence.
+
+    `part2_3_length` is the number of main-data bits the granule was given and
+    `big_values` is how many spectral value pairs it coded. Both zero means the
+    frame describes no sound, so the decoder puts out zeros: it is silence by
+    the format's own account of itself, not a level compared against a
+    threshold. The two fields sit at a fixed place in the side information, so
+    reading them needs no decoder and no library.
+    """
+    side = frame[4 + (2 if has_crc else 0):]
+    assert len(side) >= LSF_MONO_SIDE_INFO, "the frame is short of side info"
+    position = 0
+
+    def take(count):
+        nonlocal position
+        value = 0
+        for _ in range(count):
+            byte = side[position >> 3]
+            value = (value << 1) | ((byte >> (7 - (position & 7))) & 1)
+            position += 1
+        return value
+
+    take(8)   # main_data_begin, the bit reservoir pointer
+    take(1)   # private_bits, one of them with a single channel
+    part2_3_length = take(12)
+    big_values = take(9)
+    return part2_3_length == 0 and big_values == 0
+
+
+class TestTheLeadInIsThere:
+    """Every recording opens with silence, because the phone's output wakes
+    after `play()` starts and the first word was landing inside that wake."""
+
+    @pytest.mark.parametrize("name", sorted(RECORDINGS))
+    def test_it_opens_with_at_least_four_hundred_milliseconds_of_silence(
+            self, name):
+        frames = mp3_frames((WEB / "assets" / "audio" / name).read_bytes())
+        assert frames, name
+        silent = 0
+        for frame, has_crc, _rate in frames:
+            if not carries_no_sound(frame, has_crc):
+                break
+            silent += 1
+        rate = frames[0][2]
+        seconds = silent * LSF_FRAME_SAMPLES / rate
+        assert seconds >= LEAD_IN_SECONDS, (
+            "{}: {:.3f} s of opening silence, under the {:.1f} s the phone "
+            "needs".format(name, seconds, LEAD_IN_SECONDS))
+
+    @pytest.mark.parametrize("name", sorted(RECORDINGS))
+    def test_the_narration_still_follows_the_silence(self, name):
+        """A file of nothing but silence would pass the test above."""
+        frames = mp3_frames((WEB / "assets" / "audio" / name).read_bytes())
+        speaking = [one for one, has_crc, _rate in frames
+                    if not carries_no_sound(one, has_crc)]
+        assert len(speaking) > 500, "{}: only {} frames carry sound".format(
+            name, len(speaking))
+
+    @pytest.mark.parametrize("name", sorted(RECORDINGS))
+    def test_the_lead_in_is_the_longest_silence_in_the_file(self, name):
+        """A narration has pauses in it, and the longest of those reaches
+        408 ms, so silence inside the file is not a fault. The lead-in being
+        the longest run of it, and the first, is what says the half second was
+        put in front of the narration rather than opened up inside it."""
+        frames = mp3_frames((WEB / "assets" / "audio" / name).read_bytes())
+        runs = [(silent, len(list(group))) for silent, group in groupby(
+            carries_no_sound(one, has_crc) for one, has_crc, _rate in frames)]
+        silences = [length for silent, length in runs if silent]
+        assert runs[0][0], "{}: the file does not open with silence".format(name)
+        assert runs[0][1] == max(silences), (
+            "{}: the opening silence is {} frames and a later one reaches "
+            "{}".format(name, runs[0][1], max(silences)))
     def test_it_listens_for_the_three_pointer_events(self):
         text = player()
         for event in ("pointerdown", "pointermove", "pointerup"):
