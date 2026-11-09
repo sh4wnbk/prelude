@@ -100,9 +100,14 @@ class TestTheContextIsOpenedInTheTap:
         assert len(built) == 1, built
 
     def test_it_resumes_a_suspended_context_inside_the_tap(self):
-        body = opener()
+        """Task 24 moved the resume out of the opener and into
+        `resumeContext`, which the tap calls and then waits on before play().
+        It is still asked for inside the gesture, which is the part iOS cares
+        about, and `tests/test_narration_scrubber.py` holds the waiting."""
+        body = block_after(player(), "function resumeContext(")
         assert "suspended" in body
         assert ".resume()" in body
+        assert "resumeContext()" in play_handler()
 
 
 class TestTheSoundStillReachesTheSpeakers:

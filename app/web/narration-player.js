@@ -63,6 +63,8 @@
       var levels = null;
       var frame = 0;
       var webAudioOff = false;
+      // The first play starts at the opening word.
+      var firstPlay = true;
 
       function claimPlaybackSession() {
         // iOS silences a page under the silent switch unless the page says its
@@ -78,15 +80,13 @@
 
       function openAnalyser() {
         // Called from inside the tap: iOS starts every context suspended and
-        // resumes one only on a user gesture. One context and one source node
-        // per element for the life of the page, so replay reuses them; a
-        // second createMediaElementSource on the same element throws and takes
-        // the sound with it.
+        // resumes one only on a user gesture, which resumeContext asks for
+        // straight after this. One context and one source node per element
+        // for the life of the page, so replay reuses them; a second
+        // createMediaElementSource on the same element throws and takes the
+        // sound with it.
         claimPlaybackSession();
         if (audioCtx || webAudioOff) {
-          if (audioCtx && audioCtx.state === 'suspended') {
-            audioCtx.resume();
-          }
           return;
         }
         var Ctx = window.AudioContext || window.webkitAudioContext;
@@ -110,9 +110,6 @@
           sourceNode = src;
           analyser = node;
           levels = new Uint8Array(node.frequencyBinCount);
-          if (ctx.state === 'suspended') {
-            ctx.resume();
-          }
         } catch (err) {
           webAudioOff = true;
           analyser = null;
@@ -128,6 +125,26 @@
             audioCtx = ctx;
             sourceNode = src;
           }
+        }
+      }
+
+      function resumeContext() {
+        // Answers with a promise that settles once the context is running.
+        // The tap waits for it before play(), because the element's clock
+        // starts whether or not the graph is running: a suspended context is
+        // what iOS hands back, and the opening word goes into it and is lost.
+        // resume() answers with a promise in a current engine and with
+        // nothing in an older one, and both are waited on the same way.
+        if (!audioCtx || audioCtx.state !== 'suspended') {
+          return Promise.resolve();
+        }
+        try {
+          var resuming = audioCtx.resume();
+          return resuming && typeof resuming.then === 'function'
+            ? resuming
+            : Promise.resolve();
+        } catch (err) {
+          return Promise.resolve();
         }
       }
 
@@ -167,11 +184,25 @@
         });
       }
 
-      playBtn.addEventListener('click', function () {
+      playBtn.addEventListener('click', async function () {
         if (audio.paused) {
           openAnalyser();
-          audio.play();
+          // The context has to be running before play(), or the opening word
+          // is lost. resume() is asked for inside the tap and waited on here,
+          // and play() is the first thing after it.
+          await resumeContext();
+          if (firstPlay) {
+            audio.currentTime = 0;
+          }
+          firstPlay = false;
           playIcon.textContent = 'pause';
+          var playing = audio.play();
+          if (playing && playing.catch) {
+            playing.catch(function () {
+              // Refused, so the icon must not claim it is playing.
+              playIcon.textContent = 'play_arrow';
+            });
+          }
         } else {
           audio.pause();
           playIcon.textContent = 'play_arrow';
