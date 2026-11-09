@@ -27,8 +27,9 @@ What the demo is, precisely:
   a list and takes a seat. Both land on ticket details, and Enter match opens the
   match at its pre-moment state.
 - **The moment card plays its narration.** The play button on that card plays
-  the recording written for this listener, with the waveform and the timer
-  following the audio; `app/web/narration-player.js` is the player and
+  the recording written for this listener, with the timer and the amber fill
+  following the clock and the waveform bars rising and falling with the voice
+  through a Web Audio analyser; `app/web/narration-player.js` is the player and
   `hero.audio` in `app/web/matches.json` is where it finds the file. The play
   buttons on the moments list are still markup: they change their own icon and
   nothing else, because those moments have no recording.

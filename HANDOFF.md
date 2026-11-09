@@ -3004,6 +3004,96 @@ the second is dropped, and the reaction is left out of the shape. Shawn's
 four references for each hero goal come out as four shapes, so it is not
 over-eager. Applied to the eighteen this run produced it flags two.
 
+### Task 23: the waveform bars follow the voice (done)
+
+**The waveform was a progress bar.** The bar heights were fixed in the card's
+markup and the amber fill ran left to right with the clock, so a fan watching
+it learned how far through the recording they were and nothing about the
+sound. The film's listening shot shows bars that move with the voice, and the
+condition was that the app ships the same thing.
+
+**`app/web/narration-player.js` now puts the element through a Web Audio
+analyser.** The first play tap opens one `AudioContext` and resumes it inside
+the tap, because iOS starts every context suspended and resumes one only on a
+user gesture. The Audio element goes through a `MediaElementAudioSourceNode`
+into an `AnalyserNode` and on to the context's destination, which is the
+connect that keeps the sound reaching the speakers. While it plays,
+`requestAnimationFrame` sets each bar's inline height from the analyser's
+levels, reading the bottom half of the spectrum where a voice puts its energy;
+on pause and at the end the loop is cancelled and the inline heights are
+cleared, which hands every bar back to the height its class sets. The amber
+fill is untouched: it is classes and the heights are inline styles, so
+progress and voice do not meet.
+
+**Three things about that were worth getting right, and the tests hold each.**
+The context is created in the tap rather than at load, or iOS would leave it
+suspended and the bars would be dead while the narration played. The source
+node is created once per element, because a second
+`createMediaElementSource` on the same element throws, which a fan would meet
+on the second tap and not the first. And where `navigator.audioSession`
+exists its type is set to `"playback"`, so the silent switch does not mute the
+narration.
+
+**Every bit of Web Audio is optional.** With no `AudioContext`, or if any of
+the wiring throws, the analyser stays null and the player keeps exactly what
+it did before: fixed bars, the amber fill as progress, and the recording
+playing. If the element was already captured when the failure came, its source
+node is connected straight to the destination, so a failure costs the bars and
+not the sound.
+
+**`tests/test_narration_waveform.py`, 25 tests.** They read the player's own
+handler bodies rather than searching the file, because "the context is created
+inside the tap" cannot be told from "the context is created somewhere in this
+file" by searching for a string: `block_after` walks the braces from a marker
+and returns that block. They also strip the line comments first, since the
+comments say what the code does in the same words and a test that counted the
+prose would pass on a file that only talked about connecting to the
+destination. 21 of the 25 fail against the player at `c2bac5c`; the 4 that do
+not are the ones about what did not change, which are the resting heights in
+the card, `slotFor` and `hero.audio`, and the element never being repointed.
+
+**Driven in headless Chromium on both matches**, 390 by 844, with `app/web/`
+served on port 8099 and the recording played to its end. A forward seek is
+dropped here, because `http.server` answers no Range request, so the end was
+reached by letting it run rather than by seeking.
+
+| What was read | 1986, `3750191_storyteller_neutral.mp3` | 2022, `3869685_storyteller_neutral.mp3` |
+| ------------- | --------------------------------------- | --------------------------------------- |
+| audio plays | yes, to 24.70 s | yes, to 24.94 s |
+| frames sampled while playing | 14 | 14 |
+| frames unlike the resting heights | 14 | 14 |
+| distinct frames among them | 14 | 14 |
+| lowest and highest bar, px | 6.0 and 35.3 | 6.0 and 33.2 |
+| bars with an inline height while playing | 24 | 24 |
+| heights after pause | back to resting, 0 inline | back to resting, 0 inline |
+| replay tap: frames unlike resting, distinct | 8 of 8, 8 | 8 of 8, 8 |
+| heights after the end | back to resting, 0 inline | back to resting, 0 inline |
+| amber bars at 3 s, and at the end | 3, then 24 | 3, then 24 |
+| page errors | none | none |
+
+The resting heights read the same on both, `[14, 20, 28, 32, 20, 14, 24, 36,
+28, 20, 32, 36, 24, 32, 36, 28, 24, 32, 20, 28, 16, 24, 12, 8]`, which is the
+markup with the Tailwind CDN loaded. The replay row is the part a source test
+cannot reach: it is the second `openAnalyser` call, against a context and a
+source node that already exist, and the bars still move with no error.
+
+**Two things the run showed that are not defects.** The element is
+`new Audio(file)` and is never attached to the document, so the harness wraps
+`window.Audio` to keep a reference to it; the wrapper returns a real
+`HTMLAudioElement` and the page cannot tell. And the reported duration moves
+from 22.72 s to 24.70 s on the 1986 recording once the file is fully decoded,
+which is an MP3 estimate being corrected, not the clock drifting.
+
+**Nothing that decides which recording plays was touched.** The audio files,
+the narration text, `hero.audio`, `Prelude.slotFor` and the side rule are as
+they were, and the player still sends and parses nothing. `docs/DESIGN.md` no
+longer calls the waveform static, and `README.md` says what the bars follow.
+
+`pytest -q` reports `1754 passed` and all five gates exit 0.
+
+**Still Shawn's to do:** the card on his iPhone, with the silent switch off
+and then on, before the film clip is re-recorded.
+
 ### Task 22: rule 4 refuses a summary outright, and the two-digit rules line up (done)
 
 **Rule 4 had a clause that no longer led anywhere.** It read: if you cannot

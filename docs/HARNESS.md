@@ -203,7 +203,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 1729 tests in thirty five files. Any failure means something is
+The suite is 1754 tests in thirty six files. Any failure means something is
 wrong. It is run from the repo root:
 
 ```
@@ -234,6 +234,7 @@ wrote that file as Task 15; it exists now and they pass.
 | `tests/test_narrator_picker.py` | the narrator picker: one lookup for the recording a fan hears, where the choice is stored, and what Profile shows. Written as the acceptance tests for Task 14, and all 39 pass since Bob built it |
 | `tests/test_narrators.py` | "Your narrator" on Profile: the Buddy rename, the list written from the personas, the current narrator marked, the coming-soon note, and Change as an outline, built by Bob in Task 12 |
 | `tests/test_narration_player.py` | playback on the moment card: which recording each listener hears, the audio map, the player's wiring, and that it sends nothing, built by Bob in Task 11 |
+| `tests/test_narration_waveform.py` | the waveform following the real audio: the analyser opened inside the play tap, the element reaching the speakers through it, one source node reused on replay, the audio session, the fallback with no Web Audio, and the bars resting on pause and at the end |
 | `tests/test_narration_eval.py` | the key beats, the coverage measure, the token recorder and the voices a run is split into |
 | `tests/test_listener_card.py` | the "Who are you with" card: its copy, where it loads, the storage keys and values, that it sends nothing, the name at the end of the header, and the Live badge not wrapping, built by Bob in Task 9 |
 | `tests/test_live_before.py` | where the 1986 fan steps away: 52' at 1 to 0, in `app/web/matches.json` and inline on the Live screen, built by Bob in Task 8 |

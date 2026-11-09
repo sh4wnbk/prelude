@@ -251,11 +251,15 @@ Selected chip `rounded-full bg-surface-container-high text-primary`, unselected
 
 ### Waveform
 
-Static bars, no canvas. Two variants:
+Bars, no canvas. Two variants:
 
 - Moment card: `w-[3px]` bars, heights `h-2` to `h-9`, played bars
   `bg-primary-container`, unplayed `bg-secondary-container/70`, on a
   `bg-surface-container-lowest/60 rounded-lg` track. 24 bars, in `03`.
+  Those heights are where the bars rest. While the narration plays,
+  `narration-player.js` sets an inline height on each bar from a Web Audio
+  analyser and clears it again on pause and at the end, so the heights are the
+  voice; the two colors still follow the clock, so the amber fill is progress.
   A playhead in `03` is `w-1.5 h-7 bg-primary rounded-full` with
   `shadow-[0_0_8px_rgba(255,219,160,0.8)]`, positioned `left-[78%]`.
 - Moments cards: `w-1` bars on a `rounded bg-surface-container-highest` track,
