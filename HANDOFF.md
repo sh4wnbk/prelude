@@ -3077,6 +3077,15 @@ markup with the Tailwind CDN loaded. The replay row is the part a source test
 cannot reach: it is the second `openAnalyser` call, against a context and a
 source node that already exist, and the bars still move with no error.
 
+**And then against the deployed site**, <https://sh4wnbk.github.io/prelude/>,
+once the Pages job for `6c22238` had run. Both cards load
+`narration-player.js?v=6c22238`, which is the stamped copy of the committed
+file, and both play the Storyteller's neutral recording. Ten of ten sampled
+frames were unlike the resting heights and all ten were distinct, the bars
+ran 6.0 to 33.8 px on the 1986 recording and 6.0 to 33.3 on the 2022 one, the
+heights came back to the resting list on pause, and neither page reported an
+error.
+
 **Two things the run showed that are not defects.** The element is
 `new Audio(file)` and is never attached to the document, so the harness wraps
 `window.Audio` to keep a reference to it; the wrapper returns a real
