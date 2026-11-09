@@ -178,11 +178,17 @@ class TestItFallsBackWithoutWebAudio:
 
     def test_the_progress_fill_does_not_depend_on_any_of_it(self):
         """The fill is classes on the bars and the heights are inline styles,
-        so the fallback keeps the fill the player always had."""
-        body = block_after(player(), "audio.addEventListener('timeupdate'")
+        so the fallback keeps the fill the player always had. Task 24 moved it
+        into `paintProgress`, which a scrub paints with as well as the clock,
+        and the clock's handler is checked here for the same thing."""
+        body = block_after(player(), "function paintProgress(")
         assert "bg-primary-container" in body
         assert "style.height" not in body
         assert "analyser" not in body
+        clock = block_after(player(), "audio.addEventListener('timeupdate'")
+        assert "paintProgress(" in clock
+        assert "style.height" not in clock
+        assert "analyser" not in clock
 
 
 class TestTheBarsFollowTheVoice:

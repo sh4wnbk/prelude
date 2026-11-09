@@ -57,14 +57,20 @@
       // still shows progress, with the narration still playing.
       var REST_MIN_PX = 6;
       var REST_MAX_PX = 36;
+      // Each arrow key moves the position by this many seconds.
+      var ARROW_SECONDS = 5;
       var audioCtx = null;
       var analyser = null;
       var sourceNode = null;
       var levels = null;
       var frame = 0;
       var webAudioOff = false;
-      // The first play starts at the opening word.
+      // The first play starts at the opening word, unless the fan has moved
+      // the playhead themselves before taking it.
       var firstPlay = true;
+      var playheadMoved = false;
+      // The pointer that owns the drag, or null when nothing is dragging.
+      var scrubPointer = null;
 
       function claimPlaybackSession() {
         // iOS silences a page under the silent switch unless the page says its
@@ -184,6 +190,73 @@
         });
       }
 
+      function paintProgress(fraction) {
+        // The amber fill and the playhead, from a position rather than from
+        // the clock, so a drag shows where the finger is whether the recording
+        // is playing or paused. Classes and `left` only: the bar heights are
+        // inline styles and belong to the analyser, so progress and voice
+        // still do not meet.
+        var filled = Math.round(bars.length * fraction);
+        bars.forEach(function (bar, idx) {
+          if (idx < filled) {
+            bar.classList.add('bg-primary-container');
+            bar.classList.remove('bg-secondary-container/70');
+          } else {
+            bar.classList.remove('bg-primary-container');
+            bar.classList.add('bg-secondary-container/70');
+          }
+        });
+        if (playhead) {
+          playhead.style.left = (fraction * 100) + '%';
+        }
+      }
+
+      function paintClock(seconds) {
+        var elapsed = Math.floor(seconds);
+        var m = Math.floor(elapsed / 60);
+        var s = elapsed % 60;
+        timerReadout.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+        scrubTrack.setAttribute('aria-valuenow', seconds.toFixed(1));
+      }
+
+      function playLength() {
+        // 0 while the length is unknown, which covers every state a scrub has
+        // nothing to seek within: no metadata yet, or no length at all.
+        var total = audio.duration;
+        return total && isFinite(total) && total > 0 ? total : 0;
+      }
+
+      function paintRange() {
+        var total = playLength();
+        if (total) {
+          scrubTrack.setAttribute('aria-valuemax', total.toFixed(1));
+        }
+      }
+
+      function seekToFraction(fraction) {
+        // The position under the finger, as a fraction of the track's width,
+        // is the position in the recording, clamped to the start and the end.
+        // Playing stays playing and paused stays paused: nothing here calls
+        // play() or pause().
+        var total = playLength();
+        if (!total) {
+          return;
+        }
+        var at = Math.max(0, Math.min(1, fraction));
+        playheadMoved = true;
+        audio.currentTime = at * total;
+        paintProgress(at);
+        paintClock(audio.currentTime);
+      }
+
+      function fractionAtX(clientX) {
+        var rect = scrubTrack.getBoundingClientRect();
+        if (!rect.width) {
+          return 0;
+        }
+        return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      }
+
       playBtn.addEventListener('click', async function () {
         if (audio.paused) {
           openAnalyser();
@@ -191,7 +264,7 @@
           // is lost. resume() is asked for inside the tap and waited on here,
           // and play() is the first thing after it.
           await resumeContext();
-          if (firstPlay) {
+          if (firstPlay && !playheadMoved) {
             audio.currentTime = 0;
           }
           firstPlay = false;
@@ -219,30 +292,17 @@
         restBars();
       });
 
+      audio.addEventListener('loadedmetadata', paintRange);
+      audio.addEventListener('durationchange', paintRange);
+      paintRange();
+
       audio.addEventListener('timeupdate', function () {
-        var duration = audio.duration;
-        var current = audio.currentTime;
-        if (!duration || duration === 0) {
+        var total = playLength();
+        if (!total) {
           return;
         }
-        var fraction = current / duration;
-        var filled = Math.round(bars.length * fraction);
-        bars.forEach(function (bar, idx) {
-          if (idx < filled) {
-            bar.classList.add('bg-primary-container');
-            bar.classList.remove('bg-secondary-container/70');
-          } else {
-            bar.classList.remove('bg-primary-container');
-            bar.classList.add('bg-secondary-container/70');
-          }
-        });
-        if (playhead) {
-          playhead.style.left = (fraction * 100) + '%';
-        }
-        var elapsed = Math.floor(current);
-        var m = Math.floor(elapsed / 60);
-        var s = elapsed % 60;
-        timerReadout.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+        paintProgress(audio.currentTime / total);
+        paintClock(audio.currentTime);
       });
 
       audio.addEventListener('ended', function () {
@@ -257,13 +317,74 @@
         playIcon.textContent = 'pause';
       });
 
-      scrubTrack.addEventListener('click', function (e) {
-        var rect = scrubTrack.getBoundingClientRect();
-        var fraction = (e.clientX - rect.left) / rect.width;
-        fraction = Math.max(0, Math.min(1, fraction));
-        if (audio.duration) {
-          audio.currentTime = fraction * audio.duration;
+      scrubTrack.addEventListener('pointerdown', function (e) {
+        // Pointer events are one path for touch and for mouse. The capture
+        // keeps the moves coming to the track once the finger has left it, so
+        // a drag that strays above or below the bars still scrubs.
+        scrubPointer = e.pointerId;
+        if (scrubTrack.setPointerCapture) {
+          try {
+            scrubTrack.setPointerCapture(e.pointerId);
+          } catch (err) {
+            // An engine may refuse the capture; the drag then ends at the edge.
+          }
         }
+        // A drag on the waveform scrubs rather than scrolling or selecting.
+        e.preventDefault();
+        scrubTrack.focus();
+        seekToFraction(fractionAtX(e.clientX));
+      });
+
+      scrubTrack.addEventListener('pointermove', function (e) {
+        if (scrubPointer === null || e.pointerId !== scrubPointer) {
+          return;
+        }
+        e.preventDefault();
+        seekToFraction(fractionAtX(e.clientX));
+      });
+
+      function endScrub(e, seek) {
+        if (scrubPointer === null || e.pointerId !== scrubPointer) {
+          return;
+        }
+        if (seek) {
+          seekToFraction(fractionAtX(e.clientX));
+        }
+        scrubPointer = null;
+        if (scrubTrack.releasePointerCapture) {
+          try {
+            scrubTrack.releasePointerCapture(e.pointerId);
+          } catch (err) {
+            // Already released, which is the outcome either way.
+          }
+        }
+      }
+
+      scrubTrack.addEventListener('pointerup', function (e) {
+        endScrub(e, true);
+      });
+
+      scrubTrack.addEventListener('pointercancel', function (e) {
+        // The gesture was taken over rather than finished, so the position it
+        // reached stands and nothing moves again.
+        endScrub(e, false);
+      });
+
+      scrubTrack.addEventListener('keydown', function (e) {
+        var step = 0;
+        if (e.key === 'ArrowRight') {
+          step = ARROW_SECONDS;
+        } else if (e.key === 'ArrowLeft') {
+          step = -ARROW_SECONDS;
+        } else {
+          return;
+        }
+        var total = playLength();
+        if (!total) {
+          return;
+        }
+        e.preventDefault();
+        seekToFraction((audio.currentTime + step) / total);
       });
     });
   }
