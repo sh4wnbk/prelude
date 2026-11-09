@@ -3105,6 +3105,17 @@ reaches no service and needs a local ffmpeg, on `PATH` or named by
 had none and the only copy on it was Playwright's, built with
 `--disable-everything` and carrying no MP3 codec at all.
 
+**And the deployed site serves them**, <https://sh4wnbk.github.io/prelude/>,
+once the Pages job for `81f12a6` had run (`42721414300`, success). Each of the
+six was fetched from `assets/audio/` and came back `200` with
+`Accept-Ranges: bytes` and a body SHA-256 identical to the committed file:
+192,213, 198,573, 222,885, 229,629, 211,485 and 230,949 bytes, in the order
+the table above lists them. Seeking still has what it needs on the rewritten
+files: `Range: bytes=1000-1999` on
+`assets/audio/3869685_storyteller_neutral.mp3` returned `206 Partial Content`
+with `Content-Range: bytes 1000-1999/230949`, and those 1,000 bytes are the
+committed file's bytes 1000 to 1999.
+
 `pytest -q` reports `1815 passed` and all five gates exit 0.
 
 **Still Shawn's to do:** the card on his iPhone, on the speaker and on
