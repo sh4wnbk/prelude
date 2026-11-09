@@ -261,7 +261,15 @@ Bars, no canvas. Two variants:
   analyser and clears it again on pause and at the end, so the heights are the
   voice; the two colors still follow the clock, so the amber fill is progress.
   A playhead in `03` is `w-1.5 h-7 bg-primary rounded-full` with
-  `shadow-[0_0_8px_rgba(255,219,160,0.8)]`, positioned `left-[78%]`.
+  `shadow-[0_0_8px_rgba(255,219,160,0.8)]`, positioned `left-[78%]` in the
+  markup and from the position in the recording once the player runs.
+  That track is also the scrubber, so in `03` it carries `role="slider"`,
+  `tabindex="0"`, an `aria-label`, `aria-valuemin`, `aria-valuemax`,
+  `aria-valuenow` and `style="touch-action: none;"`. The touch rule is written
+  inline rather than as a class, and it is on this element alone: a drag on the
+  bars has to reach the handlers, and nothing else may stop a scroll. No focus
+  style is defined on it,
+  which is the keyboard focus gap this file already records.
 - Moments cards: `w-1` bars on a `rounded bg-surface-container-highest` track,
   same played and unplayed colors. `04`.
 

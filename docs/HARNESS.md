@@ -338,6 +338,13 @@ because a skip would have let the suite go green with nothing built.
   `tests/test_narration_player.py::TestThePlayer`). `scripts/tts_samples.py`
   still writes WAV files outside the repo for Shawn to listen to, and nothing
   in `app/web/` reaches the service.
+- **Seeking in those files needs a host that answers Range requests.** The
+  waveform is a scrubber (`tests/test_narration_scrubber.py`), so a drag asks
+  the element for a position it may not have buffered. GitHub Pages answers a
+  `Range: bytes=` request for an MP3 under `assets/audio/` with `206` and
+  `Accept-Ranges: bytes`. `http.server` does not: it returns the whole file
+  with `200`, so a local run that has to exercise a forward seek needs a
+  server that implements ranges.
 - **The moment card reads narration, by the same key as the recording.** The
   text comes from `app/web/narrations.json`, which holds one frozen narration
   per `hero.voice_for` key, and the card and the player ask one lookup in

@@ -30,9 +30,12 @@ What the demo is, precisely:
   the recording written for this listener, with the timer and the amber fill
   following the clock and the waveform bars rising and falling with the voice
   through a Web Audio analyser; `app/web/narration-player.js` is the player and
-  `hero.audio` in `app/web/matches.json` is where it finds the file. The play
-  buttons on the moments list are still markup: they change their own icon and
-  nothing else, because those moments have no recording.
+  `hero.audio` in `app/web/matches.json` is where it finds the file. The
+  waveform is also the scrubber: dragging it with a finger or a mouse moves the
+  recording to the position under the pointer, playing or paused, and the left
+  and right arrow keys move five seconds. The play buttons on the moments list
+  are still markup: they change their own icon and nothing else, because those
+  moments have no recording.
 - **Nothing is live.** The demo replays StatsBomb historical data: the 1986
   Argentina vs England quarter-final and the 2022 Argentina vs France final,
   each presented as if it were unfolding now. There is no live feed, no venue,

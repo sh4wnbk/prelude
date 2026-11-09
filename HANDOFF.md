@@ -3004,6 +3004,156 @@ the second is dropped, and the reaction is left out of the shape. Shawn's
 four references for each hero goal come out as four shapes, so it is not
 over-eager. Applied to the eighteen this run produced it flags two.
 
+### Task 24: the waveform is a scrubber, and the opening word is not cut (done)
+
+**The first word was cut on an iPhone.** The 2022 Storyteller started at
+"tina" rather than at "Argentina". Since Task 23 the element is routed through
+a Web Audio graph, and iOS starts every `AudioContext` suspended: `play()`
+called before the context is running starts the element's clock into a graph
+that renders nothing, and whatever plays in that gap is gone.
+
+**So the order changed, and nothing else did.** The resume moved out of
+`openAnalyser` into `resumeContext`, which answers with a promise on every
+path, including the two that have nothing to do and the one that throws. The
+play handler is `async`: it opens the graph, asks for the resume inside the
+tap, waits for it, and then plays. The first play starts at `currentTime` 0
+unless the fan has already moved the playhead themselves, in which case it
+starts where they left it. A refused `play()` puts the icon back rather than
+leaving a pause icon over silence.
+
+**No audio file was re-encoded, so the lead-in of silence was not needed to
+get this far.** The six MP3s are byte for byte what they were, and
+`tests/test_narration_scrubber.py` carries their SHA-256 digests so that
+adding a lead-in would have to be a deliberate change made with that list.
+**Whether it is needed at all is Shawn's iPhone to answer**, because headless
+Chromium does not reproduce the clipping: suspending the context there stops
+the element rather than letting it play into a stopped graph. Measured on both
+matches, the clock stood still at 16.936 s (1986) and 16.737 s (2022) across
+500 ms of a suspended context, so 0.000 s of audio was lost where iOS loses
+the opening word. Chromium can show that the new order runs; only the phone
+can show that it was enough.
+
+**The waveform is a scrubber now.** It could show a position and not set one:
+a `click` handler read `e.clientX`, which a tap gives too, so there was no
+drag and no keyboard. It is `pointerdown`, `pointermove` and `pointerup` with
+pointer capture, which is one path for touch and for mouse, and the capture is
+what keeps a drag alive once the finger has left the bars. The position under
+the finger, as a fraction of the track's width, is the position in the
+recording, clamped to the start and the end. A cancelled gesture leaves the
+playhead where it reached rather than seeking again.
+
+**The amber fill follows the finger immediately, playing or paused.** It used
+to be painted in the `timeupdate` handler, and a paused recording sends none,
+so the fill and the playhead are painted from the fraction in `paintProgress`
+and the clock's handler calls the same function. Playing stays playing and
+paused stays paused: nothing in the scrub path calls `play()` or `pause()`.
+Task 23's bars carry on untouched, because the scrub paints classes and `left`
+while the analyser sets inline heights.
+
+**The waveform is a slider for a keyboard too.** The track carries
+`role="slider"`, `aria-label="Narration position in seconds"`,
+`aria-valuemin="0"`, `tabindex="0"`, the recording's length as
+`aria-valuemax` from `loadedmetadata` and `durationchange`, and the position
+in seconds as `aria-valuenow`, kept current by the same function that writes
+the timer. The left and right arrows move five seconds and any other key is
+left to the page. It has no focus style yet, which is the keyboard focus item
+already in the Phase 5 backlog below rather than something this task added.
+
+**`touch-action: none` is on the waveform alone**, so a drag scrubs instead of
+scrolling the page, and nothing else on the card stops a scroll. A test counts
+the occurrences in the card, because a page that cannot be scrolled would be a
+worse fault than a scrubber that is hard to grab.
+
+**Nothing that decides which recording plays was touched.** The audio files,
+the narration text, `hero.audio`, `Prelude.slotFor` and the side rule are as
+they were; with no recording for the fan's key the player still returns before
+it builds the element, so there is no scrub handler to fire; and the player
+still sends and parses nothing.
+
+**`tests/test_narration_scrubber.py`, 43 tests.** They read the player's own
+handler bodies, with the line comments stripped first, and 32 of them fail
+against the player at `455939f`. The 11 that pass are the seven about the
+recordings being untouched, the three about what did not change, and the one
+that counts a single `play()` in the tap.
+
+That is the helper and the reason from `tests/test_narration_waveform.py`,
+where two of the existing tests were rewritten rather than deleted, because
+the code they read moved: the resume is now in `resumeContext`, and the fill
+is now in `paintProgress`.
+
+**Driven in headless Chromium on both matches**, 390 by 844 with touch, with
+`app/web/` served on port 8099 by a server that answers Range requests.
+`http.server` answers 200 with the whole file whatever Range asks for, so a
+forward seek into an unbuffered part of an MP3 cannot be checked against it.
+
+| What was read | 1986, `3750191_storyteller_neutral.mp3` | 2022, `3869685_storyteller_neutral.mp3` |
+| ------------- | --------------------------------------- | --------------------------------------- |
+| duration at metadata, s | 22.72 | 22.42 |
+| aria-valuemax once metadata was in | 22.7 | 22.4 |
+| tap at a quarter of the width, s | 5.68, of an expected 5.68 | 5.61, of an expected 5.61 |
+| the fraction it landed on | 0.2500 | 0.2500 |
+| playhead, and aria-valuenow, after it | 25%, and 5.7 | 25%, and 5.6 |
+| mouse drag to 0.85, s | 19.31, of an expected 19.31 | 19.06, of an expected 19.06 |
+| mouse drag back to 0.10, s | 2.27, of an expected 2.27 | 2.24, of an expected 2.24 |
+| touch drag to 0.60, s | 13.63, of an expected 13.63 | 13.45, of an expected 13.45 |
+| paused throughout those three | yes | yes |
+| scrollable page, and scrollY across a drag carrying 140 px of vertical | 241 px, 120 then 120 | 290 px, 120 then 120 |
+| arrows from 10 s: right, then two lefts | 15.0, then 5.0 | 15.0, then 5.0 |
+| focus after a pointerdown | `scrubTrack` | `scrubTrack` |
+| scrub to 0.70 while playing, s | 16.22, and still playing | 16.01, and still playing |
+| frames after that scrub unlike resting, distinct | 6 of 6, 6 | 6 of 6, 6 |
+| scrub to 0.30 while paused, s | 6.81, and still paused | 6.73, and still paused |
+| heights after the pause | back to resting, 0 inline | back to resting, 0 inline |
+| seek to three seconds from the end, then play | played on from 20.92 | played on from 20.63 |
+| a Range request from the page | 206, `Accept-Ranges: bytes`, 1,000 bytes | 206, `Accept-Ranges: bytes`, 1,000 bytes |
+| page errors | none | none |
+
+The scrub to 0.70 lands a little past the expected 15.90 and 15.70 because the
+recording went on playing while the drag was being made, which is the point of
+that row: the drag did not stop it.
+
+**And a second pass on a page nothing had scrubbed**, because the busier page
+above has moved the playhead by then and the player is right to leave it
+alone, so the reset cannot be seen there. With the element's clock set to
+7.0 s before the first tap, the first play started at 0.013 s (1986) and
+0.014 s (2022), and the clock then ran on normally. With the context suspended
+by hand before a second tap, it read `running` by the time the recording
+played and the clock advanced 0.413 s and 0.409 s over 400 ms, which is the
+new order doing its work.
+
+**Then against the deployed site**, <https://sh4wnbk.github.io/prelude/>, once
+the Pages job for `5344427` had run. Both cards load
+`narration-player.js?v=5344427`, which is MD5 identical to the committed
+file (`9e2f6128cf147cda0219f349825b5b3e` both sides). Every row above read the same
+there, within the timing of a recording that keeps playing: the quarter tap,
+both drags, the touch drag, the arrows, the two scrubs and the resting heights
+were identical, 0 page errors on either card, and the fresh pass started the
+first play at 0.014 s and 0.015 s.
+
+**GitHub Pages answers audio requests with ranges, which is what seeking
+needs.** A plain GET of `assets/audio/3869685_storyteller_neutral.mp3` returns
+`200` with `Accept-Ranges: bytes` and `Content-Length: 225188`, and
+`Range: bytes=1000-1999` returns `206 Partial Content` with
+`Content-Range: bytes 1000-1999/225188` and `Accept-Ranges: bytes`.
+
+`pytest -q` reports `1797 passed` and all five gates exit 0.
+
+**One thing to know about running the suite.**
+`tests/test_authored_narrations.py::TestWhatTheCheckSays::test_the_script_says_so_and_exits_zero`
+runs `scripts/authored_narrations.py`, which rewrites
+`docs/narration_runs/authored_2026-11-07.md` and `.json` with the date it ran
+on. So a clean tree comes back dirty on those two files after any `pytest`,
+with the body saying 2026-11-09 under a filename saying 2026-11-07. It was
+there before this task, nothing was committed from it, and tidying it is its
+own small job.
+
+**Still Shawn's to do:** the card on his iPhone. Tap, drag forward, drag back,
+on both matches, playing and paused, and listen for whether "Argentina" is
+whole. If it is still cut, the next step is the one this task did not need: a
+lead-in of about 300 ms of silence at the start of each of the six MP3s,
+re-encoded locally with ffmpeg and no TTS call, with the spoken audio
+unchanged and `hero.audio` keeping the same paths.
+
 ### Task 23: the waveform bars follow the voice (done)
 
 **The waveform was a progress bar.** The bar heights were fixed in the card's
