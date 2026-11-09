@@ -3004,6 +3004,118 @@ the second is dropped, and the reaction is left out of the shape. Shawn's
 four references for each hero goal come out as four shapes, so it is not
 over-eager. Applied to the eighteen this run produced it flags two.
 
+### Task 25: half a second of silence in front of every recording (done)
+
+**Task 24 fixed one of the two causes and the word was still cut.** With the
+Web Audio resume awaited inside the tap, the 2022 Storyteller still began at
+"tina" rather than at "Argentina" on Shawn's iPhone. The remaining cause is
+below the page: the audio output wakes a moment after `play()` starts, and the
+opening of the file was landing inside that wake. Task 24 said what the next
+step would be if the order was not enough, and this is it, at 500 ms rather
+than the 300 ms guessed there.
+
+**Nothing was re-encoded, and that was a decision with a measurement behind
+it.** An MP3 is a sequence of frames, so a lead-in can go in front of the
+spoken frames instead of being mixed into them: `scripts/pad_hero_audio.py`
+builds half a second of silence as its own MP3 and concatenates it with the
+original through ffmpeg's concat demuxer with `-c copy`, which hands the
+original's frames through untouched. The re-encode was tried first on
+`3750191_storyteller_neutral.mp3`, against a signal of -28.8 dBFS: libmp3lame
+at 80 kbps CBR left an error 20.9 dB below it at 253,005 bytes, VBR quality 2
+left 27.7 dB at 218,637 bytes, and the frame copy left no error to measure at
+222,885 bytes. So the copy is what shipped, and the recordings keep 24000 Hz,
+one channel and their own bitrates because they keep their own frames.
+
+**The six, measured by `--check` against `9da1a30` with both sides decoded to
+PCM.** Every lead-in is 12,143 samples and every duration grew by the same
+0.506 s, so those two columns are one figure each rather than six.
+
+| What was read | Every one of the six |
+| ------------- | -------------------- |
+| lead-in | 506.0 ms, 12,143 samples |
+| samples after the lead-in | identical to the original's, every one |
+| worst sample difference | 0 |
+| frames copied rather than re-encoded | yes |
+| decoded duration added | +0.506 s |
+| opening 400 ms, peak | -inf dBFS, digital silence |
+| sample rate, channels | 24000 Hz, 1, both unchanged |
+
+| Recording | bytes | bitrate, bps | decoded duration, s | samples held identical |
+| --------- | ----: | -----------: | ------------------: | ---------------------: |
+| `3750191_buddy_conceded.mp3` | 186,452 to 192,213 | 71,850 to 72,308 | 20.760 to 21.266 | 498,240 |
+| `3750191_buddy_scored.mp3` | 192,812 to 198,573 | 70,241 to 70,711 | 21.960 to 22.466 | 527,040 |
+| `3750191_storyteller_neutral.mp3` | 217,124 to 222,885 | 70,267 to 70,684 | 24.720 to 25.226 | 593,280 |
+| `3869685_buddy_conceded.mp3` | 223,868 to 229,629 | 69,159 to 69,579 | 25.896 to 26.402 | 621,504 |
+| `3869685_buddy_scored.mp3` | 205,724 to 211,485 | 69,337 to 69,791 | 23.736 to 24.242 | 569,664 |
+| `3869685_storyteller_neutral.mp3` | 225,188 to 230,949 | 72,176 to 72,551 | 24.960 to 25.466 | 599,040 |
+
+**Both numbers in that table are measured rather than quoted.** The durations
+are decoded sample counts divided by the sample rate, and the bitrates are
+bytes over those durations. ffprobe's own figures are off because it divides by
+the header's estimate of the duration, which on these files is wrong: it
+reported 22.716 s and 76,450 bps for a file that decodes to 24.720 s and
+carries 70,267.
+
+**The lead-in lands at 506 ms and not 500 ms because an MP3 frame is not
+divisible.** A frame at 24000 Hz carries 576 samples, which is 24 ms, so half a
+second is 20.8 of them. ffmpeg wrote 24 silent frames, 576 ms encoded, and the
+decoder takes the encoder's delay off the front of that, leaving 506.0 ms. One
+frame is the tolerance `--check` allows, and 6.0 ms is inside it.
+
+**The file names did not change, so nothing that finds a recording changed.**
+`hero.audio` in `app/web/matches.json`, `Prelude.slotFor`, the side rule and
+every path the player fetches are as they were, and no TTS call was made: the
+paid path is `scripts/tts_hero.py` and it was not run.
+
+**One thing improved on the way past, unasked.** The concat demuxer wrote an
+accurate Xing header, so each file's header duration is now within 22 ms of its
+decoded length where the originals were up to 2.0 s short of it. Task 23
+recorded that gap as an estimate being corrected once the file was fully
+decoded, and Task 24's table recorded `aria-valuemax` taking the short figure
+at `loadedmetadata`. The scrubber's range is now right from the first metadata
+event instead: the headers read 21.288, 22.488, 25.248, 26.424, 24.264 and
+25.488 s, against decoded lengths of 21.266, 22.466, 25.226, 26.402, 24.242 and
+25.466.
+
+**`tests/test_narration_scrubber.py` is 61 tests now.** The six SHA-256 digests
+it pins are the padded files, which is the deliberate change that list was put
+there to force, and the comment above them says why they moved and that the
+spoken samples behind the lead-in are untouched. `TestTheLeadInIsThere` is the
+18 new ones, three per recording: the file opens with at least 400 ms of
+silence, the narration still follows it, and the lead-in is the longest run of
+silence in the file. All eighteen fail against the recordings at `9da1a30`.
+
+**Those tests decode nothing, so the suite still needs no ffmpeg.** Each frame
+carries `part2_3_length` and `big_values` in its side information, and both
+zero means the frame describes no sound, so silence is read off the format
+rather than compared against a level. The six open with 24 such frames every
+time. The third test holds the lead-in to being the longest silence rather than
+the only one because the narrations have pauses in them and the longest of
+those reaches 408 ms.
+
+**`scripts/pad_hero_audio.py` is what did it, and it is re-runnable.**
+`--plan` probes the six and writes nothing, `--confirm` pads and then prints
+the same comparison `--check` prints, and `--check --against <ref>` reads the
+unpadded originals out of git so the evidence can be produced again later. A
+second `--confirm` reports all six as already padded and writes nothing, which
+is what keeps a re-run from stacking a second half second on the first. It
+reaches no service and needs a local ffmpeg, on `PATH` or named by
+`PRELUDE_FFMPEG`; this run used the BtbN GPL static build
+`n8.1.3-27-g8dca1586f4-20261031`, installed with winget, because the machine
+had none and the only copy on it was Playwright's, built with
+`--disable-everything` and carrying no MP3 codec at all.
+
+`pytest -q` reports `1815 passed` and all five gates exit 0.
+
+**Still Shawn's to do:** the card on his iPhone, on the speaker and on
+earbuds, on both matches. Listen for whether "Argentina" is whole from the
+first tap, and whether half a second of silence before the voice is too long a
+wait on a tap that is already waiting for the context to resume. 500 ms is the
+figure asked for, not a measured minimum: if the word is whole and the gap
+drags, the lead-in can be rebuilt shorter by changing `LEAD_IN_SECONDS` in
+`scripts/pad_hero_audio.py` and re-running it over the recordings restored from
+`9da1a30`.
+
 ### Task 24: the waveform is a scrubber, and the opening word is not cut (done)
 
 **The first word was cut on an iPhone.** The 2022 Storyteller started at

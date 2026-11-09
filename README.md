@@ -299,6 +299,21 @@ Everything above it is structure.
   on `en-US_EmmaNatural` and the Buddy on `en-US_EthanNatural`, and
   `hero.audio` names all six, so the moment card's play button works for every
   listener.
+- `scripts/pad_hero_audio.py`: puts 500 ms of silence in front of each of those
+  six files, which is what the iPhone needed. The output wakes after `play()`
+  starts, so the opening of the file was landing inside that wake and
+  "Argentina" came out as "tina"; Task 24 fixed the Web Audio resume that was
+  the other half of it. **Nothing is re-encoded.** Half a second of silence is
+  built as its own MP3 and the original's frames are copied after it with
+  ffmpeg's concat demuxer, so the spoken audio decodes sample for sample
+  identical and keeps its 24000 Hz, its one channel and its own bitrate. It
+  calls no service and needs a local ffmpeg, on `PATH` or through
+  `PRELUDE_FFMPEG`. `--plan` probes the six and writes nothing, `--confirm`
+  pads the ones that are not padded yet and refuses the rest, and `--check`
+  decodes both sides and reports the lead-in, the samples and the two
+  durations against a git ref. **The six are padded:** each carries a 506.0 ms
+  lead-in, every sample behind it is the one the service wrote, and the
+  measurements are in `HANDOFF.md`.
 - `app/delivery.py`: the delivery table, one row per persona per situation,
   holding the rate, the pitch and the two pauses. The values are Shawn's, set
   by ear, with the rules enforced around them: no lowered pitch, no pause on a

@@ -114,6 +114,7 @@ collector from
 | `scripts/record_tts_golden.py` | records one real speech exchange for the suite to replay | `tests/golden/tts_synthesize.json` | Watson Text to Speech |
 | `scripts/tts_samples.py` | both hero goals in every voice, for Shawn to listen to | WAV files outside the repo | Watson Text to Speech |
 | `scripts/tts_hero.py` | the recordings the site serves: each hero goal in the voice each listener is sent to | MP3 files under `app/web/assets/`, and `hero.audio` in `app/web/matches.json` | Watson Text to Speech |
+| `scripts/pad_hero_audio.py` | puts 500 ms of silence in front of each of the six recordings, copying the spoken frames rather than re-encoding them, and `--check` is the comparison that says so | the six MP3s under `app/web/assets/audio/`, in place | nothing, and a local ffmpeg |
 | `scripts/freeze_narrations.py` | narrates both hero goals with the active model and freezes the ones the grounding check passes | `app/web/narrations.json` | watsonx.ai, and IBM Cloud IAM |
 | `scripts/authored_narrations.py` | the six the team wrote, re-checked against `data/raw/` by the check, the places rule and the opener rule | `docs/narration_runs/authored_2026-11-07.md` and `.json` | nothing |
 | `scripts/fallback_narrations.py` | the six fallback narrations kept in the repo, re-checked the same way | `docs/narration_runs/fallback_2026-11-05.md` and `.json` | nothing |
@@ -332,7 +333,20 @@ because a skip would have let the suite go green with nothing built.
   a header and a narration into audio and is callable from Python, and
   `scripts/tts_hero.py` is what called it: the six MP3s it wrote are committed
   under `app/web/assets/audio/` and named in `hero.audio` in
-  `app/web/matches.json`. `app/web/narration-player.js` on the moment card
+  `app/web/matches.json`. **Each of those six now opens with half a second of
+  silence**, put there by `scripts/pad_hero_audio.py` because the iPhone's
+  audio output wakes after `play()` starts and the opening word was landing
+  inside that wake. It is the one script here that needs a local ffmpeg, which
+  it finds on `PATH` or through `PRELUDE_FFMPEG`, and it reaches no service:
+  half a second of silence is built as its own MP3 and the original's frames
+  are copied after it with the concat demuxer, so the spoken audio is not
+  re-encoded and the recordings keep their 24000 Hz, their one channel and
+  their own bitrate. `--check` decodes both sides and reports the lead-in, the
+  samples and the two durations against a git ref, and `--confirm` refuses a
+  file that already carries the lead-in rather than adding a second one.
+  `tests/test_narration_scrubber.py::TestTheLeadInIsThere` holds the silence to
+  being there without an ffmpeg of its own, by reading each frame's side
+  information. `app/web/narration-player.js` on the moment card
   plays the one for the listener's own key
   (`tests/test_narration_player.py::TestTheAudioMap`,
   `tests/test_narration_player.py::TestThePlayer`). `scripts/tts_samples.py`
