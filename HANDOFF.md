@@ -3123,6 +3123,21 @@ and the deep links, which this task had to leave working.
 `docs/bob_brief.md` and `docs/HARNESS.md` quote that count and were updated
 with it.
 
+**And the deployed site serves it**, <https://sh4wnbk.github.io/prelude/>,
+once the Pages job for `9628e83` had run (`43290931746`, success). The served
+`match-content.js?v=9628e83` carries no `DEFAULT_MATCH` at all, and the served
+list carries both cards in the unselected class string with
+`aria-checked="false"` and the pill at `style="display:none"`. Driven there in
+the same headless Chromium: the five match screens opened with no match land
+on the list and the scanner stays put; the list after a hard refresh with
+session storage cleared has 0 cards with the ring, `false` on both, Confirm
+event disabled and an empty pill whose computed display is `none`; tapping
+Argentina vs France and confirming lands on
+`prelude_02_live_seated.html?v=9628e83&match=3869685`, rendering 3869685 with
+the pill reading `ARG vs FRA . LIVE`; both ticket links open the ticket screen
+on their own match and Enter match reaches ARGENTINA vs ENGLAND and ARGENTINA
+vs FRANCE; and Moments at each of the two ids renders that id.
+
 **Still Shawn's to do:** the list on his iPhone, after a hard refresh. Neither
 card selected and no pill in the header before a tap, and then the whole way
 in on both matches.
