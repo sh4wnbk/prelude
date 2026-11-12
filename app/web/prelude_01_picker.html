@@ -115,9 +115,12 @@
   // other arrival starts with neither card selected and Confirm event off.
   (function selectTheChoiceInTheUrl() {
     cardElements().forEach(el => el.setAttribute('aria-checked', 'false'));
+    const card = selectedMatch === null ? null :
+      document.querySelector('.event-card[data-match="' + selectedMatch + '"]');
+    // A match id this list does not carry is not a choice, whatever the URL
+    // says, so it is dropped rather than confirmed on the fan's behalf.
+    if (!card) selectedMatch = null;
     confirmBtn.disabled = selectedMatch === null;
-    if (selectedMatch === null) return;
-    const card = document.querySelector('.event-card[data-match="' + selectedMatch + '"]');
     if (card) selectEvent(card.id);
   }());
 

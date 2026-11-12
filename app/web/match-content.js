@@ -1,9 +1,13 @@
 /* Renders a screen from matches.json for the selected match.
  *
- * The match travels in the query string, for example ?match=3869685. With no
- * match in the URL the default is 1986, which is also the copy sitting inline
- * in the markup, so a screen opened on its own is already correct before this
- * runs.
+ * The match travels in the query string, for example ?match=3869685, and
+ * nowhere else. With no match in the URL the fan has chosen none, and nothing
+ * here chooses one for them: a screen that is about one match sends them to
+ * the list instead, and the list and the scanner render no match at all.
+ *
+ * The copy sitting inline in the markup is match 3750191 on every screen but
+ * the list. That is the fallback for a failed fetch, not a default choice;
+ * scripts/check_match_copy.py is what holds it to matches.json.
  *
  * Fields are addressed by data-field, so the markup keeps its classes and
  * structure and this only replaces text. The Moments list is the exception: it
@@ -18,8 +22,6 @@
  */
 (function () {
   "use strict";
-
-  var DEFAULT_MATCH = 3750191;
 
   function queryValue(name) {
     var m = new RegExp("[?&]" + name + "=([^&#]*)").exec(window.location.search);
@@ -38,27 +40,60 @@
 
   // The match the fan has chosen, and null when they have not. A choice
   // travels in the query string and nowhere else: the list writes it when a
-  // card is tapped, the scanner and manual entry write it from a ticket, and
-  // every link a screen carries passes it on. Nothing here invents one, which
-  // is why this is null rather than DEFAULT_MATCH.
+  // card is confirmed, the scanner and manual entry write it from a ticket,
+  // and every link a screen carries passes it on. Nothing here invents one.
   var CHOSEN_MATCH = Number(queryValue("match")) || null;
 
-  // The match the inline copy in the markup describes. It is the fallback for
-  // a failed fetch of matches.json, not a stand-in for a choice.
-  var MATCH_ID = CHOSEN_MATCH || DEFAULT_MATCH;
+  // The screens that are about one match. Reached with no match chosen, each
+  // of them would have to pick one to have anything to say, so the fan goes
+  // back to the list instead. The list and the scanner are not here, because
+  // neither is about a match yet.
+  var MATCH_REQUIRED = {
+    "prelude_02_live_seated.html": true,
+    "prelude_03_moment_card.html": true,
+    "prelude_04_moments.html": true,
+    "prelude_06_ticket.html": true,
+    "prelude_07_profile.html": true
+  };
 
+  function screenFile() {
+    var path = window.location.pathname;
+    return path.slice(path.lastIndexOf("/") + 1);
+  }
+
+  function needsMatch() {
+    return MATCH_REQUIRED[screenFile()] === true;
+  }
+
+  // replace() rather than assign(): a screen the fan never chose a match for
+  // is not a step in the history that Back should return to.
+  function goToPicker() {
+    window.location.replace(
+      VERSION ? "prelude_01_picker.html?v=" + VERSION : "prelude_01_picker.html"
+    );
+  }
+
+  // Read in the head, before the markup is parsed, so a screen that is about
+  // one match never paints its inline copy on the way past.
+  var SENT_TO_PICKER = !CHOSEN_MATCH && needsMatch();
+  if (SENT_TO_PICKER) goToPicker();
+
+  // A link carries the match only when there is one. With none chosen the
+  // links leave the list bare, and whichever screen they reach sends the fan
+  // straight back to it rather than opening on a match nobody picked.
   function url(path, matchId) {
     var parts = [];
     if (VERSION) parts.push("v=" + VERSION);
-    parts.push("match=" + (matchId || MATCH_ID));
-    return path + "?" + parts.join("&");
+    var id = matchId || CHOSEN_MATCH;
+    if (id) parts.push("match=" + id);
+    return parts.length ? path + "?" + parts.join("&") : path;
   }
 
   // Whether the session clock has reached the hero moment, for this match. It
   // is per session rather than per URL, so returning to Live keeps the updated
   // score without the state having to travel in the query string.
   function seenKey(matchId) {
-    return "prelude.moment." + (matchId || MATCH_ID);
+    return "prelude.moment." + (matchId || CHOSEN_MATCH);
   }
 
   function momentSeen() {
@@ -192,7 +227,7 @@
   // fan's own ticket rather than anything read from the feed, so it overrides
   // the seat in matches.json when it is there and changes nothing else.
   function ticketKey(matchId) {
-    return "prelude.ticket." + (matchId || MATCH_ID);
+    return "prelude.ticket." + (matchId || CHOSEN_MATCH);
   }
 
   function ticketFor(matchId) {
@@ -240,8 +275,7 @@
   // Available to the screens' own scripts before the fetch resolves, because
   // the match id comes from the URL and not from the file.
   window.Prelude = {
-    matchId: MATCH_ID, chosenMatch: CHOSEN_MATCH,
-    url: url, defaultMatch: DEFAULT_MATCH,
+    matchId: CHOSEN_MATCH, chosenMatch: CHOSEN_MATCH, url: url,
     momentSeen: momentSeen, markMomentSeen: markMomentSeen,
     resetMoment: resetMoment, ticketFor: ticketFor, setTicket: setTicket,
     ticketLine: ticketLine, whenMatches: whenMatches, matches: null,
@@ -514,6 +548,7 @@
   }
 
   function start() {
+    if (SENT_TO_PICKER) return;
     carryMatchThroughLinks();
     fetch(VERSION ? "matches.json?v=" + VERSION : "matches.json")
       .then(function (response) {
@@ -523,19 +558,20 @@
       .then(function (doc) {
         publishMatches(doc);
         // Nothing is rendered until the fan has chosen a match. The list and
-        // the scanner are whole without one, and rendering the default here
-        // is what put a match the fan had not picked into the header.
+        // the scanner are whole without one, and rendering a match here that
+        // nobody picked is what put one into the header.
         if (!CHOSEN_MATCH) return;
         var match = null;
         for (var i = 0; i < doc.matches.length; i++) {
           if (doc.matches[i].match_id === CHOSEN_MATCH) match = doc.matches[i];
         }
+        // The URL names a match this app does not hold. A screen about one
+        // match has nothing to show for it, so the fan goes to the list.
         if (!match) {
-          for (var j = 0; j < doc.matches.length; j++) {
-            if (doc.matches[j].match_id === DEFAULT_MATCH) match = doc.matches[j];
-          }
+          if (needsMatch()) goToPicker();
+          return;
         }
-        if (match) render(match);
+        render(match);
       })
       .catch(function () {
         /* Left on the inline copy, which is the default match. */
