@@ -202,6 +202,14 @@ The header is translucent at 85% and the nav at 90%, both over `backdrop-blur-xl
 `w-1.5 h-1.5 rounded-full bg-primary-container pulse-live` dot and a `label-sm`
 uppercase caption. Present in all four headers: `01`, `02`, `03`, `04`.
 
+The caption names the match and says it is live, so on `01` the pill ships
+with `style="display:none"` and an empty caption: the list is reached before
+the fan has chosen a match, and there is none to name.
+
+renderChip in app/web/match-content.js fills the caption and clears that
+inline display once a match is chosen. The scanner screen has a header with no
+pill at all, so a header without one is a shape the system already carries.
+
 ### Pulse animation
 
 ```

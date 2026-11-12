@@ -270,8 +270,17 @@
     }
   }
 
+  // The pill names a match and says it is live, so it has nothing true to say
+  // before the fan has chosen one. The list ships it hidden and this is what
+  // shows it; a header with no pill is a shape the app already has, because
+  // the scanner screen carries one. Every other screen is about one match by
+  // the time it can be reached, so its pill is in the markup and shown.
   function renderChip(match) {
-    setText("chip", match.label + " · LIVE");
+    var el = field("chip");
+    if (!el) return;
+    el.textContent = match.label + " · LIVE";
+    var pill = field("chip_pill");
+    if (pill) pill.style.removeProperty("display");
   }
 
   function renderLiveSeated(match) {
@@ -512,16 +521,20 @@
         return response.json();
       })
       .then(function (doc) {
+        publishMatches(doc);
+        // Nothing is rendered until the fan has chosen a match. The list and
+        // the scanner are whole without one, and rendering the default here
+        // is what put a match the fan had not picked into the header.
+        if (!CHOSEN_MATCH) return;
         var match = null;
         for (var i = 0; i < doc.matches.length; i++) {
-          if (doc.matches[i].match_id === MATCH_ID) match = doc.matches[i];
+          if (doc.matches[i].match_id === CHOSEN_MATCH) match = doc.matches[i];
         }
         if (!match) {
           for (var j = 0; j < doc.matches.length; j++) {
             if (doc.matches[j].match_id === DEFAULT_MATCH) match = doc.matches[j];
           }
         }
-        publishMatches(doc);
         if (match) render(match);
       })
       .catch(function () {
