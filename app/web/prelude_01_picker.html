@@ -14,24 +14,26 @@
 <div class="flex flex-col gap-space-sm mb-space-lg"><button id="scan-ticket-btn" class="w-full py-3.5 px-space-md rounded-xl bg-primary-container text-on-primary-container font-label-lg text-label-lg font-bold tracking-wider uppercase flex items-center justify-center gap-space-sm shadow-lg active:scale-[0.99] transition-transform" type="button"><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><rect height="7" width="7" x="3" y="3"></rect><rect height="7" width="7" x="14" y="3"></rect><rect height="7" width="7" x="14" y="14"></rect><rect height="7" width="7" x="3" y="14"></rect><path d="M7 7h.01"></path><path d="M17 7h.01"></path><path d="M7 17h.01"></path><path d="M17 17h.01"></path></svg><span class="">SCAN TICKET</span></button><p class="font-body-md text-[13px] text-secondary text-center">Reads the QR code on your ticket and opens that match.</p><details class="group mt-space-2xs"><summary class="cursor-pointer list-none flex items-center justify-center gap-1 text-center font-label-sm text-label-sm text-outline hover:text-on-surface uppercase tracking-wider transition-colors"><span class="">Enter manually</span><span class="material-symbols-outlined text-[14px] transition-transform group-open:rotate-180">expand_more</span></summary><div class="flex flex-col gap-2 mt-2 p-card-padding-sm bg-surface-container-low rounded-lg border border-outline-variant/20" id="manual-entry-mount"></div></details></div>
 <!-- Event List Section -->
 <div aria-label="Today's events" class="flex flex-col gap-space-md" role="radiogroup">
-<!-- CARD 1: Selected / In-Arena Active -->
-<div class="event-card relative flex flex-col p-card-padding-md rounded-xl bg-surface-container-high ring-1 ring-primary-container/40 shadow-xl cursor-pointer transition-all duration-300" data-match="3750191" id="card-arg-eng" onclick="selectEvent('card-arg-eng')">
-<!-- Inward Stadium Amber Active Bar -->
-<div class="absolute inset-y-3 left-0 w-1 bg-primary-container rounded-r"></div>
+<!-- CARD 1: both cards start unselected; selectEvent() styles the one the fan picks -->
+<div class="event-card relative flex flex-col p-card-padding-md rounded-xl bg-surface-container-low shadow-sm cursor-pointer hover:bg-surface-container transition-all duration-300" aria-checked="false" data-match="3750191" id="card-arg-eng" onclick="selectEvent('card-arg-eng')" role="radio">
+<!-- Accent bar, amber only while this card is the selected one -->
+<div class="absolute inset-y-3 left-0 w-1 bg-transparent rounded-r transition-colors"></div>
 <div class="flex items-start justify-between gap-space-sm pl-2">
 <div class="flex flex-col">
-<!-- Active Badge -->
 <h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight">ARGENTINA vs ENGLAND</h2>
 <span class="font-body-md text-body-md text-secondary mt-0.5">Estadio Azteca · Mexico City</span>
 </div>
 <!-- Custom Tactile Amber Radio -->
-<div class="radio-indicator flex items-center justify-center w-6 h-6 rounded-full bg-primary-container text-on-primary-container shadow-sm flex-shrink-0"><span class="material-symbols-outlined text-[16px] font-bold">check</span></div>
+<div class="radio-indicator flex items-center justify-center w-6 h-6 rounded-full bg-surface-container-high text-on-surface-variant flex-shrink-0"><span class="w-2 h-2 rounded-full bg-secondary-container"></span></div>
 </div>
 <!-- Match Play Data Strip -->
-<div class="mt-space-md pt-space-sm bg-surface-container-lowest/70 px-space-sm py-2 rounded-lg pl-3"><div class="flex items-center justify-between font-label-md text-label-md"><div class="flex items-center gap-space-xs text-on-surface"><span class="font-semibold text-primary">KICKOFF 19:00</span><span class="text-secondary-container">•</span><span class="text-secondary">ARG 0 - 0 ENG</span></div></div><p class="font-label-sm text-label-sm text-secondary mt-1">Play data connected · AI narration ready</p></div>
+<div class="mt-space-md bg-surface-container-lowest/40 px-space-sm py-2 rounded-lg pl-3">
+<div class="flex items-center justify-between font-label-md text-label-md"><span class="text-secondary font-medium">KICKOFF 19:00</span><span class="font-label-sm text-label-sm text-secondary">ARG 0 - 0 ENG</span></div>
+<p class="font-label-sm text-label-sm text-outline mt-0.5">Play data connected · AI narration ready</p>
 </div>
-<!-- CARD 2: second venue -->
-<div class="event-card relative flex flex-col p-card-padding-md rounded-xl bg-surface-container-low shadow-sm cursor-pointer hover:bg-surface-container transition-all duration-300" data-match="3869685" id="card-arg-fra" onclick="selectEvent('card-arg-fra')">
+</div>
+<!-- CARD 2: second venue, the same unselected style -->
+<div class="event-card relative flex flex-col p-card-padding-md rounded-xl bg-surface-container-low shadow-sm cursor-pointer hover:bg-surface-container transition-all duration-300" aria-checked="false" data-match="3869685" id="card-arg-fra" onclick="selectEvent('card-arg-fra')" role="radio">
 <div class="absolute inset-y-3 left-0 w-1 bg-transparent rounded-r transition-colors"></div>
 <div class="flex items-start justify-between gap-space-sm pl-2">
 <div class="flex flex-col">
@@ -51,10 +53,14 @@
 <!-- AI Audio Narration & Geofence Architecture Footnote -->
 <div class="mt-space-lg p-card-padding-sm rounded-xl bg-surface-container-lowest flex items-center gap-space-sm border border-outline-variant/20"><div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center flex-shrink-0"><span class="material-symbols-outlined text-primary-container text-[18px]">neurology</span></div><div class="flex flex-col min-w-0"><span class="font-label-md text-label-md text-on-surface">AI Audio Narration</span><span class="font-body-md text-body-md text-secondary">Powered by StatsBomb play-by-play data</span></div><img alt="Hudl StatsBomb" class="h-4 w-auto ml-auto shrink-0" src="assets/hudl-statsbomb-logo-reversed.png?v=__V__"/></div>
 <!-- Primary Action Container -->
-<div class="mt-space-xl flex flex-col gap-space-xs"><button class="w-full h-touch-target-min rounded-full bg-primary-container text-on-primary-container font-label-lg text-label-lg font-bold tracking-wider uppercase flex items-center justify-center gap-space-xs shadow-lg active:scale-[0.99] transition-transform" id="confirm-btn" onclick="triggerFeedConfirmation()"><span class="material-symbols-outlined text-[20px]">sensors</span><span class="" id="btn-text">CONFIRM EVENT</span></button><p class="font-body-md text-[13px] text-outline text-center mt-space-2xs">Sets your venue, play-data stream, and AI narration.</p></div>
+<div class="mt-space-xl flex flex-col gap-space-xs"><button class="w-full h-touch-target-min rounded-full bg-primary-container text-on-primary-container font-label-lg text-label-lg font-bold tracking-wider uppercase flex items-center justify-center gap-space-xs shadow-lg active:scale-[0.99] transition-transform disabled:opacity-40 disabled:cursor-not-allowed" disabled id="confirm-btn" onclick="triggerFeedConfirmation()"><span class="material-symbols-outlined text-[20px]">sensors</span><span class="" id="btn-text">CONFIRM EVENT</span></button><p class="font-body-md text-[13px] text-outline text-center mt-space-2xs">Sets your venue, play-data stream, and AI narration.</p></div>
 </div>
 <script>
-  let selectedMatch = Prelude.matchId;
+  // Null until the fan picks a card or arrives on a match they already chose.
+  // Prelude does not choose an event for them, so nothing on this screen is
+  // selected and Confirm event has nothing to act on until one of those two
+  // things happens.
+  let selectedMatch = Prelude.chosenMatch;
 
   // A scanned ticket already names the event, so the scanner skips the list and
   // goes straight to Live for whichever match the code turns out to name. The
@@ -63,33 +69,57 @@
     window.location.href = Prelude.url('prelude_05_scan.html', selectedMatch);
   });
 
+  // The selected and unselected styles, written once. The markup ships both
+  // cards in the unselected form, so this is the only place a card is given
+  // the amber ring, the amber bar and the check.
+  const SELECTED = {
+    card: 'event-card relative flex flex-col p-card-padding-md rounded-xl bg-surface-container-high ring-1 ring-primary-container/40 shadow-xl cursor-pointer transition-all duration-300',
+    bar: 'absolute inset-y-3 left-0 w-1 bg-primary-container rounded-r',
+    indicator: 'radio-indicator flex items-center justify-center w-6 h-6 rounded-full bg-primary-container text-on-primary-container shadow-sm flex-shrink-0',
+    mark: '<span class="material-symbols-outlined text-[16px] font-bold">check</span>'
+  };
+  const UNSELECTED = {
+    card: 'event-card relative flex flex-col p-card-padding-md rounded-xl bg-surface-container-low shadow-sm cursor-pointer hover:bg-surface-container transition-all duration-300',
+    bar: 'absolute inset-y-3 left-0 w-1 bg-transparent rounded-r transition-colors',
+    indicator: 'radio-indicator flex items-center justify-center w-6 h-6 rounded-full bg-surface-container-high text-on-surface-variant flex-shrink-0',
+    mark: '<span class="w-2 h-2 rounded-full bg-secondary-container"></span>'
+  };
+
+  const confirmBtn = document.getElementById('confirm-btn');
+
+  function cardElements() {
+    return Array.prototype.slice.call(document.querySelectorAll('.event-card'));
+  }
+
   function selectEvent(cardId) {
     const picked = document.getElementById(cardId);
     if (picked && picked.dataset.match) selectedMatch = Number(picked.dataset.match);
-    const cards = [
-      { id: 'card-arg-eng', name: 'Estadio Azteca', title: 'ARGENTINA vs ENGLAND' },
-      { id: 'card-arg-fra', name: 'Lusail Stadium', title: 'ARGENTINA vs FRANCE' }
-    ];
 
-    cards.forEach(card => {
-      const el = document.getElementById(card.id);
+    cardElements().forEach(el => {
+      const style = el.id === cardId ? SELECTED : UNSELECTED;
       const indicator = el.querySelector('.radio-indicator');
       const accentBar = el.firstElementChild;
-
-      if (card.id === cardId) {
-        el.className = 'event-card relative flex flex-col p-card-padding-md rounded-xl bg-surface-container-high ring-1 ring-primary-container/40 shadow-xl cursor-pointer transition-all duration-300';
-        accentBar.className = 'absolute inset-y-3 left-0 w-1 bg-primary-container rounded-r';
-        indicator.className = 'radio-indicator flex items-center justify-center w-6 h-6 rounded-full bg-primary-container text-on-primary-container shadow-sm flex-shrink-0';
-        indicator.innerHTML = '<span class="material-symbols-outlined text-[16px] font-bold">check</span>';
-        document.getElementById('btn-text').innerText = 'CONFIRM EVENT';
-      } else {
-        el.className = 'event-card relative flex flex-col p-card-padding-md rounded-xl bg-surface-container-low shadow-sm cursor-pointer hover:bg-surface-container transition-all duration-300';
-        accentBar.className = 'absolute inset-y-3 left-0 w-1 bg-transparent rounded-r transition-colors';
-        indicator.className = 'radio-indicator flex items-center justify-center w-6 h-6 rounded-full bg-surface-container-high text-on-surface-variant flex-shrink-0';
-        indicator.innerHTML = '<span class="w-2 h-2 rounded-full bg-secondary-container"></span>';
-      }
+      el.className = style.card;
+      el.setAttribute('aria-checked', el.id === cardId ? 'true' : 'false');
+      accentBar.className = style.bar;
+      indicator.className = style.indicator;
+      indicator.innerHTML = style.mark;
     });
+
+    document.getElementById('btn-text').innerText = 'CONFIRM EVENT';
+    confirmBtn.disabled = selectedMatch === null;
   }
+
+  // A fan who already chose this match and came back to correct a seat is on
+  // their own choice, not on one made for them, so that card is selected. Any
+  // other arrival starts with neither card selected and Confirm event off.
+  (function selectTheChoiceInTheUrl() {
+    cardElements().forEach(el => el.setAttribute('aria-checked', 'false'));
+    confirmBtn.disabled = selectedMatch === null;
+    if (selectedMatch === null) return;
+    const card = document.querySelector('.event-card[data-match="' + selectedMatch + '"]');
+    if (card) selectEvent(card.id);
+  }());
 
   // One manual entry, shared with the scanner; see manual-entry.js.
   Prelude.mountManualEntry(document.getElementById('manual-entry-mount'), {
@@ -102,6 +132,10 @@
   function triggerFeedConfirmation() {
     const btn = document.getElementById('confirm-btn');
     const label = document.getElementById('btn-text');
+
+    // Nothing to confirm until a card is picked. The button is disabled then,
+    // so this only catches a call that reached here another way.
+    if (selectedMatch === null) return;
 
     btn.classList.add('opacity-90', 'scale-[0.98]');
     label.innerText = 'Synchronizing Play Data...';

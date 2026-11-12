@@ -35,7 +35,17 @@
   }
 
   var VERSION = deployVersion();
-  var MATCH_ID = Number(queryValue("match")) || DEFAULT_MATCH;
+
+  // The match the fan has chosen, and null when they have not. A choice
+  // travels in the query string and nowhere else: the list writes it when a
+  // card is tapped, the scanner and manual entry write it from a ticket, and
+  // every link a screen carries passes it on. Nothing here invents one, which
+  // is why this is null rather than DEFAULT_MATCH.
+  var CHOSEN_MATCH = Number(queryValue("match")) || null;
+
+  // The match the inline copy in the markup describes. It is the fallback for
+  // a failed fetch of matches.json, not a stand-in for a choice.
+  var MATCH_ID = CHOSEN_MATCH || DEFAULT_MATCH;
 
   function url(path, matchId) {
     var parts = [];
@@ -230,7 +240,8 @@
   // Available to the screens' own scripts before the fetch resolves, because
   // the match id comes from the URL and not from the file.
   window.Prelude = {
-    matchId: MATCH_ID, url: url, defaultMatch: DEFAULT_MATCH,
+    matchId: MATCH_ID, chosenMatch: CHOSEN_MATCH,
+    url: url, defaultMatch: DEFAULT_MATCH,
     momentSeen: momentSeen, markMomentSeen: markMomentSeen,
     resetMoment: resetMoment, ticketFor: ticketFor, setTicket: setTicket,
     ticketLine: ticketLine, whenMatches: whenMatches, matches: null,
