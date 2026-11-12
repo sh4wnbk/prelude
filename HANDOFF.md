@@ -3004,6 +3004,129 @@ the second is dropped, and the reaction is left out of the shape. Shawn's
 four references for each hero goal come out as four shapes, so it is not
 over-eager. Applied to the eighteen this run produced it flags two.
 
+### Task 26: Prelude does not choose the match for the fan (done)
+
+**What Shawn saw on 2026-11-10.** After a hard refresh the event list showed
+Argentina vs England already selected, with the amber ring, the amber accent
+bar and the check in its radio, and the header pill read "ARG vs ENG . LIVE".
+Nothing had been chosen. Two separate causes: card 1's markup carried the
+selected style, and `DEFAULT_MATCH` in `app/web/match-content.js` stood in for
+a fan's choice wherever a screen needed a match and the URL named none.
+
+**Every place `DEFAULT_MATCH` was used, and what each one does now.** All five
+are gone from that file; the constant itself is removed.
+
+| Where it was used | What it did | What happens now |
+| ----------------- | ----------- | ---------------- |
+| `var DEFAULT_MATCH = 3750191` | the id every fallback reached for | removed; `scripts/check_match_copy.py` keeps its own, which is what holds the inline copy to `matches.json` |
+| `MATCH_ID = Number(queryValue("match")) \|\| DEFAULT_MATCH` | every screen had a match whether or not one was chosen | `CHOSEN_MATCH`, the match in the query string, and `null` when there is none |
+| `url(path, matchId)` appended `match=MATCH_ID` | the nav on the list handed Live, Moments and Profile the default, and Scan ticket too | the match is appended only when there is one, so those links leave the list bare |
+| `start()` fell back to `DEFAULT_MATCH` | a `?match=` id this app does not hold opened 1986 instead | a screen that is about one match goes to the list; the list and the scanner render no match |
+| `Prelude.matchId` was `MATCH_ID` | `listener-card.js`, `narration-player.js`, `manual-entry.js` and the ticket screen read a default | it is the chosen match, and each of those runs on a screen that requires one |
+| `seenKey()` and `ticketKey()` fell back to `MATCH_ID` | session keys were written under the default | they fall back to the chosen match |
+| `Prelude.defaultMatch` | exported the constant | removed; nothing read it |
+
+**The list.** Both cards ship in the unselected style, the same class string
+and the same radio mark on each. Card 1's play-data strip was brighter than
+card 2's and had a different inner structure, which read as a second selection
+cue, so it is card 2's strip with card 1's values. A card takes the selected
+style in one place, `selectEvent()`, which a tap reaches and which runs on
+load for a match named in the query string: that is the return from Edit
+details at `?match=<id>&manual=1`, and a ticket that opens a match. An id the
+list does not carry is dropped rather than confirmed for the fan. Confirm
+event ships disabled and follows the selection. The cards gained `role="radio"`
+and `aria-checked`, which `selectEvent()` keeps, because the list was already
+a `role="radiogroup"` with no radios in it.
+
+**The pill is hidden on the list rather than reworded, and the reason is the
+pill.** Its caption is a match label joined to the word LIVE, so before a
+choice both halves are untrue: there is no match to name, and nothing of the
+fan's is live. Neutral wording would still sit beside the pulsing amber dot,
+which asserts a live feed on its own. A header with no pill is a shape the app
+already carries, because `app/web/prelude_05_scan.html` has one. So the list
+ships the pill with `style="display:none"` and an empty caption, and
+`renderChip` fills the caption and clears that display once a match is chosen.
+The list names a match in its header only when the session is already on that
+match; a tap is shown on the card, because the list is a pre-match screen.
+
+**Which screens send the fan back.** `MATCH_REQUIRED` in
+`app/web/match-content.js` lists `prelude_02_live_seated.html`,
+`prelude_03_moment_card.html`, `prelude_04_moments.html`,
+`prelude_06_ticket.html` and `prelude_07_profile.html`. The list and the
+scanner are not on it: neither is about a match yet. The check is read in the
+head, before the markup is parsed, so the inline copy never paints on the way
+past, and it is `location.replace()` so a screen the fan never chose a match
+for is not a step Back returns to.
+
+**Driven in headless Chromium 158.0.8127.18**, 390 by 844 with touch, with
+`app/web/` served on port 8099 by `http.server`. Playwright 1.65.1 in a scratch
+venv outside the repo, on the already installed `chromium-1254`. Every row is a
+separate browser context, so each one starts with nothing in session storage,
+and the first group reloads after clearing it.
+
+| Opened at | Lands on | `data-match-rendered` |
+| --------- | -------- | --------------------- |
+| `01` list, no match | `01` list | none |
+| `02` Live, no match | `01` list | none |
+| `03` moment card, no match | `01` list | none |
+| `04` Moments, no match | `01` list | none |
+| `05` scanner, no match | `05` scanner | none |
+| `06` ticket, no match | `01` list | none |
+| `07` Profile, no match | `01` list | none |
+
+Every one of the seven opened at `?match=3869685` stays where it was asked for
+and renders 3869685, and the same seven at `?match=3750191` render 3750191.
+At `?match=999999` the five match screens land on the list with neither card
+selected, and the list and the scanner stay put.
+
+| On the list, with nothing chosen | Read |
+| -------------------------------- | ---- |
+| cards carrying a selected mark | 0 of 2 |
+| the two cards' class strings | identical |
+| the two radio marks | identical |
+| `aria-checked` on each | `false`, `false` |
+| Confirm event | disabled |
+| header pill | caption empty, computed display `none` |
+| nav hrefs | `prelude_02_live_seated.html?v=__V__`, `prelude_04_moments.html?v=__V__`, `prelude_07_profile.html?v=__V__` |
+| tapping LIVE | lands on the list |
+
+Tapping Argentina vs France puts the selected style on that card alone, leaves
+the other unselected, and enables Confirm event; confirming lands on
+`prelude_02_live_seated.html?v=__V__&match=3869685`, which renders 3869685 and
+whose nav then carries `match=3869685` on all three items. Opening the list at
+`?match=3869685` selects that card and the pill reads `ARG vs FRA . LIVE`.
+
+**The three ways in, both matches, unchanged.** A ticket code is a link, so
+the camera path and the link path end in the same screen.
+
+| Way in | 1986, Sec 108 Row 14 Seat 8 | 2022, Sec 215 Row 9 Seat 6 |
+| ------ | --------------------------- | -------------------------- |
+| `/?ticket=<match>:<sec>:<row>:<seat>` | ticket screen renders 3750191 | ticket screen renders 3869685 |
+| code held to a fake camera on `05` | ticket screen renders 3750191 | ticket screen renders 3869685 |
+| manual entry on the list | ticket screen renders 3750191 | ticket screen renders 3869685 |
+| Enter match from there | Live at `&match=3750191`, ARGENTINA vs ENGLAND | Live at `&match=3869685`, ARGENTINA vs FRANCE |
+| Edit details back to the list | `?v=__V__&match=3750191&manual=1`, that card selected, panel filled 108/14/8 | `?v=__V__&match=3869685&manual=1`, that card selected, panel filled 215/9/6 |
+
+The scanner is now opened from the list with no match in its URL rather than
+with the default, and it still reads both codes. Profile's Change still lands
+on `prelude_02_live_seated.html?v=__V__&match=3869685&ask=1` with the listener
+card on screen. The camera was a `.y4m` clip built from the committed ticket
+PNGs with ffmpeg, given to Chromium through
+`--use-file-for-fake-video-capture`, which is the method recorded under
+"Driving the scanner" above.
+
+**`tests/test_match_choice.py`, 51 tests.** Run against `70e117d`, the commit
+before step 1, 34 of the 51 fail. The 17 that pass there are the ticket flow
+and the deep links, which this task had to leave working.
+
+`pytest -q` reports `1866 passed` and all five gates exit 0.
+`docs/bob_brief.md` and `docs/HARNESS.md` quote that count and were updated
+with it.
+
+**Still Shawn's to do:** the list on his iPhone, after a hard refresh. Neither
+card selected and no pill in the header before a tap, and then the whole way
+in on both matches.
+
 ### Task 25: half a second of silence in front of every recording (done)
 
 **Task 24 fixed one of the two causes and the word was still cut.** With the
