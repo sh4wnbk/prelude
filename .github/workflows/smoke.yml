@@ -64,7 +64,7 @@ jobs:
           enable-cache: true
 
       - name: Install the project and the dev group
-        run: uv sync
+        run: uv sync --frozen
 
       - name: Cache the Playwright browsers
         uses: actions/cache@v4

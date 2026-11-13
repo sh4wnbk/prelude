@@ -61,10 +61,12 @@ jobs:
           enable-cache: true
 
       # The dev group is what holds pytest, Playwright and the gates'
-      # libraries, and `uv sync` installs it by default. There is no lock
-      # file in the repo, so this resolves and writes one into the runner.
+      # libraries, and `uv sync` installs it by default. `--frozen` installs
+      # what `uv.lock` pins and refuses to rewrite it, so a dependency added
+      # to pyproject.toml without re-locking fails here rather than being
+      # resolved differently on every machine.
       - name: Install the project and the dev group
-        run: uv sync
+        run: uv sync --frozen
 
       - name: Cache the Playwright browsers
         id: browsers
