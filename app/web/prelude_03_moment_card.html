@@ -31,9 +31,15 @@
 <p class="font-label-lg text-label-lg text-on-surface-variant mt-0.5" data-field="hero_caption">2H · 55' · Maradona's solo run from his own half, past four England players</p>
 </div>
 <!-- The Frozen Narration, and the Label It Earned -->
-<div class="relative z-10 flex flex-col gap-space-xs">
-<p class="font-body-lg text-body-lg text-on-surface leading-relaxed" data-field="hero_narration">Cuciuffo won it back deep in his own half, and Enrique played it to Maradona just inside his own half. He went past Beardsley there and carried it on, past Butcher in the final third on the right and past Fenwick on the edge of the box, then took it into the box, slipped past Shilton and scored with his left foot. What a moment.</p>
-<div class="flex items-center gap-space-xs px-space-xs py-space-2xs rounded-lg bg-surface-container-lowest self-start"><span class="material-symbols-outlined text-[16px] text-primary-container shrink-0" style="font-variation-settings: &quot;FILL&quot; 1;">verified</span><span class="font-label-sm text-label-sm text-secondary">Verified from play data</span></div>
+<!-- Both ship hidden, and the block keeps 16.75rem of space: the tallest
+     of the six frozen narrations plus the label measures 268 px at 390 px
+     wide, so nothing below moves when they appear. match-content.js shows
+     the two together, and only once the frozen text for this match and
+     this listener's slot is in the paragraph. A narration the card has
+     not loaded is not a narration it can label. -->
+<div class="relative z-10 flex flex-col gap-space-xs" data-field="hero_narration_block" style="min-height:16.75rem">
+<p class="font-body-lg text-body-lg text-on-surface leading-relaxed" data-field="hero_narration" style="display:none"></p>
+<div class="flex items-center gap-space-xs px-space-xs py-space-2xs rounded-lg bg-surface-container-lowest self-start" data-field="hero_label" style="display:none"><span class="material-symbols-outlined text-[16px] text-primary-container shrink-0" style="font-variation-settings: &quot;FILL&quot; 1;">verified</span><span class="font-label-sm text-label-sm text-secondary">Verified from play data</span></div>
 </div>
 <!-- Audio Narration Player Surface -->
 <div class="relative z-10 w-full rounded-xl bg-surface-container-high p-card-padding-md flex flex-col gap-space-md shadow-md border border-surface-container-highest/40">

@@ -68,6 +68,7 @@ Three things hold it:
 | `app/grounding.py` | refuses narration whose claims cannot be pointed at, and writes the phrase once, as `GROUNDING_LABEL` | the tables in `docs/VERIFICATION.md` |
 | `app/narration.py` | labels only what the check passed, and returns nothing ungrounded | `tests/test_narration.py::TestFirstAttemptPasses::test_it_is_labelled` |
 | `scripts/scan_copy.py` | refuses the label on a screen card that holds no narration | nothing; it is a gate |
+| `app/web/match-content.js` | shows the label only together with the frozen narration it is about, so a card that has not loaded one shows neither | `scripts/check_match_copy.py`, which refuses an inline narration on the card |
 
 The no-partial-credit rule is why the pipeline fails a narration whole rather
 than dropping a line: a narration with a hole in it tells a different story.

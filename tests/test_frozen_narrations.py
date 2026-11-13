@@ -57,11 +57,12 @@ RENDERER = WEB / "match-content.js"
 SCAN = ROOT / "scripts" / "scan_copy.py"
 
 #: The match whose copy sits inline in the markup, shown before the renderer
-#: runs. The same default `app/web/match-content.js` uses.
+#: runs. The same default `app/web/match-content.js` uses. The narration is
+#: the one field it does not cover: the card carries none, for any match.
 DEFAULT_MATCH = 3750191
 
-#: The slot a listener with no side hears, which is the one the markup
-#: carries and the one the renderer falls back to.
+#: The slot a listener with no side hears, and the one the renderer falls
+#: back to. The markup carries no copy of it.
 NEUTRAL_SLOT = "storyteller_neutral"
 
 #: The two hero goals, by the match they are in and the clock they are at.
@@ -393,22 +394,37 @@ class TestTheNarrationOnTheMomentCard:
     def test_the_card_has_a_narration_field(self):
         assert 'data-field="hero_narration"' in self.card()
 
-    def test_the_inline_narration_is_the_frozen_neutral_1986_text(self):
-        """The copy shown before the renderer runs is the default match's,
-        as with every other field on this card, and it is the neutral slot's:
-        the inline copy stands before the fan has said who they are with, and
-        that is the key `renderNarration` falls back to."""
-        slots = frozen()[str(DEFAULT_MATCH)]["slots"]
-        assert slots[NEUTRAL_SLOT]["text"] in self.card()
+    def test_no_narration_is_in_the_markup_at_all(self):
+        """The narration is the one field on this card with no inline copy,
+        and so the one with no fallback.
 
-    def test_the_other_listeners_tellings_are_not_in_the_markup(self):
-        """One inline copy, and it is the one a fan with no answer reads.
-        The other two arrive from narrations.json when the renderer runs."""
-        slots = frozen()[str(DEFAULT_MATCH)]["slots"]
-        for key, slot in slots.items():
-            if key == NEUTRAL_SLOT:
-                continue
-            assert slot["text"] not in self.card()
+        Every other field carries the default match's copy, which leaves a
+        correct screen when the fetch fails. The narration cannot take that
+        bargain, because it arrives under the grounding label: the 1986 words
+        standing under a 2022 header are a claim the data never made for that
+        match, and a fan on a slow connection could read them. So the card
+        ships the paragraph empty and `narrations.json` is the only source of
+        the words, for every match and every listener.
+        """
+        markup = self.card()
+        counted = 0
+        for match_id, entry in frozen().items():
+            for key, slot in entry["slots"].items():
+                counted += 1
+                assert slot["text"] not in markup, (
+                    f"match {match_id} slot {key} is inline on the card"
+                )
+        assert counted == 6, "two matches, three listeners each"
+
+    def test_the_paragraph_ships_empty(self):
+        """Empty rather than absent: `scripts/scan_copy.py` passes the label
+        only where it shares a card with a narration field, and the renderer
+        fills this one."""
+        assert (
+            '<p class="font-body-lg text-body-lg text-on-surface '
+            'leading-relaxed" data-field="hero_narration" '
+            'style="display:none"></p>'
+        ) in self.card()
 
     def test_the_renderer_picks_the_narration_by_the_listeners_key(self):
         """The card shows what the fan hears: the same lookup

@@ -19,6 +19,11 @@
  * That is a correct screen rather than a broken one, so the fallback is quiet.
  * On success documentElement carries data-match-rendered, which is how a test
  * can tell rendering apart from the fallback.
+ *
+ * The moment card's narration is the one field with no inline copy and so no
+ * fallback. It arrives from narrations.json, and it carries the grounding
+ * label with it, so the 1986 words sitting under a 2022 header would be a
+ * false claim rather than a stale one. renderNarration says the rest.
  */
 (function () {
   "use strict";
@@ -408,19 +413,38 @@
   // scripts/freeze_narrations.py. It is fetched rather than carried in
   // matches.json because it is not hand-written copy: narrations.json records
   // who wrote each one and the check's verdict beside the words, and the
-  // moment card needs only the words. The inline markup already holds the
-  // default match's neutral narration, so a failed fetch leaves a correct
-  // screen rather than an empty one, which is the same bargain the rest of
-  // this file makes.
+  // moment card needs only the words.
+  //
+  // This one field does not take the fallback the rest of this file takes.
+  // Everywhere else the inline copy is the default match's and a failed fetch
+  // leaves a correct screen; here it would leave the 1986 narration under a
+  // 2022 header and under the grounding label, which a fan on a slow
+  // connection can read. So the card carries no narration inline at all: the
+  // paragraph and the label ship hidden and empty, and showNarration is the
+  // one thing that fills and shows them. Until the frozen text for this match
+  // and this listener's slot arrives there is nothing to label, and a blank
+  // where the words will be is better than another match's words.
   //
   // The card shows what the fan hears. There is one narration per
   // hero.voice_for key and narration-player.js picks the recording by the
   // same lookup, so the text under the grounding label and the voice reading
   // it are one piece of writing. With no listener answer the key is the
-  // neutral one, which is what the inline copy holds. The label itself is
-  // spelled in the markup and in app/narration.py and never here:
-  // scripts/scan_copy.py refuses it in a copy file, because copy data
-  // carries no markup that could place it over anything.
+  // neutral one. The label itself is spelled in the markup and in
+  // app/narration.py and never here: scripts/scan_copy.py refuses it in a
+  // copy file, because copy data carries no markup that could place it over
+  // anything.
+  function showNarration(text) {
+    var narration = field("hero_narration");
+    var label = field("hero_label");
+    if (!narration) return;
+    narration.textContent = text;
+    narration.style.removeProperty("display");
+    // The label is shown in the same breath as the words it is about, so
+    // there is no moment at which one of the two is on screen without the
+    // other.
+    if (label) label.style.removeProperty("display");
+  }
+
   function renderNarration(match) {
     if (!field("hero_narration")) return;
 
@@ -436,12 +460,12 @@
         var key = slotFor(match);
         var slot = (key && slots[key]) || slots.storyteller_neutral;
         // No narration for this listener means the words under the grounding
-        // label were never checked for them, so the inline copy stays rather
-        // than a blank sitting under a label it did not earn.
-        if (slot && slot.text) setText("hero_narration", slot.text);
+        // label were never checked for them, so nothing is shown rather than
+        // another listener's telling sitting under a label it did not earn.
+        if (slot && slot.text) showNarration(slot.text);
       })
       .catch(function () {
-        /* Left on the inline copy, which is the default match. */
+        /* The narration and the label stay hidden. */
       });
   }
 

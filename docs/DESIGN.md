@@ -290,6 +290,11 @@ Card headers also carry a decorative bar field at `opacity-25` with
 Symbol at `text-[16px] text-primary-container` and a `label-sm text-secondary`
 caption reading "Verified from play data". `03`.
 
+It ships with `display:none`, as does the narration paragraph above it, and
+`match-content.js` shows the two together once the frozen narration for the
+match and the slot on screen is in the paragraph. Their block keeps
+`min-height:16.75rem` meanwhile, so the player below does not move.
+
 ### Text input
 
 `w-full bg-surface-container px-3 py-1.5 rounded text-[16px] text-on-surface

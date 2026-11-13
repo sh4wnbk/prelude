@@ -1524,8 +1524,11 @@ becomes a function, and it is the only reader of `hero.voice_for`.
 3. **`app/web/match-content.js`, the two readers in this file.** In
    `renderNarration`, replace `narrationKey(match)` with `slotFor(match)` and
    delete `narrationKey`. Keep the `slots.storyteller_neutral` fallback and the
-   quiet `catch`: a key with no frozen narration still leaves the inline copy
-   rather than a blank under a label it did not earn.
+   quiet `catch`: a key with no frozen narration leaves a blank rather than
+   another listener's telling under a label it did not earn. (Task 29 later
+   took the card's inline narration out altogether, so the blank is what a
+   missing key, a slow fetch and a failed fetch all now show. The rest of this
+   step stands.)
 
    In `renderNarrators`, the current narrator is the one `slotFor(match)` names,
    which is the part of that key before the first `_`. Its card keeps the
@@ -1651,7 +1654,9 @@ Four things the run taught, which are yours to use rather than to rediscover:
 - **Serve the screens over HTTP.** Opened off the filesystem, `matches.json`,
   `narrations.json` and `narrators.json` all fail to fetch, every screen keeps
   its inline copy, and the narrator list stays empty. Nothing is broken; you
-  are just looking at the fallback.
+  are just looking at the fallback. Since Task 29 the moment card's narration
+  is the one field with no inline copy, so off the filesystem that paragraph
+  and the grounding label beside it are both blank.
 - **The player never puts its audio element in the document**, so the file it
   chose cannot be read off the DOM. Reading it back means replacing
   `window.Audio` in the page before the screens' own scripts run and recording

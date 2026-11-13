@@ -366,5 +366,17 @@ because a skip would have let the suite go green with nothing built.
   grounding label are the words the voice reads
   (`tests/test_narrator_picker.py::TestOneLookup`). The factual values on the
   screens still come from `app/web/matches.json`, which
-  `scripts/check_match_copy.py` checks against `data/raw/`, and it holds the
-  markup's inline copy to the neutral narration as well.
+  `scripts/check_match_copy.py` checks against `data/raw/`.
+- **The card shows no narration until it has this match's.** The narration is
+  the one field on the moment card with no inline copy, and so the one with no
+  fallback. The paragraph ships empty and the grounding label beside it ships
+  hidden, and `showNarration` in `app/web/match-content.js` fills and shows the
+  two together once the frozen text for the match and the slot on screen is in
+  it; a failed fetch leaves both hidden. Until Task 29 the inline 1986
+  narration stood there under whichever header had rendered, so a fan on a slow
+  connection could read one match's words under the label on another match's
+  card. `scripts/check_match_copy.py` now holds the markup to carrying none of
+  the six frozen narrations, which is checked in
+  `check_card_carries_no_narration`. The block keeps `16.75rem` while the two
+  are hidden, measured as 268 px at 390 px wide: the tallest of the six plus
+  the label, so nothing below it moves when they appear.

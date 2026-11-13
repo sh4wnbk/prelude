@@ -303,14 +303,16 @@ WEB = ROOT / "app" / "web"
 DEFAULT_MATCH = 3750191
 NARRATIONS = WEB / "narrations.json"
 
-#: The slot a listener with no side hears, which is what the markup carries:
-#: the inline copy stands before the renderer has run and before the fan has
-#: said who they are with, and `renderNarration` falls back to this key.
+#: The slot a listener with no side hears, which is the key `renderNarration`
+#: falls back to. The markup carries no copy of it:
+#: `check_card_carries_no_narration` is why the card has no inline narration.
 NEUTRAL_SLOT = "storyteller_neutral"
 
+CARD = "prelude_03_moment_card.html"
 
-def frozen_narration(doc, match_id, fail):
-    """The narration the card shows for each listener, and the one it carries.
+
+def check_frozen_narrations(doc, match_id, fail):
+    """Every listener a match can send to a slot has a narration there.
 
     **The card shows what the fan hears.** There is one frozen narration per
     `hero.voice_for` key, the renderer picks it by the listener's own
@@ -320,23 +322,21 @@ def frozen_narration(doc, match_id, fail):
     narration: a key with none would leave that fan reading another
     listener's telling.
 
-    The returned string is the one the markup has to carry, which is the
-    neutral slot: the inline copy is what stands before the renderer runs and
-    before any listener answer, and that is the key the renderer falls back
-    to.
+    `NEUTRAL_SLOT` is checked on top of those keys because it is what
+    `renderNarration` falls back to when the fan's own key has none.
 
     Whether the words are still grounded is a different question and is
-    `tests/test_frozen_narrations.py`'s. This only asks whether the copies
-    agree and whether every listener has one.
+    `tests/test_frozen_narrations.py`'s. This only asks whether every
+    listener has one and whether it says who wrote it.
     """
     if not NARRATIONS.is_file():
         fail("narrations.json", "is missing; run scripts/freeze_narrations.py")
-        return None
+        return
     frozen = json.loads(NARRATIONS.read_text(encoding="utf-8"))
     entry = frozen.get("narrations", {}).get(str(match_id))
     if not entry:
         fail("narrations.json", f"has no frozen narration for match {match_id}")
-        return None
+        return
     slots = entry.get("slots") or {}
     for match in doc["matches"]:
         keys = sorted(set(match["hero"]["voice_for"].values()))
@@ -356,13 +356,50 @@ def frozen_narration(doc, match_id, fail):
                 fail("narrations.json",
                      f"match {match['match_id']} slot {key} carries no "
                      "authorship, so a reader cannot tell who wrote it")
-    neutral = (slots.get(NEUTRAL_SLOT) or {}).get("text")
-    if not neutral:
+    if not (slots.get(NEUTRAL_SLOT) or {}).get("text"):
         fail("narrations.json",
              f"has no {NEUTRAL_SLOT} narration for match {match_id}, which is "
-             "what the card shows before the fan has answered")
-        return None
-    return neutral
+             "the key the renderer falls back to")
+
+
+def check_card_carries_no_narration(fail, note):
+    """The moment card carries no narration inline, for any match or slot.
+
+    Every other field on this card has the default match's copy inline, so a
+    screen whose fetch failed is a correct screen rather than a broken one.
+    The narration cannot take that bargain, because it arrives under
+    "Verified from play data": the 1986 words standing under a 2022 header
+    are a claim the data never made for that match, and a fan on a slow
+    connection could read them before `narrations.json` landed.
+
+    So the card ships the paragraph empty, with it and the label hidden, and
+    `app/web/match-content.js` fills and shows the two together only once the
+    frozen text for the match and the slot on screen is in it. The text this
+    holds the markup to is therefore the text the card can show: none of it
+    until the fetch answers, and the served slot's afterwards.
+
+    The markup mechanics behind that (the two hidden elements, the empty
+    paragraph, the space the block keeps and the one function that reveals
+    them) are held by `tests/test_frozen_narrations.py`.
+    """
+    if not NARRATIONS.is_file():
+        return
+    markup = (WEB / CARD).read_text(encoding="utf-8")
+    frozen = json.loads(NARRATIONS.read_text(encoding="utf-8"))
+    counted = 0
+    for match_id, entry in sorted(frozen.get("narrations", {}).items()):
+        for key, slot in sorted((entry.get("slots") or {}).items()):
+            said = (slot or {}).get("text")
+            if not said:
+                continue
+            counted += 1
+            if said in markup:
+                fail(CARD,
+                     f"carries the match {match_id} {key} narration inline; "
+                     "the card would show it under the grounding label before "
+                     "narrations.json had answered")
+    note(f"  {CARD} carries none of the {counted} frozen narrations inline, "
+         "so the label has nothing to stand over until one is fetched")
 
 
 def check_screens(doc, fail, note):
@@ -408,9 +445,8 @@ def check_screens(doc, fail, note):
             default["live_seated"]["venue"], default["live_seated"]["ticket"],
             default["live_seated"]["caption"],
         ],
-        "prelude_03_moment_card.html": [
+        CARD: [
             default["hero"]["caption"], default["hero"]["quote"],
-            frozen_narration(doc, DEFAULT_MATCH, fail),
         ],
         "prelude_04_moments.html": [default["moments_subtitle"]]
             + [m["title"] for m in default["moments"]]
@@ -426,6 +462,9 @@ def check_screens(doc, fail, note):
             if value and value not in markup:
                 fail(name, f"inline copy does not carry {value!r} from matches.json")
     note(f"  inline copy on the other screens matches the default match {DEFAULT_MATCH}")
+
+    check_frozen_narrations(doc, DEFAULT_MATCH, fail)
+    check_card_carries_no_narration(fail, note)
 
 
 def main():
