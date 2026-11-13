@@ -3107,11 +3107,15 @@ bills as.
   re-locking fails the install rather than being resolved differently on every
   machine.
 
-**What a run costs.** 218 seconds of wall clock on `c8a884d`, billed as 4
-Actions minutes on a Linux runner at the 1x multiplier; the two runs before it
-were 254 and 175 seconds. Of that, the unit suite is 36 seconds and the
-browser suite 123. Minutes are not metered on a public repository, which this
-one will be; on a private one four minutes a push is the figure.
+**What a run costs.** The three green runs took 218, 212 and 213 seconds of
+wall clock, each billed as 4 Actions minutes on a Linux runner at the 1x
+multiplier. The two red ones were 166 and 254: the first stopped early on the
+browser suite, and the second ran everything and failed at the end. Of the 218
+on `c8a884d`, the unit suite is 36 seconds and the browser suite 123, and the
+install and the Chromium download are most of the rest. Minutes are not
+metered on a public repository, which this one will be; on a private one four
+minutes a push is the figure, so the 3,000 GitHub Pro includes is 750 pushes a
+month.
 
 **`.github/workflows/smoke.yml`, after a Pages deploy succeeds** (`d9bc232`).
 CI checks the working tree; it cannot say that what a judge opens is the same
@@ -3144,10 +3148,13 @@ and not sufficient: a check nobody wrote still passes.
 
 **The evidence.** `pytest -q` reports `1906 passed`, up from `1884`; the
 browser suite reports `71 passed`; all five gates exit 0; `git status` is
-clean after both. In CI on `c8a884d` the same numbers came back in 218
-seconds, and the smoke workflow passed against
-<https://sh4wnbk.github.io/prelude/> and
-<https://prelude-api.onrender.com>.
+clean after both. In CI on `52dbea7` the same numbers came back in 213
+seconds, and the smoke workflow passed on its own trigger after the Pages job
+for that commit: the site served version `52dbea7`, both matches showed the
+frozen words under the label with the play button offered and the right
+recording loaded, both showed nothing and offered nothing under two seconds of
+latency, and `/health`, `/moments` and `/buildup` answered on
+<https://prelude-api.onrender.com>, which reported the same commit.
 
 **Found, not fixed.**
 
