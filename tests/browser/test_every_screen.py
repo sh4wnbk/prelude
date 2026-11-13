@@ -8,6 +8,12 @@ came back 404. That run was a throwaway script; this is it kept.
 The one 404 a load is allowed is `/favicon.ico`, which the browser asks for on
 its own and which no screen links to.
 
+What the screens load from a CDN, Tailwind and the three font families, is not
+counted here: the suite serves `app/web/` and not those, the deployed site
+loads them from the same places, and a slow or blocked CDN is not the screens
+being broken. `OUTSIDE` in the conftest is the list, and `fan.outside` keeps
+what those hosts failed to answer for a reader to look at.
+
 The scanner is here too, and it is the one screen a camera is needed for. It is
 loaded rather than used: the camera is refused in a headless run, so what this
 asks of it is that it renders and does not throw, which is what Task 29 asked.

@@ -70,6 +70,21 @@ ALL_SCREENS = tuple(sorted(path.name for path in WEB.glob("prelude_*.html")))
 #: The one 404 a browser asks for on its own and which no screen links to.
 EXPECTED_404 = "favicon.ico"
 
+#: Where the screens get Tailwind and their fonts. The suite serves
+#: `app/web/` and not these, and the deployed site loads them from the same
+#: places, so a slow or blocked CDN is not the screens being broken. A failure
+#: from one of these is kept on `Fan.outside` rather than counted against the
+#: page, and anything on the suite's own origin still counts.
+OUTSIDE = (
+    "cdn.tailwindcss.com",
+    "fonts.googleapis.com",
+    "fonts.gstatic.com",
+)
+
+
+def from_outside(text):
+    return any(host in (text or "") for host in OUTSIDE)
+
 
 def pytest_collection_modifyitems(items):
     """Mark everything here `browser`, so the mark and the path agree."""
@@ -214,6 +229,9 @@ class Fan:
         self.errors = []
         self.console = []
         self.requests_404 = []
+        #: What the CDNs failed to answer, kept for a reader rather than
+        #: asserted on.
+        self.outside = []
         self.open()
 
     def open(self):
@@ -224,15 +242,12 @@ class Fan:
         self.context.add_init_script(AUDIO_SHIM)
         self.page = self.context.new_page()
         self.page.on("pageerror", lambda error: self.errors.append(str(error)))
+        self.page.on("console", self.note_console)
+        self.page.on("response", self.note_response)
         self.page.on(
-            "console",
-            lambda message: self.console.append((message.type, message.text))
-            if message.type == "error" else None,
-        )
-        self.page.on(
-            "response",
-            lambda response: self.requests_404.append(response.url)
-            if response.status == 404 else None,
+            "requestfailed",
+            lambda request: self.outside.append(request.url)
+            if from_outside(request.url) else None,
         )
 
     def reopen(self):
@@ -279,6 +294,22 @@ class Fan:
             [match_id, listener, name, narrator],
         )
         return self
+
+    def note_console(self, message):
+        if message.type != "error":
+            return
+        if from_outside(message.text):
+            self.outside.append(message.text)
+            return
+        self.console.append((message.type, message.text))
+
+    def note_response(self, response):
+        if response.status != 404:
+            return
+        if from_outside(response.url):
+            self.outside.append(response.url)
+            return
+        self.requests_404.append(response.url)
 
     def audio_loaded(self):
         """The files the page's audio elements were built with, in order."""

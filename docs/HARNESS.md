@@ -279,7 +279,7 @@ that says so rather than a failure.
 | `tests/browser/test_the_label_waits.py` | `narrations.json` slow, refused and never answered, and `matches.json` slow and refused: three rules asked of every frame the card passed through |
 | `tests/browser/test_the_first_load.py` | nothing stored: no match chosen, the list's pill hidden, the five match screens sending the fan to the list, and the narrator outliving the tab while the allegiance does not |
 | `tests/browser/test_the_player_works.py` | the recording playing, the clock, the amber fill, the bars moving with the voice, the waveform seeking, the arrow keys and Replay 10s |
-| `tests/browser/test_every_screen.py` | every screen by both matches by four listener states: no page error, no console error and no 404 but the browser's own `/favicon.ico` |
+| `tests/browser/test_every_screen.py` | every screen by both matches by four listener states: no page error, no console error and no 404 but the browser's own `/favicon.ico`, with the three CDNs the screens load Tailwind and their fonts from not counted against them |
 
 The states are read with a `MutationObserver` installed before any of the
 page's own scripts, so every state the card passed through is recorded rather

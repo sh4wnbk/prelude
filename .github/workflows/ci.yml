@@ -1,0 +1,127 @@
+# Everything that can be checked without a judge, on every push.
+#
+# The order is the order a reader would run it in: install, fetch the data the
+# tests read, the unit suite, the five gates, the browser suite, and then a
+# clean tree. Each step is named for what it proves, so a red run says which
+# claim stopped being true rather than only that something failed.
+#
+# **The raw data is fetched rather than committed.** `data/raw/` is gitignored
+# and `CLAUDE.md` says why, so the tests and three of the gates read nothing
+# until `scripts/fetch_statsbomb.py` has run. It downloads about 6 MB from
+# github.com/hudl/open-data.
+#
+# **The browser suite needs a browser.** Playwright is in the dev group, so
+# `uv sync` installs the package; Chromium itself is a separate download, and
+# `--with-deps` is what gets the shared libraries a headless Chromium needs on
+# a bare runner.
+#
+# **The tree has to be clean at the end.** A suite that rewrites a tracked
+# file is a suite that cannot be trusted to have changed nothing else, and one
+# of them did: `tests/test_authored_narrations.py` ran the report writer,
+# which stamps the date it was rechecked, so the report changed on any day but
+# the one it was last written. That is fixed, and this step is what keeps it
+# fixed.
+#
+# What a run costs, on GitHub's rule that each job is billed by the minute on
+# a Linux runner at a 1x multiplier: see the step at the end, which prints the
+# wall clock time of the run, and HANDOFF.md, which records the figure the
+# first runs reported.
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+# A push on top of a push makes the older run pointless, so it is cancelled.
+# A run on `main` is not, because it is the one the deploy and the smoke
+# workflow are about.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Note when the run started
+        id: started
+        run: echo "at=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # The dev group is what holds pytest, Playwright and the gates'
+      # libraries, and `uv sync` installs it by default. There is no lock
+      # file in the repo, so this resolves and writes one into the runner.
+      - name: Install the project and the dev group
+        run: uv sync
+
+      - name: Cache the Playwright browsers
+        id: browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pyproject.toml') }}
+
+      - name: Install Chromium for Playwright
+        run: uv run playwright install --with-deps chromium
+
+      - name: Fetch the StatsBomb data
+        run: uv run python scripts/fetch_statsbomb.py
+
+      - name: Fail if raw data is somehow tracked
+        run: |
+          if git ls-files --error-unmatch data/raw >/dev/null 2>&1; then
+            echo "data/raw is tracked; it is meant to be gitignored." >&2
+            exit 1
+          fi
+          echo "data/raw is not tracked, as expected."
+
+      - name: The unit suite
+        run: uv run python -m pytest -q
+
+      - name: 'Gate: the data check'
+        run: uv run python scripts/data_check.py
+
+      - name: 'Gate: the banned copy and the label placement'
+        run: uv run python scripts/scan_copy.py
+
+      - name: 'Gate: every factual value against data/raw'
+        run: uv run python scripts/check_match_copy.py
+
+      - name: 'Gate: every word the app can speak'
+        run: uv run python scripts/check_vocabulary.py
+
+      - name: 'Gate: the docs against the code'
+        run: uv run python scripts/check_docs.py
+
+      - name: The browser suite
+        run: uv run python -m pytest tests/browser -q
+
+      - name: Fail if the run changed a tracked file
+        run: |
+          git status --porcelain
+          if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+            echo "::error::the suite or a gate changed a tracked file" >&2
+            git --no-pager diff --stat
+            exit 1
+          fi
+          echo "git status is clean."
+
+      - name: What the run cost
+        if: always()
+        run: |
+          elapsed=$(( $(date +%s) - ${{ steps.started.outputs.at }} ))
+          minutes=$(( (elapsed + 59) / 60 ))
+          echo "::notice::$elapsed seconds of wall clock, billed as $minutes Actions minute(s) on a Linux runner."
+          echo "$elapsed seconds, billed as $minutes minute(s)." >> "$GITHUB_STEP_SUMMARY"
