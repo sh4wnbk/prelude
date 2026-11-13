@@ -64,6 +64,16 @@ VIEWPORT = {"width": 390, "height": 844}
 #: own slow state uses.
 LATENCY_MS = 2000
 
+#: Written to answer false rather than throw. `wait_for_function` tries a
+#: false predicate again on the next frame and gives up at once on one that
+#: throws, and this runs while the page may still be navigating, where the
+#: button is not there yet. The browser suite learned the same thing on its
+#: first CI run.
+PLAY_OFFERED = (
+    "() => { const b = document.getElementById('playBtn'); "
+    "return !!b && !b.disabled; }"
+)
+
 #: How long a cold Render service may take to answer. A wake took 82 seconds
 #: on 2026-11-07.
 COLD_WAKE_SECONDS = 90
@@ -187,20 +197,21 @@ def check_one_match(browser, base, match_id, listener, version):
 
     context, page = open_card(browser, base, match_id, listener)
     try:
-        page.wait_for_function(
-            "() => !document.getElementById('playBtn').disabled", timeout=30000
-        )
+        page.wait_for_function(PLAY_OFFERED, timeout=30000)
         state = page.evaluate(CARD)
         bad += not say(state["text"] == text, "the card shows this slot's words")
         bad += not say(state["labelShown"] is True, "the label is over them")
         bad += not say(state["playDisabled"] is False, "the play button is offered")
         loaded = page.evaluate("() => window.__preludeAudio")
         bad += not say(loaded == [file], "the player loaded " + file)
+        served = (state["version"] or "").split("?v=")[-1]
         if version:
             bad += not say(
                 ("?v=" + version) in (state["version"] or ""),
-                "the screens are version " + version,
+                "the screens are version %s (serving %s)" % (version, served),
             )
+        else:
+            say(True, "the screens are serving version " + served)
     except Exception as error:
         bad += not say(False, "the card did not settle: %s" % error)
     finally:
@@ -290,7 +301,10 @@ def main(argv):
     parser.add_argument("--api", default=API, help="the hosted API")
     parser.add_argument(
         "--version", default=None,
-        help="the seven character commit the deploy stamped into the assets",
+        help=("the seven character commit the deploy stamped into the assets. "
+              "Left out, the version the site is serving is reported rather "
+              "than held to anything, which is what a run that did not follow "
+              "a deploy can honestly say"),
     )
     parser.add_argument("--skip-site", action="store_true")
     parser.add_argument("--skip-api", action="store_true")
@@ -298,7 +312,7 @@ def main(argv):
 
     bad = 0
     if not args.skip_site:
-        bad += check_site(args.site, args.version)
+        bad += check_site(args.site, args.version or None)
     if not args.skip_api:
         bad += check_api(args.api)
 

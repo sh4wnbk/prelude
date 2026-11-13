@@ -50,13 +50,25 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          # The deploy's own commit, so the frozen narrations this compares
+          # the site against are the ones the site is serving.
 
+      # A deploy says which commit it published, so the stamped version can be
+      # held to it. A hand run is not after a deploy and the site may be at an
+      # older commit for a good reason, such as a push that touched nothing
+      # under app/web/, so it passes no version and the script reports what it
+      # found instead of failing on it.
       - name: Work out the version the deploy stamped in
         id: version
         run: |
-          sha="${{ github.event.workflow_run.head_sha || github.sha }}"
-          echo "short=${sha:0:7}" >> "$GITHUB_OUTPUT"
-          echo "checking the site at ${sha:0:7}"
+          sha="${{ github.event.workflow_run.head_sha }}"
+          if [ -n "$sha" ]; then
+            echo "short=${sha:0:7}" >> "$GITHUB_OUTPUT"
+            echo "the deploy published ${sha:0:7}"
+          else
+            echo "short=" >> "$GITHUB_OUTPUT"
+            echo "a hand run: whatever the site is serving is what is checked"
+          fi
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -75,9 +87,12 @@ jobs:
       - name: Install Chromium for Playwright
         run: uv run playwright install --with-deps chromium
 
-      # GitHub runs a bash step with -eo pipefail, so a failing script fails
-      # the step even though its output goes through tee.
+      # `shell: bash` is what adds -o pipefail. Without it a step gets -e
+      # alone, the pipe into tee answers with tee's own exit code, and a
+      # script that printed its failures passed the step. The first run of
+      # this workflow did exactly that.
       - name: The deployed site, and the hosted API
+        shell: bash
         run: |
           uv run python scripts/smoke_live.py \
             --version "${{ steps.version.outputs.short }}" \
