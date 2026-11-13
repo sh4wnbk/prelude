@@ -204,7 +204,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 1891 tests in thirty eight files. Any failure means something is
+The suite is 1904 tests in thirty eight files. Any failure means something is
 wrong. It is run from the repo root:
 
 ```
@@ -372,6 +372,15 @@ because a skip would have let the suite go green with nothing built.
   (`tests/test_narrator_picker.py::TestOneLookup`). The factual values on the
   screens still come from `app/web/matches.json`, which
   `scripts/check_match_copy.py` checks against `data/raw/`.
+- **Two screens play a recording, and they play the same one.** The moment
+  card is the full player, and on the Moments list the hero goal's card is a
+  play button. `app/web/match-content.js` builds those cards, so it asks that
+  one lookup which slot the fan is in, finds the file in `hero.audio` and
+  hands the button to `app/web/narration-player.js`, which is loaded on both
+  screens and does the playing. Every other moment's button ships disabled and
+  is left that way, with an accessible name saying no narration is recorded for
+  it, because `hero.audio` holds files for the hero goal and for nothing else
+  (`tests/test_narration_player.py::TestTheMomentsHeroCardPlays`).
 - **The card shows no narration until it has this match's.** The narration is
   the one field on the moment card with no inline copy, and so the one with no
   fallback. The paragraph ships empty and the grounding label beside it ships

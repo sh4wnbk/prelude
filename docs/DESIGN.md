@@ -244,6 +244,7 @@ Borders are always a surface token at 20 to 60 percent opacity, never a solid li
 | Primary play | `w-14 h-14 rounded-full bg-primary-container text-on-primary` with `shadow-lg shadow-primary-container/20`, `hover:scale-105 active:scale-95` | `03` |
 | Secondary play, active | `w-11 h-11 shrink-0 rounded-full bg-primary-container text-on-primary`, `active:scale-95` | `04` |
 | Secondary play, idle | `w-11 h-11 shrink-0 rounded-full bg-surface-container-highest text-primary`, `hover:bg-primary-container hover:text-on-primary` | `04` |
+| Secondary play, no recording | the same shapes plus `disabled:opacity-40 disabled:cursor-not-allowed`, and the idle one drops its hover with `disabled:hover:bg-surface-container-highest` | `04` |
 | Tertiary action | `h-16 rounded-xl bg-surface-container hover:bg-surface-container-high`, `active:scale-98`, icon over `label-sm` caption | `03` |
 
 Press feedback is a scale transform in every case: 0.99, 0.95 or 0.98. The

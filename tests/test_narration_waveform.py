@@ -35,8 +35,8 @@ PLAYER = WEB / "narration-player.js"
 CARD = WEB / "prelude_03_moment_card.html"
 
 
-def player():
-    """The player's code, with its line comments taken out.
+def whole_file():
+    """The whole player file, with its line comments taken out.
 
     The comments say what the code does, in the same words, so a test reading
     the raw file would count the prose as well as the call. There is no `//`
@@ -44,6 +44,19 @@ def player():
     """
     text = PLAYER.read_text(encoding="utf-8")
     return "\n".join(re.sub(r"\s*//.*$", "", line) for line in text.splitlines())
+
+
+def player():
+    """The moment card's player, which is `start()` and nothing else.
+
+    Since Task 30 the file also carries the Moments list's play button, which
+    is a second `new Audio`, a second click listener and a second `ended`
+    listener in the same file. Every test here is about the moment card, so a
+    search over the whole file would answer about whichever of the two came
+    first in it. `start()` is the boundary: it is the moment card's player
+    entire, and it returns at once on a screen without the card's markup.
+    """
+    return block_after(whole_file(), "function start(")
 
 
 def block_after(text, marker):

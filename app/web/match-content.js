@@ -12,7 +12,9 @@
  * Fields are addressed by data-field, so the markup keeps its classes and
  * structure and this only replaces text. The Moments list is the exception: it
  * has a different number of cards per match, so the inline cards are reused as
- * templates and the list is rebuilt from them.
+ * templates and the list is rebuilt from them. Those cards carry a play
+ * button, and because this file builds them it is what works out which one has
+ * a recording and hands it to the player; wireMomentPlay says the rest.
  *
  * If matches.json cannot be fetched, which is what happens when a screen is
  * opened straight off the filesystem, the inline 1986 copy stays as it is.
@@ -318,7 +320,7 @@
     listenerFor: listenerFor, setListener: setListener,
     nameFor: nameFor, setName: setName, headerWithName: headerWithName,
     narratorFor: narratorFor, setNarrator: setNarrator, slotFor: slotFor,
-    whenNarrationShown: whenNarrationShown
+    whenNarrationShown: whenNarrationShown, onMomentPlay: onMomentPlay
   };
 
   function field(name, root) {
@@ -494,6 +496,54 @@
       });
   }
 
+  // Which of the moments is the hero, the one the buildup and the recording
+  // are about. matches.json writes that event twice, once as hero.event and
+  // once in the moments list, so the clock identifies it: one period, one
+  // minute and one second hold one shot.
+  // scripts/check_match_copy.py reads both records against data/raw/.
+  function isHeroMoment(match, moment) {
+    var hero = match.hero && match.hero.event;
+    var event = moment && moment.event;
+    if (!hero || !event) return false;
+    return hero.period === event.period &&
+           hero.minute === event.minute &&
+           hero.second === event.second;
+  }
+
+  // The Moments cards' play buttons. This file owns that markup and the one
+  // slot lookup, so it works out which card has a recording and which file it
+  // is; app/web/narration-player.js owns everything about playing one, so it
+  // subscribes here and is handed the button that has a file. A button nothing
+  // takes stays disabled, which is how it ships, so the screen never offers
+  // audio that is not there to play.
+  var momentPlayHandlers = [];
+
+  function onMomentPlay(callback) {
+    momentPlayHandlers.push(callback);
+  }
+
+  // One card's play button. The label names the card's own moment, because
+  // these cards are clones of two templates and the 1986 copy in them would
+  // otherwise name Maradona on a 2022 card. The button is disabled unless it
+  // has a recording, and it says so, so a fan reaching it with a screen
+  // reader is told there is nothing to play rather than offered a press that
+  // does nothing.
+  function wireMomentPlay(card, moment, match, heroFile) {
+    var button = field("moment_play", card);
+    if (!button) return;
+    var file = isHeroMoment(match, moment) ? heroFile : null;
+    button.disabled = true;
+    button.setAttribute(
+      "aria-label",
+      file ? "Play the narration for " + moment.title
+           : moment.title + ": no narration recorded"
+    );
+    if (!file) return;
+    for (var h = 0; h < momentPlayHandlers.length; h++) {
+      momentPlayHandlers[h](button, field("moment_play_icon", card), file);
+    }
+  }
+
   function renderMoments(match) {
     var list = field("moments_list");
     if (!list) return;
@@ -504,6 +554,15 @@
     var templates = [];
     for (var i = 0; i < list.children.length; i++) templates.push(list.children[i]);
     if (!templates.length) return;
+
+    // One lookup for the whole screen, the same one the moment card uses: the
+    // slot this fan hears, and the file that reads it to them. Only the hero
+    // goal has a recording, so it is the only card that can be played, and it
+    // plays what the moment card would play for this fan.
+    var heroFile = null;
+    var heroKey = slotFor(match);
+    var recordings = (match.hero && match.hero.audio) || {};
+    if (heroKey && recordings[heroKey]) heroFile = recordings[heroKey];
 
     var built = [];
     for (var j = 0; j < match.moments.length; j++) {
@@ -517,6 +576,7 @@
       if (clock) clock.textContent = moment.period_label + " · " + moment.display_minute + "'";
       if (title) title.textContent = moment.title;
       if (body) body.textContent = moment.body;
+      wireMomentPlay(card, moment, match, heroFile);
       built.push(card);
     }
 

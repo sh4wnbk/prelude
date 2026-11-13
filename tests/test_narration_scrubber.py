@@ -85,8 +85,8 @@ RECORDINGS = {
 LEAD_IN_SECONDS = 0.4
 
 
-def player():
-    """The player's code, with its line comments taken out.
+def whole_file():
+    """The whole player file, with its line comments taken out.
 
     The comments say what the code does, in the same words, so a test reading
     the raw file would count the prose as well as the call. This is the helper
@@ -94,6 +94,17 @@ def player():
     """
     text = PLAYER.read_text(encoding="utf-8")
     return "\n".join(re.sub(r"\s*//.*$", "", line) for line in text.splitlines())
+
+
+def player():
+    """The moment card's player, which is `start()` and nothing else.
+
+    Since Task 30 the file also carries the Moments list's play button, so a
+    search over the whole file would answer about whichever of the two came
+    first in it. `tests/test_narration_waveform.py` scopes itself the same way
+    and says why at more length.
+    """
+    return block_after(whole_file(), "function start(")
 
 
 def block_after(text, marker):

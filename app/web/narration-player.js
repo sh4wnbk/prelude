@@ -1,4 +1,56 @@
+/* The narration recordings, on the two screens that play one.
+ *
+ * The moment card is the full player: the play button, the clock, the
+ * scrubber, the moving bars and Replay 10s. start() below is that, and it
+ * returns at once on a screen whose markup has none of it.
+ *
+ * The Moments list is a play button and nothing else. Those cards are built by
+ * app/web/match-content.js, which owns that markup and holds the one slot
+ * lookup, so it works out which card has a recording and hands that button
+ * over through Prelude.onMomentPlay. Only the hero goal has one, and it is the
+ * file the moment card plays for this fan, so the two screens play the same
+ * recording and there is one lookup and one player between them.
+ */
 (function () {
+  // The Moments button, handed over with the file it plays. Enabling it is
+  // what this does first: match-content.js leaves every one of those buttons
+  // disabled and only a button something takes is offered, so a screen the
+  // player is not loaded on offers nothing.
+  function playOnly(button, icon, file) {
+    var audio = new Audio(file);
+    button.disabled = false;
+
+    function showPlaying(playing) {
+      if (icon) icon.textContent = playing ? 'pause' : 'play_arrow';
+    }
+
+    button.addEventListener('click', function () {
+      if (audio.paused) {
+        showPlaying(true);
+        var playing = audio.play();
+        if (playing && playing.catch) {
+          playing.catch(function () {
+            // Refused, so the icon must not claim it is playing.
+            showPlaying(false);
+          });
+        }
+      } else {
+        audio.pause();
+        showPlaying(false);
+      }
+    });
+
+    audio.addEventListener('ended', function () {
+      showPlaying(false);
+    });
+  }
+
+  if (window.Prelude && Prelude.onMomentPlay) {
+    // Registered now, in the head, because match-content.js hands the cards
+    // over as it builds them and that happens as soon as matches.json lands.
+    Prelude.onMomentPlay(playOnly);
+  }
+
   function start() {
     var playBtn = document.getElementById('playBtn');
     var playIcon = document.getElementById('playIcon');

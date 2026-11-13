@@ -6,6 +6,7 @@
   </style>
 <link href="phone-frame.css?v=__V__" rel="stylesheet"/>
 <script src="match-content.js?v=__V__"></script>
+<script src="narration-player.js?v=__V__"></script>
 </head><body class="bg-surface text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.35)]"><div class="h-16 px-screen-edge-mobile flex items-center justify-between"><div class="flex items-center gap-space-sm"><a aria-label="Prelude home" class="font-label-lg text-label-lg tracking-[0.2em] font-semibold text-on-surface uppercase select-none hover:text-primary-container transition-colors" href="prelude_01_picker.html?v=__V__">PRELUDE</a></div><div class="flex items-center gap-space-sm"><div class="inline-flex items-center gap-space-xs px-space-sm py-1.5 rounded-full bg-surface-container-high/80 backdrop-blur-md shadow-[0_1px_4px_rgba(0,0,0,0.2)]"><span class="w-1.5 h-1.5 rounded-full bg-primary-container pulse-live"></span><span class="font-label-sm text-label-sm text-on-surface font-semibold tracking-wider uppercase" data-field="chip">ARG vs ENG · LIVE</span></div><a aria-label="Profile" class="w-8 h-8 rounded-full bg-primary flex items-center justify-center" href="prelude_07_profile.html?v=__V__"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></a></div></div></header><main class="flex flex-col relative w-full pt-16 pb-24 bg-surface min-h-screen"><div class="flex flex-col w-full px-screen-edge-mobile space-y-space-lg">
 <!-- Interactive script to align active tab in shell -->
 <script>
@@ -71,8 +72,8 @@
 </div>
 <!-- Telemetry Scrubber Strip & Controls -->
 <div class="flex items-center gap-3 pt-2">
-<button aria-label="Play Maradona's opener narration" class="w-11 h-11 shrink-0 rounded-full bg-surface-container-highest text-primary hover:bg-primary-container hover:text-on-primary flex items-center justify-center shadow transition-colors active:scale-95" type="button">
-<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+<button aria-label="Maradona's opener: no narration recorded" class="w-11 h-11 shrink-0 rounded-full bg-surface-container-highest text-primary hover:bg-primary-container hover:text-on-primary flex items-center justify-center shadow transition-colors active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-surface-container-highest disabled:hover:text-primary" data-field="moment_play" disabled type="button">
+<span class="material-symbols-outlined text-[24px]" data-field="moment_play_icon" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
 </button>
 <div class="flex flex-col flex-1 space-y-1.5 min-w-0">
 <div class="flex items-center justify-between font-label-sm text-label-sm text-secondary">
@@ -146,8 +147,8 @@
 </div>
 <!-- Telemetry Scrubber Strip & Controls -->
 <div class="flex items-center gap-3 pt-2">
-<button aria-label="Play Maradona's solo goal narration" class="w-11 h-11 shrink-0 rounded-full bg-primary-container text-on-primary flex items-center justify-center shadow-lg active:scale-95 transition-transform" type="button">
-<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+<button aria-label="Maradona's solo goal: no narration recorded" class="w-11 h-11 shrink-0 rounded-full bg-primary-container text-on-primary flex items-center justify-center shadow-lg active:scale-95 transition-transform disabled:opacity-40 disabled:cursor-not-allowed" data-field="moment_play" disabled type="button">
+<span class="material-symbols-outlined text-[24px]" data-field="moment_play_icon" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
 </button>
 <div class="flex flex-col flex-1 space-y-1.5 min-w-0">
 <div class="flex items-center justify-between font-label-sm text-label-sm text-secondary">

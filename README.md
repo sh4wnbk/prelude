@@ -33,9 +33,10 @@ What the demo is, precisely:
   `hero.audio` in `app/web/matches.json` is where it finds the file. The
   waveform is also the scrubber: dragging it with a finger or a mouse moves the
   recording to the position under the pointer, playing or paused, and the left
-  and right arrow keys move five seconds. The play buttons on the moments list
-  are still markup: they change their own icon and nothing else, because those
-  moments have no recording.
+  and right arrow keys move five seconds. On the moments list the hero goal's
+  card plays that same recording, by the same lookup, so the two screens never
+  offer a fan two different voices; every other card's play button is disabled
+  and says so, because those moments have no recording.
 - **Nothing is live.** The demo replays StatsBomb historical data: the 1986
   Argentina vs England quarter-final and the 2022 Argentina vs France final,
   each presented as if it were unfolding now. There is no live feed, no venue,
@@ -444,9 +445,10 @@ Everything above it is structure.
 - `app/narration_config.py`: the model ids and which one is active. Values
   only, with no behaviour: it reads no environment variable and opens no
   connection.
-- The play buttons and waveforms on the moments list. They change their own
-  icons and nothing else, because those moments have no recording. The one on
-  the moment card plays the hero narration for this listener.
+- The waveforms on the moments list. They are fixed bars: nothing moves them,
+  because the card they sit on has no clock and no scrubber. The play button
+  beside them does play, on the hero goal's card, and is disabled on every
+  other.
 
 **Not built yet:** audio for any moment but the two hero goals, and GPS
 presence handling. Narration runs and reaches a reader: `scripts/narrate_once.py`

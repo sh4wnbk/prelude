@@ -36,6 +36,7 @@ WEB = ROOT / "app" / "web"
 MATCHES = WEB / "matches.json"
 SCRIPT = ROOT / "scripts" / "write_headers.py"
 CARD = WEB / "prelude_03_moment_card.html"
+MOMENTS = WEB / "prelude_04_moments.html"
 PLAYER = WEB / "narration-player.js"
 
 #: For both heroes Argentina scored, so a fan of Argentina hears the Buddy
@@ -122,11 +123,25 @@ class TestTheMomentCard:
     def test_the_mock_toggle_is_gone(self):
         assert "togglePlay" not in CARD.read_text(encoding="utf-8")
 
-    def test_no_other_screen_loads_the_player(self):
+    def test_only_the_two_screens_that_play_audio_load_the_player(self):
+        """The moment card and the Moments list, and no others.
+
+        It was the moment card alone until Task 30. The Moments cards carried
+        play buttons that did nothing, and the hero goal's card now plays the
+        recording this fan would hear on the moment card. A second player
+        would be a second answer to which recording that is, so the Moments
+        screen loads this one.
+        """
+        plays = {CARD.name, MOMENTS.name}
         for page in sorted(WEB.glob("*.html")):
-            if page == CARD:
-                continue
-            assert "narration-player.js" not in page.read_text(encoding="utf-8"), page.name
+            loads = "narration-player.js" in page.read_text(encoding="utf-8")
+            assert loads == (page.name in plays), page.name
+
+    def test_the_moments_screen_loads_it_after_the_renderer(self):
+        """The player registers for the Moments cards as the head is read, and
+        the thing it registers with is defined by `match-content.js`."""
+        markup = MOMENTS.read_text(encoding="utf-8")
+        assert markup.index("match-content.js") < markup.index("narration-player.js")
 
 
 #: The renderer, which is where the narration reveal and so the button's
@@ -266,3 +281,117 @@ class TestThePlayer:
         text = player()
         for call in ("fetch(", "XMLHttpRequest", "sendBeacon", "innerHTML"):
             assert call not in text, call
+
+
+class TestTheMomentsHeroCardPlays:
+    """Shawn, 2026-11-12: the Moments play buttons were plain buttons that did
+    nothing.
+
+    One moment per match has a recording, the hero goal, and the fan has
+    already been told which voice is theirs. So the hero goal's card plays the
+    file the moment card would play them, by the one lookup both screens
+    share, and every other card's button is disabled rather than offering
+    audio that was never recorded.
+
+    `app/web/match-content.js` builds those cards and holds the lookup, so it
+    decides which button has a file; `app/web/narration-player.js` is handed
+    that button and does the playing. The division is the one the two screens
+    already have: markup and copy in the renderer, audio in the player.
+    """
+
+    @staticmethod
+    def matches():
+        return json.loads(MATCHES.read_text(encoding="utf-8"))["matches"]
+
+    def test_both_buttons_ship_disabled(self):
+        """A button that can promise audio before the fetch lands is a button
+        that can promise the wrong thing, or nothing. Neither is offered until
+        something hands it a file."""
+        markup = MOMENTS.read_text(encoding="utf-8")
+        buttons = re.findall(r"<button[^>]*data-field=\"moment_play\"[^>]*>", markup)
+        assert len(buttons) == 2, buttons
+        for button in buttons:
+            assert " disabled " in button or button.endswith("disabled>"), button
+
+    def test_the_shipped_labels_promise_nothing(self):
+        """Both buttons ship disabled, so in the state where the fetch fails
+        and the inline copy stands, neither of them can be pressed and neither
+        says it can be."""
+        markup = MOMENTS.read_text(encoding="utf-8")
+        labels = re.findall(r'<button[^>]*data-field="moment_play"[^>]*>', markup)
+        for button in labels:
+            found = re.search(r'aria-label="([^"]*)"', button)
+            assert found, button
+            assert found.group(1).endswith(": no narration recorded"), found.group(1)
+
+    def test_the_renderer_names_each_card_in_its_own_label(self):
+        """The cards are clones of the two inline templates, so without this
+        the 2022 screen's buttons name Maradona over Messi and Di Maria."""
+        body = one_function(renderer(), "wireMomentPlay")
+        assert 'setAttribute(' in body
+        assert '"aria-label"' in body
+        assert "moment.title" in body
+
+    def test_the_renderer_finds_the_file_by_the_one_lookup(self):
+        body = one_function(renderer(), "renderMoments")
+        assert "slotFor(match)" in body
+        assert "match.hero && match.hero.audio" in body
+
+    def test_the_renderer_hands_over_only_the_hero_card(self):
+        body = one_function(renderer(), "wireMomentPlay")
+        assert "isHeroMoment(match, moment)" in body
+        assert "button.disabled = true" in body
+        assert "if (!file) return;" in body
+
+    def test_the_player_takes_the_button_and_enables_it(self):
+        text = player()
+        assert "Prelude.onMomentPlay(playOnly)" in text
+        body = one_function(text, "playOnly")
+        assert "new Audio(file)" in body
+        assert "button.disabled = false" in body
+
+    def test_the_player_registers_outside_start(self):
+        """`start()` returns at once on the Moments screen, which has none of
+        the moment card's five elements, so the registration cannot be inside
+        it."""
+        text = player()
+        assert "Prelude.onMomentPlay(playOnly)" in text
+        assert "Prelude.onMomentPlay(playOnly)" not in one_function(text, "start")
+
+    def test_the_player_holds_no_second_copy_of_the_slot_rule(self):
+        assert "voice_for" not in player()
+
+    def test_exactly_one_moment_per_match_is_the_hero(self):
+        """What `isHeroMoment` rests on: the hero event is written twice in
+        `app/web/matches.json`, as `hero.event` and once in the moments list,
+        and the clock tells it from the other moments."""
+        for entry in self.matches():
+            hero = entry["hero"]["event"]
+            same = [
+                moment for moment in entry["moments"]
+                if (moment["event"]["period"], moment["event"]["minute"],
+                    moment["event"]["second"])
+                == (hero["period"], hero["minute"], hero["second"])
+            ]
+            assert len(same) == 1, (entry["match_id"], len(same))
+
+    def test_the_other_moments_have_no_recording(self):
+        """`hero.audio` holds files for the hero goal's slots and for nothing
+        else, which is why every other card's button is disabled rather than
+        waiting on a file that might arrive."""
+        for entry in self.matches():
+            keys = set(entry["hero"]["audio"])
+            assert keys == set(entry["hero"]["voice_for"].values()), entry["match_id"]
+            assert len(entry["moments"]) > 1, entry["match_id"]
+
+    @pytest.mark.parametrize("match_id", sorted(EXPECTED))
+    def test_the_hero_card_plays_the_moment_cards_file(self, match_id):
+        """The same file for the same fan, because both screens reach it
+        through `Prelude.slotFor` and `hero.audio`. The rows of the slot rule
+        are in `tests/slot_rows.json`; this holds the three side answers with
+        no narrator chosen."""
+        hero = heroes()[match_id]
+        for side, slot in EXPECTED[match_id].items():
+            assert hero["voice_for"][side] == slot
+            assert hero["audio"][slot].startswith("assets/audio/")
+            assert (WEB / hero["audio"][slot]).is_file()
