@@ -1,0 +1,87 @@
+# What a judge opens, checked after every deploy.
+#
+# CI checks the working tree. It cannot say that the site a judge opens is the
+# same app: the deploy stamps a version into every local asset URL, Pages
+# serves from its own cache, and the API runs somewhere else entirely. This
+# runs when the Pages job succeeds, against <https://sh4wnbk.github.io/prelude/>
+# at the version that job deployed, and against
+# <https://prelude-api.onrender.com>.
+#
+# It is the short subset, not the suite: both matches, one listener each, the
+# narration and the label on the card, the recording the player loads, the
+# same card under two seconds of latency showing no words, no label and no
+# offer of the voice, and then `/health`, `/moments` and `/buildup`.
+# `scripts/smoke_live.py` is what it runs and says what each check is for.
+#
+# **The checkout is the deployed commit**, not the tip of main, so the frozen
+# narrations it compares the site against are the ones the site is serving.
+#
+# **Render spins the free service down** after fifteen minutes without
+# traffic, and a wake took 82 seconds on 2026-11-07. The script waits ninety
+# before calling `/health` a failure, which is why this job's timeout is not
+# five minutes.
+
+name: Smoke the deployed site
+
+on:
+  workflow_run:
+    workflows: ["Deploy screens to Pages"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    # A deploy that failed has nothing to smoke. A hand run always goes, and
+    # takes the tip of main.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the commit that was deployed
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Work out the version the deploy stamped in
+        id: version
+        run: |
+          sha="${{ github.event.workflow_run.head_sha || github.sha }}"
+          echo "short=${sha:0:7}" >> "$GITHUB_OUTPUT"
+          echo "checking the site at ${sha:0:7}"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install the project and the dev group
+        run: uv sync
+
+      - name: Cache the Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pyproject.toml') }}
+
+      - name: Install Chromium for Playwright
+        run: uv run playwright install --with-deps chromium
+
+      # GitHub runs a bash step with -eo pipefail, so a failing script fails
+      # the step even though its output goes through tee.
+      - name: The deployed site, and the hosted API
+        run: |
+          uv run python scripts/smoke_live.py \
+            --version "${{ steps.version.outputs.short }}" \
+            | tee smoke.txt
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat smoke.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

@@ -86,6 +86,37 @@ def from_outside(text):
     return any(host in (text or "") for host in OUTSIDE)
 
 
+#: Predicates for `wait_for_function`, written to answer false rather than
+#: throw. `wait_for_function` tries a false predicate again on the next frame
+#: and gives up at once on one that throws, and every one of these runs while
+#: the page may still be navigating: `document.documentElement` is null then,
+#: and the elements are not there yet. The first CI run failed 38 checks on
+#: exactly that, on a runner faster than the machine they were written on.
+RENDERED = (
+    "() => !!document.documentElement && "
+    "document.documentElement.hasAttribute('data-match-rendered')"
+)
+
+PLAY_OFFERED = (
+    "() => { const b = document.getElementById('playBtn'); "
+    "return !!b && !b.disabled; }"
+)
+
+
+def track_reads(attribute, comparison):
+    """A null-safe predicate about one of the scrubber's aria values.
+
+    `comparison` is written against `v`, the number the attribute holds, for
+    example `track_reads("valuenow", "v > 1.2")`.
+    """
+    return (
+        "() => { const t = document.getElementById('scrubTrack'); "
+        "if (!t) return false; "
+        "const v = Number(t.getAttribute('aria-" + attribute + "')); "
+        "return " + comparison + "; }"
+    )
+
+
 def pytest_collection_modifyitems(items):
     """Mark everything here `browser`, so the mark and the path agree."""
     for item in items:
@@ -270,9 +301,7 @@ class Fan:
     def visit(self, screen, **query):
         """Open a screen and wait for the match to be rendered."""
         self.goto(screen, **query)
-        self.page.wait_for_function(
-            "() => document.documentElement.hasAttribute('data-match-rendered')"
-        )
+        self.page.wait_for_function(RENDERED)
         return self.page
 
     def remember(self, match_id=None, listener=None, name=None, narrator=None):

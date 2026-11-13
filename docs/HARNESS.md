@@ -119,6 +119,7 @@ collector from
 | `scripts/authored_narrations.py` | the six the team wrote, re-checked against `data/raw/` by the check, the places rule and the opener rule | `docs/narration_runs/authored_2026-11-07.md` and `.json` | nothing |
 | `scripts/fallback_narrations.py` | the six fallback narrations kept in the repo, re-checked the same way | `docs/narration_runs/fallback_2026-11-05.md` and `.json` | nothing |
 | `scripts/check_vocabulary.py` | gate: every word the app can speak, against the CMU dictionary | nothing | nothing |
+| `scripts/smoke_live.py` | the deployed site and the hosted API after a deploy, run by `.github/workflows/smoke.yml` | nothing | the Pages site and the Render service over https |
 
 The five gates are `scripts/data_check.py`, `scripts/scan_copy.py`,
 `scripts/check_match_copy.py`, `scripts/check_docs.py` and
@@ -291,6 +292,33 @@ event loop.
 The suite found one thing on its first run: the moment card's play button was
 enabled in the markup and disabled only by the player, so the frames before any
 script had run offered a press that did nothing. It ships `disabled` now.
+
+### What runs without anybody asking
+
+Four workflows, in `.github/workflows/`.
+
+| Workflow | When | What it does |
+| -------- | ---- | ------------ |
+| `ci.yml` | every push and pull request | installs with uv, fetches the StatsBomb data, runs the unit suite, the five gates one step each and the browser suite, and fails if the run changed a tracked file |
+| `pages.yml` | a push to `main` that touches `app/web/` | stamps the commit into every local asset URL and publishes `app/web/` to GitHub Pages |
+| `smoke.yml` | a Pages deploy that succeeded | runs `scripts/smoke_live.py` against the deployed site at that commit and against the hosted API |
+| `keepalive.yml` | every ten minutes, behind a repository variable | pings `/health` so a judge never waits on a cold start |
+
+**CI is what a task is finished against.** `CLAUDE.md` says which items of the
+pre-report audit it now automates and which are still read by hand.
+
+**The smoke workflow is about what a judge opens**, which CI cannot speak for:
+the deploy stamps a version into every asset URL, Pages serves from its own
+cache, and the API runs somewhere else. It checks both matches with one
+listener each, the narration under the label, the recording the player loads,
+the same card under two seconds of latency showing nothing and offering
+nothing, and then `/health`, `/moments` and `/buildup`. The latency is set
+through the DevTools protocol, because there is no server of ours to slow.
+
+**The checkout it uses is the deployed commit**, not the tip of `main`, so the
+frozen narrations it compares the site against are the ones the site serves.
+Render's free service sleeps after fifteen minutes and a wake took 82 seconds
+on 2026-11-07, so `/health` is given ninety.
 
 ### Two guards, on every test
 

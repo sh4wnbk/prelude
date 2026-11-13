@@ -91,30 +91,60 @@ or hand-editing. Don't guess IDs, counts, or names; read them from the data.
 
 ## Before you report: definition of done
 
-A task is not done when its own tests pass. Before writing the report, run this
-audit and fix what it finds, or list it under "Found, not fixed" with the reason.
+A task is not done when its own tests pass, and it is not done until CI is
+green on its last commit. Before writing the report, run this audit and fix
+what it finds, or list it under "Found, not fixed" with the reason.
 
-1. Baseline and finish: the full suite and all five gates, at the start and at
-   the end, with the real output quoted.
-2. Every match, every listener: anything that touches the app is checked on
-   both matches, for team_a, team_b and neutral, and with the narrator unset,
-   Storyteller and Buddy, in headless Chromium at 390 x 844.
-3. Every state, not just the happy one: first load with cleared storage; a
-   slow network (delay matches.json and narrations.json by two seconds); a
-   failed fetch; a refresh; a closed and reopened tab. Nothing a fan can see
-   may be wrong at any moment, even briefly.
-4. The label: "Verified from play data" is never visible over words other than
-   the frozen narration for the match and slot on screen, in any state above.
-5. The deployed site: after the Pages job succeeds, repeat the checks that
-   matter against https://sh4wnbk.github.io/prelude/ at the new version, and
-   against https://prelude-api.onrender.com when the API changed.
-6. Copy: every line a fan can read is true at the moment it is shown: no
-   promise wider than the code (one narrated goal per match), no verdict or
-   nickname, no "you missed" framing, no em dash or "--".
-7. Docs: grep the docs for every name, count, file and behaviour the change
-   touched; fix each stale present-tense claim in the same commit.
-8. Side effects: running tests must not change a tracked file; git status is
-   clean after the suite.
-9. Report: what changed, the evidence, and a section "Found, not fixed".
-   Anything a reviewer would flag that you did not fix goes there, never left
-   for the reviewer to find.
+**CI runs items 1, 2, 3, 4 and 8 on every push**, and most of 6: the unit
+suite, the five gates, the browser suite in `tests/browser/` and a step that
+fails when the run changed a tracked file. So those items are not a thing to
+remember any more; they are a thing to read the result of. What is still read
+by hand is item 5 beyond the smoke subset, item 7, and the part of item 6 that
+is a judgement about copy rather than a banned string. Green CI is necessary
+and is not sufficient: a check nobody wrote still passes.
+
+Each item below says which it is.
+
+1. Baseline and finish (CI: the suite and the five gates, every push): the
+   full suite and all five gates, at the start and at the end, with the real
+   output quoted. The browser suite is run by naming it,
+   `pytest tests/browser`, and the unit run leaves it out.
+2. Every match, every listener (CI: `tests/browser/`): anything that touches
+   the app is checked on both matches, for team_a, team_b and neutral, and
+   with the narrator unset, Storyteller and Buddy, in headless Chromium at
+   390 x 844. A new screen or a new state belongs in that suite, not in a
+   script that is thrown away.
+3. Every state, not just the happy one (CI: `tests/browser/`): first load
+   with cleared storage; a slow network (delay matches.json and
+   narrations.json by two seconds); a failed fetch; a refresh; a closed and
+   reopened tab. Nothing a fan can see may be wrong at any moment, even
+   briefly: the frames before any script has run are a state a fan can
+   see.
+4. The label (CI: `tests/browser/test_the_label_waits.py`): "Verified from
+   play data" is never visible over words other than the frozen narration for
+   the match and slot on screen, in any state above. The rule is asked of
+   every frame a `MutationObserver` recorded, not only of the state the card
+   settled in.
+5. The deployed site (CI: the smoke workflow runs a short subset): after the
+   Pages job succeeds, `.github/workflows/smoke.yml` checks both matches with
+   one listener each, the label rule and the play button against
+   https://sh4wnbk.github.io/prelude/ at the new version, and calls /health,
+   /moments and /buildup on https://prelude-api.onrender.com. Anything the
+   change touched that the subset does not cover is still checked by hand.
+6. Copy (CI: the gates catch the banned strings; the judgement is yours):
+   every line a fan can read is true at the moment it is shown: no promise
+   wider than the code (one narrated goal per match), no verdict or nickname,
+   no "you missed" framing, no em dash or "--". An accessible name is a line a
+   fan can read.
+7. Docs (CI: `scripts/check_docs.py` checks paths, counts, citations and
+   dashes; prose is yours): grep the docs for every name, count, file and
+   behaviour the change touched; fix each stale present-tense claim in the
+   same commit.
+8. Side effects (CI: the last step fails on a dirty tree): running tests
+   must not change a tracked file; git status is clean after the suite. A
+   script a test runs writes into pytest's temporary directory, not into the
+   repo.
+9. Report (yours): what changed, the evidence, and a section "Found, not
+   fixed". Anything a reviewer would flag that you did not fix goes there,
+   never left for the reviewer to find. The evidence includes the CI run that
+   is green on the last commit.

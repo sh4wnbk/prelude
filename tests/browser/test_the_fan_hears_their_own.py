@@ -29,7 +29,7 @@ moves when the words land.
 import pytest
 
 from tests.browser.conftest import (
-    CARD_STATE, LISTENERS, MOMENT_CARD, MOMENTS, NARRATORS,
+    CARD_STATE, LISTENERS, MOMENTS, MOMENT_CARD, NARRATORS, PLAY_OFFERED,
 )
 
 #: The block's reserved height at 390 px wide, in pixels. Task 29 measured the
@@ -65,9 +65,7 @@ def test_the_card_shows_the_slot_the_rules_name(
         want = expected(match_id, listener, narrator)
         fan.remember(match_id=match_id, listener=listener, narrator=narrator)
         fan.visit(MOMENT_CARD, match=match_id)
-        fan.page.wait_for_function(
-            "() => !document.getElementById('playBtn').disabled"
-        )
+        fan.page.wait_for_function(PLAY_OFFERED)
         state = fan.page.evaluate(CARD_STATE)
         assert state["text"] == want["text"], (match_id, listener, narrator)
         assert state["wordsShown"] is True
@@ -128,9 +126,7 @@ def test_the_two_screens_never_offer_two_voices(fan, match_ids, expected):
             want = expected(match_id, listener)
             fan.remember(match_id=match_id, listener=listener)
             fan.visit(MOMENT_CARD, match=match_id)
-            fan.page.wait_for_function(
-                "() => !document.getElementById('playBtn').disabled"
-            )
+            fan.page.wait_for_function(PLAY_OFFERED)
             card_file = fan.audio_loaded()
             fan.visit(MOMENTS, match=match_id)
             moments_file = fan.audio_loaded()

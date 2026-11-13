@@ -25,7 +25,8 @@ What has to be true of it, which is Task 26's rule and Task 28's:
 import pytest
 
 from tests.browser.conftest import (
-    LIVE, MATCH_REQUIRED, MOMENT_CARD, MOMENTS, PICKER, PROFILE, SCANNER,
+    LIVE, MATCH_REQUIRED, MOMENTS, MOMENT_CARD, PICKER, PLAY_OFFERED,
+    PROFILE, SCANNER,
 )
 
 #: The header pill, which only the list ships hidden and so only the list
@@ -147,7 +148,7 @@ def test_the_narrator_outlives_the_tab(fan, match_ids, expected):
     fan.remember(match_id=match_id, listener="team_b", name="Olivia",
                  narrator="storyteller")
     page = fan.visit(MOMENT_CARD, match=match_id)
-    page.wait_for_function("() => !document.getElementById('playBtn').disabled")
+    page.wait_for_function(PLAY_OFFERED)
     chosen = expected(match_id, "team_b", "storyteller")
     assert fan.audio_loaded() == [chosen["file"]]
 
@@ -166,9 +167,7 @@ def test_the_narrator_outlives_the_tab(fan, match_ids, expected):
     assert held["name"] is None, held
 
     fan.visit(MOMENT_CARD, match=match_id)
-    fan.page.wait_for_function(
-        "() => !document.getElementById('playBtn').disabled"
-    )
+    fan.page.wait_for_function(PLAY_OFFERED)
     after = expected(match_id, "neutral", "storyteller")
     assert fan.audio_loaded() == [after["file"]]
     assert fan.page.evaluate(

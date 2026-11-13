@@ -24,7 +24,7 @@ What each check is about:
 
 import pytest
 
-from tests.browser.conftest import MOMENT_CARD
+from tests.browser.conftest import MOMENT_CARD, PLAY_OFFERED, track_reads
 
 #: The bars, by the class the markup gives them, which is how the player finds
 #: them too.
@@ -65,11 +65,8 @@ def playing(fan, match_ids):
     match_id = match_ids[0]
     fan.remember(match_id=match_id, listener="neutral")
     page = fan.visit(MOMENT_CARD, match=match_id)
-    page.wait_for_function("() => !document.getElementById('playBtn').disabled")
-    page.wait_for_function(
-        "() => Number(document.getElementById('scrubTrack')"
-        ".getAttribute('aria-valuemax')) > 0"
-    )
+    page.wait_for_function(PLAY_OFFERED)
+    page.wait_for_function(track_reads("valuemax", "v > 0"))
     return page
 
 
@@ -83,10 +80,7 @@ def test_the_recording_plays_and_the_clock_follows_it(playing):
     playing.click("#playBtn")
     # Past a whole second, because the readout is floored: it reads 0:00 until
     # the voice has been going for one.
-    playing.wait_for_function(
-        "() => Number(document.getElementById('scrubTrack')"
-        ".getAttribute('aria-valuenow')) > 1.2"
-    )
+    playing.wait_for_function(track_reads("valuenow", "v > 1.2"))
     after = playing.evaluate(STATE)
     assert after["icon"] == "pause", after
     assert after["clock"] != "0:00", after
@@ -128,10 +122,7 @@ def test_a_drag_on_the_waveform_seeks(playing):
     length = playing.evaluate(STATE)["max"]
 
     press_at(playing, 0.8)
-    playing.wait_for_function(
-        "() => Number(document.getElementById('scrubTrack')"
-        ".getAttribute('aria-valuenow')) > 0"
-    )
+    playing.wait_for_function(track_reads("valuenow", "v > 0"))
     seeked = playing.evaluate(STATE)
     assert abs(seeked["now"] - length * 0.8) < length * 0.08, (seeked, length)
     assert seeked["icon"] == "play_arrow", "a seek does not start the voice"
@@ -139,10 +130,7 @@ def test_a_drag_on_the_waveform_seeks(playing):
 
     # And back to the start, still paused.
     press_at(playing, 0.02)
-    playing.wait_for_function(
-        "() => Number(document.getElementById('scrubTrack')"
-        ".getAttribute('aria-valuenow')) < 1"
-    )
+    playing.wait_for_function(track_reads("valuenow", "v < 1"))
     back = playing.evaluate(STATE)
     assert back["now"] < length * 0.1, back
     assert back["icon"] == "play_arrow", back
@@ -154,10 +142,7 @@ def test_a_forward_seek_then_play_keeps_the_position(playing):
     playhead, which is Task 24's rule and the one a seek has to not undo."""
     length = playing.evaluate(STATE)["max"]
     press_at(playing, 0.5)
-    playing.wait_for_function(
-        "() => Number(document.getElementById('scrubTrack')"
-        ".getAttribute('aria-valuenow')) > 0"
-    )
+    playing.wait_for_function(track_reads("valuenow", "v > 0"))
     playing.click("#playBtn")
     playing.wait_for_timeout(700)
     state = playing.evaluate(STATE)

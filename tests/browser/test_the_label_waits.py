@@ -33,7 +33,7 @@ copy is the default match's and the narration is not.
 import pytest
 
 from tests.browser.conftest import (
-    CARD_STATE, LISTENERS, MOMENT_CARD, WATCH_THE_CARD,
+    CARD_STATE, LISTENERS, MOMENT_CARD, PLAY_OFFERED, WATCH_THE_CARD,
 )
 from tests.browser.test_the_fan_hears_their_own import BLOCK_PX
 
@@ -108,8 +108,7 @@ def test_a_slow_narrations_file(
         assert mid["header"]
 
         fan.page.wait_for_function(
-            "() => !document.getElementById('playBtn').disabled",
-            timeout=(SLOW_SECONDS + 8) * 1000,
+            PLAY_OFFERED, timeout=(SLOW_SECONDS + 8) * 1000
         )
         end = fan.page.evaluate(CARD_STATE)
         assert end["text"] == want["text"], (match_id, listener)
@@ -200,12 +199,12 @@ def test_a_refresh_and_a_reopened_tab_keep_the_rules(
     match_id = match_ids[0]
     fan.remember(match_id=match_id, listener="team_b")
     watched(fan, MOMENT_CARD, match=match_id)
-    fan.page.wait_for_function("() => !document.getElementById('playBtn').disabled")
+    fan.page.wait_for_function(PLAY_OFFERED)
     want = expected(match_id, "team_b")
     assert fan.page.evaluate(CARD_STATE)["text"] == want["text"]
 
     fan.page.reload()
-    fan.page.wait_for_function("() => !document.getElementById('playBtn').disabled")
+    fan.page.wait_for_function(PLAY_OFFERED)
     assert fan.page.evaluate(CARD_STATE)["text"] == want["text"]
     broken = obeys(frames(fan), want["text"], every_frozen_line)
     assert broken is None, broken
@@ -213,7 +212,7 @@ def test_a_refresh_and_a_reopened_tab_keep_the_rules(
     page = fan.reopen()
     page.add_init_script(WATCH_THE_CARD)
     fan.visit(MOMENT_CARD, match=match_id)
-    page.wait_for_function("() => !document.getElementById('playBtn').disabled")
+    page.wait_for_function(PLAY_OFFERED)
     neutral = expected(match_id, "neutral")
     assert page.evaluate(CARD_STATE)["text"] == neutral["text"]
     broken = obeys(frames(fan), neutral["text"], every_frozen_line)
@@ -234,8 +233,9 @@ def test_the_label_is_never_over_another_matchs_words(
     state = fan.page.evaluate(CARD_STATE)
     assert other not in (state["text"] or ""), state
     assert state["labelShown"] is False
-    fan.page.wait_for_function("() => !document.getElementById('playBtn').disabled",
-                               timeout=(SLOW_SECONDS + 8) * 1000)
+    fan.page.wait_for_function(
+        PLAY_OFFERED, timeout=(SLOW_SECONDS + 8) * 1000
+    )
     want = expected(match_ids[1], "neutral")
     for frame in frames(fan):
         assert other not in (frame["text"] or ""), frame
