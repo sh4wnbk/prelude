@@ -172,12 +172,41 @@
     }
   }
 
-  // The narrator the fan chose for this session. One value across all matches,
-  // held the same way the name is: a preference on the phone, read and written
-  // inside a try, key removed when the id is empty.
+  // The narrator the fan chose. Unlike "Who are you with" and the name, this
+  // is a standing preference rather than an answer about tonight: a fan sets
+  // it before a match, at home or in transit, and it is still theirs when they
+  // open the app at the ground. So it lives in localStorage, which survives a
+  // closed tab, while the allegiance and the name stay per session. One value
+  // across all matches, every read and write inside a try, key removed when
+  // the id is empty.
+  var NARRATOR_KEY = "prelude.narrator";
+
+  // It was a session value under this same name until it became a standing
+  // preference. A fan who had already chosen one would lose it on the switch,
+  // so the old session key is read once per page, carried over to localStorage
+  // and cleared. Once localStorage holds a choice the old key is never
+  // consulted again, so a stale session value cannot outrank a later choice.
+  var narratorCarried = false;
+
+  function carryNarratorOver() {
+    if (narratorCarried) return;
+    narratorCarried = true;
+    try {
+      if (window.localStorage.getItem(NARRATOR_KEY)) return;
+      var held = window.sessionStorage.getItem(NARRATOR_KEY);
+      if (held) {
+        window.localStorage.setItem(NARRATOR_KEY, held);
+        window.sessionStorage.removeItem(NARRATOR_KEY);
+      }
+    } catch (e) {
+      /* blocked storage: there is nothing to carry over */
+    }
+  }
+
   function narratorFor() {
     try {
-      return window.sessionStorage.getItem("prelude.narrator") || null;
+      carryNarratorOver();
+      return window.localStorage.getItem(NARRATOR_KEY) || null;
     } catch (e) {
       return null;
     }
@@ -185,11 +214,13 @@
 
   function setNarrator(id) {
     try {
+      narratorCarried = true;   // a choice made now outranks any old one
       if (id) {
-        window.sessionStorage.setItem("prelude.narrator", id);
+        window.localStorage.setItem(NARRATOR_KEY, id);
       } else {
-        window.sessionStorage.removeItem("prelude.narrator");
+        window.localStorage.removeItem(NARRATOR_KEY);
       }
+      window.sessionStorage.removeItem(NARRATOR_KEY);
     } catch (e) {
       /* nothing to do */
     }

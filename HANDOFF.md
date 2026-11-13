@@ -3059,7 +3059,8 @@ went in through the listener card that mounts itself on Live; the narrator was
 chosen by tapping it on Profile; and the buildup was reached by tapping Heading
 out. At the end of the run `sessionStorage` held `prelude.name` as `Olivia`,
 `prelude.listener.3869685` as `team_a`, `prelude.narrator` as `storyteller` and
-`prelude.moment.3869685` as `1`, all of them put there by the app.
+`prelude.moment.3869685` as `1`, all of them put there by the app. That is
+where the narrator sat on this commit; Task 28 moved it to `localStorage`.
 
 **The fourth frame is the Storyteller's, and was checked rather than assumed.**
 With the listener on `team_a` the app resolved the slot to
@@ -4017,7 +4018,7 @@ moved into `tests/slot_rows.json` and the `slot_rows` fixture in
 through `/buildup`, so the rule the service answers with is the rule in the
 table.
 
-`tests/test_narrator_picker.py`, 39 tests, reads each row against
+`tests/test_narrator_picker.py`, 43 tests, reads each row against
 `hero.voice_for` and `hero.audio`, which is what the browser's copy indexes:
 every row names a match the app serves, a key that match carries and a
 recording in the repo, and each row is the branch of the rule it claims to be.

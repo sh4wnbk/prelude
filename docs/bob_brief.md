@@ -122,7 +122,7 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-1870 passed
+1874 passed
 ```
 
 The total covers far more than this module now. Phase 4 added the narration
@@ -1470,10 +1470,15 @@ becomes a function, and it is the only reader of `hero.voice_for`.
 
 1. **`app/web/match-content.js`, the choice.** Beside `nameFor` and `setName`,
    add `narratorFor()` and `setNarrator(id)`, holding the id under
-   `"prelude.narrator"` in `window.sessionStorage` exactly as the name is held:
-   one value for the session rather than one per match, every read and write
-   inside a `try`, and the key removed when the id is empty. Publish both on
-   `window.Prelude`.
+   `"prelude.narrator"`: one value across every match rather than one per
+   match, every read and write inside a `try`, and the key removed when the id
+   is empty. Publish both on `window.Prelude`.
+
+   The brief as Bob built it put the id in `window.sessionStorage`, next to the
+   name. Task 28 moved it to `window.localStorage`, because a narrator is set
+   before a match and has to outlive the tab it was chosen in; the old session
+   key is still read once and carried over. Nothing else about the choice
+   changed, and the name and the allegiance stay per session.
 
    There is no list of ids in the browser. The ids are the persona ids, they
    arrive in `app/web/narrators.json`, and an id with no recording falls
@@ -1554,7 +1559,7 @@ becomes a function, and it is the only reader of `hero.voice_for`.
 
 ### The tests to pass
 
-`tests/test_narrator_picker.py`, 39 tests. It held 30 when this brief was
+`tests/test_narrator_picker.py`, 43 tests. It held 30 when this brief was
 written and seventeen of those failed until the picker was built; the nine
 after them are `TestTheSevenRows`, which Phase 6 added when the rule was
 written a second time in Python and the rows moved into

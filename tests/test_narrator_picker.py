@@ -75,8 +75,9 @@ PROFILE = WEB / "prelude_07_profile.html"
 MATCHES = WEB / "matches.json"
 NARRATORS = WEB / "narrators.json"
 
-#: The storage key, alongside `prelude.name`: one choice for the session, not
-#: one per match, because a narrator is a voice and not an answer about a game.
+#: The storage key. One choice across every match, because a narrator is a
+#: voice and not an answer about a game, and it is held in localStorage rather
+#: than beside `prelude.name`: a standing preference outlives its tab.
 NARRATOR_KEY = '"prelude.narrator"'
 
 #: The note under a narrator that is recorded but cannot be chosen yet, because
@@ -222,18 +223,54 @@ class TestTheChoice:
     def test_the_writer_is_published(self):
         assert "setNarrator" in published()
 
-    def test_it_is_stored_the_way_the_name_is(self):
-        """`prelude.name` is one value for the session, read and written inside
-        a try, so blocked storage costs the preference and not the screen. The
-        narrator is the same kind of value and is held the same way."""
+    def test_it_is_a_standing_preference_in_local_storage(self):
+        """Shawn's decision on 2026-11-13: the narrator is set before a match,
+        at home or in transit, so it has to outlive the tab it was chosen in.
+        It moves to localStorage; blocked storage still costs the preference
+        and not the screen, so every read and write stays inside a try."""
         text = renderer()
         assert NARRATOR_KEY in text
         read = body("narratorFor")
-        assert "sessionStorage.getItem" in read
+        assert "localStorage.getItem" in read
         assert "catch" in read
         write = body("setNarrator")
-        assert "sessionStorage.setItem" in write
+        assert "localStorage.setItem" in write
+        assert "localStorage.removeItem" in write
         assert "catch" in write
+
+    def test_the_session_key_is_no_longer_what_holds_the_choice(self):
+        """Reading or writing the choice in sessionStorage would put it back
+        inside one tab, which is the thing this changed."""
+        assert "sessionStorage.getItem" not in body("narratorFor")
+        assert "sessionStorage.setItem" not in body("setNarrator")
+
+    def test_an_existing_session_choice_is_carried_over(self):
+        """A fan who chose a narrator before the switch has it in the old
+        session key. It is read once, written to localStorage and cleared, so
+        the choice survives the change rather than being silently dropped."""
+        carry = body("carryNarratorOver")
+        assert "sessionStorage.getItem" in carry
+        assert "localStorage.setItem" in carry
+        assert "sessionStorage.removeItem" in carry
+        assert "catch" in carry
+
+    def test_the_carry_over_runs_once_and_never_outranks_a_choice(self):
+        """It is guarded by a flag, and it returns before reading the old key
+        when localStorage already holds one, so a stale session value cannot
+        win over a later choice."""
+        carry = body("carryNarratorOver")
+        assert "narratorCarried" in carry
+        assert "localStorage.getItem" in carry
+        assert "narratorFor" in renderer()
+        assert "carryNarratorOver()" in body("narratorFor")
+        assert "narratorCarried" in body("setNarrator")
+
+    def test_who_you_are_with_and_the_name_stay_per_session(self):
+        """Only the narrator moved. The allegiance is an answer about one
+        match and the name is for tonight, so both stay in sessionStorage."""
+        for name in ("listenerFor", "setListener", "nameFor", "setName"):
+            assert "sessionStorage" in body(name), name
+            assert "localStorage" not in body(name), name
 
     def test_the_id_stored_is_the_narrators_own(self):
         """The ids are the persona ids, and they arrive in `narrators.json`

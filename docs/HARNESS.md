@@ -204,7 +204,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 1870 tests in thirty eight files. Any failure means something is
+The suite is 1874 tests in thirty eight files. Any failure means something is
 wrong. It is run from the repo root:
 
 ```
@@ -232,7 +232,7 @@ wrote that file as Task 15; it exists now and they pass.
 | `tests/test_narration_provider.py` | the model config and both backends |
 | `tests/test_credentials.py` | where the credentials file lives, and what is refused |
 | `tests/test_buddy_rename.py` | the partisan persona's id is `buddy` in every live file, with the past left as it was, built by Bob in Task 13 |
-| `tests/test_narrator_picker.py` | the narrator picker: one lookup for the recording a fan hears, where the choice is stored, and what Profile shows. Written as the acceptance tests for Task 14, and all 39 pass since Bob built it |
+| `tests/test_narrator_picker.py` | the narrator picker: one lookup for the recording a fan hears, where the choice is stored, and what Profile shows. Written as the acceptance tests for Task 14, and all 43 pass; Task 28 rewrote the four about where the choice is kept |
 | `tests/test_narrators.py` | "Your narrator" on Profile: the Buddy rename, the list written from the personas, the current narrator marked, the coming-soon note, and Change as an outline, built by Bob in Task 12 |
 | `tests/test_narration_player.py` | playback on the moment card: which recording each listener hears, the audio map, the player's wiring, and that it sends nothing, built by Bob in Task 11 |
 | `tests/test_narration_waveform.py` | the waveform following the real audio: the analyser opened inside the play tap, the element reaching the speakers through it, one source node reused on replay, the audio session, the fallback with no Web Audio, and the bars resting on pause and at the end |
