@@ -3004,6 +3004,188 @@ the second is dropped, and the reaction is left out of the shape. Shawn's
 four references for each hero goal come out as four shapes, so it is not
 over-eager. Applied to the eighteen this run produced it flags two.
 
+### Task 29: the label waits for the words it is about (done)
+
+**What Shawn saw on 2026-11-12.** On the moment card the inline fallback
+narration, the 1986 text, showed under a 2022 header and under "Verified from
+play data" until `narrations.json` arrived. A fan on a slow connection can read
+the wrong match's narration under the label. Task 28's harness note above had
+already caught the same screen and read it as a harness problem.
+
+**It reproduces, and the two trees say so side by side.** Both `app/web/` at
+`375e3b5` and the working tree were served by a server that sleeps two seconds
+before answering `narrations.json`, and the 2022 card was read one second in:
+
+| Served tree | Header | Narration shown | Label shown | The words |
+| ----------- | ------ | --------------- | ----------- | --------- |
+| `375e3b5` | Argentina 2, France 0 | yes | yes | the 1986 narration |
+| the fix | Argentina 2, France 0 | no | no | none |
+
+Both then settle on the 2022 narration with the label when the fetch lands.
+The delay has to be the server's: a `time.sleep` inside a Playwright route
+handler blocks the driver's own event loop, so the first attempt at this
+reported a state that had already moved on. That mistake is worth not
+repeating.
+
+**The narration is now the one field on this card with no inline copy**, and so
+the one with no fallback. Every other field carries the default match's copy,
+which leaves a correct screen when a fetch fails; this one cannot take that
+bargain, because it arrives under a label that says the data proves it, and the
+1986 words prove nothing about 2022. The paragraph ships empty, it and the
+label ship with `style="display:none"`, and `showNarration` in
+`app/web/match-content.js` sets the text and then clears the `display` on both.
+There is no path that shows one without the other, and `.catch` leaves both as
+they shipped. A match `narrations.json` does not hold, and a slot with no text,
+both return before the reveal.
+
+**The space is kept rather than collapsed**, so the player below does not move
+when the words appear. The block carries `min-height:16.75rem`, which is 268 px
+at 390 px wide: the six frozen narrations measured 216, 242, 242, 216, 242 and
+268 px with the label, so the reservation is the tallest of them. Across every
+state checked below the block measured 268 px in every recorded frame.
+
+**`scripts/check_match_copy.py`'s hold moved with the copy.** It no longer
+holds the markup to the neutral narration, because the markup carries none:
+`check_card_carries_no_narration` refuses any of the six frozen narrations
+inline on the card, which is the text the card can show. The per-slot checks
+the old `frozen_narration` also did are unchanged under the name
+`check_frozen_narrations`, and the `storyteller_neutral` check it made is now
+about the renderer's fallback key rather than about the markup.
+
+**`TestTheNarrationAndTheLabelAppearTogether` in
+`tests/test_frozen_narrations.py` is seven tests**, and the state before the
+fetch resolves is the shipped markup, which is what lets them read it: both
+elements hidden, the paragraph empty, the block keeping its space, then that
+`showNarration` shows the two together and in that order, that nothing else in
+the renderer reaches either of them, that the words are the served slot's, that
+the catch arm reveals nothing, and that a match with no frozen narration
+returns first. Two helpers lift one brace-matched function out of
+`match-content.js`, because a test searching the whole file could not tell the
+one reveal from a second one elsewhere. `TestTheNarrationOnTheMomentCard` lost
+the two tests that held the inline copy in place and gained two that hold its
+absence, so that class is still nine tests and the file is 37, up from thirty.
+
+**Each of the seven was run against the broken code.** Seven mutations were
+applied to the working tree in turn, the file was run, and the tree restored:
+
+| Mutation | Refused by |
+| -------- | ---------- |
+| the paragraph ships shown | `test_the_paragraph_ships_empty`, `test_before_the_fetch_resolves_neither_is_shown` |
+| the label ships shown | `test_before_the_fetch_resolves_neither_is_shown` |
+| the block keeps no space | `test_the_block_keeps_the_space_while_they_are_hidden` |
+| the 1986 narration back inline | `test_no_narration_is_in_the_markup_at_all`, two more, and `check_match_copy.py` |
+| the reveal moved out of `showNarration` | `test_showNarration_shows_the_two_together`, `test_nothing_else_in_the_renderer_shows_either_of_them` |
+| the catch arm showing words | `test_a_failing_fetch_leaves_both_hidden`, `test_nothing_else_in_the_renderer_shows_either_of_them` |
+| the paragraph written by `setText` again | three tests |
+
+**Driven in headless Chromium at 390 by 844**, against the working tree served
+over HTTP. Two matches by four narrator states (unset, the Storyteller, the
+Buddy, and the Caller, which the picker refuses but which storage could still
+hold) by four listener states (unanswered, `team_a`, `team_b`, `neutral`), so
+32 combinations, each in six load states: a first load with storage cleared, a
+refresh, the tab closed and a new one opened, a slow load with `matches.json`
+and `narrations.json` each delayed two seconds by the server, `narrations.json`
+answered `503`, and `narrations.json` never answered at all.
+
+A `MutationObserver` was installed before any of the page's own scripts ran, so
+every state the block passed through was recorded rather than sampled. Three
+rules were asked of every recorded frame, not only of the end state:
+
+| Rule | Result |
+| ---- | ------ |
+| the paragraph holds nothing, or exactly the served slot text for the match and slot on screen | held in every frame |
+| the paragraph and the label are both hidden or both shown | held in every frame |
+| the label is never shown over an empty paragraph | held in every frame |
+| the slot the page resolved is the slot the side and narrator rules name | 32 of 32 |
+| the block's height | 268 px in every frame of every state |
+
+**And the card was reached by tapping, with nothing written into storage by the
+harness**, once per match: the match picked off the list and confirmed, the
+allegiance and the name entered on the listener card, the narrator chosen on
+Profile, and the buildup reached by tapping Heading out. 1986 with England and
+the name Olivia resolved `buddy_conceded`; 2022 with Argentina, the name Sam
+and the Storyteller chosen resolved `storyteller_neutral`. Both showed the
+served words with the label, in a 268 px block.
+
+**One thing that reads as a defect and is not.** Tapping the narrator who is
+already current stores nothing, because `renderNarrators` attaches no click
+handler to the current card. In the 1986 tap run the Buddy was already current
+for a fan of England, so `prelude.narrator` stayed empty while the slot was
+`buddy_conceded` all the same. That is the picker's existing behaviour and not
+this change.
+
+**Every screen was loaded as well**, because `match-content.js` is shared: the
+seven screens by two matches by four listener states, 56 loads, no console
+error and no page error on any of them beyond the `/favicon.ico` 404 the
+browser asks for on its own.
+
+`pytest -q` reports `1884 passed`, up from `1877`, and all five gates exit 0.
+`git status` is clean after the suite.
+
+**Five docs described the code as it was** and were corrected in the same
+commits: `docs/HARNESS.md` said the gate holds the markup's inline copy to the
+neutral narration, `docs/bob_brief.md` told Bob a missing key leaves the inline
+copy and that every screen keeps its inline copy off the filesystem,
+`docs/GOVERNANCE.md` listed three things holding the label rule where there are
+now four, and `docs/DESIGN.md` described the verified marker without saying it
+ships hidden.
+
+**And the deployed site serves the fix**, <https://sh4wnbk.github.io/prelude/>,
+once the Pages job for `8f5d21d` had run (success). The served
+`prelude_03_moment_card.html` carries an empty `hero_narration` with
+`display:none`, a `hero_label` with `display:none` and the block's
+`min-height:16.75rem`, and none of the six narrations in the served
+`narrations.json` appears in it. The served `match-content.js?v=8f5d21d`
+carries `showNarration` and both reveals. Twelve of the 32 combinations were
+then driven against the site itself in three states each, the throttled one
+with two seconds of latency set through the DevTools protocol rather than in
+the driver: the paragraph was empty with no label in every throttled reading,
+every frame obeyed the three rules, and the block measured 268 px throughout.
+`app/api.py` was not touched, so <https://prelude-api.onrender.com> needed no
+check.
+
+**Found, not fixed.**
+
+- **Below 390 px the reservation is short, and the player still moves.** The
+  block is 268 px hidden; with the longest of the six narrations in it the
+  block measures 294 px at 375 px and at 360 px wide, and 364 px at 320 px, so
+  a fan on a 375 px phone sees the card below the narration shift down one
+  line, 26 px, when the words land. At 390 px and wider it is 268 px either
+  way and nothing moves. Reserving enough for 320 px would mean 364 px, which
+  is about 96 px of empty card under the label on every 390 px phone for the
+  four shorter narrations, so it trades a one-line shift on one phone size for
+  dead space on all of them. That is a layout judgement rather than a
+  correctness one, and it is Shawn's.
+- **Nothing in the suite can re-measure 16.75rem.** It is a measured constant
+  held by a test as a string. A narration reworded longer, or a reader's larger
+  base font, would make it short again and the suite would still pass. Checking
+  the fit needs a browser, and `CLAUDE.md` keeps browser packages out of
+  `.venv-prelude`, which is the venv the gates run in.
+- **The play button is enabled while the words are still blank.** It is wired
+  from `hero.audio` in `matches.json`, which lands with the first fetch, so
+  with `narrations.json` delayed three seconds the card showed no narration and
+  no label and an enabled play button, which would play the right recording for
+  the slot. Nothing false is said, since the label is about the words and the
+  words are absent, but the card and the voice are meant to be one piece of
+  writing and for that moment only one of them is there. Pairing them was not
+  in the task.
+- **`scripts/scan_copy.py` would still pass the label over an empty
+  paragraph.** Its tree walk asks whether the label shares a card with a field
+  it knows holds narration, not whether that field has words in it, which is
+  the right question for a markup gate and the wrong one for this state. The
+  new tests hold the shipped hidden state instead, so a regression is caught,
+  but by the suite rather than by the gate. Changing what the gate asks would
+  change a rule the other screens rest on.
+- **`tests/test_frozen_narrations.py` is not in the test table in
+  `docs/HARNESS.md`.** Nor are seven other test files: the table lists 30 of
+  the 38. It claims no completeness, so nothing in it is stale, and
+  `scripts/check_docs.py` passes. It predates this task and was left alone.
+
+**Still Shawn's to do:** the card on his iPhone on a real slow connection, and
+the pitch film, whose five frames were rendered before this change. None of the
+five shows the narration mid-load, so none of them is wrong; a sixth frame
+showing the empty block would be a new frame rather than a correction.
+
 ### Task 28: the narrator outlives the tab, and the Moments tagline goes (done)
 
 **What Shawn said on 2026-11-13.** A narrator is chosen before a match, at
@@ -3092,14 +3274,18 @@ which none of them shows, and where the narrator is kept does not change how
 anything draws.
 
 **A third measurement that looks like a defect and is not.**
-`data-match-rendered` says a screen rendered from `matches.json`, and it is not
-enough on the moment card. `hero_narration` is filled by a second fetch of
-`narrations.json` that lands after that attribute is set, so a reader taken on
-the attribute alone can catch the inline 1986 copy still sitting under the 2022
-header. It did here, and the words looked like a bug in the lookup when the
-lookup was right. The render now waits for the narration to equal the served
-slot text by value, and asserts it before the shutter. The frame itself was
-never wrong, because the screenshot came later than the read.
+`data-match-rendered` says a screen rendered from `matches.json`, and it was
+not enough on the moment card. `hero_narration` is filled by a second fetch of
+`narrations.json` that lands after that attribute is set, so at this commit a
+reader taken on the attribute alone could catch the inline 1986 copy still
+sitting under the 2022 header. It did here, and the words looked like a bug in
+the lookup when the lookup was right. The render now waits for the narration to
+equal the served slot text by value, and asserts it before the shutter. The
+frame itself was never wrong, because the screenshot came later than the read.
+
+It turned out not to be only a harness problem. A fan on a slow connection
+reads the same screen the harness read, and the label is over it, which is
+Task 29 below.
 
 **Still Shawn's to do:** the narrator choice on his iPhone, closing the tab and
 reopening it, and the pitch film re-rendered from the five frames.
