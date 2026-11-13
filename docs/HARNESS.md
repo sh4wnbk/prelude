@@ -204,7 +204,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 1874 tests in thirty eight files. Any failure means something is
+The suite is 1877 tests in thirty eight files. Any failure means something is
 wrong. It is run from the repo root:
 
 ```

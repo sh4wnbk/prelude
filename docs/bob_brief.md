@@ -122,7 +122,7 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-1874 passed
+1877 passed
 ```
 
 The total covers far more than this module now. Phase 4 added the narration
@@ -844,7 +844,7 @@ shows only the lines that changed.
 
 ### The tests to pass
 
-`tests/test_screen_copy.py`, 14 tests, all passing now. Of the ten that
+`tests/test_screen_copy.py`, 17 tests, all passing now. Of the ten that
 existed when this was built, nine failed until it was; the tenth checks
 that "THE BUILDUP" stays. The four added since hold the Live caption and
 are not part of this brief.
@@ -864,9 +864,10 @@ script, no tests, no docs.
 
 **Keep these exactly as they are**, even though they mention being away:
 "Tap as you leave your seat. Prelude keeps track while you’re away.", the
-"STEPPED AWAY · TAP TO RETURN" label on the Live screen, "Step away" on the
-ticket screen, and "The moment you missed deserves an encore!" in the Moments
-footer. Shawn chose to keep them.
+"STEPPED AWAY · TAP TO RETURN" label on the Live screen, and "Step away" on
+the ticket screen. Shawn chose to keep them. A fourth line in this list, in
+the Moments footer, was removed by Task 28: it belongs in marketing rather
+than in app copy.
 
 **If a gate refuses one of the new lines, stop and report the gate's
 message.** Do not reword a line to get past a check.

@@ -7,8 +7,10 @@ replace them are Shawn's, written out here as literals. `docs/bob_brief.md`
 carries the brief as Task 7.
 
 Kept on purpose, and not tested here: the Live helper shown before the fan
-leaves ("Prelude keeps track while you're away."), the "STEPPED AWAY" state
-label, and the tagline in the Moments footer.
+leaves ("Prelude keeps track while you're away.") and the "STEPPED AWAY"
+state label. The tagline in the Moments footer was on this list until
+Shawn's decision of 2026-11-13 took it off the screen; see
+`TestTheMomentsFooterCarriesNoTagline`.
 """
 
 import json
@@ -100,3 +102,28 @@ class TestTheSeatedCaptionPromisesOnlyTheBuildup:
         for path in sorted(WEB.glob("*.html")) + [MATCHES]:
             text = path.read_text(encoding="utf-8")
             assert "anything you miss" not in text, path.name
+
+
+class TestTheMomentsFooterCarriesNoTagline:
+    """Shawn's decision on 2026-11-13: "The moment you missed deserves an
+    encore!" is marketing language, not app copy. It told the fan they had
+    missed something on a screen they can reach without ever having stepped
+    away, and "deserves an encore" is a judgement rather than a description."""
+
+    TAGLINE = "The moment you missed deserves an encore!"
+
+    def test_the_moments_screen_does_not_carry_it(self):
+        markup = (WEB / "prelude_04_moments.html").read_text(encoding="utf-8")
+        assert self.TAGLINE not in markup
+
+    def test_no_screen_or_copy_file_carries_it(self):
+        for path in sorted(WEB.glob("*.html")) + sorted(WEB.glob("*.js")) + [MATCHES]:
+            text = path.read_text(encoding="utf-8")
+            assert self.TAGLINE not in text, path.name
+
+    def test_nothing_in_app_web_says_deserves_an_encore(self):
+        """The phrase and not just the sentence, so a reworded version of the
+        same claim does not slip back in."""
+        for path in sorted(WEB.glob("*.html")) + sorted(WEB.glob("*.js")) + [MATCHES]:
+            text = path.read_text(encoding="utf-8").lower()
+            assert "deserves an encore" not in text, path.name

@@ -3021,7 +3021,7 @@ move together.
 `TestTheSeatedCaptionPromisesOnlyTheBuildup`: the caption literal for each
 match, the inline copy on the Live screen, and a sweep of every
 `app/web/*.html` and `matches.json` for the phrase "anything you miss", which
-is now absent. That file is now 14 tests, up from ten, so the counts in
+is now absent. That file went from ten tests to fourteen, so the counts in
 `docs/bob_brief.md` and `docs/HARNESS.md` moved with it; `check_docs.py` failed
 on exactly those three claims until they did.
 
