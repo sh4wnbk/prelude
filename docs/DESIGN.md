@@ -242,6 +242,7 @@ Borders are always a surface token at 20 to 60 percent opacity, never a solid li
 | ---- | ---- | ------ |
 | Primary CTA | `w-full h-touch-target-min rounded-full bg-primary-container text-on-primary-container font-label-lg text-label-lg font-bold`, `active:scale-[0.99]` | `01` |
 | Primary play | `w-14 h-14 rounded-full bg-primary-container text-on-primary` with `shadow-lg shadow-primary-container/20`, `hover:scale-105 active:scale-95` | `03` |
+| Primary play, waiting for the words | the same, plus `disabled:opacity-40 disabled:cursor-not-allowed` and `disabled:hover:scale-100`; it ships disabled and `match-content.js` releases it with the narration | `03` |
 | Secondary play, active | `w-11 h-11 shrink-0 rounded-full bg-primary-container text-on-primary`, `active:scale-95` | `04` |
 | Secondary play, idle | `w-11 h-11 shrink-0 rounded-full bg-surface-container-highest text-primary`, `hover:bg-primary-container hover:text-on-primary` | `04` |
 | Secondary play, no recording | the same shapes plus `disabled:opacity-40 disabled:cursor-not-allowed`, and the idle one drops its hover with `disabled:hover:bg-surface-container-highest` | `04` |

@@ -328,12 +328,23 @@ def document(goals: Sequence[dict]) -> dict:
     }
 
 
-def main(argv: Sequence[str]) -> int:
+def main(argv: Sequence[str], out_dir: Path | None = None) -> int:
+    """The script. `out_dir` is where the report goes, `OUT_DIR` by default.
+
+    The parameter is not a command-line argument and the script still takes
+    none. It is there for the test that runs this whole function: the report
+    carries the date it was rechecked, so a test writing it into the repo
+    rewrites a tracked file on any day but the one it was last run, and a
+    suite that changes a tracked file is a suite that cannot be trusted to
+    have changed nothing else. `tests/test_authored_narrations.py` passes
+    pytest's temporary directory.
+    """
     if argv:
         raise SystemExit(
             "authored_narrations.py takes no arguments; it reads the six "
             "narrations in the module and the records in data/raw/"
         )
+    out = Path(out_dir) if out_dir else OUT_DIR
     goals = rechecked()
     refused = 0
     for goal in goals:
@@ -364,9 +375,9 @@ def main(argv: Sequence[str]) -> int:
                 refused += 1
         print()
 
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    path = OUT_DIR / "authored_{}.md".format(WRITTEN_ON)
-    data = OUT_DIR / "authored_{}.json".format(WRITTEN_ON)
+    out.mkdir(parents=True, exist_ok=True)
+    path = out / "authored_{}.md".format(WRITTEN_ON)
+    data = out / "authored_{}.json".format(WRITTEN_ON)
     path.write_text(review(goals), encoding="utf-8", newline="\n")
     data.write_text(
         json.dumps(document(goals), indent=2, ensure_ascii=False) + "\n",

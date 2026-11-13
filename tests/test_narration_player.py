@@ -193,6 +193,19 @@ class TestThePlayButtonWaitsForTheWords:
     ships it.
     """
 
+    def test_the_button_ships_disabled_in_the_markup(self):
+        """Not only disabled by the player. `tests/browser/` caught this: the
+        card's first frame, before `start()` has run, had an enabled button
+        over a blank paragraph, and a button a fan can press before its
+        handler is attached does nothing when they do.
+        """
+        found = re.search(
+            r'<button[^>]*id="playBtn"[^>]*>', CARD.read_text(encoding="utf-8")
+        )
+        assert found, "the card has no play button"
+        assert " disabled " in found.group(0), found.group(0)
+        assert "disabled:opacity-40" in found.group(0), found.group(0)
+
     def test_the_renderer_offers_the_subscription(self):
         assert "whenNarrationShown: whenNarrationShown" in renderer()
 

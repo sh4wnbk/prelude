@@ -204,7 +204,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 1904 tests in thirty eight files. Any failure means something is
+The suite is 1906 tests in thirty eight files. Any failure means something is
 wrong. It is run from the repo root:
 
 ```
@@ -248,6 +248,49 @@ wrote that file as Task 15; it exists now and they pass.
 | `tests/test_delivery.py` | the delivery table: the three situations, the eight rows, the bounds each control is held to, and the Mate never being cheerful when the other side scored |
 | `tests/test_tts.py` | the speech backend: the recorded exchange it replays, the request it builds, the pauses, the character counts, and that nothing secret is in a request object |
 | `tests/test_vocabulary.py` | every word the app can speak against the CMU dictionary, and that no flagged word is unreviewed |
+
+### The browser suite
+
+Seven of the things `CLAUDE.md` asks for before a report need a browser: a
+label that is never over the wrong words, a button that is never offered before
+the words it reads, a first load with nothing stored, a slow fetch, a failed
+one, a reopened tab and a waveform that seeks. Until Task 30 each of those was
+a script written for one task and thrown away, so a miss was found by hand or
+not at all. `tests/browser/` is that work kept.
+
+It is run by naming it, and it is not in the default run:
+
+```
+.\.venv-prelude\Scripts\python.exe -m pytest tests/browser
+```
+
+`norecursedirs` in `pyproject.toml` keeps it out of `pytest`, because it drives
+headless Chromium over a local server and takes minutes rather than seconds.
+Every test in it is marked `browser`. Playwright is in the dev group, so
+`uv sync` installs the package; the browser is a separate download,
+`python -m playwright install chromium`, and a machine without it gets a skip
+that says so rather than a failure.
+
+| File | What it drives |
+| ---- | -------------- |
+| `tests/browser/server.py` | the server the suite serves `app/web/` with: byte ranges answered `206` the way GitHub Pages does, and a delay, a refusal or a silence set per file by the test |
+| `tests/browser/conftest.py` | the fixtures, and where the expectations come from: `app.api.slot_for`, `app/web/narrations.json` and `hero.audio`, never a value written down in a test |
+| `tests/browser/test_the_fan_hears_their_own.py` | both matches by three listeners by three narrator states: the card's words, the player's file and the Moments hero card's file are one slot |
+| `tests/browser/test_the_label_waits.py` | `narrations.json` slow, refused and never answered, and `matches.json` slow and refused: three rules asked of every frame the card passed through |
+| `tests/browser/test_the_first_load.py` | nothing stored: no match chosen, the list's pill hidden, the five match screens sending the fan to the list, and the narrator outliving the tab while the allegiance does not |
+| `tests/browser/test_the_player_works.py` | the recording playing, the clock, the amber fill, the bars moving with the voice, the waveform seeking, the arrow keys and Replay 10s |
+| `tests/browser/test_every_screen.py` | every screen by both matches by four listener states: no page error, no console error and no 404 but the browser's own `/favicon.ico` |
+
+The states are read with a `MutationObserver` installed before any of the
+page's own scripts, so every state the card passed through is recorded rather
+than sampled, and the delay is the server's rather than the driver's. Both are
+Task 29's findings: a sampled read reports a state the page has already left,
+and a `time.sleep` inside a Playwright route handler blocks the driver's own
+event loop.
+
+The suite found one thing on its first run: the moment card's play button was
+enabled in the markup and disabled only by the player, so the frames before any
+script had run offered a press that did nothing. It ships `disabled` now.
 
 ### Two guards, on every test
 
@@ -354,7 +397,9 @@ because a skip would have let the suite go green with nothing built.
   narration arrive on two fetches, so the button ships disabled and
   `whenNarrationShown` in `app/web/match-content.js` releases it in the same
   step that reveals the narration and the label
-  (`tests/test_narration_player.py::TestThePlayButtonWaitsForTheWords`). `scripts/tts_samples.py`
+  (`tests/test_narration_player.py::TestThePlayButtonWaitsForTheWords`). The
+  `disabled` is in the markup as well as in the player, so the button is not
+  pressable in the frames before any script has run. `scripts/tts_samples.py`
   still writes WAV files outside the repo for Shawn to listen to, and nothing
   in `app/web/` reaches the service.
 - **Seeking in those files needs a host that answers Range requests.** The
@@ -363,7 +408,8 @@ because a skip would have let the suite go green with nothing built.
   `Range: bytes=` request for an MP3 under `assets/audio/` with `206` and
   `Accept-Ranges: bytes`. `http.server` does not: it returns the whole file
   with `200`, so a local run that has to exercise a forward seek needs a
-  server that implements ranges.
+  server that implements ranges. `tests/browser/server.py` is that server, and
+  `tests/browser/test_the_player_works.py` drags the waveform over it.
 - **The moment card reads narration, by the same key as the recording.** The
   text comes from `app/web/narrations.json`, which holds one frozen narration
   per `hero.voice_for` key, and the card and the player ask one lookup in

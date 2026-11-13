@@ -404,11 +404,13 @@ Everything above it is structure.
   token estimate the run prints before it sends anything, the hard token
   cap that stops the run and keeps what it had written, and the run with no
   retries. All pass, and none calls a model.
-- `tests/test_authored_narrations.py`: 32 tests over the six the team wrote:
+- `tests/test_authored_narrations.py`: 33 tests over the six the team wrote:
   one narration per recorded slot, the authorship carried beside every one of
   them, the opener each of them is held to, the places each of them says, all
-  six being grounded, and the two earlier 1986 wordings that are still
-  refused for a place. All pass, and none calls a model.
+  six being grounded, the two earlier 1986 wordings that are still refused for
+  a place, and the report going to a temporary directory when the suite runs
+  the script, so a run on a later day does not re-date the committed one. All
+  pass, and none calls a model.
 - `tests/test_narration.py`: 31 tests over the pipeline, covering the retries,
   the fallback, the citation stripping, the failure log, the first-attempt pass
   rate, the characters made plain as a model's text arrives and the attempt

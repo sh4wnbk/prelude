@@ -249,12 +249,31 @@ class TestWhatTheCheckSays:
         _refused, text = REPLACED[slot]
         assert authored.AUTHORED[slot] != text
 
-    def test_the_script_says_so_and_exits_zero(self, capsys):
-        """The whole script, which is what a reader runs."""
-        assert authored.main([]) == 0
+    def test_the_script_says_so_and_exits_zero(self, capsys, tmp_path):
+        """The whole script, which is what a reader runs.
+
+        The report goes to pytest's temporary directory rather than to
+        `docs/narration_runs/`. It carries the date it was rechecked, so
+        writing it into the repo would rewrite a tracked file on any day but
+        the one the committed copy was written, and `CLAUDE.md` asks that
+        running the tests change no tracked file. Running the script by hand
+        still writes the real report.
+        """
+        assert authored.main([], out_dir=tmp_path) == 0
         said = capsys.readouterr().out
         assert "does not pass all three" not in said
         assert authored.AUTHORSHIP in said
+        written = sorted(path.name for path in tmp_path.iterdir())
+        assert written == [
+            "authored_%s.json" % authored.WRITTEN_ON,
+            "authored_%s.md" % authored.WRITTEN_ON,
+        ], written
+
+    def test_the_script_writes_nothing_into_the_repo_by_itself(self, tmp_path):
+        """What the parameter is for, said as a test: the default is the real
+        directory, and a caller that passes one is writing somewhere else."""
+        assert authored.OUT_DIR == authored.ROOT / "docs" / "narration_runs"
+        assert not list(tmp_path.iterdir())
 
     def test_it_takes_no_arguments(self):
         with pytest.raises(SystemExit):
