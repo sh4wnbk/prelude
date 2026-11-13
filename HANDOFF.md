@@ -3004,6 +3004,89 @@ the second is dropped, and the reaction is left out of the shape. Shawn's
 four references for each hero goal come out as four shapes, so it is not
 over-eager. Applied to the eighteen this run produced it flags two.
 
+### Task 27: the seated caption promises the buildup, not everything (done)
+
+**What Shawn said on 2026-11-12.** The Live screen's caption read "You're in
+your seat. We'll catch anything you miss." The demo narrates one goal per
+match, so the line promised a great deal more than the app does.
+
+**The new line, in all three places the old one lived.** It is
+"You're in your seat. We'll catch the buildup if you step away.", and it
+replaced the old text in `app/web/matches.json` for both matches and in the
+Live screen's inline fallback copy. `scripts/check_match_copy.py` holds that
+inline copy to the default match's entry in `matches.json`, so the two had to
+move together.
+
+**Four tests in `tests/test_screen_copy.py`,** as
+`TestTheSeatedCaptionPromisesOnlyTheBuildup`: the caption literal for each
+match, the inline copy on the Live screen, and a sweep of every
+`app/web/*.html` and `matches.json` for the phrase "anything you miss", which
+is now absent. That file is now 14 tests, up from ten, so the counts in
+`docs/bob_brief.md` and `docs/HARNESS.md` moved with it; `check_docs.py` failed
+on exactly those three claims until they did.
+
+`pytest -q` reports `1870 passed` and all five gates exit 0.
+
+**The two other promises in `app/web`, reported rather than changed.** Neither
+is this task's to settle:
+
+| Where | The line | Why it is in this list |
+| ----- | -------- | ---------------------- |
+| `prelude_04_moments.html` | "The moment you missed deserves an encore!" | Tells the fan they missed something on a screen they can reach without ever having stepped away, and "deserves an encore" is editorial rather than descriptive |
+| `matches.json` and the Live inline copy | "Tap as you leave your seat. Prelude keeps track while you're away." | "Keeps track" is the same unbounded promise in weaker form. `tests/test_screen_copy.py` records it as deliberately kept, so it was settled once already |
+
+**And the deployed site serves it**, <https://sh4wnbk.github.io/prelude/>, once
+the Pages job for `efba61e` had run (`43340966555`, success). The served
+`matches.json` carries the new caption on both entries and the phrase "anything
+you miss" appears nowhere in it; the served Live screen carries
+`data-field="caption">You're in your seat. We'll catch the buildup if you step
+away.<` and loads `match-content.js?v=efba61e`.
+
+**The four film frames, rendered from that deployed site** into
+`C:\Users\shawn\prelude-review\film\`, which is outside the repo and not
+committed. Each is 390 by 844 at device scale 3, so each PNG is 1170 by 2532.
+
+| File | Bytes | What it shows |
+| ---- | ----: | ------------- |
+| `live_2022.png` | 188,441 | Live, 2022, before Heading out, carrying the new caption |
+| `profile_2022_buddy.png` | 114,631 | Profile, name Olivia, with Argentina, no narrator chosen, the Buddy marked current |
+| `profile_2022_storyteller.png` | 114,630 | the same after tapping The Storyteller, which is then marked current |
+| `moment_2022_storyteller.png` | 332,687 | the moment card, Di Maria at 1H 36', the Storyteller's narration, the header ending ", Olivia." |
+
+**Every value was set by a tap, not written into storage from the harness.**
+The match was picked off the list and confirmed; the allegiance and the name
+went in through the listener card that mounts itself on Live; the narrator was
+chosen by tapping it on Profile; and the buildup was reached by tapping Heading
+out. At the end of the run `sessionStorage` held `prelude.name` as `Olivia`,
+`prelude.listener.3869685` as `team_a`, `prelude.narrator` as `storyteller` and
+`prelude.moment.3869685` as `1`, all of them put there by the app.
+
+**The fourth frame is the Storyteller's, and was checked rather than assumed.**
+With the listener on `team_a` the app resolved the slot to
+`storyteller_neutral`, and the narration on the card is byte for byte the
+`storyteller_neutral` text in the served `narrations.json`. This is what
+`slotFor` is for: `voice_for.team_a` is `buddy_scored`, which is why the Buddy
+is current before a choice is made, and the Storyteller is choosable because
+`voice_for.neutral` is `storyteller_neutral`. The Caller renders disabled on
+both Profile frames, because 2022 has no `caller_` slot.
+
+**No browser automation was added to `.venv-prelude`.** Playwright went into a
+scratch venv outside the repo and drove the bundled Chromium 158.0.8127.18 from
+the existing `ms-playwright` cache, so nothing was downloaded. The method is the
+one under "Driving it" above, except that the bundled Chromium was enough here
+and Edge was not needed.
+
+**One measurement that looks like a defect and is not,** to add to the two
+already recorded above. At 390 px the stadium and ticket icons on Live are 14 px
+and 13 px, and a screenshot scaled down for review turns them into featureless
+boxes that read exactly like missing glyphs. They are not missing: both
+ligatures form in Chromium and in Edge, measuring one 48 px advance against 185
+px and 501 px for the same strings in a font without them, and a full resolution
+crop of the delivered PNG shows a stadium and an amber ticket. Judge an icon
+from the rendered file, never from a downscaled copy of it.
+
+**Still Shawn's to do:** re-render the pitch film from the four frames.
+
 ### Task 26: Prelude does not choose the match for the fan (done)
 
 **What Shawn saw on 2026-11-10.** After a hard refresh the event list showed
