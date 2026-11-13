@@ -33,6 +33,7 @@ stops the two drifting apart.
 """
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -84,6 +85,42 @@ def frozen() -> dict:
         )
     document = json.loads(NARRATIONS.read_text(encoding="utf-8"))
     return document["narrations"]
+
+
+def js_function(name: str) -> str:
+    """One function out of `app/web/match-content.js`, braces matched.
+
+    A test that searched the whole file could not tell the reveal inside
+    `showNarration` from a second reveal somewhere else, which is the thing
+    worth knowing: the narration and the label are shown in one place or they
+    are not shown together.
+    """
+    source = RENDERER.read_text(encoding="utf-8")
+    start = source.index(f"function {name}(")
+    depth = 0
+    for i in range(source.index("{", start), len(source)):
+        if source[i] == "{":
+            depth += 1
+        elif source[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return source[start:i + 1]
+    raise AssertionError(f"{name} is not brace balanced")
+
+
+def js_arm(name: str, opener: str) -> str:
+    """One callback out of a function, by the text that opens it."""
+    body = js_function(name)
+    start = body.index(opener)
+    depth = 0
+    for i in range(body.index("{", start), len(body)):
+        if body[i] == "{":
+            depth += 1
+        elif body[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return body[start:i + 1]
+    raise AssertionError(f"{opener!r} in {name} is not brace balanced")
 
 
 def make_feed():
@@ -494,3 +531,108 @@ class TestTheNarrationOnTheMomentCard:
             if one.startswith("NARRATION_FIELDS")
         )
         assert "hero_narration" in line
+
+
+class TestTheNarrationAndTheLabelAppearTogether:
+    """What the card shows before the narration has loaded, and after.
+
+    Until Task 29 the inline 1986 narration stood on this card under whichever
+    header had rendered, with "Verified from play data" beside it, until
+    `narrations.json` landed. The header is set from `matches.json` and the
+    narration from a second fetch, so on a slow connection a fan could read
+    one match's words under the label on another match's card. `CLAUDE.md`
+    allows that label only over narration whose claims trace back to the
+    event data, and the 1986 words trace back to the 1986 match and no other.
+
+    So the card shows neither the words nor the label until it has the frozen
+    text for the match and the slot on screen, and shows them together when
+    it does. The state before the fetch resolves is the shipped markup, which
+    is why these tests can read it: the paragraph ships empty, both elements
+    ship with `display:none`, and `showNarration` is the one thing that
+    removes it.
+
+    The suite has no JavaScript runtime, so what the browser does with this is
+    not assertable here. `HANDOFF.md` records the run: every match, every
+    listener answer, every narrator, in six load states, with a
+    MutationObserver installed before the page's own scripts so every state
+    the block passed through was recorded rather than sampled.
+    """
+
+    def test_before_the_fetch_resolves_neither_is_shown(self):
+        """The shipped markup is that state, and in it both are hidden."""
+        markup = CARD.read_text(encoding="utf-8")
+        narration = re.search(r"<p[^>]*data-field=\"hero_narration\"[^>]*>", markup)
+        label = re.search(r"<div[^>]*data-field=\"hero_label\"[^>]*>", markup)
+        assert narration, "no narration paragraph on the card"
+        assert label, "no label element on the card"
+        assert 'style="display:none"' in narration.group(0)
+        assert 'style="display:none"' in label.group(0)
+        assert 'data-field="hero_narration" style="display:none"></p>' in markup, (
+            "the paragraph ships with words in it"
+        )
+
+    def test_the_block_keeps_the_space_while_they_are_hidden(self):
+        """Hidden, not collapsed: the player below would otherwise jump down
+        when the narration arrived. 16.75rem measured 268 px at 390 px wide,
+        which is the tallest of the six frozen narrations plus the label, so
+        the block is the same height before and after."""
+        block = re.search(
+            r"<div[^>]*data-field=\"hero_narration_block\"[^>]*>",
+            CARD.read_text(encoding="utf-8"),
+        )
+        assert block, "the narration and the label are in no block of their own"
+        assert "min-height:16.75rem" in block.group(0)
+
+    def test_showNarration_shows_the_two_together(self):
+        """One function, and it cannot show one without the other."""
+        body = js_function("showNarration")
+        assert "narration.textContent = text;" in body
+        assert 'narration.style.removeProperty("display")' in body
+        assert 'label.style.removeProperty("display")' in body
+        assert body.index("narration.textContent") < body.index(
+            'narration.style.removeProperty("display")'
+        ), "the paragraph is shown before its words are in it"
+
+    def test_nothing_else_in_the_renderer_shows_either_of_them(self):
+        """A second reveal would be a second state to get wrong."""
+        source = RENDERER.read_text(encoding="utf-8")
+        reveal = js_function("showNarration")
+        outside = source.replace(reveal, "")
+        assert "hero_label" not in outside, (
+            "the label is reached from somewhere other than showNarration"
+        )
+        assert 'setText("hero_narration"' not in source, (
+            "the narration is written by setText, which does not show it"
+        )
+        assert source.count("showNarration(") == 2, (
+            "showNarration is defined once and called once"
+        )
+
+    def test_once_it_resolves_both_are_shown_with_the_served_slot_text(self):
+        """The words are the served slot's, and nothing is shown without them.
+
+        `slotFor` is the one lookup, `slots[key]` is that slot in the fetched
+        document, and the reveal is guarded on the slot having text: a slot
+        with none shows nothing rather than another listener's telling.
+        """
+        then = js_arm("renderNarration", ".then(function (doc)")
+        assert "var key = slotFor(match);" in then
+        assert "slots[key]" in then
+        assert "if (slot && slot.text) showNarration(slot.text);" in then
+        assert NEUTRAL_SLOT in then, "the fallback key is still the neutral one"
+
+    def test_a_failing_fetch_leaves_both_hidden(self):
+        """The catch arm shows nothing, and says so rather than being empty."""
+        caught = js_arm("renderNarration", ".catch(function ()")
+        assert "showNarration" not in caught
+        assert "removeProperty" not in caught
+        assert "hidden" in caught, (
+            "the catch arm does not say what it leaves on screen"
+        )
+
+    def test_a_match_with_no_frozen_narration_shows_nothing(self):
+        """The early return is before any reveal, so a match narrations.json
+        does not hold leaves the paragraph and the label as they shipped."""
+        then = js_arm("renderNarration", ".then(function (doc)")
+        assert "if (!frozen) return;" in then
+        assert then.index("if (!frozen) return;") < then.index("showNarration")

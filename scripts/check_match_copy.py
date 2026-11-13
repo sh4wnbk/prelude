@@ -380,7 +380,8 @@ def check_card_carries_no_narration(fail, note):
 
     The markup mechanics behind that (the two hidden elements, the empty
     paragraph, the space the block keeps and the one function that reveals
-    them) are held by `tests/test_frozen_narrations.py`.
+    them) are held by
+    `tests/test_frozen_narrations.py::TestTheNarrationAndTheLabelAppearTogether`.
     """
     if not NARRATIONS.is_file():
         return

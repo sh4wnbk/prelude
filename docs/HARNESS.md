@@ -204,7 +204,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 1877 tests in thirty eight files. Any failure means something is
+The suite is 1884 tests in thirty eight files. Any failure means something is
 wrong. It is run from the repo root:
 
 ```
@@ -376,7 +376,8 @@ because a skip would have let the suite go green with nothing built.
   narration stood there under whichever header had rendered, so a fan on a slow
   connection could read one match's words under the label on another match's
   card. `scripts/check_match_copy.py` now holds the markup to carrying none of
-  the six frozen narrations, which is checked in
-  `check_card_carries_no_narration`. The block keeps `16.75rem` while the two
-  are hidden, measured as 268 px at 390 px wide: the tallest of the six plus
-  the label, so nothing below it moves when they appear.
+  the six frozen narrations, in `check_card_carries_no_narration`, and
+  `tests/test_frozen_narrations.py::TestTheNarrationAndTheLabelAppearTogether`
+  holds the markup mechanics and the one reveal. The block keeps `16.75rem`
+  while the two are hidden, measured as 268 px at 390 px wide: the tallest of
+  the six plus the label, so nothing below it moves when they appear.
