@@ -317,7 +317,8 @@
     ticketLine: ticketLine, whenMatches: whenMatches, matches: null,
     listenerFor: listenerFor, setListener: setListener,
     nameFor: nameFor, setName: setName, headerWithName: headerWithName,
-    narratorFor: narratorFor, setNarrator: setNarrator, slotFor: slotFor
+    narratorFor: narratorFor, setNarrator: setNarrator, slotFor: slotFor,
+    whenNarrationShown: whenNarrationShown
   };
 
   function field(name, root) {
@@ -433,6 +434,26 @@
   // app/narration.py and never here: scripts/scan_copy.py refuses it in a
   // copy file, because copy data carries no markup that could place it over
   // anything.
+  // The play button waits for these words. app/web/narration-player.js
+  // subscribes here and enables the button when this fires, and showNarration
+  // below is the one thing that fires it, so the words, the label and the
+  // offer of the voice arrive in one step. A narrations.json that fails, that
+  // holds nothing for this match, or that holds nothing for this listener's
+  // slot never reaches showNarration, so this never fires and the button
+  // stays as the markup ships it: disabled.
+  var narrationShown = false;
+  var narrationWaiting = [];
+
+  function whenNarrationShown(callback) {
+    if (narrationShown) { callback(); return; }
+    narrationWaiting.push(callback);
+  }
+
+  function announceNarration() {
+    narrationShown = true;
+    while (narrationWaiting.length) narrationWaiting.shift()();
+  }
+
   function showNarration(text) {
     var narration = field("hero_narration");
     var label = field("hero_label");
@@ -443,6 +464,10 @@
     // there is no moment at which one of the two is on screen without the
     // other.
     if (label) label.style.removeProperty("display");
+    // And the play button in the same breath again, for the reason on
+    // announceNarration above: the card and the voice are one piece of
+    // writing, so the offer of the voice arrives with the words.
+    announceNarration();
   }
 
   function renderNarration(match) {

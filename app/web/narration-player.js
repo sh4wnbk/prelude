@@ -49,7 +49,19 @@
       }
 
       var audio = new Audio(file);
-      playBtn.disabled = false;
+
+      // The recording exists, so the button can be offered; it is not offered
+      // yet. The card's words and the voice reading them are one piece of
+      // writing, and the words arrive on a second fetch. Until
+      // match-content.js has put the frozen narration for this match and this
+      // slot on the card, there is nothing on screen for the voice to be
+      // about, so the button stays disabled and whenNarrationShown is what
+      // lifts it, in the same step that reveals the words and the label. A
+      // narrations.json that fails never calls back, and the button stays
+      // disabled for the life of the page.
+      Prelude.whenNarrationShown(function () {
+        playBtn.disabled = false;
+      });
 
       // The waveform follows the voice through a Web Audio analyser. All of it
       // is optional: with no AudioContext, or if any of the wiring throws, the

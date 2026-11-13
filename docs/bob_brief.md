@@ -122,7 +122,7 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-1884 passed
+1891 passed
 ```
 
 The total covers far more than this module now. Phase 4 added the narration
@@ -1228,9 +1228,10 @@ browser only looks up its answer.
 
 ### The tests to pass
 
-`tests/test_narration_player.py`, 15 tests, all passing now. Thirteen of the
+`tests/test_narration_player.py`, 22 tests, all passing now. Thirteen of the
 first fourteen failed until this was built; the fifteenth was added in the
-follow-up.
+follow-up, and the seven after that are Task 30's, which holds the play button
+to waiting for the words it is about.
 
 Then the full suite, target 0 failed, and the five gates
 (`scripts/data_check.py`, `scripts/scan_copy.py`,

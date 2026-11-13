@@ -129,6 +129,105 @@ class TestTheMomentCard:
             assert "narration-player.js" not in page.read_text(encoding="utf-8"), page.name
 
 
+#: The renderer, which is where the narration reveal and so the button's
+#: release are written.
+RENDERER = WEB / "match-content.js"
+
+
+def renderer():
+    return RENDERER.read_text(encoding="utf-8")
+
+
+def one_function(text, name):
+    """The body of `function name(` in `text`, by matching its braces.
+
+    A test that searched the whole file could not tell the one release of the
+    button from a second one somewhere else, which is the thing these tests
+    are about. The same two-helper shape is in
+    `tests/test_frozen_narrations.py` and for the same reason.
+    """
+    start = text.index("function " + name + "(")
+    opened = text.index("{", start)
+    depth = 0
+    for i in range(opened, len(text)):
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[opened:i + 1]
+    raise AssertionError("function " + name + " has unbalanced braces")
+
+
+class TestThePlayButtonWaitsForTheWords:
+    """Shawn, 2026-11-12: the card and the voice are one piece of writing, so
+    the button is not offered while the paragraph above it is blank.
+
+    `hero.audio` lands with `matches.json` and the narration lands with a
+    second fetch of `narrations.json`, so with the second one slow the card
+    used to show no words and no label and an enabled play button. Nothing
+    false was said, because the label is about the words and the words were
+    absent, but half of one piece of writing was on screen. The button now
+    waits for the other half.
+
+    The reveal and the release are one step: `showNarration` sets the text,
+    shows the paragraph, shows the label and fires `whenNarrationShown`, which
+    is what the player subscribes to. Nothing else fires it, so a
+    `narrations.json` that fails, that holds no entry for this match or that
+    holds no text for this listener's slot leaves the button as the markup
+    ships it.
+    """
+
+    def test_the_renderer_offers_the_subscription(self):
+        assert "whenNarrationShown: whenNarrationShown" in renderer()
+
+    def test_the_player_subscribes_to_it(self):
+        assert "Prelude.whenNarrationShown(" in player()
+
+    def test_the_player_releases_the_button_nowhere_else(self):
+        """One release, inside the subscription. `playBtn.disabled = false`
+        anywhere outside it would be the old behaviour under a new name."""
+        text = player()
+        assert text.count("playBtn.disabled = false") == 1
+        subscription = text.index("Prelude.whenNarrationShown(")
+        release = text.index("playBtn.disabled = false")
+        assert release > subscription
+        closing = text.index("});", release)
+        assert closing > release
+
+    def test_the_renderer_fires_it_from_the_reveal(self):
+        """In `showNarration`, beside the two `removeProperty` calls that show
+        the paragraph and the label, so the three arrive together."""
+        body = one_function(renderer(), "showNarration")
+        assert "announceNarration()" in body
+        assert body.count("removeProperty") == 2
+
+    def test_nothing_else_in_the_renderer_fires_it(self):
+        """One call, the one in `showNarration`. The other occurrence of the
+        name is its own definition, which is not a call."""
+        text = renderer()
+        calls = text.count("announceNarration()") - text.count(
+            "function announceNarration()"
+        )
+        assert calls == 1
+
+    def test_a_failing_fetch_leaves_the_button_disabled(self):
+        """The catch arm reveals nothing, so it announces nothing."""
+        body = one_function(renderer(), "renderNarration")
+        catch = body[body.index(".catch("):]
+        assert "announceNarration" not in catch
+        assert "showNarration" not in catch
+
+    def test_the_subscription_survives_either_order(self):
+        """The two fetches can land in either order, so the subscription
+        answers a late caller as well as an early one: it holds the callback
+        while the narration has not been shown and calls it at once after."""
+        body = one_function(renderer(), "whenNarrationShown")
+        assert "narrationShown" in body
+        assert "callback()" in body
+        assert "narrationWaiting.push(callback)" in body
+
+
 class TestThePlayer:
     def test_it_looks_up_the_fans_recording(self):
         """Which recording is `Prelude.slotFor`'s answer since Task 14: the

@@ -204,7 +204,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 1884 tests in thirty eight files. Any failure means something is
+The suite is 1891 tests in thirty eight files. Any failure means something is
 wrong. It is run from the repo root:
 
 ```
@@ -349,7 +349,12 @@ because a skip would have let the suite go green with nothing built.
   information. `app/web/narration-player.js` on the moment card
   plays the one for the listener's own key
   (`tests/test_narration_player.py::TestTheAudioMap`,
-  `tests/test_narration_player.py::TestThePlayer`). `scripts/tts_samples.py`
+  `tests/test_narration_player.py::TestThePlayer`), and it offers the button
+  only once the words it reads are on the card: the recording and the frozen
+  narration arrive on two fetches, so the button ships disabled and
+  `whenNarrationShown` in `app/web/match-content.js` releases it in the same
+  step that reveals the narration and the label
+  (`tests/test_narration_player.py::TestThePlayButtonWaitsForTheWords`). `scripts/tts_samples.py`
   still writes WAV files outside the repo for Shawn to listen to, and nothing
   in `app/web/` reaches the service.
 - **Seeking in those files needs a host that answers Range requests.** The
