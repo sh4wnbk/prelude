@@ -3004,6 +3004,106 @@ the second is dropped, and the reaction is left out of the shape. Shawn's
 four references for each hero goal come out as four shapes, so it is not
 over-eager. Applied to the eighteen this run produced it flags two.
 
+### Task 28: the narrator outlives the tab, and the Moments tagline goes (done)
+
+**What Shawn said on 2026-11-13.** A narrator is chosen before a match, at
+home or in transit, not during one. It was held for the session, so it was
+gone the moment the tab was. And the Moments footer still carried a line that
+belongs in marketing.
+
+**`prelude.narrator` moved from `sessionStorage` to `localStorage`,** in
+`app/web/match-content.js`. Every read and write stays inside the same `try`,
+so blocked storage still costs the preference and not the screen, and the key
+is still removed when the id is empty. "Who are you with" and the name are
+answers about tonight rather than standing preferences, so `listenerFor`,
+`setListener`, `nameFor` and `setName` are untouched and still per session.
+
+**The old key is carried over once.** `carryNarratorOver` runs on the first
+read of a page: if `localStorage` holds nothing it adopts whatever the session
+key holds and clears it, so a fan who had already chosen one does not lose it.
+Two guards keep a stale value from outranking a later choice: it returns early
+once `localStorage` holds anything, and `setNarrator` marks the carry done, so
+a choice made now wins. A fan with no old value never notices it.
+
+**`TestTheChoice` in `tests/test_narrator_picker.py` held the old decision,**
+so it is five tests for the new one: the reader and writer use `localStorage`
+inside a `try`, the session key no longer holds the choice, the carry over
+reads the old key and clears it, the carry over runs once and cannot outrank a
+later choice, and the allegiance and the name did not move. That file is now
+43 tests, up from thirty nine.
+
+**Driven in Chromium against a local server**, serving the working tree from
+`app/web/` on port 8099, in one persistent profile so `localStorage` survived
+between tabs and `sessionStorage` did not. Every check passed:
+
+| Checked | Result |
+| ------- | ------ |
+| current narrator before any choice | The Buddy |
+| `localStorage` after tapping The Storyteller | `storyteller` |
+| `sessionStorage` after that tap | empty |
+| `localStorage` in a new tab, the first closed | `storyteller` |
+| what `narratorFor` reads in the new tab | `storyteller` |
+| the narrator Profile marks there | The Storyteller |
+| the allegiance in the new tab | empty, so it did not follow |
+| an old session value, `localStorage` cleared | carried over, old key cleared |
+| a choice made after a stale session value | the later choice held |
+
+**The tagline is out of the Moments footer.** "The moment you missed deserves
+an encore!" told the fan they had missed something on a screen they can reach
+without ever having stepped away, and "deserves an encore" is a judgement
+rather than a description of the data. Only the sentence was removed: the
+"ENCORE FEED READY" label above it and the rest of the footer are untouched, so
+that callout is now the label alone beside its icon.
+`TestTheMomentsFooterCarriesNoTagline` in `tests/test_screen_copy.py` holds its
+absence from the Moments screen, from every `.html` and `.js` file in
+`app/web`, and from `matches.json`, and holds the phrase "deserves an encore"
+out on its own so a reworded version cannot return.
+
+`pytest -q` reports `1877 passed` and all five gates exit 0.
+
+**Two docs described the code as it was** and were corrected in the same
+commits: `docs/bob_brief.md` specified `window.sessionStorage` for the narrator
+and listed the tagline among the four lines Shawn chose to keep.
+
+**And the deployed site serves both changes**, <https://sh4wnbk.github.io/prelude/>,
+once the Pages job for `401d56f` had run (success). The served
+`prelude_04_moments.html` carries no "deserves an encore", and the served
+`match-content.js?v=401d56f` carries `NARRATOR_KEY`, `carryNarratorOver` and
+the `localStorage` reads and writes.
+
+**A fifth film frame**, rendered from that deployed site the way Task 27
+rendered the other four, into `C:\Users\shawn\prelude-review\film\`, which is
+outside the repo and not committed. 390 by 844 at device scale 3, so 1170 by
+2532.
+
+| File | Bytes | What it shows |
+| ---- | ----: | ------------- |
+| `moment_2022_buddy.png` | 318,143 | the moment card, 2022, with Argentina and the name Olivia and no narrator chosen, so the lookup falls to the side's own voice and the Buddy tells it |
+
+The match was picked off the list and confirmed, the allegiance and the name
+went in through the listener card, and the buildup was reached by tapping
+Heading out. Nothing was written into storage from the harness. On the card
+`localStorage` and `sessionStorage` both held no narrator, `narratorFor` read
+nothing, and the slot resolved to `buddy_scored`.
+
+**The four frames from Task 27 were not re-rendered and did not need to be.**
+Neither change touches a pixel on them: the tagline was on the Moments screen,
+which none of them shows, and where the narrator is kept does not change how
+anything draws.
+
+**A third measurement that looks like a defect and is not.**
+`data-match-rendered` says a screen rendered from `matches.json`, and it is not
+enough on the moment card. `hero_narration` is filled by a second fetch of
+`narrations.json` that lands after that attribute is set, so a reader taken on
+the attribute alone can catch the inline 1986 copy still sitting under the 2022
+header. It did here, and the words looked like a bug in the lookup when the
+lookup was right. The render now waits for the narration to equal the served
+slot text by value, and asserts it before the shutter. The frame itself was
+never wrong, because the screenshot came later than the read.
+
+**Still Shawn's to do:** the narrator choice on his iPhone, closing the tab and
+reopening it, and the pitch film re-rendered from the five frames.
+
 ### Task 27: the seated caption promises the buildup, not everything (done)
 
 **What Shawn said on 2026-11-12.** The Live screen's caption read "You're in
