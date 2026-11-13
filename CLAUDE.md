@@ -88,3 +88,33 @@ fine only inside a command-line flag.
 Report executed evidence, meaning the command run and its real output, not a
 claim that something works. Values in docs come from program output, not from memory
 or hand-editing. Don't guess IDs, counts, or names; read them from the data.
+
+## Before you report: definition of done
+
+A task is not done when its own tests pass. Before writing the report, run this
+audit and fix what it finds, or list it under "Found, not fixed" with the reason.
+
+1. Baseline and finish: the full suite and all five gates, at the start and at
+   the end, with the real output quoted.
+2. Every match, every listener: anything that touches the app is checked on
+   both matches, for team_a, team_b and neutral, and with the narrator unset,
+   Storyteller and Buddy, in headless Chromium at 390 x 844.
+3. Every state, not just the happy one: first load with cleared storage; a
+   slow network (delay matches.json and narrations.json by two seconds); a
+   failed fetch; a refresh; a closed and reopened tab. Nothing a fan can see
+   may be wrong at any moment, even briefly.
+4. The label: "Verified from play data" is never visible over words other than
+   the frozen narration for the match and slot on screen, in any state above.
+5. The deployed site: after the Pages job succeeds, repeat the checks that
+   matter against https://sh4wnbk.github.io/prelude/ at the new version, and
+   against https://prelude-api.onrender.com when the API changed.
+6. Copy: every line a fan can read is true at the moment it is shown: no
+   promise wider than the code (one narrated goal per match), no verdict or
+   nickname, no "you missed" framing, no em dash or "--".
+7. Docs: grep the docs for every name, count, file and behaviour the change
+   touched; fix each stale present-tense claim in the same commit.
+8. Side effects: running tests must not change a tracked file; git status is
+   clean after the suite.
+9. Report: what changed, the evidence, and a section "Found, not fixed".
+   Anything a reviewer would flag that you did not fix goes there, never left
+   for the reviewer to find.
