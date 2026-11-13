@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parent.parent
 WEB = ROOT / "app" / "web"
 MATCHES = WEB / "matches.json"
 MOMENT_CARD = WEB / "prelude_03_moment_card.html"
+LIVE = WEB / "prelude_02_live_seated.html"
 
 SHARE_TITLE = "Listen on Prelude."
 SHARE_TEXT = {
@@ -25,6 +26,9 @@ SHARE_TEXT = {
     3869685: "Di María's counter goal as it happened.",
 }
 READY = "Ready when you are."
+SEATED_CAPTION = (
+    "You're in your seat. We'll catch the buildup if you step away."
+)
 
 
 def matches():
@@ -75,3 +79,24 @@ class TestNothingSaysYouMissedIt:
     def test_no_screen_or_copy_file_says_the_buildup_you_missed(self):
         for path in sorted(WEB.glob("*.html")) + [MATCHES]:
             assert "buildup you missed" not in path.read_text(encoding="utf-8"), path.name
+
+
+class TestTheSeatedCaptionPromisesOnlyTheBuildup:
+    """Shawn's decision on 2026-11-12: the old line ("We'll catch anything you
+    miss.") promised coverage of the whole match, and the demo narrates one
+    goal per match. The caption now names the one thing the app does."""
+
+    def test_the_1986_caption(self):
+        assert matches()[3750191]["live_seated"]["caption"] == SEATED_CAPTION
+
+    def test_the_2022_caption(self):
+        assert matches()[3869685]["live_seated"]["caption"] == SEATED_CAPTION
+
+    def test_the_live_screen_carries_it_inline(self):
+        markup = LIVE.read_text(encoding="utf-8")
+        assert f'data-field="caption">{SEATED_CAPTION}</span>' in markup
+
+    def test_no_screen_or_copy_file_promises_to_catch_anything_you_miss(self):
+        for path in sorted(WEB.glob("*.html")) + [MATCHES]:
+            text = path.read_text(encoding="utf-8")
+            assert "anything you miss" not in text, path.name

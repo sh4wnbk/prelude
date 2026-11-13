@@ -46,7 +46,7 @@
           "action": "OPEN THE BUILDUP",
           "help": "Ready when you are."
         },
-        "caption": "You're in your seat. We'll catch anything you miss."
+        "caption": "You're in your seat. We'll catch the buildup if you step away."
       },
       "hero": {
         "event": {
@@ -171,7 +171,7 @@
           "action": "OPEN THE BUILDUP",
           "help": "Ready when you are."
         },
-        "caption": "You're in your seat. We'll catch anything you miss."
+        "caption": "You're in your seat. We'll catch the buildup if you step away."
       },
       "hero": {
         "event": {
