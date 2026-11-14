@@ -52,6 +52,7 @@ DOCS = [
     ROOT / "docs" / "VOICE.md",
     ROOT / "docs" / "orchestrate_agent.md",
     ROOT / "bob_sessions" / "README.md",
+    ROOT / "scripts" / "brand" / "README.md",
 ]
 
 # The archived task records, which `HANDOFF.md` used to hold inline. They are

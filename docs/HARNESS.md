@@ -77,8 +77,10 @@ script to run. So the first command in a new clone is
 
 ## Entry points
 
-Thirty scripts, each runnable on its own, and the table below names
-every one of them.
+Thirty-one scripts, each runnable on its own, and the table below names
+every one of them. Thirty are directly under `scripts/`; the
+thirty-first is `scripts/brand/build_svg.py`, which sits beside the two
+fonts it reads.
 
 Several are imported as well as run, always for the same reason: the
 alternative was a second place for the same construction to be wrong.
@@ -122,6 +124,7 @@ collector from
 | `scripts/build_tailwind.py` | compiles the screens' shared `tailwind-config` block into one stylesheet, with Tailwind 3.4.17 and the forms and container queries plugins, and refuses a set of screens whose copies of the block disagree | `app/web/tailwind.css` | npm, for the pinned compiler |
 | `scripts/fetch_fonts.py` | the three text families and the icon font, every subset, with Google's own `@font-face` rules rewritten to point at the committed files | `app/web/fonts.css` and `app/web/assets/fonts/` | fonts.googleapis.com and fonts.gstatic.com over https |
 | `scripts/make_mark.py` | the app's mark, "P." in Syne Bold with the full stop in amber, as one SVG with the glyphs as paths and four PNGs drawn from the same font, and the web app manifest beside them | `app/web/assets/icon/` and `app/web/manifest.webmanifest` | fonts.googleapis.com and fonts.gstatic.com over https |
+| `scripts/brand/build_svg.py` | the brand files, from one set of numbers: the wordmark, the icon rounded and square, and the launch screen's layout, with `--check` as the comparison that says the committed files are still what the numbers draw | `app/web/assets/brand/` | nothing |
 | `scripts/fetch_vendor.py` | jsQR at the version the scanner pinned, checked against the Subresource Integrity hash it carried before the file is written | `app/web/assets/vendor/` | cdn.jsdelivr.net over https |
 | `scripts/smoke_live.py` | the deployed site and the hosted API after a deploy, run by `.github/workflows/smoke.yml` | nothing | the Pages site and the Render service over https |
 
