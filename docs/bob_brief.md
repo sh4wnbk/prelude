@@ -122,7 +122,7 @@ goal detection disagrees with the recorded score, one of the two is wrong.
 `pytest -q` reports:
 
 ```
-1993 passed
+2005 passed
 ```
 
 The total covers far more than this module now. Phase 4 added the narration
@@ -844,10 +844,11 @@ shows only the lines that changed.
 
 ### The tests to pass
 
-`tests/test_screen_copy.py`, 17 tests, all passing now. Of the ten that
+`tests/test_screen_copy.py`, 29 tests, all passing now. Of the ten that
 existed when this was built, nine failed until it was; the tenth checks
-that "THE BUILDUP" stays. The four added since hold the Live caption and
-are not part of this brief.
+that "THE BUILDUP" stays. The four added after that hold the Live caption,
+and the twelve after those are Task 32's launch screen. None of the later
+ones is part of this brief.
 
 Four in `tests/test_moment_card_header.py` also failed until the script was
 rerun and the inline heading updated.

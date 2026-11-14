@@ -8,7 +8,32 @@
 <link href="assets/icon/apple-touch-icon-180.png?v=__V__" rel="apple-touch-icon" sizes="180x180"/>
 <link href="manifest.webmanifest?v=__V__" rel="manifest"/>
 <meta content="#101319" name="theme-color"/>
+<link href="fonts.css?v=__V__" rel="stylesheet"/>
 <title>Prelude</title>
+<script>
+  /* The launch screen is the first frame of a visit and nothing else, so
+   * whether it paints at all is decided here, before the body is parsed. A
+   * class on <html> is what the stylesheet reads: the markup below ships
+   * visible, so the first load of a visit shows it in the first frame with no
+   * script having run, and a second load never paints it at all. Deciding it
+   * later would be a flash of one state before the other.
+   *
+   * Blocked storage answers nothing, and the launch screen then shows on
+   * every load rather than on none: it claims nothing and costs a fraction of
+   * a second, so showing it twice is the safer way to be wrong.
+   */
+  (function () {
+    try {
+      if (window.sessionStorage.getItem('prelude.launched') === '1') {
+        document.documentElement.className += ' launched';
+        return;
+      }
+      window.sessionStorage.setItem('prelude.launched', '1');
+    } catch (e) {
+      /* nothing stored; it shows */
+    }
+  })();
+</script>
 <!--
   Entry point. Opens on the picker and holds every screen in one phone frame.
 
@@ -27,6 +52,61 @@
     background-color: #101319;        /* surface */
     overflow: hidden;
   }
+  /* The launch screen: the wordmark over the line, on the app background.
+     It covers the frame rather than replacing it, so the picker loads behind
+     it and is ready the moment this goes.
+
+     The type is the design system's `display-lg` and `body-lg`, in the
+     families the screens use, so the wordmark here and the one on the icon
+     are the same letterforms. */
+  #launch {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 0 24px;
+    text-align: center;
+    background-color: #101319;        /* surface */
+    transition: opacity 280ms ease;
+  }
+  /* Set in the head on any load but the first of a visit, so the screen
+     never paints a frame it should not. */
+  html.launched #launch { display: none; }
+  /* `hidden` alone loses to the display above, which is why this is here. */
+  #launch[hidden] { display: none; }
+  /* The one step of the fade. Pointer events go first, so the frame behind is
+     reachable from the moment the fade starts. */
+  #launch[data-going] { opacity: 0; pointer-events: none; }
+
+  #launch-mark {
+    font-family: "Syne", system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 48px;
+    line-height: 52px;
+    letter-spacing: -0.03em;
+    color: #e1e2ea;                   /* on-surface */
+  }
+  #launch-stop { color: #ffb703; }    /* primary-container */
+
+  #launch-line {
+    margin: 0;
+    font-family: "Hanken Grotesk", system-ui, sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 24px;
+    color: #ffb703;                   /* primary-container */
+  }
+
+  /* A fan who has asked for less motion gets the same screen and no fade:
+     it is shown, and then it is not. */
+  @media (prefers-reduced-motion: reduce) {
+    #launch { transition: none; }
+  }
+
   #frame { width: 100%; height: 100%; }
   #screen { display: block; width: 100%; height: 100%; border: 0; }
 
@@ -82,9 +162,94 @@
 </style>
 </head>
 <body>
+<!-- The launch screen. One image to a screen reader, announced as Prelude:
+     the wordmark and the line are one thing seen, not two things read. It
+     claims nothing about the match, the data or the fan. -->
+<div aria-label="Prelude" id="launch" role="img">
+<div id="launch-mark">Prelude<span id="launch-stop">.</span></div>
+<p id="launch-line">Be there. Even when you're not.</p>
+</div>
 <div id="frame">
 <iframe allow="camera" id="screen" src="prelude_01_picker.html?v=__V__" title="Prelude"></iframe>
 </div>
+<script>
+  /* Taking the launch screen away.
+   *
+   * It stays until the screen behind it is ready, which on a normal visit is
+   * the event list: `data-matches-loaded` on that document is the renderer
+   * saying matches.json was answered. It is not `data-match-rendered`, which
+   * is the stronger claim that one match's copy is on the screen; the list
+   * never makes it, because Prelude renders no match until the fan has
+   * picked one. The frame is same origin, so the shell can read it.
+   *
+   * Two things bound it. It never outlives LAUNCH_CAP_MS, so a fetch that
+   * fails or never answers leaves a fan looking at the app rather than at a
+   * wordmark: the screen behind has its own inline copy for exactly that
+   * case. And once the list is ready it is gone within the fade, which is
+   * well under a second, so being shown costs no waiting that the list did
+   * not already cost.
+   */
+  (function () {
+    var LAUNCH_CAP_MS = 2000;
+    var FADE_MS = 280;
+    var POLL_MS = 60;
+
+    var launch = document.getElementById('launch');
+    if (!launch || document.documentElement.className.indexOf('launched') >= 0) {
+      return;
+    }
+
+    var screen = document.getElementById('screen');
+    var going = false;
+    var poll = null;
+    var cap = null;
+
+    function reduced() {
+      try {
+        return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function gone() {
+      launch.hidden = true;
+    }
+
+    function go() {
+      if (going) return;
+      going = true;
+      if (poll) window.clearInterval(poll);
+      if (cap) window.clearTimeout(cap);
+      if (reduced()) {
+        gone();
+        return;
+      }
+      launch.setAttribute('data-going', '');
+      window.setTimeout(gone, FADE_MS);
+    }
+
+    function ready() {
+      // A predicate that throws is a predicate that stops the poll, and the
+      // frame's document is null while it is navigating, so every step of
+      // this answers false rather than throwing.
+      try {
+        var doc = screen && screen.contentDocument;
+        return !!doc && !!doc.documentElement &&
+               doc.documentElement.hasAttribute('data-matches-loaded');
+      } catch (e) {
+        return false;
+      }
+    }
+
+    if (ready()) {
+      go();
+      return;
+    }
+    poll = window.setInterval(function () { if (ready()) go(); }, POLL_MS);
+    cap = window.setTimeout(go, LAUNCH_CAP_MS);
+  })();
+</script>
 <script>
   /* A ticket code is a link to here: /?ticket=<match>:<section>:<row>:<seat>.
    *

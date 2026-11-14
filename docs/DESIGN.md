@@ -299,6 +299,16 @@ Bars, no canvas. Two variants:
 Card headers also carry a decorative bar field at `opacity-25` with
 `pointer-events-none`, in `04`.
 
+### Launch screen
+
+The first frame of a visit, in `app/web/index.html` and on no screen. The
+wordmark "Prelude." at `display-lg` in Syne Bold, `on-surface` with the full
+stop in `primary-container`, over "Be there. Even when you're not." at
+`body-lg` in `primary-container`, centred on `surface`. It fades over 280 ms
+once matches.json has been answered behind it, holds for at most 2 seconds if
+it never is, and does not fade at all under `prefers-reduced-motion`. It is one
+`role="img"` named Prelude, so the two lines are one thing seen.
+
 ### Verified marker
 
 `rounded-lg bg-surface-container-lowest` holding a filled `verified` Material

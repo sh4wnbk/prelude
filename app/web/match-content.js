@@ -307,6 +307,16 @@
     loaded = doc;
     settled = true;
     window.Prelude.matches = doc;
+    // The shell's launch screen waits for this. It says matches.json was
+    // answered, which is all the event list needs: the two cards are inline
+    // markup and this is what fills the manual entry's match list.
+    // data-match-rendered is the stronger claim, that one match's copy is on
+    // the screen, and the list never makes it, because nothing is rendered
+    // until the fan has picked. A failed fetch publishes null and sets
+    // nothing, and the launch screen's own cap is what ends it then.
+    if (doc) {
+      document.documentElement.setAttribute("data-matches-loaded", "1");
+    }
     while (waiting.length) waiting.shift()(doc);
   }
 
