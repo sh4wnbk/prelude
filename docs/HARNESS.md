@@ -77,7 +77,7 @@ script to run. So the first command in a new clone is
 
 ## Entry points
 
-Twenty-six scripts, each runnable on its own, and the table below names
+Twenty-nine scripts, each runnable on its own, and the table below names
 every one of them.
 
 Several are imported as well as run, always for the same reason: the
@@ -119,6 +119,9 @@ collector from
 | `scripts/authored_narrations.py` | the six the team wrote, re-checked against `data/raw/` by the check, the places rule and the opener rule | `docs/narration_runs/authored_2026-11-07.md` and `.json` | nothing |
 | `scripts/fallback_narrations.py` | the six fallback narrations kept in the repo, re-checked the same way | `docs/narration_runs/fallback_2026-11-05.md` and `.json` | nothing |
 | `scripts/check_vocabulary.py` | gate: every word the app can speak, against the CMU dictionary | nothing | nothing |
+| `scripts/build_tailwind.py` | compiles the screens' shared `tailwind-config` block into one stylesheet, with Tailwind 3.4.17 and the forms and container queries plugins, and refuses a set of screens whose copies of the block disagree | `app/web/tailwind.css` | npm, for the pinned compiler |
+| `scripts/fetch_fonts.py` | the three text families and the icon font, every subset, with Google's own `@font-face` rules rewritten to point at the committed files | `app/web/fonts.css` and `app/web/assets/fonts/` | fonts.googleapis.com and fonts.gstatic.com over https |
+| `scripts/fetch_vendor.py` | jsQR at the version the scanner pinned, checked against the Subresource Integrity hash it carried before the file is written | `app/web/assets/vendor/` | cdn.jsdelivr.net over https |
 | `scripts/smoke_live.py` | the deployed site and the hosted API after a deploy, run by `.github/workflows/smoke.yml` | nothing | the Pages site and the Render service over https |
 
 The five gates are `scripts/data_check.py`, `scripts/scan_copy.py`,

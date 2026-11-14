@@ -8,11 +8,15 @@ came back 404. That run was a throwaway script; this is it kept.
 The one 404 a load is allowed is `/favicon.ico`, which the browser asks for on
 its own and which no screen links to.
 
-What the screens load from a CDN, Tailwind and the three font families, is not
-counted here: the suite serves `app/web/` and not those, the deployed site
-loads them from the same places, and a slow or blocked CDN is not the screens
-being broken. `OUTSIDE` in the conftest is the list, and `fan.outside` keeps
-what those hosts failed to answer for a reader to look at.
+**And nothing is loaded from anywhere but this suite's own server.** Until
+Task 32 the screens pulled Tailwind from `cdn.tailwindcss.com` and their fonts
+from Google, and a failure from one of those hosts was not counted against the
+page, which is the allowance Task 30 recorded under "Found, not fixed": a run
+without them still failed, because the layout needs them. The stylesheet is
+compiled into `app/web/tailwind.css` now and the font files are in
+`app/web/assets/fonts/`, so there is nothing left to forgive and the check runs
+the other way: `fan.offsite` collects every request that left the origin, and
+it has to be empty.
 
 The scanner is here too, and it is the one screen a camera is needed for. It is
 loaded rather than used: the camera is refused in a headless run, so what this
@@ -43,6 +47,7 @@ def test_the_screen_loads_without_an_error(fan, screen, match_ids):
     assert not fan.errors, (fan.errors, seen)
     assert not fan.console, (fan.console, seen)
     assert not fan.unexpected_404s(), (fan.unexpected_404s(), seen)
+    assert not fan.offsite, (fan.offsite, seen)
 
 
 @pytest.mark.parametrize("screen", MATCH_REQUIRED)

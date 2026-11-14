@@ -80,14 +80,20 @@
    * it can open.
    *
    * BarcodeDetector does the reading where the browser has it. iPhone Safari
-   * does not, so jsQR is loaded at a pinned version and given frames drawn off
-   * the video. Both paths end in the same handler.
+   * does not, so jsQR is loaded from this repo and given frames drawn off the
+   * video. Both paths end in the same handler.
    */
   (function () {
     "use strict";
 
-    var JSQR_URL = "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js";
-    var JSQR_SRI = "sha384-b5Ya4Bq3qCyz39m2ISh+4DxjAIljdeFwK/BsXLuj9gugaNwAcj/ia15fxNZL9Nlx";
+    // jsQR 1.4.0, served from this repo. It was loaded from cdn.jsdelivr.net
+    // with a Subresource Integrity hash, and the hash made it safe to load
+    // without making it present: a blocked CDN left the scanner with no
+    // reader on exactly the browsers that have no BarcodeDetector.
+    // scripts/fetch_vendor.py downloaded it and checked that same hash before
+    // writing the file, so the integrity check still happened; it is not an
+    // attribute here because the script is now same origin.
+    var JSQR_URL = "assets/vendor/jsQR.js?v=__V__";
     var FRAME_MS = 180;
     var MESSAGE_MS = 2600;
 
@@ -202,8 +208,6 @@
       return new Promise(function (resolve, reject) {
         var tag = document.createElement("script");
         tag.src = JSQR_URL;
-        tag.integrity = JSQR_SRI;
-        tag.crossOrigin = "anonymous";
         tag.onload = function () { resolve(window.jsQR || null); };
         tag.onerror = function () { reject(new Error("jsQR did not load")); };
         document.head.appendChild(tag);

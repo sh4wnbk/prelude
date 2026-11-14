@@ -70,20 +70,25 @@ ALL_SCREENS = tuple(sorted(path.name for path in WEB.glob("prelude_*.html")))
 #: The one 404 a browser asks for on its own and which no screen links to.
 EXPECTED_404 = "favicon.ico"
 
-#: Where the screens get Tailwind and their fonts. The suite serves
-#: `app/web/` and not these, and the deployed site loads them from the same
-#: places, so a slow or blocked CDN is not the screens being broken. A failure
-#: from one of these is kept on `Fan.outside` rather than counted against the
-#: page, and anything on the suite's own origin still counts.
-OUTSIDE = (
-    "cdn.tailwindcss.com",
-    "fonts.googleapis.com",
-    "fonts.gstatic.com",
-)
-
-
-def from_outside(text):
-    return any(host in (text or "") for host in OUTSIDE)
+#: The screens used to load Tailwind from `cdn.tailwindcss.com` and their
+#: fonts from Google, and this was the list of hosts a failure was not counted
+#: against: the suite serves `app/web/` and not those, so a blocked CDN was not
+#: the screens being broken. Task 30 recorded the allowance under "Found, not
+#: fixed", because a run without those hosts still failed.
+#:
+#: Task 32 compiled the stylesheet into `app/web/tailwind.css` and put the font
+#: files in `app/web/assets/fonts/`, so there is nothing left to allow. The
+#: list is now the opposite thing: `Fan.offsite` collects every request that
+#: left this suite's own origin, and `test_every_screen.py` asserts there are
+#: none. A screen that reaches for a CDN again fails rather than being
+#: forgiven.
+def offsite_url(url, origin):
+    """True when `url` is not served by the suite's own server."""
+    if not url:
+        return False
+    if url.startswith(("data:", "blob:", "about:")):
+        return False
+    return not url.startswith(origin)
 
 
 #: Predicates for `wait_for_function`, written to answer false rather than
@@ -274,9 +279,10 @@ class Fan:
         self.errors = []
         self.console = []
         self.requests_404 = []
-        #: What the CDNs failed to answer, kept for a reader rather than
-        #: asserted on.
-        self.outside = []
+        #: Every request that left this suite's origin, asserted on rather
+        #: than forgiven: the screens carry their own stylesheet and their own
+        #: fonts, so this is empty.
+        self.offsite = []
         self.open()
 
     def open(self):
@@ -289,11 +295,7 @@ class Fan:
         self.page.on("pageerror", lambda error: self.errors.append(str(error)))
         self.page.on("console", self.note_console)
         self.page.on("response", self.note_response)
-        self.page.on(
-            "requestfailed",
-            lambda request: self.outside.append(request.url)
-            if from_outside(request.url) else None,
-        )
+        self.page.on("request", self.note_request)
 
     def reopen(self):
         """Close the tab and open a new one, keeping what localStorage holds."""
@@ -338,19 +340,17 @@ class Fan:
         )
         return self
 
+    def note_request(self, request):
+        if offsite_url(request.url, self.server.base):
+            self.offsite.append(request.url)
+
     def note_console(self, message):
         if message.type != "error":
-            return
-        if from_outside(message.text):
-            self.outside.append(message.text)
             return
         self.console.append((message.type, message.text))
 
     def note_response(self, response):
         if response.status != 404:
-            return
-        if from_outside(response.url):
-            self.outside.append(response.url)
             return
         self.requests_404.append(response.url)
 
