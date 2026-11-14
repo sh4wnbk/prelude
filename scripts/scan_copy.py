@@ -40,6 +40,17 @@ BANNED = [
     ("invented hardware", r"\bhaptic\w*"),
     ("invented hardware", r"\bdB\b"),
     ("em dash", r"—"),
+    # Four lines that claimed more than the code does, removed in Task 32.
+    # Each is here so it cannot come back, and each pattern is the copy as it
+    # stood. Five patterns for four lines: the confirm button said two things
+    # in sequence. The space around a separator is matched rather than written
+    # out, so a hit does not depend on how the copy is spaced.
+    ("GPS the app does not read", r"AT VENUE\s*·\s*GPS"),
+    ("live audio that does not exist", r"LIVE AUDIO SYNC"),
+    ("a connection and a readiness neither of which is checked",
+     r"Play data connected\s*·\s*AI narration ready"),
+    ("a synchronisation that does not happen", r"Synchronizing Play Data"),
+    ("a venue feed that does not exist", r"Connected to Venue Feed"),
 ]
 
 COMPILED = [(label, re.compile(pattern, re.IGNORECASE)) for label, pattern in BANNED]

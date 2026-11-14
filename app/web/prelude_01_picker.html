@@ -10,7 +10,7 @@
 </head><body class="bg-surface text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.35)]"><div class="h-16 px-screen-edge-mobile flex items-center justify-between"><div class="flex items-center gap-space-sm"><a aria-label="Prelude home" class="font-label-lg text-label-lg tracking-[0.2em] font-semibold text-on-surface uppercase select-none hover:text-primary-container transition-colors" href="prelude_01_picker.html?v=__V__">PRELUDE</a></div><div class="flex items-center gap-space-sm"><div class="inline-flex items-center gap-space-xs px-space-sm py-1.5 rounded-full bg-surface-container-high/80 backdrop-blur-md shadow-[0_1px_4px_rgba(0,0,0,0.2)]" data-field="chip_pill" style="display:none"><span class="w-1.5 h-1.5 rounded-full bg-primary-container pulse-live"></span><span class="font-label-sm text-label-sm text-on-surface font-semibold tracking-wider uppercase" data-field="chip"></span></div><a aria-label="Profile" class="w-8 h-8 rounded-full bg-primary flex items-center justify-center" href="prelude_07_profile.html?v=__V__"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></a></div></div></header><main class="flex flex-col relative w-full pt-16 pb-24 bg-surface min-h-screen"><div class="flex flex-col w-full px-screen-edge-mobile pb-space-2xl">
 <!-- Eyebrow & Title Section -->
 <div class="flex flex-col mt-space-md mb-space-lg"><div class="flex items-center gap-space-xs mb-space-xs"><span class="w-1.5 h-1.5 rounded-full bg-primary-container pulse-live"></span><span class="font-label-sm text-label-sm uppercase tracking-widest text-primary-container">TODAY'S EVENTS</span></div><h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface tracking-tight font-bold">PICK YOUR EVENT</h1><p class="font-body-md text-body-md text-secondary mt-space-xs leading-relaxed">Sets your venue, play-data stream, and AI narration.</p></div>
-<!-- Venue GPS Geofence Status Indicator Bar -->
+<!-- Ticket entry: scan, or type a seat -->
 <div class="flex flex-col gap-space-sm mb-space-lg"><button id="scan-ticket-btn" class="w-full py-3.5 px-space-md rounded-xl bg-primary-container text-on-primary-container font-label-lg text-label-lg font-bold tracking-wider uppercase flex items-center justify-center gap-space-sm shadow-lg active:scale-[0.99] transition-transform" type="button"><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><rect height="7" width="7" x="3" y="3"></rect><rect height="7" width="7" x="14" y="3"></rect><rect height="7" width="7" x="14" y="14"></rect><rect height="7" width="7" x="3" y="14"></rect><path d="M7 7h.01"></path><path d="M17 7h.01"></path><path d="M7 17h.01"></path><path d="M17 17h.01"></path></svg><span class="">SCAN TICKET</span></button><p class="font-body-md text-[13px] text-secondary text-center">Reads the QR code on your ticket and opens that match.</p><details class="group mt-space-2xs"><summary class="cursor-pointer list-none flex items-center justify-center gap-1 text-center font-label-sm text-label-sm text-outline hover:text-on-surface uppercase tracking-wider transition-colors"><span class="">Enter manually</span><span class="material-symbols-outlined text-[14px] transition-transform group-open:rotate-180">expand_more</span></summary><div class="flex flex-col gap-2 mt-2 p-card-padding-sm bg-surface-container-low rounded-lg border border-outline-variant/20" id="manual-entry-mount"></div></details></div>
 <!-- Event List Section -->
 <div aria-label="Today's events" class="flex flex-col gap-space-md" role="radiogroup">
@@ -29,7 +29,7 @@
 <!-- Match Play Data Strip -->
 <div class="mt-space-md bg-surface-container-lowest/40 px-space-sm py-2 rounded-lg pl-3">
 <div class="flex items-center justify-between font-label-md text-label-md"><span class="text-secondary font-medium">KICKOFF 19:00</span><span class="font-label-sm text-label-sm text-secondary">ARG 0 - 0 ENG</span></div>
-<p class="font-label-sm text-label-sm text-outline mt-0.5">Play data connected · AI narration ready</p>
+<p class="font-label-sm text-label-sm text-outline mt-0.5">Play-by-play data · audio narration</p>
 </div>
 </div>
 <!-- CARD 2: second venue, the same unselected style -->
@@ -44,16 +44,16 @@
 </div>
 <div class="mt-space-md bg-surface-container-lowest/40 px-space-sm py-2 rounded-lg pl-3">
 <div class="flex items-center justify-between font-label-md text-label-md"><span class="text-secondary font-medium">KICKOFF 17:00</span><span class="font-label-sm text-label-sm text-secondary">ARG 0 - 0 FRA</span></div>
-<p class="font-label-sm text-label-sm text-outline mt-0.5">Play data connected · AI narration ready</p>
+<p class="font-label-sm text-label-sm text-outline mt-0.5">Play-by-play data · audio narration</p>
 </div>
 </div>
 <!-- CARD 3: Upcoming -->
 
 </div>
-<!-- AI Audio Narration & Geofence Architecture Footnote -->
+<!-- Where the play data comes from -->
 <div class="mt-space-lg p-card-padding-sm rounded-xl bg-surface-container-lowest flex items-center gap-space-sm border border-outline-variant/20"><div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center flex-shrink-0"><span class="material-symbols-outlined text-primary-container text-[18px]">neurology</span></div><div class="flex flex-col min-w-0"><span class="font-label-md text-label-md text-on-surface">AI Audio Narration</span><span class="font-body-md text-body-md text-secondary">Powered by StatsBomb play-by-play data</span></div><img alt="Hudl StatsBomb" class="h-4 w-auto ml-auto shrink-0" src="assets/hudl-statsbomb-logo-reversed.png?v=__V__"/></div>
 <!-- Primary Action Container -->
-<div class="mt-space-xl flex flex-col gap-space-xs"><button class="w-full h-touch-target-min rounded-full bg-primary-container text-on-primary-container font-label-lg text-label-lg font-bold tracking-wider uppercase flex items-center justify-center gap-space-xs shadow-lg active:scale-[0.99] transition-transform disabled:opacity-40 disabled:cursor-not-allowed" disabled id="confirm-btn" onclick="triggerFeedConfirmation()"><span class="material-symbols-outlined text-[20px]">sensors</span><span class="" id="btn-text">CONFIRM EVENT</span></button><p class="font-body-md text-[13px] text-outline text-center mt-space-2xs">Sets your venue, play-data stream, and AI narration.</p></div>
+<div class="mt-space-xl flex flex-col gap-space-xs"><button class="w-full h-touch-target-min rounded-full bg-primary-container text-on-primary-container font-label-lg text-label-lg font-bold tracking-wider uppercase flex items-center justify-center gap-space-xs shadow-lg active:scale-[0.99] transition-transform disabled:opacity-40 disabled:cursor-not-allowed" disabled id="confirm-btn" onclick="confirmEvent()"><span class="material-symbols-outlined text-[20px]">sensors</span><span class="" id="btn-text">CONFIRM EVENT</span></button><p class="font-body-md text-[13px] text-outline text-center mt-space-2xs">Sets your venue, play-data stream, and AI narration.</p></div>
 </div>
 <script>
   // Null until the fan picks a card or arrives on a match they already chose.
@@ -106,7 +106,6 @@
       indicator.innerHTML = style.mark;
     });
 
-    document.getElementById('btn-text').innerText = 'CONFIRM EVENT';
     confirmBtn.disabled = selectedMatch === null;
   }
 
@@ -132,25 +131,18 @@
     }
   });
 
-  function triggerFeedConfirmation() {
-    const btn = document.getElementById('confirm-btn');
-    const label = document.getElementById('btn-text');
-
+  // Confirming opens the match. There was a 1.5 second sequence here first,
+  // saying first that it was synchronizing the play data and then that it had
+  // connected to a feed at the venue. Nothing was being synchronized and
+  // there is no such feed, so the button said two untrue things and then did
+  // the one true thing. It now does only that.
+  function confirmEvent() {
     // Nothing to confirm until a card is picked. The button is disabled then,
     // so this only catches a call that reached here another way.
     if (selectedMatch === null) return;
 
-    btn.classList.add('opacity-90', 'scale-[0.98]');
-    label.innerText = 'Synchronizing Play Data...';
-
-    setTimeout(() => {
-      label.innerText = 'Connected to Venue Feed';
-      // Confirmed, so move on to the live screen rather than resetting.
-      setTimeout(() => {
-        Prelude.resetMoment(selectedMatch);
-        window.location.href = Prelude.url('prelude_02_live_seated.html', selectedMatch);
-      }, 700);
-    }, 800);
+    Prelude.resetMoment(selectedMatch);
+    window.location.href = Prelude.url('prelude_02_live_seated.html', selectedMatch);
   }
 </script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-1px_12px_rgba(0,0,0,0.4)]" data-active-classes="text-primary-container"><div class="flex justify-around items-center h-16 px-screen-edge-mobile"><a aria-current="page" class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] gap-1 transition-colors text-primary-container" data-path="live" href="prelude_02_live_seated.html?v=__V__"><span class="material-symbols-outlined text-[20px]">sensors</span><span class="font-label-sm text-label-sm tracking-widest uppercase">LIVE</span></a><a class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] gap-1 text-on-surface-variant hover:text-on-surface transition-colors" data-path="moments" href="prelude_04_moments.html?v=__V__"><span class="material-symbols-outlined text-[20px]">auto_awesome_motion</span><span class="font-label-sm text-label-sm tracking-widest uppercase">MOMENTS</span></a><a class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] gap-1 text-on-surface-variant hover:text-on-surface transition-colors" data-path="profile" href="prelude_07_profile.html?v=__V__"><span class="material-symbols-outlined text-[20px]">tune</span><span class="font-label-sm text-label-sm tracking-widest uppercase">PROFILE</span></a></div></nav>
 

@@ -165,8 +165,8 @@ def check_match(entry, fail, note):
         fail(where, f"picker stadium {pick.get('stadium')!r}, the index says {venue!r}")
     for banned in ("state", "badge"):
         if banned in pick:
-            fail(where, f"picker still carries {banned!r}; the list shows no clock and no "
-                        "GPS badge")
+            fail(where, f"picker still carries {banned!r}; the list shows no clock "
+                        "and nothing from after kickoff")
     note(f"  list card: kickoff {pick['kickoff']}, {pick['score']}, {pick['stadium']}")
 
     tally = {entry["home_team"]: 0, entry["away_team"]: 0}
@@ -425,10 +425,15 @@ def check_screens(doc, fail, note):
 
     # The list is pre-match, so none of the in-match furniture belongs on it.
     live = (WEB / "prelude_02_live_seated.html").read_text(encoding="utf-8")
-    if "AT VENUE" in picker:
-        fail("list", "a GPS badge is on the list; it belongs to the Live screen")
-    if "AT VENUE" not in live:
-        fail("Live screen", "the GPS badge is missing after selection")
+    # The badge that read "AT VENUE, GPS" is gone from every screen. It said a
+    # satellite fix had placed the fan at the ground, and no code in this repo
+    # reads a position: CLAUDE.md names GPS presence as one of the three inputs
+    # and nothing uses it. It was on Live and on the ticket; this is both
+    # directions of the same check, so putting it back anywhere fails here.
+    for name in sorted(WEB.glob("*.html")):
+        if "AT VENUE" in name.read_text(encoding="utf-8"):
+            fail(name.name, "carries a badge claiming a GPS fix at the venue; "
+                            "no code in this repo reads a position")
     if "Change event" not in live:
         fail("Live screen", "no 'Change event' link back to the list")
     for entry in doc["matches"]:
@@ -437,8 +442,9 @@ def check_screens(doc, fail, note):
             clock_text = f"{st['period_label']} \u00b7 {st['display_minute']}'"
             if clock_text in picker:
                 fail("list", f"shows an in-match clock {clock_text!r}; the list is pre-match")
-    note("  list markup carries both cards from matches.json, with no clock and no GPS badge")
-    note("  Live screen carries the GPS badge and a 'Change event' link")
+    note("  list markup carries both cards from matches.json, with no clock")
+    note("  no screen claims a GPS fix at the venue")
+    note("  Live screen carries a 'Change event' link back to the list")
 
     default = next(e for e in doc["matches"] if e["match_id"] == DEFAULT_MATCH)
     inline = {

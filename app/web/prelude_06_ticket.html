@@ -51,11 +51,11 @@
 <div class="flex flex-col rounded-xl bg-surface-container-low p-card-padding-sm gap-space-sm shadow-md">
 <div class="flex items-start gap-space-sm">
 <div class="w-7 h-7 rounded-full bg-surface-container-high flex items-center justify-center shrink-0 mt-0.5">
-<span class="material-symbols-outlined text-[16px] text-primary-container">near_me</span>
+<span class="material-symbols-outlined text-[16px] text-primary-container">stadium</span>
 </div>
 <div class="flex flex-col min-w-0">
-<span class="font-label-md text-label-md text-on-surface uppercase">AT VENUE · GPS</span>
-<span class="font-body-md text-body-md text-on-surface-variant" data-field="ticket_gps">Estadio Azteca</span>
+<span class="font-label-md text-label-md text-on-surface uppercase">Venue</span>
+<span class="font-body-md text-body-md text-on-surface-variant" data-field="ticket_venue">Estadio Azteca</span>
 </div>
 </div>
 <div class="h-px bg-surface-container-high w-full"></div>
@@ -65,7 +65,7 @@
 </div>
 <div class="flex flex-col min-w-0">
 <span class="font-label-md text-label-md text-on-surface uppercase">Play data</span>
-<span class="font-body-md text-body-md text-on-surface-variant" data-field="ticket_status">Play data connected · AI narration ready</span>
+<span class="font-body-md text-body-md text-on-surface-variant" data-field="ticket_status">Play-by-play data · audio narration</span>
 </div>
 </div>
 <div class="h-px bg-surface-container-high w-full"></div>
@@ -152,7 +152,7 @@
           match.away_team.toUpperCase();
       }
       setText("ticket_venue", match.picker.venue);
-      setText("ticket_gps", match.live_seated.venue);
+      setText("ticket_venue", match.live_seated.venue);
       setText("ticket_status", match.picker.status);
 
       // A ticket code is a link, so the seat can arrive in the query string

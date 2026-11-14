@@ -1,5 +1,5 @@
 {
-  "_note": "Display copy for the two matches. These values are fixed content, except hero.opening, which scripts/write_headers.py generates from the orchestrator: run it again rather than editing it by hand. scripts/check_match_copy.py verifies every name, minute, score and count against data/raw and exits 1 on a mismatch. Finding goals and buildups in the data is the EventFeed module's job, not this file's. app/web/match-content.js renders the screens from this file; the screens also carry the default match's copy inline, for when it cannot be fetched. The list is pre-match: kickoff time and 0-0, no clock and no GPS badge. Anything later in the match belongs to the screens that come after selection. One session clock runs through every screen: it sits at the hero moment, and nothing after it is shown anywhere.",
+  "_note": "Display copy for the two matches. These values are fixed content, except hero.opening, which scripts/write_headers.py generates from the orchestrator: run it again rather than editing it by hand. scripts/check_match_copy.py verifies every name, minute, score and count against data/raw and exits 1 on a mismatch. Finding goals and buildups in the data is the EventFeed module's job, not this file's. app/web/match-content.js renders the screens from this file; the screens also carry the default match's copy inline, for when it cannot be fetched. The list is pre-match: kickoff time and 0-0, and no clock. Anything later in the match belongs to the screens that come after selection. One session clock runs through every screen: it sits at the hero moment, and nothing after it is shown anywhere.",
   "matches": [
     {
       "match_id": 3750191,
@@ -16,7 +16,7 @@
         "home_goals": 0,
         "away_goals": 0,
         "score": "ARG 0 - 0 ENG",
-        "status": "Play data connected · AI narration ready"
+        "status": "Play-by-play data · audio narration"
       },
       "live_seated": {
         "venue": "Estadio Azteca",
@@ -141,7 +141,7 @@
         "home_goals": 0,
         "away_goals": 0,
         "score": "ARG 0 - 0 FRA",
-        "status": "Play data connected · AI narration ready"
+        "status": "Play-by-play data · audio narration"
       },
       "live_seated": {
         "venue": "Lusail Stadium",

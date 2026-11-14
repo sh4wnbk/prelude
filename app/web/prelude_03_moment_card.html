@@ -100,7 +100,7 @@
 </div>
 </div>
 <!-- Secondary Actions Deck -->
-<div class="grid grid-cols-3 gap-space-xs w-full">
+<div class="grid grid-cols-2 gap-space-xs w-full">
 <!-- Replay Audio -->
 <button class="flex flex-col items-center justify-center h-16 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors active:scale-98 border border-surface-container-highest/20" id="replayAction" type="button">
 <span class="material-symbols-outlined text-on-surface text-[20px]">replay_10</span>
@@ -111,25 +111,15 @@
 <span class="material-symbols-outlined text-on-surface text-[20px]">ios_share</span>
 <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mt-1">SHARE CLIP</span>
 </button>
-<!-- Live Audio Sync -->
-<button class="flex flex-col items-center justify-center h-16 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors active:scale-98 border border-surface-container-highest/20 relative overflow-hidden" id="syncAction" type="button">
-<span class="material-symbols-outlined text-primary-container text-[20px]">bolt</span>
-<span class="font-label-sm text-label-sm text-primary-container uppercase tracking-widest mt-1">LIVE AUDIO SYNC</span>
-</button>
+<!-- There was a third button in this deck offering to sync the audio with
+     the live match. It changed its own label for 1.8 seconds and changed
+     nothing else: the recordings are frozen files and there is no live
+     audio to sync them to. The deck is two buttons now. -->
 </div>
 </div>
 <script>
   (function initMomentCardInteraction() {
-    const syncAction = document.getElementById('syncAction');
     const shareAction = document.getElementById('shareAction');
-
-    syncAction?.addEventListener('click', () => {
-      const originalText = syncAction.innerHTML;
-      syncAction.innerHTML = '<span class="material-symbols-outlined text-primary-container text-[20px]">check</span><span class="font-label-sm text-label-sm text-primary-container uppercase tracking-widest mt-1">SYNCED</span>';
-      setTimeout(() => {
-        syncAction.innerHTML = originalText;
-      }, 1800);
-    });
 
     shareAction?.addEventListener('click', () => {
       if (navigator.share) {

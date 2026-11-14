@@ -205,7 +205,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 1906 tests in thirty eight files. Any failure means something is
+The suite is 1925 tests in thirty nine files. Any failure means something is
 wrong. It is run from the repo root:
 
 ```
@@ -242,6 +242,7 @@ wrote that file as Task 15; it exists now and they pass.
 | `tests/test_live_before.py` | where the 1986 fan steps away: 52' at 1 to 0, in `app/web/matches.json` and inline on the Live screen, built by Bob in Task 8 |
 | `tests/test_moment_card_header.py` | the header on the moment card: `hero.opening` in `app/web/matches.json`, the script that writes and checks it, the card's field and the renderer, built by Bob in Task 6 |
 | `tests/test_profile.py` | the Profile screen, the Profile tab and person icon leading to it, and the card reopening from it, built by Bob in Task 10 |
+| `tests/test_the_screens_claim_only_the_code.py` | the four lines Task 32 removed because they claimed more than the code does: the GPS badge, the live audio sync button, the status line and the confirm button's sequence |
 | `tests/test_screen_copy.py` | the copy Shawn settled on 2026-10-29: the card's label, the Live helper after Heading out, the share title and texts, built by Bob in Task 7; and the seated caption Shawn settled on 2026-11-12 |
 | `tests/test_orchestrator.py` | the greeting, the phase, the score state, the transition, the game focused header, the default persona and `opening`, against `app/orchestrator.py` |
 | `tests/test_personas.py` | the persona config: the three ids, the fields, the three picked voices, the unconfirmed prosody and the Profile copy |
