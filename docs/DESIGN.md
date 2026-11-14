@@ -18,16 +18,21 @@ pointed a citation at the wrong element. A class string moves with the element
 it belongs to, so it cannot drift. `scripts/check_docs.py` verifies that every
 anchor still appears in every screen cited beside it.
 
-The token tables all cite `03`, meaning the `<script id="tailwind-config">`
+The token tables all cite `03`, meaning the `<script id="tailwind-config"`
 block. That block is byte-identical across all four screens (sha256
 `44927b9a0feedea2...`, 3210 chars), so the system is one system.
+
+The block is data rather than code: it carries a `type` a browser does not
+execute. `scripts/build_tailwind.py` reads it and compiles
+`app/web/tailwind.css` from it, and that committed stylesheet is what the
+screens link.
 
 Anything a screen does not contain is absent here. There is no spec for states,
 breakpoints, or components the screens do not have.
 
 `prelude_05_scan.html`, the ticket scanner, and `prelude_06_ticket.html`, the
 ticket details, are not covered. Both arrived after this document and carry the
-same `<script id="tailwind-config">` block byte for byte, so they are built from
+same `<script id="tailwind-config"` block byte for byte, so they are built from
 the system described here, but their own components (the viewfinder, the
 reticle, the scan line, the ticket card and its perforation) are not documented
 below.
@@ -109,7 +114,9 @@ define no error state and no tertiary accent in practice.
 
 ## Type
 
-Three families, loaded from `fonts.googleapis.com` in `03`:
+Three families, served from this repo. `scripts/fetch_fonts.py` downloaded
+them from Google and wrote `app/web/fonts.css`, which every screen links as
+`fonts.css`; the files are in `app/web/assets/fonts/`:
 
 | Family | Weights loaded | Used for |
 | ------ | -------------- | -------- |
@@ -117,9 +124,15 @@ Three families, loaded from `fonts.googleapis.com` in `03`:
 | Hanken Grotesk | 400, 500, 600, 700 | `body-lg`, `body-md`, `headline-sm` |
 | JetBrains Mono | 400, 500, 600 | `label-lg`, `label-md`, `label-sm` |
 
-Material Symbols Outlined is loaded with axes `wght,FILL@100..700,0..1` (`03`)
-and used in 52 places across the four screens. Icons that read as filled set
+Material Symbols Outlined is the variable icon font, used in 52 places
+across the four screens. Icons that read as filled set
 `font-variation-settings: 'FILL' 1` inline, in `03`.
+
+The fonts are not fetched from Google at run time.
+`scripts/fetch_fonts.py` downloaded them and wrote `app/web/fonts.css`,
+which every screen links; the files are in `app/web/assets/fonts/`, one per
+subset, and the icon font is the variable one at axes
+`wght,FILL@100..700,0..1`.
 
 ### Scale
 

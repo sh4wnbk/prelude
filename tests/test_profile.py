@@ -101,7 +101,13 @@ class TestTheProfileScreen:
         than `#ffb703` and an older label scale, so the whole screen's amber
         read as disabled. Every screen now has to carry the same config."""
         def config(markup):
-            found = re.search(r'<script id="tailwind-config">(.*?)</script>', markup, re.S)
+            # Task 32 gave the tag `type="text/tailwind-config"`, so a
+            # browser parses it and does not run it: with the Play CDN gone,
+            # `tailwind.config = {...}` would throw. The bytes inside it, which
+            # are what this test is about, did not change.
+            found = re.search(
+                r'<script id="tailwind-config"[^>]*>(.*?)</script>', markup, re.S
+            )
             assert found, "no tailwind-config script"
             return found.group(1)
 
