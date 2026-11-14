@@ -573,15 +573,17 @@ class TestTheNarrationAndTheLabelAppearTogether:
 
     def test_the_block_keeps_the_space_while_they_are_hidden(self):
         """Hidden, not collapsed: the player below would otherwise jump down
-        when the narration arrived. 16.75rem measured 268 px at 390 px wide,
-        which is the tallest of the six frozen narrations plus the label, so
-        the block is the same height before and after."""
+        when the narration arrived. 19.5rem measured 312 px at 390 px wide,
+        which is the tallest of the six frozen narrations plus the label and
+        the claim count, so the block is the same height before and after.
+        Task 29 reserved 16.75rem for the first two; Task 32 added the count
+        and re-measured all six, at 260, 286 and 312 px."""
         block = re.search(
             r"<div[^>]*data-field=\"hero_narration_block\"[^>]*>",
             CARD.read_text(encoding="utf-8"),
         )
         assert block, "the narration and the label are in no block of their own"
-        assert "min-height:16.75rem" in block.group(0)
+        assert "min-height:19.5rem" in block.group(0)
 
     def test_showNarration_shows_the_two_together(self):
         """One function, and it cannot show one without the other."""
@@ -618,7 +620,11 @@ class TestTheNarrationAndTheLabelAppearTogether:
         then = js_arm("renderNarration", ".then(function (doc)")
         assert "var key = slotFor(match);" in then
         assert "slots[key]" in then
-        assert "if (slot && slot.text) showNarration(slot.text);" in then
+        # Task 32 added the claim count, which comes out of the same record,
+        # so the guard is on the text and the count together.
+        assert "var claims = claimsChecked(slot);" in then
+        assert "if (slot && slot.text && claims !== null) {" in then
+        assert "showNarration(slot.text, claims);" in then
         assert NEUTRAL_SLOT in then, "the fallback key is still the neutral one"
 
     def test_a_failing_fetch_leaves_both_hidden(self):

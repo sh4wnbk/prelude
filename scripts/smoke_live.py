@@ -87,13 +87,25 @@ def load(name):
     return json.loads((WEB / name).read_text(encoding="utf-8"))
 
 
+def claims_line(count):
+    """The claim count as the card says it, which `claimsLine` in
+    `app/web/match-content.js` builds. Written here so the check compares a
+    sentence with a sentence."""
+    return "%d %s checked against the play data" % (
+        count, "claim" if count == 1 else "claims",
+    )
+
+
 def expected(match_id, listener, narrator=None):
-    """The slot, the words and the file, from the three files the app reads."""
+    """The slot, the words, the claim count line and the file, from the three
+    files the app reads."""
     hero = {entry["match_id"]: entry for entry in load("matches.json")["matches"]}
     hero = hero[match_id]["hero"]
     slot = slot_for(hero["voice_for"], listener, narrator)
     frozen = load("narrations.json")["narrations"][str(match_id)]["slots"][slot]
-    return slot, frozen["text"], hero["audio"][slot]
+    return (slot, frozen["text"],
+            claims_line(frozen["check"]["claims_checked"]),
+            hero["audio"][slot])
 
 
 def say(ok, line):
@@ -179,11 +191,14 @@ window.__preludeAudio = [];
 CARD = """() => {
   const words = document.querySelector('[data-field=hero_narration]');
   const label = document.querySelector('[data-field=hero_label]');
+  const claims = document.querySelector('[data-field=hero_claims]');
   const play = document.getElementById('playBtn');
   return {
     text: words ? words.textContent : null,
     wordsShown: words ? getComputedStyle(words).display !== 'none' : null,
     labelShown: label ? getComputedStyle(label).display !== 'none' : null,
+    claims: claims ? claims.textContent : null,
+    claimsShown: claims ? getComputedStyle(claims).display !== 'none' : null,
     playDisabled: play ? play.disabled : null,
     version: (document.querySelector('script[src*="match-content.js"]') || {}).src,
   };
@@ -191,7 +206,7 @@ CARD = """() => {
 
 
 def check_one_match(browser, base, match_id, listener, version):
-    slot, text, file = expected(match_id, listener)
+    slot, text, counted, file = expected(match_id, listener)
     print("  match %d, a fan with %s, slot %s" % (match_id, listener, slot))
     bad = 0
 
@@ -201,6 +216,11 @@ def check_one_match(browser, base, match_id, listener, version):
         state = page.evaluate(CARD)
         bad += not say(state["text"] == text, "the card shows this slot's words")
         bad += not say(state["labelShown"] is True, "the label is over them")
+        bad += not say(
+            state["claims"] == counted,
+            "the count under the label reads %r" % counted,
+        )
+        bad += not say(state["claimsShown"] is True, "the count is shown with it")
         bad += not say(state["playDisabled"] is False, "the play button is offered")
         loaded = page.evaluate("() => window.__preludeAudio")
         bad += not say(loaded == [file], "the player loaded " + file)
@@ -225,6 +245,10 @@ def check_one_match(browser, base, match_id, listener, version):
         slow = page.evaluate(CARD)
         bad += not say(slow["text"] == "", "under latency the paragraph is empty")
         bad += not say(slow["labelShown"] is False, "under latency there is no label")
+        bad += not say(slow["claims"] == "", "under latency there is no count")
+        bad += not say(
+            slow["claimsShown"] is False, "under latency the count is hidden"
+        )
         bad += not say(
             slow["playDisabled"] is True, "under latency the voice is not offered"
         )
@@ -263,7 +287,7 @@ def check_api(api):
     say(True, "/health is awake: " + json.dumps(health))
 
     for match_id, listener in sorted(LISTENERS.items()):
-        slot, text, _file = expected(match_id, listener)
+        slot, text, _counted, _file = expected(match_id, listener)
         try:
             status, body = fetch("%s/moments?match=%d" % (base, match_id))
             moments = json.loads(body)

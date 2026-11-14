@@ -21,9 +21,15 @@ run and `fan.audio_loaded()` reads the list. It hands back a real audio
 element, so everything downstream of it, the analyser included, is the real
 thing.
 
-The 268 px measurement is Task 29's: the narration block reserves the tallest
-of the six frozen narrations plus the label at 390 px wide, so nothing below it
-moves when the words land.
+Every one of the eighteen fans is also asked for the claim count beside the
+label: the number is read out of the same frozen record as the words, and the
+sentence is assembled by `claims_line` in the conftest rather than written
+down, so a count that drifted from the verdict it was reached on fails here.
+
+The 312 px measurement is this suite's: the narration block reserves the
+tallest of the six frozen narrations, plus the label and the claim count, at
+390 px wide, so nothing below it moves when the words land. Task 29 reserved
+268 px for the words and the label; Task 32 added the count and re-measured.
 """
 
 import pytest
@@ -32,10 +38,12 @@ from tests.browser.conftest import (
     CARD_STATE, LISTENERS, MOMENTS, MOMENT_CARD, NARRATORS, PLAY_OFFERED,
 )
 
-#: The block's reserved height at 390 px wide, in pixels. Task 29 measured the
-#: six frozen narrations at 216 to 268 px with the label and reserved the
-#: tallest, so the player below the words does not move when they arrive.
-BLOCK_PX = 268
+#: The block's reserved height at 390 px wide, in pixels. The six frozen
+#: narrations measure 260, 286 and 312 px with the label and the claim count
+#: on screen, and the tallest is reserved, so the player below the words does
+#: not move when they arrive. Task 29 measured 216 to 268 px before the count
+#: was there.
+BLOCK_PX = 312
 
 MOMENTS_CARDS = """() => Array.from(
   document.querySelectorAll('[data-field="moments_list"] > *')
@@ -70,6 +78,15 @@ def test_the_card_shows_the_slot_the_rules_name(
         assert state["text"] == want["text"], (match_id, listener, narrator)
         assert state["wordsShown"] is True
         assert state["labelShown"] is True
+        # The count the grounding check recorded for this slot, in the words
+        # the card builds out of it. `expected` reads the number out of
+        # `narrations.json` and `claims_line` makes the sentence, so a count
+        # from another slot or another match fails here on every one of the
+        # eighteen fans.
+        assert state["claims"] == want["claims_line"], (
+            match_id, listener, narrator, state["claims"]
+        )
+        assert state["claimsShown"] is True
         assert state["playDisabled"] is False
         assert state["blockHeight"] == BLOCK_PX, (match_id, state["blockHeight"])
         loaded = fan.audio_loaded()

@@ -12,17 +12,23 @@ would be a false claim rather than a stale screen.
 - **Refused.** The server answers `503`.
 - **Never answered.** The server holds the connection and says nothing.
 
-In every one of them three rules are asked of every frame the card passed
+In every one of them five rules are asked of every frame the card passed
 through, not only of the state it settled in, and a `MutationObserver`
 installed before the page's own scripts gives the frames:
 
 1. the paragraph holds nothing, or exactly the served slot's text for the
    match and the slot on screen,
 2. the paragraph and the label are both hidden or both shown,
-3. the play button is disabled in every frame where the words are hidden.
+3. the play button is disabled in every frame where the words are hidden,
+4. the claim count and the label are both hidden or both shown,
+5. the count holds nothing, or exactly the line the served slot's recorded
+   verdict makes, and never another slot's line.
 
-The third is this task's. The first two are Task 29's, with the frames read the
-same way.
+The first two are Task 29's, the third is Task 30's and the last two are Task
+32's, with the frames read the same way. Rules 4 and 5 are the ones that say
+the label never stands alone: the count is what it is standing on, so a frame
+holding one without the other is a frame in which the card claims the check
+reached a verdict it does not say the size of.
 
 `matches.json` is checked too, because the card's other fields do take a
 fallback: with that fetch refused the inline 1986 copy is a correct screen, and
@@ -34,6 +40,7 @@ import pytest
 
 from tests.browser.conftest import (
     CARD_STATE, LISTENERS, MOMENT_CARD, PLAY_OFFERED, WATCH_THE_CARD,
+    claims_line,
 )
 from tests.browser.test_the_fan_hears_their_own import BLOCK_PX
 
@@ -59,10 +66,30 @@ def every_frozen_line(narrations):
     return lines
 
 
-def obeys(frames, wanted_text, every_line):
-    """The three rules, over every frame. Returns the offending frame or None."""
+@pytest.fixture(scope="session")
+def every_claims_line(narrations):
+    """Every count line the six records can make, for rule 5's other half.
+
+    The six are at 17, 18, 22 and 23 claims, so two slots of one match share
+    a line and the 1986 and 2022 sets do not overlap. A frame showing the
+    wrong one is caught by the comparison with the served slot's own line;
+    this set is what catches it being a line from the file at all rather than
+    something the renderer invented.
+    """
+    return {
+        claims_line(slot["check"]["claims_checked"])
+        for match in narrations.values()
+        for slot in match["slots"].values()
+    }
+
+
+def obeys(frames, want, every_line, every_claim_line):
+    """The five rules, over every frame. Returns the offending frame or None."""
+    wanted_text = want["text"]
+    wanted_claims = want["claims_line"]
     for frame in frames:
         text = frame["text"]
+        claims = frame["claims"] or ""
         if text and text != wanted_text:
             return ("other words", frame)
         if text and text in every_line and text != wanted_text:
@@ -73,6 +100,14 @@ def obeys(frames, wanted_text, every_line):
             return ("the label over an empty paragraph", frame)
         if not frame["wordsShown"] and frame["playDisabled"] is False:
             return ("play offered with the words hidden", frame)
+        if frame["claimsShown"] != frame["labelShown"]:
+            return ("the label and the count not shown together", frame)
+        if claims.strip() and claims != wanted_claims:
+            return ("the wrong count", frame)
+        if claims.strip() and claims in every_claim_line and claims != wanted_claims:
+            return ("another slot's count", frame)
+        if frame["claimsShown"] and not claims.strip():
+            return ("the count shown with no number in it", frame)
     return None
 
 
@@ -87,7 +122,8 @@ def frames(fan):
 
 @pytest.mark.parametrize("listener", LISTENERS)
 def test_a_slow_narrations_file(
-    fan, plan, match_ids, expected, every_frozen_line, listener
+    fan, plan, match_ids, expected, every_frozen_line, every_claims_line,
+    listener
 ):
     plan.delay["narrations.json"] = SLOW_SECONDS
     for match_id in match_ids:
@@ -100,6 +136,8 @@ def test_a_slow_narrations_file(
         assert mid["text"] == "", (match_id, mid)
         assert mid["wordsShown"] is False
         assert mid["labelShown"] is False
+        assert mid["claims"] == "", (match_id, mid)
+        assert mid["claimsShown"] is False
         assert mid["playDisabled"] is True
         assert mid["blockHeight"] == BLOCK_PX, mid
         # The header is this match's, so the fan is not looking at the other
@@ -113,15 +151,19 @@ def test_a_slow_narrations_file(
         end = fan.page.evaluate(CARD_STATE)
         assert end["text"] == want["text"], (match_id, listener)
         assert end["labelShown"] is True
+        # The count the check recorded for this slot, as the card says it.
+        assert end["claims"] == want["claims_line"], (match_id, listener)
+        assert end["claimsShown"] is True
         assert end["blockHeight"] == BLOCK_PX, end
 
-        broken = obeys(frames(fan), want["text"], every_frozen_line)
+        broken = obeys(frames(fan), want, every_frozen_line, every_claims_line)
         assert broken is None, (match_id, listener, broken)
 
 
 @pytest.mark.parametrize("status", [500, 503])
 def test_a_refused_narrations_file(
-    fan, plan, match_ids, expected, every_frozen_line, status
+    fan, plan, match_ids, expected, every_frozen_line, every_claims_line,
+    status
 ):
     plan.status["narrations.json"] = status
     for match_id in match_ids:
@@ -133,14 +175,16 @@ def test_a_refused_narrations_file(
         assert state["text"] == "", (match_id, status, state)
         assert state["wordsShown"] is False
         assert state["labelShown"] is False
+        assert state["claims"] == "", (match_id, status, state)
+        assert state["claimsShown"] is False
         assert state["playDisabled"] is True, (match_id, status)
         assert state["blockHeight"] == BLOCK_PX, state
-        broken = obeys(frames(fan), want["text"], every_frozen_line)
+        broken = obeys(frames(fan), want, every_frozen_line, every_claims_line)
         assert broken is None, (match_id, status, broken)
 
 
 def test_a_narrations_file_that_never_answers(
-    fan, plan, match_ids, expected, every_frozen_line
+    fan, plan, match_ids, expected, every_frozen_line, every_claims_line
 ):
     plan.hang.add("narrations.json")
     for match_id in match_ids:
@@ -151,8 +195,10 @@ def test_a_narrations_file_that_never_answers(
         state = fan.page.evaluate(CARD_STATE)
         assert state["text"] == ""
         assert state["labelShown"] is False
+        assert state["claims"] == ""
+        assert state["claimsShown"] is False
         assert state["playDisabled"] is True, (match_id, state)
-        broken = obeys(frames(fan), want["text"], every_frozen_line)
+        broken = obeys(frames(fan), want, every_frozen_line, every_claims_line)
         assert broken is None, (match_id, broken)
 
 
@@ -169,12 +215,14 @@ def test_a_slow_matches_file_leaves_the_card_quiet(fan, plan, match_ids, expecte
         state = fan.page.evaluate(CARD_STATE)
         assert state["text"] == ""
         assert state["labelShown"] is False
+        assert state["claims"] == ""
+        assert state["claimsShown"] is False
         assert state["playDisabled"] is True
         assert state["blockHeight"] == BLOCK_PX, state
 
 
 def test_a_refused_matches_file_leaves_the_card_quiet(
-    fan, plan, match_ids, expected, every_frozen_line
+    fan, plan, match_ids, expected, every_frozen_line, every_claims_line
 ):
     plan.status["matches.json"] = 503
     for match_id in match_ids:
@@ -185,28 +233,34 @@ def test_a_refused_matches_file_leaves_the_card_quiet(
         state = fan.page.evaluate(CARD_STATE)
         assert state["text"] == "", state
         assert state["labelShown"] is False
+        assert state["claims"] == ""
+        assert state["claimsShown"] is False
         assert state["playDisabled"] is True
-        broken = obeys(frames(fan), want["text"], every_frozen_line)
+        broken = obeys(frames(fan), want, every_frozen_line, every_claims_line)
         assert broken is None, (match_id, broken)
 
 
 def test_a_refresh_and_a_reopened_tab_keep_the_rules(
-    fan, plan, match_ids, expected, every_frozen_line
+    fan, plan, match_ids, expected, every_frozen_line, every_claims_line
 ):
     """A reload and a new tab are two more first loads, and the second one has
     no `sessionStorage`, so the listener answer is gone and the fan is the
-    neutral one. Both still obey the three rules."""
+    neutral one. Both still obey the five rules."""
     match_id = match_ids[0]
     fan.remember(match_id=match_id, listener="team_b")
     watched(fan, MOMENT_CARD, match=match_id)
     fan.page.wait_for_function(PLAY_OFFERED)
     want = expected(match_id, "team_b")
-    assert fan.page.evaluate(CARD_STATE)["text"] == want["text"]
+    first = fan.page.evaluate(CARD_STATE)
+    assert first["text"] == want["text"]
+    assert first["claims"] == want["claims_line"]
 
     fan.page.reload()
     fan.page.wait_for_function(PLAY_OFFERED)
-    assert fan.page.evaluate(CARD_STATE)["text"] == want["text"]
-    broken = obeys(frames(fan), want["text"], every_frozen_line)
+    reloaded = fan.page.evaluate(CARD_STATE)
+    assert reloaded["text"] == want["text"]
+    assert reloaded["claims"] == want["claims_line"]
+    broken = obeys(frames(fan), want, every_frozen_line, every_claims_line)
     assert broken is None, broken
 
     page = fan.reopen()
@@ -214,13 +268,17 @@ def test_a_refresh_and_a_reopened_tab_keep_the_rules(
     fan.visit(MOMENT_CARD, match=match_id)
     page.wait_for_function(PLAY_OFFERED)
     neutral = expected(match_id, "neutral")
-    assert page.evaluate(CARD_STATE)["text"] == neutral["text"]
-    broken = obeys(frames(fan), neutral["text"], every_frozen_line)
+    reopened = page.evaluate(CARD_STATE)
+    assert reopened["text"] == neutral["text"]
+    # A new tab is a new listener: the count moves with the words, because the
+    # neutral slot is a different telling checked to a different number.
+    assert reopened["claims"] == neutral["claims_line"]
+    broken = obeys(frames(fan), neutral, every_frozen_line, every_claims_line)
     assert broken is None, broken
 
 
 def test_the_label_is_never_over_another_matchs_words(
-    fan, plan, match_ids, expected, every_frozen_line
+    fan, plan, match_ids, expected, every_frozen_line, every_claims_line
 ):
     """The 2022 card read one second into a slow load, which is the exact
     reading Task 29 was opened by: the 1986 words under a 2022 header and
@@ -237,7 +295,9 @@ def test_the_label_is_never_over_another_matchs_words(
         PLAY_OFFERED, timeout=(SLOW_SECONDS + 8) * 1000
     )
     want = expected(match_ids[1], "neutral")
+    other_claims = expected(match_ids[0], "neutral")["claims_line"]
     for frame in frames(fan):
         assert other not in (frame["text"] or ""), frame
-    broken = obeys(frames(fan), want["text"], every_frozen_line)
+        assert other_claims not in (frame["claims"] or ""), frame
+    broken = obeys(frames(fan), want, every_frozen_line, every_claims_line)
     assert broken is None, broken

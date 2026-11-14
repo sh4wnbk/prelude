@@ -117,6 +117,15 @@ def track_reads(attribute, comparison):
     )
 
 
+def claims_line(count):
+    """The count as the card says it, which `claimsLine` in the renderer
+    builds. Written here so a check compares a sentence with a sentence, and
+    so a change to the wording in one language fails against the other."""
+    return "%d %s checked against the play data" % (
+        count, "claim" if count == 1 else "claims",
+    )
+
+
 def pytest_collection_modifyitems(items):
     """Mark everything here `browser`, so the mark and the path agree."""
     for item in items:
@@ -158,9 +167,12 @@ def slot_rule():
 def expected(matches, narrations, slot_rule):
     """What a fan should get, by (match, listener, narrator).
 
-    The slot from the rule, the words from `narrations.json` and the file from
-    `hero.audio`, which is the three sources the app reads and none of them
-    written down here.
+    The slot from the rule, the words from `narrations.json`, the count from
+    the verdict recorded beside those words and the file from `hero.audio`,
+    which is the three sources the app reads and none of them written down
+    here. `claims_line` is the one sentence the renderer builds out of the
+    count, and it is assembled here from the recorded number rather than read
+    off the screen.
     """
 
     def answer(match_id, listener, narrator=None):
@@ -171,6 +183,8 @@ def expected(matches, narrations, slot_rule):
         return {
             "slot": slot,
             "text": frozen["text"],
+            "claims": frozen["check"]["claims_checked"],
+            "claims_line": claims_line(frozen["check"]["claims_checked"]),
             "file": hero["audio"][slot],
         }
 
@@ -359,17 +373,21 @@ def fan(playwright_browser, web_server, plan):
     one.close()
 
 
-# The card's two elements, read together, because the rule they are held to is
-# about the two of them at once.
+# The card's three elements, read together, because the rule they are held to
+# is about all of them at once: the words, the label over them and the count
+# of the claims the label stands on.
 CARD_STATE = """() => {
   const words = document.querySelector('[data-field="hero_narration"]');
   const label = document.querySelector('[data-field="hero_label"]');
+  const claims = document.querySelector('[data-field="hero_claims"]');
   const block = document.querySelector('[data-field="hero_narration_block"]');
   const play = document.getElementById('playBtn');
   return {
     text: words ? words.textContent : null,
     wordsShown: words ? getComputedStyle(words).display !== 'none' : false,
     labelShown: label ? getComputedStyle(label).display !== 'none' : false,
+    claims: claims ? claims.textContent : null,
+    claimsShown: claims ? getComputedStyle(claims).display !== 'none' : false,
     blockHeight: block ? Math.round(block.getBoundingClientRect().height) : null,
     playDisabled: play ? play.disabled : null,
     header: (document.querySelector('[data-field="hero_header"]') || {}).textContent,
@@ -385,12 +403,15 @@ window.__preludeFrames = [];
   function read() {
     const words = document.querySelector('[data-field="hero_narration"]');
     const label = document.querySelector('[data-field="hero_label"]');
+    const claims = document.querySelector('[data-field="hero_claims"]');
     const play = document.getElementById('playBtn');
     if (!words) return;
     window.__preludeFrames.push({
       text: words.textContent,
       wordsShown: getComputedStyle(words).display !== 'none',
       labelShown: label ? getComputedStyle(label).display !== 'none' : false,
+      claims: claims ? claims.textContent : null,
+      claimsShown: claims ? getComputedStyle(claims).display !== 'none' : false,
       playDisabled: play ? play.disabled : null,
     });
   }

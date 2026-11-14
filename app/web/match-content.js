@@ -456,9 +456,27 @@
     while (narrationWaiting.length) narrationWaiting.shift()();
   }
 
-  function showNarration(text) {
+  // The count the grounding check reached on these exact words, as a line a
+  // fan can read. narrations.json records it per slot, written there by
+  // scripts/freeze_narrations.py, and this is the only place it becomes copy.
+  function claimsLine(claims) {
+    return claims + (claims === 1 ? " claim" : " claims") +
+           " checked against the play data";
+  }
+
+  // A count the file does not record is not a count this may show. The words,
+  // the label and the number all come out of one frozen record, and the card
+  // shows that record whole or shows none of it.
+  function claimsChecked(slot) {
+    var count = slot && slot.check && slot.check.claims_checked;
+    return typeof count === "number" && isFinite(count) &&
+           count > 0 && count === Math.round(count) ? count : null;
+  }
+
+  function showNarration(text, claims) {
     var narration = field("hero_narration");
     var label = field("hero_label");
+    var counted = field("hero_claims");
     if (!narration) return;
     narration.textContent = text;
     narration.style.removeProperty("display");
@@ -466,9 +484,17 @@
     // there is no moment at which one of the two is on screen without the
     // other.
     if (label) label.style.removeProperty("display");
-    // And the play button in the same breath again, for the reason on
-    // announceNarration above: the card and the voice are one piece of
-    // writing, so the offer of the voice arrives with the words.
+    // And the count in the same breath again. It says what the label is
+    // standing on, so it is never on screen without the label and the label
+    // is never on screen without it: one function reveals all three, and it
+    // is the only thing that reveals any of them.
+    if (counted) {
+      counted.textContent = claimsLine(claims);
+      counted.style.removeProperty("display");
+    }
+    // And the play button, for the reason on announceNarration above: the
+    // card and the voice are one piece of writing, so the offer of the voice
+    // arrives with the words.
     announceNarration();
   }
 
@@ -489,7 +515,13 @@
         // No narration for this listener means the words under the grounding
         // label were never checked for them, so nothing is shown rather than
         // another listener's telling sitting under a label it did not earn.
-        if (slot && slot.text) showNarration(slot.text);
+        // A slot recording no claim count is the same case: the count is the
+        // check's own verdict on these words, and the card does not show the
+        // label with nothing behind it.
+        var claims = claimsChecked(slot);
+        if (slot && slot.text && claims !== null) {
+          showNarration(slot.text, claims);
+        }
       })
       .catch(function () {
         /* The narration and the label stay hidden. */

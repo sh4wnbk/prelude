@@ -224,11 +224,12 @@ class TestThePlayButtonWaitsForTheWords:
         assert closing > release
 
     def test_the_renderer_fires_it_from_the_reveal(self):
-        """In `showNarration`, beside the two `removeProperty` calls that show
-        the paragraph and the label, so the three arrive together."""
+        """In `showNarration`, beside the three `removeProperty` calls that
+        show the paragraph, the label and the claim count, so the four arrive
+        together. Task 32 added the count and the third call with it."""
         body = one_function(renderer(), "showNarration")
         assert "announceNarration()" in body
-        assert body.count("removeProperty") == 2
+        assert body.count("removeProperty") == 3
 
     def test_nothing_else_in_the_renderer_fires_it(self):
         """One call, the one in `showNarration`. The other occurrence of the

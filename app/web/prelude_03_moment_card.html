@@ -30,16 +30,25 @@
       </h1>
 <p class="font-label-lg text-label-lg text-on-surface-variant mt-0.5" data-field="hero_caption">2H · 55' · Maradona's solo run from his own half, past four England players</p>
 </div>
-<!-- The Frozen Narration, and the Label It Earned -->
-<!-- Both ship hidden, and the block keeps 16.75rem of space: the tallest
-     of the six frozen narrations plus the label measures 268 px at 390 px
-     wide, so nothing below moves when they appear. match-content.js shows
-     the two together, and only once the frozen text for this match and
-     this listener's slot is in the paragraph. A narration the card has
-     not loaded is not a narration it can label. -->
-<div class="relative z-10 flex flex-col gap-space-xs" data-field="hero_narration_block" style="min-height:16.75rem">
+<!-- The Frozen Narration, the Label It Earned, and the Count Behind It -->
+<!-- All three ship hidden, and the block keeps 19.5rem of space: the
+     tallest of the six frozen narrations plus the label plus the count
+     measures 312 px at 390 px wide (the six measure 260, 286 and 312), so
+     nothing below moves when they appear. match-content.js
+     shows the three together, and only once the frozen text for this match
+     and this listener's slot is in the paragraph. A narration the card has
+     not loaded is not a narration it can label.
+
+     The count is the number of claims the grounding check pulled out of
+     these exact words and traced to a record, written into
+     app/web/narrations.json by scripts/freeze_narrations.py as
+     slots.<key>.check.claims_checked. It is read from that file and never
+     typed here: a number typed beside the label would be a claim about the
+     check that the check did not make. -->
+<div class="relative z-10 flex flex-col gap-space-xs" data-field="hero_narration_block" style="min-height:19.5rem">
 <p class="font-body-lg text-body-lg text-on-surface leading-relaxed" data-field="hero_narration" style="display:none"></p>
 <div class="flex items-center gap-space-xs px-space-xs py-space-2xs rounded-lg bg-surface-container-lowest self-start" data-field="hero_label" style="display:none"><span class="material-symbols-outlined text-[16px] text-primary-container shrink-0" style="font-variation-settings: &quot;FILL&quot; 1;">verified</span><span class="font-label-sm text-label-sm text-secondary">Verified from play data</span></div>
+<p class="font-label-sm text-label-sm text-outline" data-field="hero_claims" style="display:none"></p>
 </div>
 <!-- Audio Narration Player Surface -->
 <div class="relative z-10 w-full rounded-xl bg-surface-container-high p-card-padding-md flex flex-col gap-space-md shadow-md border border-surface-container-highest/40">
