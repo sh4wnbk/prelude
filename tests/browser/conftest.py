@@ -67,8 +67,12 @@ PROFILE = "prelude_07_profile.html"
 
 ALL_SCREENS = tuple(sorted(path.name for path in WEB.glob("prelude_*.html")))
 
-#: The one 404 a browser asks for on its own and which no screen links to.
-EXPECTED_404 = "favicon.ico"
+#: There used to be one 404 a load was allowed: `/favicon.ico`, which a
+#: browser asks for on its own when a page declares no icon. Task 32 gave the
+#: app a mark, and every screen declares it, so the browser stops guessing and
+#: nothing 404s at all. The allowance is gone and `unexpected_404s` is every
+#: 404 there was.
+EXPECTED_404 = None
 
 #: The screens used to load Tailwind from `cdn.tailwindcss.com` and their
 #: fonts from Google, and this was the list of hosts a failure was not counted
@@ -359,6 +363,8 @@ class Fan:
         return self.page.evaluate("() => window.__preludeAudio")
 
     def unexpected_404s(self):
+        if EXPECTED_404 is None:
+            return list(self.requests_404)
         return [url for url in self.requests_404 if EXPECTED_404 not in url]
 
     def close(self):

@@ -5,8 +5,9 @@ for all seven. Task 29's run was seven screens by two matches by four listener
 states, 56 loads, looking for a console error, a page error and a request that
 came back 404. That run was a throwaway script; this is it kept.
 
-The one 404 a load is allowed is `/favicon.ico`, which the browser asks for on
-its own and which no screen links to.
+**Nothing 404s.** `/favicon.ico` used to be allowed, because a browser asks
+for it on its own when a page declares no icon. Every screen declares the mark
+now, so the browser stops guessing and the allowance is gone.
 
 **And nothing is loaded from anywhere but this suite's own server.** Until
 Task 32 the screens pulled Tailwind from `cdn.tailwindcss.com` and their fonts

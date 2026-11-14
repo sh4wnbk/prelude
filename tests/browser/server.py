@@ -56,6 +56,9 @@ CONTENT_TYPES = {
     ".png": "image/png",
     ".jpg": "image/jpeg",
     ".ico": "image/x-icon",
+    ".svg": "image/svg+xml",
+    ".woff2": "font/woff2",
+    ".webmanifest": "application/manifest+json",
 }
 
 RANGE = re.compile(r"^bytes=(\d*)-(\d*)$")
