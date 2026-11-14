@@ -19,9 +19,10 @@ decodes each image back before it writes it.
 What the demo is, precisely:
 
 - **The screens and the navigation work.** You can move through the event list,
-  the ticket scanner, ticket details, the live seated screen, the moment card and
-  the moments list, and the bottom tabs switch between them. Profile has no
-  screen, so that tab is deliberately disabled rather than faked.
+  the ticket scanner, ticket details, the live seated screen, the moment card,
+  the moments list and Profile, and the bottom tabs switch between them.
+  Profile shows the two answers the fan gave, their name and who they are
+  with, with Change reopening the question, and the narrator they chose.
 - **Scanning and manual entry work.** The scanner reads the QR code on a demo
   ticket from the camera and opens that match; manual entry picks the match from
   a list and takes a seat. Both land on ticket details, and Enter match opens the
@@ -35,8 +36,10 @@ What the demo is, precisely:
   recording to the position under the pointer, playing or paused, and the left
   and right arrow keys move five seconds. On the moments list the hero goal's
   card plays that same recording, by the same lookup, so the two screens never
-  offer a fan two different voices; every other card's play button is disabled
-  and says so, because those moments have no recording.
+  offer a fan two different voices, and its waveform follows the voice and
+  scrubs the same way, because both screens hand their markup to one player.
+  Every other card's play button is disabled and says so, and its bars do not
+  move, because those moments have no recording.
 - **Nothing is live.** The demo replays StatsBomb historical data: the 1986
   Argentina vs England quarter-final and the 2022 Argentina vs France final,
   each presented as if it were unfolding now. There is no live feed, no venue,
