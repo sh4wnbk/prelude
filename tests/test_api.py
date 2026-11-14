@@ -714,18 +714,20 @@ class TestTheSourceSaysWhatItDoes:
 class TestTheBlueprintRedeploysOnlyWhatMatters:
     """`render.yaml`'s build filter, added in Task 32.
 
-    Every push to `main` used to rebuild the service, and almost none of them
-    touch it: a change to a screen, a doc, a test or a workflow is a Pages
-    deploy and nothing else, while the API spent a minute reinstalling and
-    re-downloading `data/raw/` to serve the same three endpoints. Four paths
-    can change what it serves, and they are the filter.
+    Every push to `main` used to rebuild the service, and a doc, a test, a
+    workflow or a script is a push the API has no stake in: it spent a minute
+    reinstalling and re-downloading `data/raw/` to answer the same three
+    endpoints with the same words. Four paths can change what it serves, and
+    they are the filter.
 
-    **`app/**` is the broad one and it is right.** The service is
-    `app/api.py` and it imports from `app/`, so anything under it can change
-    an answer. It also catches `app/web/`, which cannot; narrowing it would
-    mean listing the modules the API imports, and a module added later and
-    not listed would be a service that never picks it up. A redeploy nobody
-    needed is cheaper than an answer nobody updated.
+    **`app/**` is broad on purpose.** It is the service and the modules it
+    imports, and it is also the three files under `app/web/` that `app/api.py`
+    reads and answers from, so a change there can change what `/moments` and
+    `/buildup` say. The cost is that a change to a screen, which is under
+    `app/web/` too, rebuilds a service it does not affect. Telling the two
+    apart would mean listing files, and a file added later and not listed
+    would be a service that never picks it up: a redeploy nobody needed is
+    cheaper than an answer nobody updated.
     """
 
     def blueprint(self):
@@ -772,3 +774,12 @@ class TestTheBlueprintRedeploysOnlyWhatMatters:
         every request is inside `app/**` and a change to it rebuilds."""
         assert "app.api:app" in self.service()["startCommand"]
         assert (ROOT / "app" / "api.py").is_file()
+
+    def test_the_data_it_answers_from_is_under_one_of_them(self):
+        """`app/web/` is inside `app/**`, and that is load bearing rather
+        than incidental: these three are what `/moments` and `/buildup` read,
+        so a freeze that rewrote one has to reach the service."""
+        for name in ("matches.json", "narrations.json", "narrators.json"):
+            path = ROOT / "app" / "web" / name
+            assert path.is_file(), name
+            assert name in (ROOT / "app" / "api.py").read_text(encoding="utf-8")

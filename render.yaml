@@ -25,12 +25,18 @@
 # and tests/test_api.py::TestWhatItDoesNotReach holds it to that.
 #
 # The build filter is what keeps this service still. Every push to main used
-# to rebuild it, and almost none of them touch it: a change to a screen, a
-# doc, a test or a workflow is a Pages deploy and nothing else, and the API
-# meanwhile spent a minute rebuilding and re-downloading data/raw/ to serve
-# the same three endpoints. Four paths can change what it serves: app/, which
-# is the service itself and everything it imports, the two files the install
-# is resolved from, and this file. Anything else is skipped.
+# to rebuild it, and a doc, a test, a workflow or a script is a push the API
+# has no stake in: it spent a minute reinstalling and re-downloading data/raw/
+# to serve the same three endpoints. Four paths can change what it serves:
+# app/**, pyproject.toml, uv.lock and this file. Anything else is skipped.
+#
+# app/** is broad on purpose. It is the service and the modules it imports,
+# and it is also app/web/matches.json, app/web/narrations.json and
+# app/web/narrators.json, which app/api.py reads and answers from, so a change
+# under app/web/ can change what /moments and /buildup say. The cost is that a
+# change to a screen, which is under app/web/ too, rebuilds a service it does
+# not affect. Telling the two apart would mean listing files, and a file added
+# later and not listed would be a service that never picks it up.
 #
 # Create the service from this file in the Render dashboard (New, then
 # Blueprint). The checklist is in HANDOFF.md.

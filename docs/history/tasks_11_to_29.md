@@ -1306,7 +1306,7 @@ home, `Prelude.slotFor` in `app/web/match-content.js`. `slot_for` in
 moved into `tests/slot_rows.json` and the `slot_rows` fixture in
 `tests/conftest.py` hands them to both suites.
 
-`tests/test_api.py`, 98 tests, runs each row through the Python copy and
+`tests/test_api.py`, 99 tests, runs each row through the Python copy and
 through `/buildup`, so the rule the service answers with is the rule in the
 table. It was 92 when this record was written; the count is kept current
 because `scripts/check_docs.py` reads every count in `docs/history/` against

@@ -804,8 +804,12 @@ picked. It never outlives two seconds, it does not fade under
 
 **The API rebuilds only when something it serves changes** (`7db7c14`).
 `render.yaml` carries a build filter on `app/**`, `pyproject.toml`, `uv.lock`
-and itself. Every push used to rebuild it, and a change to a screen or a doc
-is a Pages deploy and nothing else.
+and itself; every push used to rebuild it, and a doc, a test, a workflow or a
+script is a push it has no stake in. `app/**` is broad on purpose: it is the
+service, the modules it imports, and `matches.json`, `narrations.json` and
+`narrators.json` under `app/web/`, which `app/api.py` reads and answers from.
+The cost is that a change to a screen, which is under `app/web/` too, rebuilds
+a service it does not affect, and the first push after this did exactly that.
 
 **The README lines this made false** (`1a88987`). The Profile line, which had
 been wrong since Bob's Task 10 built the screen, the moments waveform line and
@@ -819,9 +823,18 @@ jsQR. The `/favicon.ico` allowance went the same way: a page that declares an
 icon stops asking. `tests/browser/` is six files and `docs/HARNESS.md` now has
 a row for every file in `tests/`, which closes the last of Task 29's seven.
 
-**The evidence.** `pytest -q` reports `2011 passed`, up from `1906`; `pytest
+**The evidence.** `pytest -q` reports `2012 passed`, up from `1906`; `pytest
 tests/browser` reports `86 passed`, up from `71`; all five gates exit 0;
-`git status` is clean after both.
+`git status` is clean after both. Three things a reader should see rather than
+read about are committed: `docs/evidence/task32_launch_screen.png` is the
+shell with matches.json held for 1.5 seconds,
+`docs/evidence/task32_moment_card_claims.png` is the 2022 card for a listener
+with no side, with "23 claims checked against the play data" under the label,
+and the mark at both sizes is
+`app/web/assets/icon/favicon-32.png` and
+`app/web/assets/icon/apple-touch-icon-180.png`, which the screens link. All
+were taken in headless Chromium at 390 by 844 at two device pixels per CSS
+pixel.
 
 **Found, not fixed.**
 
@@ -839,6 +852,11 @@ tests/browser` reports `86 passed`, up from `71`; all five gates exit 0;
   Render build runs it, so a change to it does not redeploy the service and
   the deployed data stays as it was built. The four paths are the ones Shawn
   named.
+- **A screen-only push still rebuilds the API.** `app/web/` is inside
+  `app/**`, and it has to be: three files in it are what `/moments` and
+  `/buildup` answer from. Separating the screens from the data would mean
+  `ignoredPaths` listing files, and a file added later and not listed would be
+  a service that never picks it up.
 - **The smoke subset does not open the launch screen.** It checks the moment
   card, the label, the claim count and the three endpoints against the live
   site; the first frame of a visit is checked against the working tree only.

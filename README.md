@@ -430,7 +430,7 @@ Everything above it is structure.
   change to a screen or a doc does not.
   `.github/workflows/keepalive.yml` pings `/health` on a schedule, behind the
   `PRELUDE_KEEPALIVE` repository variable.
-- `tests/test_api.py`: 98 tests over the three endpoints, their errors, the
+- `tests/test_api.py`: 99 tests over the three endpoints, their errors, the
   form the `match` parameter takes, the seven rows of the slot rule, the text
   matching `app/web/narrations.json`, every audio URL being a file under
   `app/web/`, and what the module may not import or write. All pass, and none opens a connection to anywhere but the
