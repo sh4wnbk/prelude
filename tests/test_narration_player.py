@@ -210,18 +210,33 @@ class TestThePlayButtonWaitsForTheWords:
         assert "whenNarrationShown: whenNarrationShown" in renderer()
 
     def test_the_player_subscribes_to_it(self):
-        assert "Prelude.whenNarrationShown(" in player()
+        """The card hands `whenNarrationShown` to the player as the thing
+        that says when the button may be pressed. Task 32 made that an
+        argument, because the Moments cards answer the same question
+        differently: their words are the card's own title and body, which are
+        already on screen."""
+        text = player()
+        assert "whenReady: Prelude.whenNarrationShown" in text
 
     def test_the_player_releases_the_button_nowhere_else(self):
-        """One release, inside the subscription. `playBtn.disabled = false`
-        anywhere outside it would be the old behaviour under a new name."""
+        """One release, inside the callback the caller subscribes with.
+        `playBtn.disabled = false` anywhere outside it would be the old
+        behaviour under a new name."""
         text = player()
         assert text.count("playBtn.disabled = false") == 1
-        subscription = text.index("Prelude.whenNarrationShown(")
+        subscription = text.index("opts.whenReady(")
         release = text.index("playBtn.disabled = false")
         assert release > subscription
         closing = text.index("});", release)
         assert closing > release
+
+    def test_the_moments_cards_do_not_wait_for_a_narration(self):
+        """The one screen that does not have the moment card's second fetch.
+        Its answer is to release at once, written out rather than left as a
+        missing argument, so the two are read side by side."""
+        body = one_function(player(), "playOnly")
+        assert "whenReady: function (release) { release(); }" in body
+        assert "whenNarrationShown" not in body
 
     def test_the_renderer_fires_it_from_the_reveal(self):
         """In `showNarration`, beside the three `removeProperty` calls that
@@ -358,11 +373,18 @@ class TestTheMomentsHeroCardPlays:
         assert "if (!file) return;" in body
 
     def test_the_player_takes_the_button_and_enables_it(self):
+        """It takes the button, the icon, the file, the bars and the clock,
+        and hands them to the one player. The recording is built inside
+        `wirePlayer`, which is why `new Audio(` is there and not here: there
+        is one of them in the file and both screens reach it."""
         text = player()
         assert "Prelude.onMomentPlay(playOnly)" in text
         body = one_function(text, "playOnly")
-        assert "new Audio(file)" in body
-        assert "button.disabled = false" in body
+        assert "function playOnly(button, icon, file, track, clock)" in text
+        assert "wirePlayer({" in body
+        assert "file: file" in body
+        assert "playBtn: button" in body
+        assert text.count("new Audio(") == 1
 
     def test_the_player_registers_outside_start(self):
         """`start()` returns at once on the Moments screen, which has none of
@@ -409,3 +431,118 @@ class TestTheMomentsHeroCardPlays:
             assert hero["voice_for"][side] == slot
             assert hero["audio"][slot].startswith("assets/audio/")
             assert (WEB / hero["audio"][slot]).is_file()
+
+
+class TestTheMomentsWaveformFollowsTheVoice:
+    """The hero card's bars move with the recording and scrub, and the rest
+    do not move at all.
+
+    Task 30 wired the hero card's button and left this as "Found, not fixed":
+    the card played and nothing on it followed the voice, so a fan who had
+    seen the moment card could expect the bars to move and be wrong. There is
+    one player in `app/web/narration-player.js` now, `wirePlayer`, and both
+    screens hand it their own markup, so the Moments bars follow the voice by
+    the same analyser and scrub by the same pointer and key handlers.
+
+    **A card with no recording is left exactly as it ships.** Nothing is
+    handed over for it, so its bars keep the heights the markup gives them,
+    its track is not a slider and there is nothing on it to focus. A disabled
+    control that a keyboard can still reach is a control that says it does
+    something.
+    """
+
+    def templates(self):
+        """The two inline cards the renderer clones, as raw markup."""
+        markup = MOMENTS.read_text(encoding="utf-8")
+        found = re.findall(
+            r'<div class="h-6 w-full flex items-end[^>]*>', markup
+        )
+        assert len(found) == 2, found
+        return found
+
+    def test_both_templates_carry_a_track(self):
+        for tag in self.templates():
+            assert 'data-field="moment_track"' in tag, tag
+
+    def test_both_templates_carry_a_clock(self):
+        markup = MOMENTS.read_text(encoding="utf-8")
+        assert markup.count('data-field="moment_time"') == 2
+
+    def test_the_clock_ships_empty(self):
+        """It is one of the empty placeholders Phase 2 left. The player fills
+        it, and a card with no recording still shows nothing rather than a
+        time it does not have."""
+        markup = MOMENTS.read_text(encoding="utf-8")
+        assert markup.count('data-field="moment_time"></span>') == 2
+
+    def test_no_template_ships_as_a_slider(self):
+        """The markup is the state a card with no recording stays in, so the
+        slider is added by the player and only to the card it takes."""
+        for tag in self.templates():
+            for attribute in ("role=", "tabindex=", "aria-value", "touch-action"):
+                assert attribute not in tag, (attribute, tag)
+
+    def test_the_renderer_hands_the_track_and_the_clock_over(self):
+        body = one_function(renderer(), "wireMomentPlay")
+        assert 'field("moment_track", card)' in body
+        assert 'field("moment_time", card)' in body
+
+    def test_the_renderer_hands_nothing_over_without_a_file(self):
+        """The same refusal the button rests on: `if (!file) return;` comes
+        before the hand over, so a card with no recording reaches no handler
+        at all."""
+        body = one_function(renderer(), "wireMomentPlay")
+        assert body.index("if (!file) return;") < body.index("momentPlayHandlers[h](")
+
+    def test_the_player_makes_the_track_a_slider(self):
+        body = one_function(player(), "playOnly")
+        for attribute in ("'role', 'slider'", "'tabindex', '0'", "'aria-valuemin'",
+                          "'aria-valuemax'", "'aria-valuenow'"):
+            assert attribute in body, attribute
+
+    def test_the_slider_says_what_it_is(self):
+        """The same accessible name the moment card's scrubber carries, so
+        the two read alike to a screen reader."""
+        body = one_function(player(), "playOnly")
+        assert "'aria-label', 'Narration position in seconds'" in body
+        card = CARD.read_text(encoding="utf-8")
+        assert 'aria-label="Narration position in seconds"' in card
+
+    def test_the_track_takes_the_touch_itself(self):
+        body = one_function(player(), "playOnly")
+        assert "track.style.touchAction = 'none'" in body
+
+    def test_the_player_refuses_a_card_with_no_track(self):
+        """`wireMomentPlay` hands over whatever the card has, and a card
+        without the markup is not one to wire: the button stays disabled
+        rather than being offered with nothing behind it."""
+        body = one_function(player(), "playOnly")
+        assert "button.disabled = true;" in body
+        at = body.index("if (!track) {")
+        assert body.index("return;", at) < body.index("wirePlayer({")
+
+    def test_the_bars_it_hands_over_are_the_ones_in_the_markup(self):
+        """`w-1` on the Moments cards and `w-[3px]` on the moment card, each
+        read off its own track rather than off the document."""
+        body = one_function(player(), "playOnly")
+        assert "track.querySelectorAll('div.w-1')" in body
+        markup = MOMENTS.read_text(encoding="utf-8")
+        assert 'class="w-1 bg-primary-container rounded-full' in markup
+
+    def test_the_rest_colour_is_the_one_in_the_markup(self):
+        """The Moments bars rest on `bg-secondary-container` and the moment
+        card's on the same at 70%, so the two are arguments rather than
+        literals inside the player."""
+        body = one_function(player(), "playOnly")
+        assert "restClass: 'bg-secondary-container'" in body
+        assert "playedClass: 'bg-primary-container'" in body
+        card_half = player()[player().index("function start("):]
+        assert "restClass: 'bg-secondary-container/70'" in card_half
+
+    def test_there_is_one_player_and_both_screens_use_it(self):
+        text = player()
+        assert text.count("function wirePlayer(") == 1
+        assert text.count("wirePlayer({") == 2
+        # One capture of one element. The other mention of the name is the
+        # comment saying why a second one would take the sound with it.
+        assert text.count("createMediaElementSource(audio)") == 1

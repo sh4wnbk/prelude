@@ -97,13 +97,24 @@ def whole_file():
 
 
 def player():
-    """The moment card's player, which is `start()` and nothing else.
+    """The player, which is `wirePlayer()` and nothing else.
 
-    Since Task 30 the file also carries the Moments list's play button, so a
-    search over the whole file would answer about whichever of the two came
-    first in it. `tests/test_narration_waveform.py` scopes itself the same way
-    and says why at more length.
+    Task 32 made it one function that both screens use: the moment card and
+    the Moments list hand it their own markup, and everything about playing a
+    recording is inside it. Before that it was the body of `start()`, with the
+    Moments list's button a second, smaller player further up the same file;
+    either way a search over the whole file would answer about whichever came
+    first in it, which is why this is scoped. `card_player()` below is the
+    half that is still only the card's.
     """
+    return block_after(whole_file(), "function wirePlayer(")
+
+
+def card_player():
+    """`start()`, the moment card's own half: finding the markup, working out
+    which recording this fan hears and handing it to `wirePlayer`. The
+    mechanics live in `wirePlayer` because the Moments list uses them too;
+    what is only the card's is here."""
     return block_after(whole_file(), "function start(")
 
 
@@ -336,23 +347,23 @@ class TestTheLeadInIsThere:
     def test_it_listens_for_the_three_pointer_events(self):
         text = player()
         for event in ("pointerdown", "pointermove", "pointerup"):
-            assert f"scrubTrack.addEventListener('{event}'" in text, event
+            assert f"track.addEventListener('{event}'" in text, event
 
     def test_touch_and_mouse_share_one_path(self):
         """Pointer events cover both, so the click handler that used to read
         `e.clientX` is gone and there is no touch handler beside it."""
         text = player()
-        assert "scrubTrack.addEventListener('click'" not in text
+        assert "track.addEventListener('click'" not in text
         for event in ("touchstart", "touchmove", "touchend", "mousedown"):
             assert event not in text, event
 
     def test_the_drag_is_captured(self):
-        body = block_after(player(), "scrubTrack.addEventListener('pointerdown'")
+        body = block_after(player(), "track.addEventListener('pointerdown'")
         assert "setPointerCapture(e.pointerId)" in body
         assert "releasePointerCapture" in player()
 
     def test_a_move_without_a_drag_does_nothing(self):
-        body = block_after(player(), "scrubTrack.addEventListener('pointermove'")
+        body = block_after(player(), "track.addEventListener('pointermove'")
         assert re.search(
             r"if\s*\(scrubPointer === null \|\| e\.pointerId !== scrubPointer\)", body
         ), body
@@ -388,16 +399,16 @@ class TestTheLeadInIsThere:
     def test_every_pointer_handler_moves_the_playhead(self):
         text = player()
         for event in ("pointerdown", "pointermove"):
-            body = block_after(text, f"scrubTrack.addEventListener('{event}'")
+            body = block_after(text, f"track.addEventListener('{event}'")
             assert "seekToFraction(fractionAtX(e.clientX))" in body, event
         assert "endScrub(e, true)" in block_after(
-            text, "scrubTrack.addEventListener('pointerup'"
+            text, "track.addEventListener('pointerup'"
         )
 
     def test_a_cancelled_gesture_leaves_the_playhead_where_it_got_to(self):
         text = player()
         assert "endScrub(e, false)" in block_after(
-            text, "scrubTrack.addEventListener('pointercancel'"
+            text, "track.addEventListener('pointercancel'"
         )
 
 
@@ -405,7 +416,7 @@ class TestTheDragDoesNotScrollThePage:
     def test_the_handlers_refuse_the_default(self):
         text = player()
         for event in ("pointerdown", "pointermove"):
-            body = block_after(text, f"scrubTrack.addEventListener('{event}'")
+            body = block_after(text, f"track.addEventListener('{event}'")
             assert "e.preventDefault()" in body, event
 
     def test_the_waveform_takes_the_touch_itself(self):
@@ -426,7 +437,7 @@ class TestThePlayingStateSurvivesTheScrub:
     def test_no_pointer_handler_plays_or_pauses(self):
         text = player()
         for event in ("pointerdown", "pointermove", "pointerup", "pointercancel"):
-            body = block_after(text, f"scrubTrack.addEventListener('{event}'")
+            body = block_after(text, f"track.addEventListener('{event}'")
             assert "play()" not in body, event
             assert "pause()" not in body, event
 
@@ -473,39 +484,42 @@ class TestTheScrubberIsReachableWithoutAFinger:
             assert f"audio.addEventListener('{event}', paintRange)" in text, event
 
     def test_the_arrows_move_five_seconds(self):
-        text = player()
+        # The constant is at the top of the file rather than inside the
+        # player: both screens' scrubbers move by the same five seconds.
+        text = whole_file()
         assert re.search(r"var ARROW_SECONDS = %d;" % ARROW_SECONDS, text), text
-        body = block_after(text, "scrubTrack.addEventListener('keydown'")
+        body = block_after(text, "track.addEventListener('keydown'")
         assert "'ArrowRight'" in body and "'ArrowLeft'" in body
         assert "step = ARROW_SECONDS" in body
         assert "step = -ARROW_SECONDS" in body
         assert re.search(r"seekToFraction\(\(audio\.currentTime \+ step\) / total\)", body)
 
     def test_another_key_is_left_to_the_page(self):
-        body = block_after(player(), "scrubTrack.addEventListener('keydown'")
+        body = block_after(player(), "track.addEventListener('keydown'")
         assert "return;" in block_after(body, "} else {")
         assert body.index("e.preventDefault()") > body.index("'ArrowLeft'")
 
 
 class TestWithNoRecordingItDoesNothing:
     def test_nothing_is_wired_until_there_is_a_file(self):
-        """The player returns before it builds the element, so with no
-        recording for the fan's key there is no scrub handler to fire."""
-        text = player()
+        """The card returns before it hands anything over, so with no
+        recording for the fan's key there is no scrub handler to fire.
+
+        The handlers are in `wirePlayer` now and the card reaches them by
+        calling it, so what is asked here is that the call comes after the
+        refusal: nothing is wired at all on a fan whose slot has no file.
+        """
+        text = card_player()
         at = text.index("if (!file)")
-        for marker in (
-            "new Audio(file)",
-            "scrubTrack.addEventListener('pointerdown'",
-            "scrubTrack.addEventListener('keydown'",
-        ):
-            assert text.index(marker) > at, marker
+        assert text.index("wirePlayer({") > at
+        assert text.count("wirePlayer({") == 1
 
     def test_the_play_button_still_starts_disabled(self):
-        assert "playBtn.disabled = true" in player()
+        assert "playBtn.disabled = true" in card_player()
 
     def test_the_scrubber_is_the_only_thing_the_card_gained(self):
         """Nothing that decides which recording plays was touched."""
-        text = player()
+        text = card_player()
         assert "Prelude.slotFor(" in text
         assert "match.hero && match.hero.audio" in text
         assert "voice_for" not in text

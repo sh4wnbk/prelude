@@ -20,6 +20,12 @@ What each check is about:
   forward seek into bytes the element has not necessarily buffered.
 - **The arrow keys move five seconds**, and the ends clamp.
 - **Replay 10s goes back ten seconds** and does not go below zero.
+- **The Moments hero card is the same player.** Its bars follow the voice and
+  its track scrubs, because `wirePlayer` is one function and both screens hand
+  it their own markup. The cards with no recording are the other half of that
+  check: nothing is handed over for them, so their bars keep the heights the
+  markup gives them, their track is not a slider and there is nothing on it to
+  focus.
 """
 
 import pytest
@@ -206,10 +212,187 @@ def test_replay_goes_back_ten_seconds(playing):
     assert playing.evaluate(STATE)["now"] >= 0
 
 
+#: One Moments card's player strip, read the way `STATE` reads the moment
+#: card's. `index` is the card's position in the list.
+MOMENTS_STATE = """(index) => {
+  const cards = Array.from(document.querySelectorAll(
+    '[data-field=moments_list] > *'));
+  const card = cards[index];
+  const track = card.querySelector('[data-field=moment_track]');
+  const bars = Array.from(track.querySelectorAll('div.w-1'));
+  const button = card.querySelector('[data-field=moment_play]');
+  return {
+    cards: cards.length,
+    disabled: button.disabled,
+    role: track.getAttribute('role'),
+    tabindex: track.getAttribute('tabindex'),
+    label: track.getAttribute('aria-label'),
+    now: Number(track.getAttribute('aria-valuenow')),
+    max: Number(track.getAttribute('aria-valuemax')),
+    clock: card.querySelector('[data-field=moment_time]').textContent,
+    icon: card.querySelector('[data-field=moment_play_icon]').textContent,
+    bars: bars.length,
+    filled: bars.filter(b => b.classList.contains('bg-primary-container')).length,
+    heights: bars.map(b => b.style.height),
+  };
+}"""
+
+
+def hero_index(page):
+    """Which card in the list is the one with a recording."""
+    return page.evaluate(
+        """() => Array.from(document.querySelectorAll(
+             '[data-field=moments_list] > *'))
+           .findIndex(c => !c.querySelector('[data-field=moment_play]').disabled)"""
+    )
+
+
+@pytest.fixture
+def moments(fan, match_ids):
+    """The Moments screen with the hero card's recording ready, 1986 neutral."""
+    from tests.browser.conftest import MOMENTS
+
+    match_id = match_ids[0]
+    fan.remember(match_id=match_id, listener="neutral")
+    page = fan.visit(MOMENTS, match=match_id)
+    page.wait_for_function(
+        """() => Array.from(document.querySelectorAll(
+             '[data-field=moments_list] [data-field=moment_play]'))
+           .some(b => !b.disabled)"""
+    )
+    return page
+
+
+def test_the_moments_hero_card_is_a_scrubber(moments):
+    """The track it was handed is a slider, with the recording's length in it
+    once the metadata lands. Before Task 32 those bars were fixed and the
+    track was not a control at all."""
+    page = moments
+    at = hero_index(page)
+    assert at >= 0
+    page.wait_for_function(
+        """(index) => {
+             const card = document.querySelectorAll(
+               '[data-field=moments_list] > *')[index];
+             const t = card && card.querySelector('[data-field=moment_track]');
+             return !!t && Number(t.getAttribute('aria-valuemax')) > 0;
+           }""",
+        arg=at,
+    )
+    state = page.evaluate(MOMENTS_STATE, at)
+    assert state["disabled"] is False
+    assert state["role"] == "slider"
+    assert state["tabindex"] == "0"
+    assert state["label"] == "Narration position in seconds"
+    assert state["max"] > 0, state
+    assert state["bars"] > 0
+
+
+def test_the_moments_cards_without_a_recording_stay_fixed(moments):
+    """Nothing is handed over for them, so the markup is what they are: the
+    button disabled, no slider, no inline height on any bar and nothing in the
+    clock."""
+    page = moments
+    hero = hero_index(page)
+    total = page.evaluate(MOMENTS_STATE, hero)["cards"]
+    assert total > 1, total
+    for index in range(total):
+        if index == hero:
+            continue
+        state = page.evaluate(MOMENTS_STATE, index)
+        assert state["disabled"] is True, (index, state)
+        assert state["role"] is None, (index, state)
+        assert state["tabindex"] is None, (index, state)
+        assert state["clock"] == "", (index, state)
+        assert set(state["heights"]) == {""}, (index, state)
+        # And the bars are still the ones the markup painted, which is not all
+        # of them: the templates ship a played run and a rest run.
+        assert 0 < state["filled"] < state["bars"], (index, state)
+
+
+def test_the_moments_bars_move_with_the_voice(moments, match_ids):
+    """The analyser writes an inline height on each bar while the recording
+    plays, and a pause clears them. The same check
+    `test_the_bars_move_with_the_voice_and_rest_on_pause` makes of the moment
+    card, on the markup the Moments cards have."""
+    page = moments
+    at = hero_index(page)
+    before = page.evaluate(MOMENTS_STATE, at)
+    assert set(before["heights"]) == {""}, before
+
+    page.locator(
+        "[data-field=moments_list] [data-field=moment_play]:not([disabled])"
+    ).click()
+    page.wait_for_function(
+        """(index) => {
+             const card = document.querySelectorAll(
+               '[data-field=moments_list] > *')[index];
+             const bars = Array.from(card.querySelectorAll(
+               '[data-field=moment_track] div.w-1'));
+             const set = new Set(bars.map(b => b.style.height));
+             return set.size > 1 && !set.has('');
+           }""",
+        arg=at,
+        timeout=15000,
+    )
+    moving = page.evaluate(MOMENTS_STATE, at)
+    assert len(set(moving["heights"])) > 1, moving
+    assert moving["icon"] == "pause"
+    assert moving["clock"] != "", moving
+
+    page.locator(
+        "[data-field=moments_list] [data-field=moment_play]:not([disabled])"
+    ).click()
+    page.wait_for_function(
+        """(index) => {
+             const card = document.querySelectorAll(
+               '[data-field=moments_list] > *')[index];
+             const bars = Array.from(card.querySelectorAll(
+               '[data-field=moment_track] div.w-1'));
+             return bars.every(b => b.style.height === '');
+           }""",
+        arg=at,
+    )
+
+
+def test_a_drag_on_the_moments_waveform_seeks(moments):
+    """A press at four fifths of the track moves the position to four fifths
+    of the recording, with nothing playing."""
+    page = moments
+    at = hero_index(page)
+    page.wait_for_function(
+        """(index) => {
+             const card = document.querySelectorAll(
+               '[data-field=moments_list] > *')[index];
+             const t = card && card.querySelector('[data-field=moment_track]');
+             return !!t && Number(t.getAttribute('aria-valuemax')) > 0;
+           }""",
+        arg=at,
+    )
+    total = page.evaluate(MOMENTS_STATE, at)["max"]
+    track = page.locator(
+        "[data-field=moments_list] > *:nth-child(%d) [data-field=moment_track]"
+        % (at + 1)
+    )
+    box = track.bounding_box()
+    track.click(position={"x": box["width"] * 0.8, "y": box["height"] / 2})
+    page.wait_for_function(
+        """([index, want]) => {
+             const card = document.querySelectorAll(
+               '[data-field=moments_list] > *')[index];
+             const t = card.querySelector('[data-field=moment_track]');
+             return Math.abs(Number(t.getAttribute('aria-valuenow')) - want) < 2.5;
+           }""",
+        arg=[at, total * 0.8],
+    )
+    state = page.evaluate(MOMENTS_STATE, at)
+    assert state["icon"] == "play_arrow", "the seek started it playing"
+    assert state["filled"] > state["bars"] / 2, state
+
+
 def test_the_moments_hero_card_plays_and_pauses(fan, match_ids, expected):
     """The compact button: one tap plays, a second pauses, and the icon says
-    which. There is no clock and no scrubber on that card, so the icon and the
-    element's own state are what there is to read."""
+    which."""
     from tests.browser.conftest import MOMENTS
 
     match_id = match_ids[1]

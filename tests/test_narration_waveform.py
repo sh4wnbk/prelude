@@ -47,15 +47,25 @@ def whole_file():
 
 
 def player():
-    """The moment card's player, which is `start()` and nothing else.
+    """The player, which is `wirePlayer()` and nothing else.
 
-    Since Task 30 the file also carries the Moments list's play button, which
-    is a second `new Audio`, a second click listener and a second `ended`
-    listener in the same file. Every test here is about the moment card, so a
-    search over the whole file would answer about whichever of the two came
-    first in it. `start()` is the boundary: it is the moment card's player
-    entire, and it returns at once on a screen without the card's markup.
+    Task 32 made it one function that both screens use: the moment card and
+    the Moments list hand it their own markup, and everything about playing a
+    recording, the analyser included, is inside it. Before that it was the
+    body of `start()`, with the Moments list's button a second, smaller
+    player further up the same file. Either way a search over the whole file
+    would answer about whichever came first in it, which is why this is
+    scoped, and it is why the one source node and the one `new Audio` below
+    are counted here rather than over the file.
     """
+    return block_after(whole_file(), "function wirePlayer(")
+
+
+def card_player():
+    """`start()`, the moment card's own half: finding the markup, working out
+    which recording this fan hears and handing it to `wirePlayer`. The
+    mechanics live in `wirePlayer` because the Moments list uses them too;
+    what is only the card's is here."""
     return block_after(whole_file(), "function start(")
 
 
@@ -101,7 +111,7 @@ class TestTheContextIsOpenedInTheTap:
         assert len(calls) == 2, f"openAnalyser() is called {len(calls)} times"
         assert "openAnalyser()" in play_handler()
         assert "openAnalyser()" in block_after(
-            text, "replayAction.addEventListener('click'"
+            text, "replay.addEventListener('click'"
         )
 
     def test_the_context_is_built_there_and_nowhere_else(self):
@@ -195,7 +205,11 @@ class TestItFallsBackWithoutWebAudio:
         into `paintProgress`, which a scrub paints with as well as the clock,
         and the clock's handler is checked here for the same thing."""
         body = block_after(player(), "function paintProgress(")
-        assert "bg-primary-container" in body
+        # The two class names are the caller's now, because the Moments bars
+        # rest on `bg-secondary-container` and the card's on the same at 70%.
+        # What is asked here is unchanged: the fill is classes on the bars.
+        assert "PLAYED" in body and "REST" in body
+        assert "bg-primary-container" in whole_file()
         assert "style.height" not in body
         assert "analyser" not in body
         clock = block_after(player(), "audio.addEventListener('timeupdate'")
@@ -250,7 +264,7 @@ class TestTheBarsRest:
 
 class TestNothingAboutTheRecordingChanged:
     def test_the_player_still_picks_the_file_the_same_way(self):
-        text = player()
+        text = card_player()
         assert "Prelude.slotFor(" in text
         assert "match.hero && match.hero.audio" in text
         assert "voice_for" not in text

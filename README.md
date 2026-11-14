@@ -447,10 +447,12 @@ Everything above it is structure.
 - `app/narration_config.py`: the model ids and which one is active. Values
   only, with no behaviour: it reads no environment variable and opens no
   connection.
-- The waveforms on the moments list. They are fixed bars: nothing moves them,
-  because the card they sit on has no clock and no scrubber. The play button
-  beside them does play, on the hero goal's card, and is disabled on every
-  other.
+- The waveform on the moments list, on the one card with a recording. It
+  follows the voice, shows the elapsed time and seeks, because that card and
+  the moment card hand their markup to one player in
+  `app/web/narration-player.js`. Every other card on that list has no
+  recording: its play button is disabled and says so, and its bars stay at the
+  heights the markup gives them.
 
 **Not built yet:** audio for any moment but the two hero goals, and GPS
 presence handling. Narration runs and reaches a reader: `scripts/narrate_once.py`

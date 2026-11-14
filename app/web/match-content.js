@@ -554,12 +554,17 @@
     momentPlayHandlers.push(callback);
   }
 
-  // One card's play button. The label names the card's own moment, because
-  // these cards are clones of two templates and the 1986 copy in them would
-  // otherwise name Maradona on a 2022 card. The button is disabled unless it
-  // has a recording, and it says so, so a fan reaching it with a screen
-  // reader is told there is nothing to play rather than offered a press that
-  // does nothing.
+  // One card's play button, and the waveform beside it. The label names the
+  // card's own moment, because these cards are clones of two templates and
+  // the 1986 copy in them would otherwise name Maradona on a 2022 card. The
+  // button is disabled unless it has a recording, and it says so, so a fan
+  // reaching it with a screen reader is told there is nothing to play rather
+  // than offered a press that does nothing.
+  //
+  // The bars and the clock go over with it, because on the card that does
+  // play the bars follow the voice and scrub, exactly as the moment card's
+  // do. On a card with no recording nothing is handed over, so the bars keep
+  // the fixed heights the markup gives them and the track is not a slider.
   function wireMomentPlay(card, moment, match, heroFile) {
     var button = field("moment_play", card);
     if (!button) return;
@@ -572,7 +577,10 @@
     );
     if (!file) return;
     for (var h = 0; h < momentPlayHandlers.length; h++) {
-      momentPlayHandlers[h](button, field("moment_play_icon", card), file);
+      momentPlayHandlers[h](
+        button, field("moment_play_icon", card), file,
+        field("moment_track", card), field("moment_time", card)
+      );
     }
   }
 
