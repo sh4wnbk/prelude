@@ -66,6 +66,8 @@ alongside another session's.
 | 5 | 12. "Your narrator" on Profile | [`bob_sessions/phase5_task12_narrators.md`](phase5_task12_narrators.md) | [`bob_sessions/phase5_task12_narrators.png`](phase5_task12_narrators.png) | `35c91b6` | `d0837ac` | from the Bobalytics export at submission |
 | 5 | 13. Rename the persona id from mate to buddy | [`bob_sessions/phase5_task13_buddy_rename.md`](phase5_task13_buddy_rename.md) | [`bob_sessions/phase5_task13_buddy_rename.png`](phase5_task13_buddy_rename.png) | `4e61a10` | `473b98e` | from the Bobalytics export at submission |
 | 5 | 14. The narrator picker | [`bob_sessions/phase5_task14_narrator_picker.md`](phase5_task14_narrator_picker.md) | [`bob_sessions/phase5_task14_narrator_picker.png`](phase5_task14_narrator_picker.png) | `d5dc9c2` | `9f98e91` | from the Bobalytics export at submission |
+| 6 | 15. The OpenAPI file watsonx Orchestrate imports | [`bob_sessions/phase6_task15_orchestrate_spec.md`](phase6_task15_orchestrate_spec.md) | [`bob_sessions/phase6_task15_orchestrate_spec.png`](phase6_task15_orchestrate_spec.png) | `39856bd` | `39856bd` | from the Bobalytics export at submission |
+| 6 | A read-only review of the app | [`bob_sessions/phase6_review_app.md`](phase6_review_app.md) | [`bob_sessions/phase6_review_app.png`](phase6_review_app.png) | none | `927ad9e` | from the Bobalytics export at submission |
 
 Task 1 built the module against `docs/bob_brief.md` and took all 14 acceptance
 tests from failing to passing. Task 2 fixed `event_window`, which filtered by
@@ -102,9 +104,32 @@ string and no URL carrying a query string. Its only long opaque strings are a
 file path and two test names. The screenshot shows a task id and a Bobcoin
 figure, which identify the session rather than authorising anything.
 
+Task 15 wrote `orchestrate/prelude_tools.yaml`, the OpenAPI file watsonx
+Orchestrate imports. Its work and its export landed in one commit, `39856bd`,
+so the two commit columns hold the same id: the export was committed beside
+the work rather than after it.
+
+**The read-only review has no work commit, because it changed no file.** It
+was run in Ask mode against the brief at the top of
+`bob_sessions/phase6_review_app.md`, which tells the session to create, edit
+and delete nothing and to answer in the chat. So there is nothing for a Work
+column to point at, and the commit that added the export, `927ad9e`, is the
+only commit the session produced. Its findings were read against the repo
+afterwards: four lines in the screens claim more than the code does, one
+metric the app already records is not shown anywhere a fan or a judge can
+see it, and one `README.md` line is stale. Task 32's steps 1, 2 and 8 are
+what answers them.
+
+Nothing was scrubbed from either Phase 6 export. The same scan found none of
+the six variable names, no bearer token, no key-shaped string and no URL
+carrying a query string in either file; the review's two mentions of `.env`
+are the rule text telling the session not to open one, not a value read out
+of it. Both screenshots show a workspace, a context gauge and a Bobcoin
+figure, none of which authorises anything.
+
 The Bobcoin figures are read from each session's task summary, which is what
 the screenshots record. Five were read that way as the sessions ran. The other
-nine are not guessed and not left blank: Phase 7 exports Bobalytics once, from
+eleven are not guessed and not left blank: Phase 7 exports Bobalytics once, from
 User scope over the full lab period, and the figures for those rows come from
 that export.
 
