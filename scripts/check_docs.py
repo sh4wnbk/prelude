@@ -54,6 +54,19 @@ DOCS = [
     ROOT / "bob_sessions" / "README.md",
 ]
 
+# The archived task records, which `HANDOFF.md` used to hold inline. They are
+# globbed rather than listed, so folding a record into `docs/history/` at the
+# end of a task needs no edit here and cannot quietly escape the checks.
+#
+# They get every check the text got while it was in `HANDOFF.md`: the paths it
+# names still have to exist, the tests it cites still have to be collected, the
+# counts it claims are still read against the suite, and it still may hold no
+# em dash. A record is evidence, so a record pointing at something that no
+# longer exists is the same defect it was before the move.
+HISTORY = sorted((ROOT / "docs" / "history").glob("*.md"))
+
+DOCS += HISTORY
+
 # Paths the docs name on purpose while they do not exist. Each one is described
 # in the docs as not yet built, so an absent file is the correct state. The
 # check runs in both directions: when one of them is built, this line fails
@@ -308,12 +321,12 @@ def check_test_count(fail):
         return
 
     checked = 0
-    for doc in (
+    for doc in [
         ROOT / "docs" / "bob_brief.md",
         ROOT / "HANDOFF.md",
         ROOT / "README.md",
         ROOT / "docs" / "HARNESS.md",
-    ):
+    ] + HISTORY:
         for block in design_blocks(doc.read_text(encoding="utf-8")):
             claims = claimed_counts(block)
             if not claims:
@@ -405,32 +418,40 @@ QUOTE_CITATION = re.compile(r"`(0[1-4])`|`(removed)`")
 
 
 def check_quoted_screen_copy(fail):
-    """HANDOFF quotes screen copy and says which screen it is on.
+    """A doc that quotes screen copy says which screen it is on.
 
     A quote followed by `NN` must appear in that screen. A quote followed by
     `removed` must appear in no screen at all, which keeps "we took this out"
     claims honest in both directions. Quotes with no citation are prose and are
     not checked, so commit messages and rule text can be quoted freely.
+
+    `HANDOFF.md` was the only doc that used the convention, and the records
+    carrying most of those quotes are now under `docs/history/`. Both are read,
+    and the total is what has to be non-zero: a convention that disappeared
+    from every doc at once is a convention that has quietly changed.
     """
-    doc = (ROOT / "HANDOFF.md").read_text(encoding="utf-8")
-    flat = " ".join(doc.split())
+    sources = [ROOT / "HANDOFF.md"] + HISTORY
     text = {k: " ".join(v.read_text(encoding="utf-8").split()) for k, v in SCREENS.items()}
 
     found = 0
-    for quote, cites in QUOTED_SCREEN_COPY.findall(flat):
-        wanted = " ".join(quote.split())
-        for key, removed in QUOTE_CITATION.findall(cites):
-            found += 1
-            if removed:
-                still = [k for k, body in text.items() if wanted in body]
-                if still:
-                    fail("HANDOFF.md",
-                         f"{wanted[:50]!r} is marked removed but is still in {', '.join(still)}")
-            elif wanted not in text[key]:
-                fail("HANDOFF.md", f"{wanted[:50]!r} is not in {SCREENS[key].name}")
+    for doc in sources:
+        flat = " ".join(doc.read_text(encoding="utf-8").split())
+        for quote, cites in QUOTED_SCREEN_COPY.findall(flat):
+            wanted = " ".join(quote.split())
+            for key, removed in QUOTE_CITATION.findall(cites):
+                found += 1
+                if removed:
+                    still = [k for k, body in text.items() if wanted in body]
+                    if still:
+                        fail(doc.name,
+                             f"{wanted[:50]!r} is marked removed but is still in "
+                             f"{', '.join(still)}")
+                elif wanted not in text[key]:
+                    fail(doc.name, f"{wanted[:50]!r} is not in {SCREENS[key].name}")
     if not found:
-        fail("HANDOFF.md", "no cited screen copy found; has the convention changed?")
-    print(f"  HANDOFF.md: {found} cited screen quotes checked")
+        fail("the docs", "no cited screen copy found; has the convention changed?")
+    print(f"  screen copy: {found} cited quote(s) checked across "
+          f"{len(sources)} doc(s)")
 
 
 def check_no_em_dashes(fail):

@@ -75,6 +75,20 @@ features in the present tense, no capabilities that a reader could not exercise.
 Planned work is labelled as planned, or left out. When code is removed, the docs
 that describe it are updated in the same commit.
 
+**The one exception is `docs/history/`**, which holds the task records
+`HANDOFF.md` used to carry inline. Those are records of what was true when each
+task closed, they say so at the top of every file, and they are not updated as
+the code moves on. Nothing else in the repo gets that licence.
+
+## Orienting: what to read, in what order
+
+`CLAUDE.md`, then `HANDOFF.md`'s "Current state", "Next first action" and "Last
+task". That is the orient, and it is enough to start work.
+
+`docs/history/` is read when the reasoning behind one decision is needed, not
+to find out where the project is. `docs/history/README.md` says which file
+holds what and where each archived decision now lives.
+
 ## No em dashes
 
 No em dashes in any doc or UI copy. Use a colon, a semicolon, parentheses, or
@@ -99,9 +113,9 @@ what it finds, or list it under "Found, not fixed" with the reason.
 suite, the five gates, the browser suite in `tests/browser/` and a step that
 fails when the run changed a tracked file. So those items are not a thing to
 remember any more; they are a thing to read the result of. What is still read
-by hand is item 5 beyond the smoke subset, item 7, and the part of item 6 that
-is a judgement about copy rather than a banned string. Green CI is necessary
-and is not sufficient: a check nobody wrote still passes.
+by hand is item 5 beyond the smoke subset, items 7 and 9, and the part of item
+6 that is a judgement about copy rather than a banned string. Green CI is
+necessary and is not sufficient: a check nobody wrote still passes.
 
 Each item below says which it is.
 
@@ -144,7 +158,15 @@ Each item below says which it is.
    must not change a tracked file; git status is clean after the suite. A
    script a test runs writes into pytest's temporary directory, not into the
    repo.
-9. Report (yours): what changed, the evidence, and a section "Found, not
+9. The handoff (yours): fold the previous "Last task" into "Current state",
+   replace "Last task" with this task's record, and move the old record into
+   `docs/history/`. `HANDOFF.md` is a running snapshot plus the latest
+   detail, not an accumulating log: a decision this task settled belongs in
+   Current state, and a decision it reversed comes out of Current state in the
+   same commit. Nothing is deleted, because the old record moves rather than
+   going away, and `docs/history/README.md` records where each archived
+   decision now lives.
+10. Report (yours): what changed, the evidence, and a section "Found, not
    fixed". Anything a reviewer would flag that you did not fix goes there,
    never left for the reviewer to find. The evidence includes the CI run that
    is green on the last commit.
