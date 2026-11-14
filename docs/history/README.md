@@ -23,6 +23,7 @@ that describes the repo now.
 | `docs/history/the_plan_as_agreed.md` | the Plan, task by task, and the Phase 5, 6 and 7 outlines |
 | `docs/history/tasks_11_to_29.md` | Task 29 back to the second Task 11 list, newest first |
 | `docs/history/phase6_handover_and_the_doc_sweep.md` | the Orchestrate handover, and the sweep that emptied the register of stale passages |
+| `docs/history/task_30_the_browser_suite_and_the_build.md` | the play button that waits for its words, the Moments hero card's recording, `tests/browser/`, CI on every push and the smoke workflow after a deploy |
 | `docs/history/tasks_7_to_10_and_bob_sessions.md` | the candidate runs later runs replaced, every Bob session from task 7 to task 13 with its brief, and what tasks 4b, 6 and 6d settled |
 
 ## Where each archived decision now lives
@@ -174,11 +175,12 @@ was about work that is finished and constrains nothing further.
 | Three rules are asked of every recorded frame | Current state, How work is checked |
 | CI runs the suite, the gates, the browser suite and a clean-tree check | `CLAUDE.md`, and Current state under What exists |
 | A task is not done until CI is green on its last commit | `CLAUDE.md` |
-| The three CDNs the browser suite needs | Task 30's Found, not fixed, in `HANDOFF.md` |
-| The Moments waveform is still fixed bars | Task 30's Found, not fixed, in `HANDOFF.md` |
-| `tests/browser/` is not in the `docs/HARNESS.md` table | Task 30's Found, not fixed, in `HANDOFF.md` |
-| CI does not run on a schedule | Task 30's Found, not fixed, in `HANDOFF.md` |
-| The smoke workflow cannot be failed by a failing deploy | Task 30's Found, not fixed, in `HANDOFF.md` |
+| The three CDNs the browser suite needs | **closed by Task 32**: the screens carry their own stylesheet, fonts and QR reader, and `tests/browser/test_every_screen.py` asserts no screen leaves its origin |
+| The Moments waveform is still fixed bars | **closed by Task 32**: one player, and the hero card's bars follow the voice and scrub |
+| `tests/browser/` is not in the `docs/HARNESS.md` table | **partly closed by Task 32**: every file in `tests/` has a row; `tests/browser/` keeps a section of its own, because the table is the unit suite `scripts/check_docs.py` counts |
+| CI does not run on a schedule | Current state, Still open: what the build does not say |
+| The smoke workflow cannot be failed by a failing deploy | Current state, Still open: what the build does not say |
+| Task 30's record in full | `docs/history/task_30_the_browser_suite_and_the_build.md` |
 | The reservation is short below 390 px | `docs/history/tasks_11_to_29.md`, Task 29's Found, not fixed; a layout judgement that is Shawn's |
 | Nothing in the suite can re-measure 16.75rem | `docs/history/tasks_11_to_29.md`, Task 29's Found, not fixed |
 | `scripts/scan_copy.py` would pass the label over an empty paragraph | `docs/history/tasks_11_to_29.md`, Task 29's Found, not fixed |

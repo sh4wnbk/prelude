@@ -77,7 +77,7 @@ script to run. So the first command in a new clone is
 
 ## Entry points
 
-Twenty-nine scripts, each runnable on its own, and the table below names
+Thirty scripts, each runnable on its own, and the table below names
 every one of them.
 
 Several are imported as well as run, always for the same reason: the
@@ -255,7 +255,20 @@ wrote that file as Task 15; it exists now and they pass.
 | `tests/test_pronunciation.py` | the pronunciation table, the markup it builds, the round trip that proves it says the same words, and the seven modules forbidden to import it |
 | `tests/test_delivery.py` | the delivery table: the three situations, the eight rows, the bounds each control is held to, and the Mate never being cheerful when the other side scored |
 | `tests/test_tts.py` | the speech backend: the recorded exchange it replays, the request it builds, the pauses, the character counts, and that nothing secret is in a request object |
+| `tests/test_api.py` | the hosted read-only API: every endpoint, every error, the form the `match` parameter takes, the seven rows of the slot rule, what the module may not import or write, and the Blueprint's build filter |
+| `tests/test_orchestrate_spec.py` | `orchestrate/prelude_tools.yaml` against `app.openapi()`, so the file Orchestrate imports describes the API that answers |
+| `tests/test_orchestrate_agent.py` | the agent instructions in `docs/orchestrate_agent.md`, held to the two rules that make them worth pasting |
+| `tests/test_frozen_narrations.py` | the six frozen narrations re-checked against `data/raw/` by the real check, their authorship, their recorded claim counts, and the card's one reveal |
+| `tests/test_authored_narrations.py` | the six the team wrote, read against `data/raw/` by the check, the places rule and the opener rule, with the wordings those readings refused kept beside them |
+| `tests/test_freeze_pick.py` | the freeze's `--pick` path: a candidate re-checked against `data/raw/` rather than trusted, and a half-frozen pair refused |
+| `tests/test_hero_candidates.py` | the paid candidate run per hero goal: its plan, its token cap, what it keeps and what it writes outside the repo |
+| `tests/test_match_choice.py` | the fan's choice of match: the query string it travels in, the list's confirm button, and a screen reached with no match chosen |
+| `tests/test_narration_scrubber.py` | the waveform as a scrubber: the pointer capture, the arrow keys, the position kept in seconds, and the opening word not being lost |
+| `tests/test_pitch_zones.py` | the zone vocabulary the places rule reads: a coordinate against a number, and a number against a phrase |
 | `tests/test_vocabulary.py` | every word the app can speak against the CMU dictionary, and that no flagged word is unreviewed |
+
+Every file in `tests/` has a row. Task 29 found seven missing and Task 32
+added the last ten, so a file without one is a file nobody wrote a line about.
 
 ### The browser suite
 
