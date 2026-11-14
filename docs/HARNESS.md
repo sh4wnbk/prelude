@@ -209,7 +209,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 2005 tests in forty one files. Any failure means something is
+The suite is 2011 tests in forty one files. Any failure means something is
 wrong. It is run from the repo root:
 
 ```

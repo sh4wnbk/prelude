@@ -24,6 +24,14 @@
 # RENDER_GIT_COMMIT by the service: app/api.py reads no environment variable,
 # and tests/test_api.py::TestWhatItDoesNotReach holds it to that.
 #
+# The build filter is what keeps this service still. Every push to main used
+# to rebuild it, and almost none of them touch it: a change to a screen, a
+# doc, a test or a workflow is a Pages deploy and nothing else, and the API
+# meanwhile spent a minute rebuilding and re-downloading data/raw/ to serve
+# the same three endpoints. Four paths can change what it serves: app/, which
+# is the service itself and everything it imports, the two files the install
+# is resolved from, and this file. Anything else is skipped.
+#
 # Create the service from this file in the Render dashboard (New, then
 # Blueprint). The checklist is in HANDOFF.md.
 
@@ -34,6 +42,12 @@ services:
     plan: free
     branch: main
     healthCheckPath: /health
+    buildFilter:
+      paths:
+        - app/**
+        - pyproject.toml
+        - uv.lock
+        - render.yaml
     buildCommand: |
       uv sync --locked --no-dev
       uv run --no-sync python -I scripts/fetch_statsbomb.py

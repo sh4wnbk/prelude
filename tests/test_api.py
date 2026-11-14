@@ -709,3 +709,66 @@ class TestTheSourceSaysWhatItDoes:
         source = API_SOURCE.read_text(encoding="utf-8")
         assert chr(0x2014) not in source
         assert not re.search(r"\s--\s", source)
+
+
+class TestTheBlueprintRedeploysOnlyWhatMatters:
+    """`render.yaml`'s build filter, added in Task 32.
+
+    Every push to `main` used to rebuild the service, and almost none of them
+    touch it: a change to a screen, a doc, a test or a workflow is a Pages
+    deploy and nothing else, while the API spent a minute reinstalling and
+    re-downloading `data/raw/` to serve the same three endpoints. Four paths
+    can change what it serves, and they are the filter.
+
+    **`app/**` is the broad one and it is right.** The service is
+    `app/api.py` and it imports from `app/`, so anything under it can change
+    an answer. It also catches `app/web/`, which cannot; narrowing it would
+    mean listing the modules the API imports, and a module added later and
+    not listed would be a service that never picks it up. A redeploy nobody
+    needed is cheaper than an answer nobody updated.
+    """
+
+    def blueprint(self):
+        yaml = pytest.importorskip("yaml")
+        return yaml.safe_load(
+            (ROOT / "render.yaml").read_text(encoding="utf-8")
+        )
+
+    def service(self):
+        services = self.blueprint()["services"]
+        assert len(services) == 1, services
+        return services[0]
+
+    def test_it_has_a_build_filter(self):
+        assert "buildFilter" in self.service()
+
+    def test_the_four_paths(self):
+        assert self.service()["buildFilter"]["paths"] == [
+            "app/**",
+            "pyproject.toml",
+            "uv.lock",
+            "render.yaml",
+        ]
+
+    def test_it_ignores_nothing_by_name(self):
+        """`paths` and `ignoredPaths` are the two halves of Render's filter
+        and a service may carry either. This one is an allow list, so a path
+        that is not named is skipped without anything having to name it."""
+        assert "ignoredPaths" not in self.service()["buildFilter"]
+
+    def test_the_service_it_filters_is_the_api(self):
+        service = self.service()
+        assert service["name"] == "prelude-api"
+        assert service["branch"] == "main"
+        assert service["healthCheckPath"] == "/health"
+
+    def test_every_path_it_names_exists(self):
+        for path in self.service()["buildFilter"]["paths"]:
+            root = path.split("/")[0].replace("**", "")
+            assert (ROOT / root).exists(), path
+
+    def test_the_module_the_service_runs_is_under_one_of_them(self):
+        """The start command names `app.api:app`, so the module that answers
+        every request is inside `app/**` and a change to it rebuilds."""
+        assert "app.api:app" in self.service()["startCommand"]
+        assert (ROOT / "app" / "api.py").is_file()

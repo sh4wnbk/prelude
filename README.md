@@ -420,12 +420,14 @@ Everything above it is structure.
   token recorder and the goal selection in `scripts/narration_eval.py`,
   including the live thin narration that passes the grounding check and
   reaches one key beat of five. All pass.
-- `app/api.py`: the read-only API described under "Hosted API" below. Runs
-  locally with `uvicorn`; nothing is deployed from this repo yet, so there is
-  no public URL. `render.yaml` is the Blueprint that would create one and
-  `.github/workflows/keepalive.yml` is the ping that would keep it awake, and
-  neither has been run.
-- `tests/test_api.py`: 92 tests over the three endpoints, their errors, the
+- `app/api.py`: the read-only API described under "Hosted API" below. It runs
+  locally with `uvicorn` and is deployed, from `render.yaml`, at
+  <https://prelude-api.onrender.com>. The Blueprint's build filter rebuilds it
+  only when `app/`, `pyproject.toml`, `uv.lock` or `render.yaml` change, so a
+  change to a screen or a doc does not.
+  `.github/workflows/keepalive.yml` pings `/health` on a schedule, behind the
+  `PRELUDE_KEEPALIVE` repository variable.
+- `tests/test_api.py`: 98 tests over the three endpoints, their errors, the
   form the `match` parameter takes, the seven rows of the slot rule, the text
   matching `app/web/narrations.json`, every audio URL being a file under
   `app/web/`, and what the module may not import or write. All pass, and none opens a connection to anywhere but the
