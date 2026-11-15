@@ -789,11 +789,11 @@ Items found during Phase 2 that belong with the wiring, not before it:
   skipped when the Pages job did not succeed, which is right, but that means a
   deploy that succeeded and published the wrong thing is the only case it
   catches. A Pages job that fails is already red on its own.
-- **The smoke subset's launch checks have not been run against the live
-  site.** Task 35 added them: the mark, the web-app meta tags, the eleven
-  startup images, the white sampling and the list up once the mark is gone.
-  They run in the workflow after a deploy, and nothing has run them against
-  <https://sh4wnbk.github.io/prelude/> yet.
+- **The smoke subset now opens the launch screen.** Task 35 added the mark,
+  the web-app meta tags, the eleven startup images, the white sampling and the
+  list up once the mark is gone, and the run after `061e2ee` held all eight
+  against <https://sh4wnbk.github.io/prelude/>. What it still cannot say is
+  anything about iOS: it drives headless Chromium, the same as the suite.
 
 ## Next first action
 
@@ -970,7 +970,18 @@ the check fails above 0.10, and the forced defect measures above 0.9.
 
 **The evidence.** `pytest -q` reports `2106 passed`, up from `2085`; `pytest
 tests/browser` reports `146 passed`, up from `100`; all five gates exit 0;
-`git status` is clean after both. CI is green on the last commit of this task.
+`git status` is clean after both. CI is green on `061e2ee`: `2106 passed`
+in 57.60 s, the five gates one step each, `146 passed` in 225.18 s, and the
+step that fails on a tracked file the run changed.
+
+The smoke workflow ran against <https://sh4wnbk.github.io/prelude/> at
+`061e2ee` and every check held, the launch screen's eight among them: the mark
+drawn in it, the announcement, the web-app meta tags, the translucent status
+bar, eleven startup images linked, the list not yet visible behind it, the
+list visible and holding both events once the mark had gone, and **no white
+frame in the top of the screen, worst 0.0177 of the band over 44 samples**.
+That is the deployed site rather than the working tree, and it is the first
+time the first frame of a visit has been checked there.
 
 **Found, not fixed.**
 
@@ -999,10 +1010,6 @@ tests/browser` reports `146 passed`, up from `100`; all five gates exit 0;
   colour the element carries, and the iPhone did not. So the check guards the
   fix rather than having caught the defect, and the negative control is what
   says the check can see one at all.
-- **The smoke subset's launch checks have not been run against the live
-  site.** They are written and they run in the workflow after the next deploy;
-  nothing in this task ran them against
-  <https://sh4wnbk.github.io/prelude/>.
 - **Every icon in the app is still inside its control's accessible name**, and
   **the startup images are 560 KB**, and **a launch screen that is interrupted
   is not covered**, and **`prelude_launch.svg` is committed and nothing at
