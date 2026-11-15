@@ -311,10 +311,36 @@ app claims.
   and before any request of its own has been answered; it is one `role="img"`
   named "Prelude. Leave your seat. Stay in the game." that claims nothing, and
   the shell reads no storage at all. It is held 1.5 seconds on every full
-  load, then fades over 300 ms once `data-matches-loaded` says matches.json
-  was answered, and it is off the screen by 2.5 seconds whatever the list did:
-  the cap bounds the screen rather than the start of the fade, so the fade
-  begins at 2.2 seconds. Reduced motion gets the same hold and no fade.
+  load, and it is off the screen by 2.5 seconds whatever the list did: the cap
+  bounds the screen rather than the start of the fade, so the fade begins at
+  2.2 seconds.
+- Then the mark and the event list cross: the mark fades out over 300 ms while
+  the list fades in over the same 300 ms, opacity and nothing else, and the
+  list is revealed in the step that starts the fade rather than before it. A
+  list already up behind a fading mark is a fade and not a crossfade.
+- Ready is two things and the fade waits for both. `data-matches-loaded` is
+  the renderer saying matches.json was answered; `data-painted` is the framed
+  screen's own, set two animation frames after its `DOMContentLoaded`, and
+  says one frame has been drawn with the app background and its stylesheet
+  applied. The second is what keeps the list from being revealed white.
+- A request for less motion keeps the fade. An opacity fade is not motion:
+  nothing on either screen moves, scales, slides or spins, so the preference
+  has nothing here to be about, and what it got instead was a hard cut from
+  the mark to the list, which is the one thing in the sequence that reads as a
+  jolt. There is no `prefers-reduced-motion` rule in the shell and no
+  `matchMedia` branch in its script; anything added later that moves belongs
+  behind that query. Task 34 specified no fade under `reduce` and that was
+  wrong.
+- No frame of a load is white, and the three things that make it so are in
+  markup rather than in script, because the frames before any script has run
+  are a state a fan can see. Every page sets the app background on `html` and
+  `body` in its own head in front of every `<link>` it carries, the same bytes
+  in all eight. The shell's iframe carries the same colour on the element,
+  because the element is painted by the shell and the head by the screen. And
+  the iframe is invisible until that screen says it has painted. The top of
+  the screen is sampled across the launch in five states, the worst near-white
+  share measured being the light text in the list's own header, and the
+  sampler is itself checked against the defect forced on purpose.
 - The launch screen is also eleven PNGs, one per iPhone screen in portrait,
   linked by the shell as `apple-touch-startup-image` behind a media query
   naming the screen's CSS size, its pixel ratio and portrait. iOS takes one
@@ -324,16 +350,36 @@ app claims.
   numbers, rather than from `prelude_launch.svg`: a screen that is not 390 by
   844 is not that file stretched, because the mark stays 300 CSS px wide and
   the CSS does not scale it. The two copies of those rules are held to each
-  other by a screenshot: `tests/browser/test_the_launch_screen.py` measures
-  the drawing the shell paints against `launch-1170x2532.png`.
+  other by eleven screenshots: `tests/browser/test_the_launch_screen.py`
+  renders the shell at each screen's own CSS size and pixel ratio and measures
+  the drawing in it against that screen's own image. The eleven rather than
+  one, because the layout is not a share of the screen, so one screen agreeing
+  says nothing about the arithmetic on the other ten.
 - The shell says it is a web app, in `apple-mobile-web-app-capable` and
   `mobile-web-app-capable`, without which iOS opens the home-screen icon in
-  Safari's chrome and shows no startup image at all. Its status bar is opaque
-  black and not translucent: translucent puts the page under the bar, and the
-  screens read their safe-area insets inside the shell's iframe, where `env()`
-  is zero and nothing would move out of the way. The manifest's
-  `background_color` is the colour the startup images are drawn on, so Android
-  opens the same way.
+  Safari's chrome and shows no startup image at all. Its status bar is
+  `black-translucent` and its viewport carries `viewport-fit=cover`, so the
+  page is the whole screen. That is what makes the startup image and the
+  screen behind it one drawing: an opaque bar gives the page the area below it
+  and leaves iOS to fit the full-screen image into that smaller area, so the
+  mark comes up smaller in the image than the page draws it and then moves as
+  the app takes over.
+- The safe-area insets are the shell's to apply. iOS reports them to the shell
+  and not to the screens, which are inside its iframe where `env()` is zero,
+  so the shell reads the four into `--safe-top`, `--safe-right`,
+  `--safe-bottom` and `--safe-left` and pads `#frame` by them: all seven
+  screens clear the clock and the home indicator at once, and the desktop
+  frame takes none. The launch screen is deliberately not inset, because it is
+  the drawing the startup image has to match and that image is drawn for the
+  whole screen; what is asked of it instead is that the mark and the tagline
+  clear insets forced to 64 px at the top and 48 px at the bottom, measured on
+  all eleven screens and at an Android viewport.
+- Android opens the same way, and it is Chrome that draws the first screen
+  there: the icon centred on the manifest's `background_color` with the name
+  under it, for a `standalone` display. All three fields are asserted and so
+  is the absence of white, both icon PNGs being drawn on `#101319` and holding
+  no white pixel. The browser suite runs the launch at 412 by 915 as well as
+  at the eleven iPhone sizes.
 - The desktop stadium backdrop applies only above 501 px, and `body` is
   transparent above that breakpoint or the shell's base layer paints over it.
 - The repo is private and the site is public. Pages from a private repo is a
@@ -743,11 +789,11 @@ Items found during Phase 2 that belong with the wiring, not before it:
   skipped when the Pages job did not succeed, which is right, but that means a
   deploy that succeeded and published the wrong thing is the only case it
   catches. A Pages job that fails is already red on its own.
-- **The smoke subset does not open the launch screen.** It checks the moment
-  card, the label, the claim count, the play button and the three endpoints
-  against the live site. The first frame of a visit is covered by
-  `tests/browser/test_the_launch_screen.py` against the working tree and by
-  nothing against the deployed one.
+- **The smoke subset's launch checks have not been run against the live
+  site.** Task 35 added them: the mark, the web-app meta tags, the eleven
+  startup images, the white sampling and the list up once the mark is gone.
+  They run in the workflow after a deploy, and nothing has run them against
+  <https://sh4wnbk.github.io/prelude/> yet.
 
 ## Next first action
 
@@ -757,12 +803,20 @@ are gone, every line that describes the play is held to the feed both ways,
 the moment card says how many claims the check traced, the screens carry their
 own stylesheet, fonts, icon and QR reader, the Moments hero card's waveform
 follows the voice, the shell opens on the mark and the tagline and holds them
-there, a home screen opens on the same screen drawn as a startup image, and
-the API rebuilds only when something it serves changes. CI runs both suites
-and the five gates on every push and the smoke workflow checks the deployed
-site and the hosted API after every deploy.
+there, a home screen opens on the same screen drawn as a startup image and
+crossfades from it into the event list with no white frame between, and the
+API rebuilds only when something it serves changes. CI runs both suites and
+the five gates on every push, and the smoke workflow checks the deployed
+site, its launch screen and the hosted API after every deploy.
 
-**The first action is the Phase 7 README pass.** `README.md` is the document a
+**Before anything else, Shawn opens it on his iPhone from the home-screen
+icon.** Task 35 is about three things only a phone shows, and nothing in this
+repo has run on one: whether the mark holds still from the startup image into
+the page, whether the white flash at the top is gone, and whether the list now
+arrives as a crossfade with Reduce Motion on. If any of the three is still
+there, Task 35's record says what was measured and where.
+
+**Then the first action is the Phase 7 README pass.** `README.md` is the document a
 judge reads first and the one that has been edited least against the code.
 Task 32 fixed only the lines it made false, which was the Profile line, the
 moments waveform line and the paragraph about the hosted API, and Task 33 only
@@ -794,143 +848,169 @@ submits; Claude Code fills the judging-criteria-to-evidence table and does a
 final recon from a fresh session. The Bobcoin figures for eleven of the
 sixteen rows in `bob_sessions/README.md` come from that export.
 
-## Last task: Task 34, the share button and the launch screen
+## Last task: Task 35, the launch on a phone
 
-**What Shawn asked for on 2026-11-15.** Four things, two about the moment
-card's share button and two about the launch screen. The button said "SHARE
-CLIP" (`removed`) and shared a link and a line of text; where the browser had
-no share sheet it flashed a confirmation for 1.5 seconds and did nothing. The launch
-screen had no hold, so a fast load painted the mark and took it away inside a
-couple of hundred milliseconds. And a home-screen icon opened on a white
-screen, because nothing told iOS the app was one.
+**What Shawn asked for on 2026-11-15**, from an iPhone XR with Reduce Motion
+on, opened from the home-screen icon. The launch was three things wrong in a
+row: the startup image came up with the mark small and the page's own launch
+screen then drew it slightly bigger, there was a brief white flash at the top,
+and the list arrived as a hard cut. The iPad was fine. He named the three
+likely causes and asked for them to be confirmed, which they were.
 
-**The share button** (`84dcbeb`). It reads "SHARE", which is what it does.
-With a share sheet, `navigator.share` is handed the title, the match's own
-line out of `hero.share_text` and the card's URL, unchanged. Without one the
-link goes to the clipboard and the button says "LINK COPIED" only once that
-write has resolved. There are two ways for nothing to have been copied, and
-the old branch announced success in both: `navigator.clipboard` is undefined
-outside a secure context, so reaching `writeText` throws, and `writeText`
-itself can be refused, so it rejects. Neither says anything now. "SHARE CLIP"
-is a banned string in `scripts/scan_copy.py`, which caught the comment that
-explained the change and is why that comment does not quote it.
+**The page is the whole screen** (`4f82fe7`). The status bar is
+`black-translucent` and the viewport already carried `viewport-fit=cover`. An
+opaque bar gives the page the area below it and leaves iOS to fit the
+full-screen startup image into that smaller area, so the mark comes up smaller
+in the image than the page draws it and then moves as the app takes over. That
+is the first of the three, and it is why the iPad was fine: the difference is
+a share of the screen the bar takes, and it is larger on a phone.
 
-`tests/browser/test_sharing.py` drives both paths on both matches: the sheet
-stubbed and recording what it was given, the sheet absent and the clipboard
-read back with `readText`, the clipboard refusing, and the clipboard gone
-altogether. The line is read out of `app/web/matches.json` rather than written
-down. The confirmation is asked of every frame a `MutationObserver` recorded,
-because a line that flashed for 80 ms is a line a fan can read.
+Task 34 chose the opaque bar for a reason, and the reason was real: the
+screens read their safe-area insets inside the shell's iframe, where `env()`
+is zero. The answer is that the insets are not theirs to read. iOS reports
+them to the shell, so the shell reads the four into `--safe-top`,
+`--safe-right`, `--safe-bottom` and `--safe-left` and pads `#frame` by them,
+which moves all seven screens out from under the clock and the home indicator
+at once and takes nothing above the 501 px breakpoint. The launch screen is
+deliberately not inset: it is the drawing the startup image has to match, and
+that image is drawn for the whole screen. What is asked of it instead is that
+the mark and the tagline clear the insets where they sit, measured with them
+forced to 64 px at the top and 48 px at the bottom on all eleven iPhone
+screens and at 412 by 915.
 
-**The accessible name, found while writing that test** (`84dcbeb`). A Material
-Symbol span holds a ligature, not a word, and it was inside the button's name:
-Chromium computed "ios_share SHARE" for this button and "replay_10 REPLAY 10S"
-for the one beside it, measured through the role selector rather than read off
-the markup. Both icons carry `aria-hidden="true"` now. Every other icon in the
-app is still inside its control's name, which is one attribute each over seven
-screens and is under Open items rather than done here.
+**The startup images are now checked at every size.** Task 34 compared one,
+`launch-1170x2532.png`, against a screenshot of the shell at 390 by 844. The
+layout is not a share of the screen, so one screen agreeing says nothing about
+the arithmetic on the other ten, and the iPhone this was found on was not the
+one that was checked. All eleven are rendered at their own CSS size and pixel
+ratio and measured against their own file, and all eleven agree.
 
-**The launch screen's timing** (`84dcbeb`). Three numbers instead of two, in
-`app/web/index.html` and in `docs/DESIGN.md`: a 1,500 ms hold on every full
-load, a 300 ms fade, and 2,500 ms as the last moment a fan can see it. The cap
-bounds the screen rather than the start of the fade, so the fade begins at
-2,200 ms. The clock is `performance.now()`, which counts from the start of the
-navigation, so both bounds are about the load the fan started rather than
-about whenever the script ran. Reduced motion gets the same hold and no fade.
-What is left of the hold is rounded up before it is asked for, because
-`setTimeout` truncates a fractional delay: CI caught the fade starting at
-1,499.7 ms against a 1,500 ms hold, which is the truncation and nothing else.
+**Android** was confirmed rather than changed. Chrome draws its own launch
+screen from the manifest, and the three fields it reads are asserted:
+`background_color` and `theme_color` are the app background, the display is
+`standalone`, and the icon it centres on that background holds no white pixel
+in either size. The browser suite runs the launch at 412 by 915 as well as at
+the eleven iPhone sizes.
 
-Measured in headless Chromium at 390 by 844, as the moment the fade began and
-the moment the screen left the page: 1,507 and 1,809 ms with matches.json
-answered at once, 1,589 and 1,891 ms with it delayed 1.5 s, 2,209 and 2,510 ms
-with it refused, and no fade and 1,507 ms with reduced motion.
+**No white** (`ef6639a`). Three things, all in markup rather than in script,
+because the frames before any script has run are a state a fan can see. Every
+page sets the app background on `html` and `body` in its own head in front of
+every `<link>` it carries, the same bytes in all eight. Every screen says when
+it has painted, with `data-painted` on its own root element two animation
+frames after `DOMContentLoaded`: the first callback runs before the paint it
+is scheduled for and the second after it, so the attribute means a frame has
+been drawn and not that one is due. And the shell's iframe carries the same
+colour on the element, because the element is painted by the shell and the
+head by the screen, and stays invisible until that signal arrives. That is the
+second of the three: a browser paints an empty frame white, and the launch
+screen covered it only until the fade started, so the white was what the fade
+uncovered.
 
-**The startup images** (`71dbc4c`). iOS shows an `apple-touch-startup-image`
-while a web app opened from the home screen is starting, and it takes one only
-where the file is exactly that screen's own pixel size. `IPHONES` in
-`scripts/brand/build_svg.py` is eleven screens in portrait, read off Apple's
-point sizes, covering every iPhone on a current iOS; the script draws one PNG
-each into `app/web/assets/launch/`, 560 KB in all, and the shell links each
-behind a media query naming the CSS size, the pixel ratio and portrait. The
-ratio is in the query because two iPhones share 414 by 896 at two ratios and
-the wrong one of those is a quarter of the pixels. The shell also carries
-`apple-mobile-web-app-capable` and `mobile-web-app-capable`, without which iOS
-opens the icon in Safari's chrome and shows no startup image, and an opaque
-black status bar rather than a translucent one: translucent puts the page
-under the bar, and the screens read their safe-area insets inside the shell's
-iframe, where `env()` is zero. The manifest's `background_color` was already
-`#101319`, which is the colour these are drawn on, and a test now reads the
-corner pixel of one against it rather than taking both from the same constant.
+**The crossfade** (`c5df5f6`). The mark fades out over 300 ms while the list
+fades in over the same 300 ms, opacity and nothing else, and the list is
+revealed in the step that starts the fade rather than before it: a list
+already up behind a fading mark is a fade and not a crossfade. Ready is two
+things now, `data-matches-loaded` and `data-painted`, so the list cannot be
+revealed before it has painted.
 
-**They are drawn from the layout, not from `prelude_launch.svg`.** A screen
-that is not 390 by 844 is not that file stretched: the mark stays 300 CSS px
-wide on every screen because the CSS does not scale it. `launch_layout` is
-those rules as numbers and `app/web/index.html` is the same rules in CSS,
-which is two copies of one thing, so
-`tests/browser/test_the_launch_screen.py` screenshots the shell at 390 by 844
-at three device pixels to the CSS pixel and measures the drawing in it against
-`launch-1170x2532.png`.
+**The fade is kept for a fan who asked for less motion**, which is the third
+of the three and a correction to Task 34's spec rather than to its code. An
+opacity fade is not motion: nothing on either screen moves, scales, slides or
+spins, so the preference has nothing here to be about, and what it got instead
+was a hard cut from the mark to the list, which is the one thing in the
+sequence that reads as a jolt. There is no `prefers-reduced-motion` rule in
+the shell and no `matchMedia` branch in its script; anything added later that
+moves belongs behind that query.
 
-**That comparison found the one real difference.** The block was being centred
-on the tagline's 16 px type where the CSS centres its 20 px line box, which
-put the mark 2 CSS px below where the shell paints it. `prelude_launch.svg`
-moves by those 2 px and the three renderings are one layout now. Measured
-after the fix: the white box agreed to within 1 device pixel and the amber box
-to within 3, the amber being the tagline, whose outermost column and lowest
-descender row the browser leaves fainter than the threshold.
+**What the browser suite asks now.** The top of the screen is sampled from the
+navigation to past the cap in five states, the fifth being the one the flash
+was hiding in: the list's own page never answering, so nothing ever paints
+inside the frame and what is left after the cap is the frame's own colour. The
+sampler is itself checked against the defect forced on purpose, because a
+sampler reading the wrong pixels passes everything. `data-painted` is asked of
+every frame the observer recorded in which the list had any opacity at all,
+not of the state it settled in. And the hold, the crossfade and the cap are
+driven at all eleven iPhone screens and at an Android viewport.
 
-**The glyphs are rasterised from their own outlines.** No font is loaded to
-draw a startup image: `fontTools` gives the contours, a pen flattens the
-curves, and Pillow fills each shape even-odd so a counter in a letter is a
-hole, oversampled four times and reduced. The seven bars are capsules, as the
-icon's are. `--check` compares a PNG pixel by pixel and not byte by byte, for
-the reason `scripts/make_icons.py` measured in Task 33, and the Linux runner
-agreed with this machine on all eleven.
+**The eight failures the first full run found were the test's and not the
+app's** (`cd11d33`). One assertion read the list's opacity in the frame the
+mark was hidden in, and the mark is hidden by a `setTimeout` at `FADE_MS`
+while the list's own transition of the same length can still be a thousandth
+short of settled in that frame: 0.992923 at 412 by 915. It is waited for now,
+and the crossfade itself is still asserted on the recorded timeline, which is
+where that claim belongs.
 
-**The evidence.** `pytest -q` reports `2085 passed`, up from `2067`; `pytest
-tests/browser` reports `100 passed`, up from `88`; all five gates exit 0;
-`git status` is clean after both. `scripts/brand/build_svg.py --check` reports
-every committed brand file is what the numbers draw, the eleven startup images
-included, and the Linux runner agreed with this machine on all eleven. CI is
-green on the last commit of this task.
+**`scripts/check_docs.py` collects `tests/browser` too**, in a second pass, so
+a doc may cite a browser test by name. The two collections stay apart: the
+count claims are read against the unit suite, which is what `pytest` with no
+path runs.
+
+**`scripts/smoke_live.py` opens the launch screen on the deployed site**,
+which closes an open item Task 32 raised and Tasks 33 and 34 carried. The mark
+is drawn, the shell says it is a web app with a translucent status bar, it
+links eleven startup images, no sampled frame of the top of the screen is
+white, and the list is up and holds both events once the mark is gone.
+
+**The timing, measured in headless Chromium at 390 by 844**, as the moment the
+fade began, the moment the list was revealed and the moment the screen left
+the page:
+
+| matches.json | Fade starts | List revealed | Gone |
+| ------------ | ----------- | ------------- | ---- |
+| answered at once | 1,502 ms | 1,502 ms | 1,815 ms |
+| answered after 1.5 s | 1,588 ms | 1,588 ms | 1,902 ms |
+| refused 503 | 2,214 ms | 2,214 ms | 2,514 ms |
+| never answered | 2,211 ms | 2,211 ms | 2,518 ms |
+| answered at once, reduced motion | 1,511 ms | 1,511 ms | 1,825 ms |
+
+The fade and the reveal are the same number in every row, which is the
+crossfade. The worst near-white share of the top band in any sampled frame was
+0.0201, which is the light text in the list's own header once the list is up;
+the check fails above 0.10, and the forced defect measures above 0.9.
+
+**The evidence.** `pytest -q` reports `2106 passed`, up from `2085`; `pytest
+tests/browser` reports `146 passed`, up from `100`; all five gates exit 0;
+`git status` is clean after both. CI is green on the last commit of this task.
 
 **Found, not fixed.**
 
-- **Every icon in the app is still inside its control's accessible name.**
-  Measured on 2026-11-15: the Live nav link is named "sensors LIVE" and the
-  Moments one "auto_awesome_motion MOMENTS". The two in the deck Task 34
-  changed are fixed and the rest are a sweep over seven screens plus the
-  markup `app/web/match-content.js` builds. It is under Open items with what
-  it would take.
-- **The startup images are 560 KB.** Each is a flat background and a band of
-  anti-aliased drawing, and it is the band that costs: measured on
-  2026-11-15, quantising one to a 256-colour palette took it from 51,633
-  bytes to 24,665, which would halve the set. It was not taken, because it
-  puts a quantiser between the drawing and the check that says the committed
-  file is what the numbers draw, and the whole set is reproducible to the
-  pixel as it stands.
-- **Nothing here has run on an iPhone.** Every claim about the startup images
-  is about the files, the links and the media queries: that each file is the
-  pixel size its query names, that the drawing in it is the drawing the shell
-  paints, and that the shell says it is a web app. Whether iOS picks the
-  right one of the eleven is a thing only a device shows, and no device was
-  used. The eleven screens and the query form are read from Apple's point
-  sizes rather than measured here.
-- **The cap is 2,500 ms and the screen left the page at 2,510.** A
-  `setTimeout` is a floor and not a ceiling, so 10 ms is what nothing in the
-  page can take off; the browser suite allows the runner's own scheduling on
-  top of that and the measurement is in `docs/DESIGN.md`.
-- **A launch screen that is interrupted is not covered.** The suite drives a
-  load, a reload, a new tab, a slow list, a refused list and a list that
-  never answers. A fan who navigates away inside the hold, or whose tab is
-  backgrounded so the timers are throttled, is not among them.
-- **`prelude_launch.svg` is committed and nothing at runtime serves it**, and
-  **the icon font is still 1.14 MB of the committed fonts**, and **the smoke
-  subset does not open the launch screen**, and **the compiled stylesheet is
-  not rebuilt by CI**, and **CI does not run on a schedule**, and **the smoke
-  workflow cannot be made to fail by a failing deploy**. All six are Task
-  33's, Task 32's and Task 30's, and all six still stand.
+- **Nothing here has run on an iPhone.** Every claim about the startup images,
+  the translucent status bar and the insets is about the files, the links, the
+  media queries and what Chromium does with them. Whether iOS picks the right
+  one of the eleven, and whether the three things Shawn saw are gone, is a
+  thing only the device shows. This is Task 34's entry, unchanged, and it is
+  what he is checking next.
+- **The insets are measured against a bound, not against a device.** Chromium
+  reports zero for all four, so the browser suite forces 64 px and 48 px and
+  measures the layout against those. They are more room than a status bar and
+  a home indicator take, which makes the check conservative rather than exact:
+  what it proves is that the padding is applied and that the launch block
+  clears a generous inset, not that it clears any particular iPhone's.
+- **The white-frame check samples, it does not watch every frame.** A sample
+  is a screenshot, and `CLAUDE.md` asks the rules of every frame a
+  `MutationObserver` recorded; an observer records attributes rather than
+  pixels. Thirty to thirty-eight samples cover the hold, the crossfade and the
+  frames after it in each state, and the frames between two samples are not
+  looked at. The three things that make the claim true are in markup, which is
+  why the sampling is a check on them rather than the whole of the argument.
+- **The white flash was never reproduced here.** Every state the suite drives
+  measures 0.0201 of the band at worst, and it measured that before this task
+  as well: headless Chromium on this machine paints the empty frame the
+  colour the element carries, and the iPhone did not. So the check guards the
+  fix rather than having caught the defect, and the negative control is what
+  says the check can see one at all.
+- **The smoke subset's launch checks have not been run against the live
+  site.** They are written and they run in the workflow after the next deploy;
+  nothing in this task ran them against
+  <https://sh4wnbk.github.io/prelude/>.
+- **Every icon in the app is still inside its control's accessible name**, and
+  **the startup images are 560 KB**, and **a launch screen that is interrupted
+  is not covered**, and **`prelude_launch.svg` is committed and nothing at
+  runtime serves it**, and **the icon font is still 1.14 MB of the committed
+  fonts**, and **the compiled stylesheet is not rebuilt by CI**, and **CI does
+  not run on a schedule**, and **the smoke workflow cannot be made to fail by
+  a failing deploy**. All eight are Task 34's, Task 33's and Task 32's, and
+  all eight still stand.
 
 ## History
 
@@ -940,6 +1020,7 @@ decision now lives.
 
 | File | What is in it |
 | ---- | ------------- |
+| `docs/history/task_34_the_share_button_and_the_launch_screen.md` | the share button that offered a clip, the accessible name a Material Symbol was inside, the launch screen's hold, fade and cap, and the eleven startup images |
 | `docs/history/task_32_what_the_app_claims.md` | the four lines that claimed more than the code does, the claim count under the label, the compiled stylesheet and the committed fonts, one player for both screens, the first mark and the first launch screen |
 | `docs/history/task_33_the_brand.md` | the brand given to the build, the icon set drawn from it, the launch screen, the broadcast quote removed and the six lines of match copy that were not held to the feed |
 | `docs/history/phase1-3_scaffold_data_and_eventfeed.md` | the scaffold, the fetch, the data check, and Bob's EventFeed |

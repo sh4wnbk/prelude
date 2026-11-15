@@ -460,7 +460,7 @@ inlined mark carries `aria-hidden` and no title of its own.
 | Number | Value | What it is |
 | ------ | ----- | ---------- |
 | `MIN_HOLD_MS` | 1,500 ms | the hold. The mark is on screen at least this long on every full load of the root page, measured from the start of the navigation, even where matches.json was answered before the first frame |
-| `FADE_MS` | 300 ms | the fade, and the `transition` on `#launch`. The two are one number |
+| `FADE_MS` | 300 ms | the crossfade, and the `transition` on both `#launch` and `#screen`. The three are one number |
 | `CAP_MS` | 2,500 ms | the last moment a fan can see it, whatever matches.json did. The fade therefore starts a fade's length before it, at 2,200 ms |
 
 The hold is why the numbers are three rather than two. Without one the same

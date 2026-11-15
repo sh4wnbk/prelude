@@ -26,6 +26,7 @@ that describes the repo now.
 | `docs/history/task_30_the_browser_suite_and_the_build.md` | the play button that waits for its words, the Moments hero card's recording, `tests/browser/`, CI on every push and the smoke workflow after a deploy |
 | `docs/history/tasks_7_to_10_and_bob_sessions.md` | the candidate runs later runs replaced, every Bob session from task 7 to task 13 with its brief, and what tasks 4b, 6 and 6d settled |
 | `docs/history/task_32_what_the_app_claims.md` | the four lines that claimed more than the code does, the claim count under the label, the compiled stylesheet and the fonts, jsQR and the icon brought into the repo, one player for both screens, and the first mark and launch screen |
+| `docs/history/task_34_the_share_button_and_the_launch_screen.md` | the share button that offered a clip and the two ways nothing was copied, the accessible name a Material Symbol was inside, the launch screen's hold, fade and cap, and the eleven startup images |
 | `docs/history/task_33_the_brand.md` | the brand given to the build: the mark, the icon set drawn from it, the launch screen, the broadcast quote removed, the six lines of match copy that described the play and were not held to the feed, and the two pills |
 
 ## Where each archived decision now lives
@@ -227,3 +228,23 @@ was about work that is finished and constrains nothing further.
 | Nothing holds the Moments cards' `aria-label` to the title it repeats | `docs/history/task_33_the_brand.md`, Found, not fixed |
 | The icon font is 1.14 MB of the committed fonts | `HANDOFF.md`, Last task's Found, not fixed, where it still stands |
 | The smoke subset does not open the launch screen | Current state, Still open: what the build does not say |
+
+### From Task 34
+
+| Decision, rule or open item | Now lives |
+| --------------------------- | --------- |
+| The share button says what it does, and says "LINK COPIED" only once the write resolved | Current state, under the ticket, the site and the type |
+| An icon span inside a control's accessible name carries `aria-hidden` | Current state, same section; the sweep over the rest is under Open items |
+| The launch screen is held 1.5 s, and is off the screen by 2.5 s | Current state, under the ticket, the site and the type |
+| What is left of the hold is rounded up, because `setTimeout` truncates | Current state, same bullet; `app/web/index.html` carries the reasoning |
+| Reduced motion gets the same hold and no fade | **superseded by Task 35**: the fade is kept, because an opacity fade is not motion |
+| The status bar is opaque black, because `env()` is zero inside the iframe | **superseded by Task 35**: it is `black-translucent`, and the insets are the shell's to apply |
+| The startup images are held to the CSS by a screenshot at 390 by 844 | **widened by Task 35**: all eleven are rendered at their own size and ratio and measured against their own file |
+| The eleven iPhone screens, and the pixel ratio in each media query | Current state, same section |
+| The glyphs are rasterised from their own outlines, no font loaded | Current state, same section |
+| The manifest's `background_color` is the colour the images are drawn on | Current state, same section, and Android's own splash beside it |
+| Nothing has run on an iPhone | `HANDOFF.md`, Last task's Found, not fixed, where it still stands |
+| The startup images are 560 KB, and a quantiser would halve them | `HANDOFF.md`, Last task's Found, not fixed, where it still stands |
+| A launch screen that is interrupted is not covered | `HANDOFF.md`, Last task's Found, not fixed, where it still stands |
+| The cap is 2,500 ms and the screen left the page at 2,510 | settled and closed; the measurement is `docs/DESIGN.md`'s and the slack is the browser's |
+| The smoke subset does not open the launch screen | **closed by Task 35**: `scripts/smoke_live.py` opens it, and the checks run after the next deploy |
