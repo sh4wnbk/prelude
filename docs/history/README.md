@@ -25,6 +25,7 @@ that describes the repo now.
 | `docs/history/phase6_handover_and_the_doc_sweep.md` | the Orchestrate handover, and the sweep that emptied the register of stale passages |
 | `docs/history/task_30_the_browser_suite_and_the_build.md` | the play button that waits for its words, the Moments hero card's recording, `tests/browser/`, CI on every push and the smoke workflow after a deploy |
 | `docs/history/tasks_7_to_10_and_bob_sessions.md` | the candidate runs later runs replaced, every Bob session from task 7 to task 13 with its brief, and what tasks 4b, 6 and 6d settled |
+| `docs/history/task_32_what_the_app_claims.md` | the four lines that claimed more than the code does, the claim count under the label, the compiled stylesheet and the fonts, jsQR and the icon brought into the repo, one player for both screens, and the first mark and launch screen |
 
 ## Where each archived decision now lives
 
@@ -188,3 +189,21 @@ was about work that is finished and constrains nothing further.
 | The card on Shawn's iPhone, and the pitch film | `HANDOFF.md`, Next first action |
 | Every candidate run that a later run replaced | settled and closed |
 | Every Bob session brief, and what each session built | settled and closed; `docs/bob_brief.md` is the live brief |
+
+### From Task 32
+
+| Decision, rule or open item | Now lives |
+| --------------------------- | --------- |
+| The four lines that claimed a sensor, a feed or a connection | Current state, under the app's decisions; `scripts/scan_copy.py` holds a pattern for each |
+| The claim count under the grounding label | Current state, The label |
+| Nothing a screen loads comes from another origin | Current state, What exists, and the same bullet under the app |
+| One player for the moment card and the Moments hero card | settled and closed; `tests/test_narration_player.py` holds it |
+| The mark is "P." in Syne Bold, drawn by `scripts/make_mark.py` | **superseded by Task 33**: the mark is the brand's, drawn by `scripts/brand/build_svg.py`, and `scripts/make_mark.py` is on `DELIBERATELY_ABSENT` |
+| The launch screen paints once per tab, out of `sessionStorage` | **superseded by Task 33**: every full load paints it and the shell reads no storage |
+| The API rebuilds only when something it serves changes | Current state, What exists, the `render.yaml` build filter |
+| The two pills that said the play data was connected and synchronising | **closed by Task 33**: both read "PLAY-BY-PLAY DATA" and both old phrases are banned copy |
+| The icon font is 1.14 MB of the committed fonts | `HANDOFF.md`, Last task's Found, not fixed, where it still stands |
+| `scripts/fetch_statsbomb.py` is not in the Render build filter | settled and closed; the four paths are the ones Shawn named |
+| A screen-only push still rebuilds the API | settled and closed; `app/web/` holds three files the service answers from |
+| The smoke subset does not open the launch screen | `HANDOFF.md`, Last task's Found, not fixed, where it still stands |
+| The compiled stylesheet is not rebuilt by CI | `HANDOFF.md`, Last task's Found, not fixed, where it still stands |

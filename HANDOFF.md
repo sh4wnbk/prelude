@@ -45,8 +45,9 @@ card (`03`), Moments (`04`), the scanner (`05`), the ticket (`06`) and Profile
 
 **Nothing is loaded from anywhere else.** `tailwind.css` is compiled from the
 config block the screens share, `fonts.css` and `assets/fonts/` are the four
-families, `assets/vendor/jsQR.js` is the scanner's reader and
-`assets/icon/` is the mark, all committed and all served from this repo.
+families, `assets/vendor/jsQR.js` is the scanner's reader, `assets/brand/` is
+the mark and `assets/icon/` is the icon set drawn from it, all committed and
+all served from this repo.
 `tests/browser/test_every_screen.py` asserts that no screen leaves its own
 origin and that nothing 404s.
 
@@ -55,10 +56,11 @@ origin and that nothing 404s.
 `tests/test_api.py::TestWhatItDoesNotReach::test_the_only_module_in_app_that_takes_a_third_party_package`
 is what keeps it the only one.
 
-**Thirty scripts in `scripts/`**, each runnable on its own. Five are
-gates: `data_check.py`, `scan_copy.py`, `check_match_copy.py`,
+**Thirty-one scripts**, each runnable on its own: thirty directly under
+`scripts/` and `scripts/brand/build_svg.py` beside the two fonts it reads.
+Five are gates: `data_check.py`, `scan_copy.py`, `check_match_copy.py`,
 `check_vocabulary.py` and `check_docs.py`. `docs/HARNESS.md` carries the table
-of all thirty, what each writes and what each reaches, and a row for every
+of all thirty-one, what each writes and what each reaches, and a row for every
 file in `tests/`.
 
 **The hosted API** is `app/api.py` on Render at
@@ -80,7 +82,7 @@ frozen narrations, one per match per listener slot (`buddy_scored`,
 each one. The words on the card and the words the voice reads are one text,
 resolved by one lookup.
 
-**The test harness** is 41 files in `tests/` and six in `tests/browser/`. The
+**The test harness** is 42 files in `tests/` and six in `tests/browser/`. The
 unit suite is run by `pytest`, which leaves the browser suite out through
 `norecursedirs`; the browser suite is run by naming it, `pytest tests/browser`,
 and drives headless Chromium at 390 by 844 over a local server.
@@ -314,9 +316,20 @@ app claims.
   paid-plan feature, so anything `README.md` offers as evidence has to be
   runnable from a clone rather than from a GitHub link.
 - No screen claims a sensor, a feed or a connection the code does not have.
-  Four lines did; `scripts/scan_copy.py` holds five patterns so none of them
-  can return, and `scripts/check_match_copy.py` fails on any screen carrying
-  the GPS badge.
+  Four lines did, and two pills said the play data was connected and
+  synchronising; `scripts/scan_copy.py` holds a pattern for each so none can
+  return, and `scripts/check_match_copy.py` fails on any screen carrying the
+  GPS badge. Both pills read "PLAY-BY-PLAY DATA" now, which is the phrase the
+  list card already used for what the app holds.
+- A line of match copy that describes the play carries a `grounding` block,
+  and the block is a claim about those words rather than about the goal:
+  every key in it is read against `data/raw/`, every key has to be said in the
+  words beside it, and every claim in the words has to have a key.
+  `scripts/check_match_copy.py` holds all three, and a line anywhere else in
+  `app/web/matches.json` that makes one of those claims fails for having no
+  block behind it. The moment card's broadcast quote was the copy this came
+  out of: nothing read it out of the data, and the 2022 one said a pass went
+  "back to Mac Allister" where the feed records it going 36 yards forward.
 
 **Credentials, and what nothing may read**
 
@@ -353,8 +366,16 @@ app claims.
 - A path a doc names before it is written goes on `DELIBERATELY_ABSENT` in
   `scripts/check_docs.py`, and the check runs both ways: when the file
   appears, the gate fails until the plan entry is rewritten as built work.
-- Nothing tests the gates themselves. Their evidence is the counts they print
-  and their exit code, and `docs/VERIFICATION.md` says so.
+  The same list carries the other direction, for a path a task record names
+  because the file existed when the record was written and a later task
+  removed, and `SINCE_REMOVED` does the same for a line of screen copy. A
+  record is not edited as the code moves on, so the list moves instead.
+- Four of the five gates have no test of their own: their evidence is the
+  counts they print and their exit code, and `docs/VERIFICATION.md` says so.
+  `scripts/check_match_copy.py` is the exception, because its three rules
+  about the words are a reading of the feed rather than a string comparison:
+  `tests/test_match_copy_claims.py` moves one value at a time off the feed
+  and asserts the gate reports it.
 - Shawn is asked whether to continue at the end of each task, after the exit
   commands have run.
 
@@ -685,19 +706,21 @@ Items found during Phase 2 that belong with the wiring, not before it:
 ## Next first action
 
 **The app is finished for the demo, it claims only what the code does, and the
-build checks it.** The four overclaiming lines are gone, the moment card says
-how many claims the check traced, the screens carry their own stylesheet,
-fonts, icon and QR reader, the Moments hero card's waveform follows the voice,
-the shell opens on a launch screen, and the API rebuilds only when something
-it serves changes. CI runs both suites and the five gates on every push and
-the smoke workflow checks the deployed site and the hosted API after every
-deploy.
+build checks it.** The four overclaiming lines and the two pills beside them
+are gone, every line that describes the play is held to the feed both ways,
+the moment card says how many claims the check traced, the screens carry their
+own stylesheet, fonts, icon and QR reader, the Moments hero card's waveform
+follows the voice, the shell opens on the mark and the tagline, and the API
+rebuilds only when something it serves changes. CI runs both suites and the
+five gates on every push and the smoke workflow checks the deployed site and
+the hosted API after every deploy.
 
 **The first action is the Phase 7 README pass.** `README.md` is the document a
 judge reads first and the one that has been edited least against the code.
 Task 32 fixed only the lines it made false, which was the Profile line, the
-moments waveform line and the paragraph about the hosted API. What the pass
-still needs, in this order:
+moments waveform line and the paragraph about the hosted API, and Task 33 only
+added the mark, the two scripts that draw it and the grounding rule to the
+copy gate. What the pass still needs, in this order:
 
 1. **Read it against the app as it is now.** The playback paragraph and the
    "what is not built" list were corrected in Task 30, three lines in Task 32,
@@ -709,8 +732,9 @@ still needs, in this order:
    know the claims in it are checked on every push.
 3. **Say what the app now shows.** The claim count under the label is the
    metric the audit asked for and `README.md` does not mention it; neither
-   does it mention the mark, the launch screen, or that no screen loads
-   anything from another origin.
+   does it say that no screen loads anything from another origin. The mark,
+   the launch screen and the tagline went in with Task 33 and are the one part
+   of this item that is done.
 4. **The four "holds no values" passages** in `.env.example` line 1,
    `docs/bob_brief.md`, `docs/IBM_STACK.md` and `README.md`, which the open
    item above has been carrying since Phase 5.
@@ -722,157 +746,140 @@ submits; Claude Code fills the judging-criteria-to-evidence table and does a
 final recon from a fresh session. The Bobcoin figures for eleven of the
 sixteen rows in `bob_sessions/README.md` come from that export.
 
-## Last task: Task 32, what the app claims and what it shows
+## Last task: Task 33, the brand, and the copy that was not read
 
-**What Shawn asked for on 2026-11-14.** A read-only review of the app by IBM
-Bob, run in Ask mode, found four lines claiming more than the code does, a
-metric the app could show honestly and a stale `README.md` line. Those
-findings were read against the repo first and then acted on, with the app
-polish from 2026-11-13 beside them.
+**What Shawn asked for on 2026-11-14.** The brand was settled in the pitch
+thread and had never been given to the build: the mark is "Prelude." in Syne
+with the "u" drawn as seven amber elements, the icon is those elements alone,
+and the tagline is "Leave your seat. Stay in the game." The source files were
+outside the repo. Beside that, the moment card still carried the mockup's
+broadcast quote, whose 2022 text said "Álvarez back to Mac Allister" over a ball
+the feed records going 36 yards forward.
 
-**The two missing session rows** (`fcf8566`). `bob_sessions/README.md` listed
-fourteen sessions while sixteen exports are committed. Task 15's work and its
-export landed in one commit, `39856bd`, so both commit columns hold that id.
-The review has no work commit at all: Ask mode changed no file, so `927ad9e`,
-which added the export, is the only commit it produced. Eleven rows now take
-their Bobcoin figure from the Bobalytics export at submission rather than
-nine.
+**The brand source** (`b57dc7e`). `scripts/brand/build_svg.py` draws all four
+files the app serves into `app/web/assets/brand/` from one set of numbers:
+the wordmark, the icon rounded and square, and the launch screen's layout at
+390 by 844. Two changes from the copy in the pitch thread: it writes
+`prelude_icon_square.svg` too, which that copy had produced and then lost, and
+it drops a dead function that referenced an undefined name and could not have
+run. The billboard panel is not written, because nothing in the app serves it.
+`--check` draws everything and compares; all four committed files, the square
+icon included, are byte for byte what the numbers draw. The mark is the
+outlines of two fonts, so both variable fonts are committed beside the script
+with their licences, both SIL Open Font License 1.1, and
+`scripts/brand/README.md` records each source URL and checksum.
 
-**The four lines that claimed more than the code does** (`2f7f81a`).
+**The icon** (`d98d781`). Task 32's "P." was a placeholder for a brand that
+had not arrived. The icon is the seven bars, which is the part of the mark
+that survives being 32 px. `scripts/make_icons.py` replaces
+`scripts/make_mark.py` and reaches nothing: `favicon.svg` is
+`prelude_icon.svg` itself, corners rounded because a tab draws an icon as it
+is given, and the four PNGs are rasterised from `prelude_icon_square.svg`,
+whose corners are square because iOS, Android and a maskable install each
+round or crop one themselves. The bitmaps are drawn from that file's own path,
+matched whole against capsules and read back, so a file the script cannot read
+is one it refuses to rasterise rather than guess at. The manifest offers the
+512 as "any maskable": the outermost corner of the widest bar is 30% of the
+square from the centre, against a safe radius of 40%. Every screen links the
+same four paths, so no screen changed.
 
-| What it said | Why it was not true |
-| ------------ | ------------------- |
-| "AT VENUE, GPS" on Live and on the ticket | `CLAUDE.md` names GPS presence as an input and no code here reads a position |
-| "LIVE AUDIO SYNC" on the moment card | it wrote SYNCED over its own label for 1.8 seconds and changed nothing; the six recordings are files |
-| "Play data connected, AI narration ready" on the list, the ticket and in `matches.json` | nothing checks a connection and the narration is frozen rather than becoming ready |
-| the confirm button's 1.5 second sequence | nothing was synchronizing and there is no venue feed |
+**The launch screen** (`6c4e515`). The mark is inlined from
+`prelude_mark.svg`, so the white letters and the amber bars are the drawing
+rather than a font the machine may not have, and it costs no request of its
+own in the first frame. Under it is the tagline as real text in Hanken Grotesk
+500 at 16 px in amber. The layout is `prelude_launch.svg`'s own and was
+measured in Chromium at 390 by 844: the mark 300 by 32, the gap 20, the pair
+24 px above the middle. It is announced as one image named "Prelude. Leave
+your seat. Stay in the game.", and the inlined mark carries `aria-hidden` and
+no title, because a name inside something already named is a second name for
+one thing. It now paints on every full load of the root page; it painted once
+per tab, decided in the head out of `sessionStorage`, and the shell reads no
+storage at all now.
 
-The app still presents a match in progress, which is the decision above under
-"The app is always live". What these four claimed was a sensor, a live feed
-and a connection, and the clock and the LIVE tag say nothing about those.
-`scripts/scan_copy.py` holds five patterns, one per line and two for the
-button that said two things; `scripts/check_match_copy.py` asked for the badge
-on Live and against it on the list, and now fails on any screen carrying it.
+**The quote, and the lines nothing had read** (`6abc2ab`). The broadcast quote
+is gone from the card, from `hero.quote` and `hero.quote_names`, from the
+renderer, from the gate that checked the names in it, and from the set of
+fields a grounding label may stand over, which is the narration alone now. Its
+two openings and the guillemet are banned copy.
 
-**The claim count, under the label it stands on** (`4117f1a`). "Verified from
-play data" is a yes and says nothing about how much was checked. The card now
-reads "<n> claims checked against the play data", where n is
-`check.claims_checked` out of `app/web/narrations.json`: 17, 18 and 18 for
-1986 and 22, 23 and 23 for 2022, written by the freeze and re-checked against
-`data/raw/` by `tests/test_frozen_narrations.py`. `showNarration` reveals the
-words, the label, the count and the play button in one step, and a slot with
-no usable count shows none of them. The block was re-measured in Chromium at
-390 px, where the six are 260, 286 and 312 px, so it reserves 19.5rem rather
-than Task 29's 16.75rem.
+Then the search Shawn asked for, over every screen and `app/web/matches.json`.
+Six lines described the play and were not held to the feed:
 
-**Tailwind compiled, and the fonts, the QR reader and the icon served from
-here** (`cf93e85`, `36ec85a`). The screens loaded 407 KB of JavaScript from
-`cdn.tailwindcss.com`, four stylesheets and fourteen font files from Google,
-and jsQR from `cdn.jsdelivr.net`. `scripts/build_tailwind.py` compiles
-`app/web/tailwind.css` (45 KB) from the config block the screens share, with
-the version the Play CDN was bundling; `scripts/fetch_fonts.py` wrote
-`fonts.css` and fourteen woff2 files, every subset, because a fan's typed name
-goes into the header; `scripts/fetch_vendor.py` wrote
-`assets/vendor/jsQR.js`, checked against the integrity hash the scanner
-carried.
+| Line | What was unheld |
+| ---- | --------------- |
+| the 1986 hero caption | "solo run from his own half, past four England players"; only the clock in front of it was checked |
+| the 1986 hero share text | "solo goal"; only that it names the scorer was checked |
+| the 1986 opener's title and body | "opener", "Reid's error", "nine yards"; that moment carried no grounding block at all |
+| the 1986 solo goal's title and body | the same claims as the caption, and no block |
+| the 2022 hero caption and share text | "a counter", "began in Argentina's own half"; the hero had no block |
+| the 2022 "Di María doubles it" title | "doubles"; the block behind it said nothing about which goal of the match it was |
 
-One screen looks different and it is the one that was wrong: five screens
-loaded the CDN with `?plugins=forms,container-queries` and two did not, so the
-app ran two stylesheets, and `docs/DESIGN.md` records that the match select
-takes the forms plugin's chevron. The event list's select now matches the
-scanner's, and its expanded manual entry panel is 1 px taller. Read in
-Chromium over 24 views, 18 were byte-identical, 5 were inside the measured
-noise floor and that one changed.
+All six are held rather than removed, because each one is true and the feed
+says so. The three rules are in Current state. Six grounding keys are new:
+`solo_run`, `own_half`, `dribbled_past`, `yards_from_goal`, `recovers_error`
+and `match_goal_number`.
 
-**One player, and the Moments hero card follows the voice** (`89364cd`). The
-file held two players; it holds one, `wirePlayer`, and both screens hand it
-their own markup, including the two class names a bar carries behind and ahead
-of the playhead. When the button may be pressed is an argument: the moment
-card passes `Prelude.whenNarrationShown` and a Moments card releases at once.
-A card with no recording is handed nothing, so its bars keep their heights,
-its clock stays empty and its track is not a slider.
+Two readings were wrong on the first pass and the tests found both. `solo_run`
+as "nobody else of his team touched it" is satisfied by a one-touch finish,
+which is exactly what the 2022 hero is, so it also asks the feed for a carry
+or a dribble of the scorer's own. And a name was read as the last word of a
+player's name, which for "Jorge Alberto Francisco Valdano Castellano" is
+"Castellano": a line saying "Valdano" matched nothing, so that check had never
+fired. Every part of a name long enough to be one is read now.
 
-**The mark** (`16d683b`). "P." in Syne Bold, off-white with the full stop in
-amber, drawn by `scripts/make_mark.py` into `favicon.svg`, a 32 px favicon, a
-180 px apple touch icon and the 192 and 512 px icons the manifest names. The
-glyphs are outlines rather than text, because a favicon is rendered with no
-font loading. `fonttools` joins the dev group for it and `uv.lock` is updated.
+**The two pills** (`ed129f4`). Live's "PLAY DATA CONNECTED" and both Moments
+cards' "AI AUDIO NARRATION, PLAY DATA SYNC" were Task 32's second "Found, not
+fixed" line. Nothing checks a connection and nothing synchronises. Both say
+"PLAY-BY-PLAY DATA" now, which is the phrase the list card and the ticket
+already use, and both old phrases are banned copy.
 
-**The launch screen** (`2ed6da2`). The shell paints the wordmark "Prelude."
-over "Be there. Even when you're not." while the list loads behind it.
-Whether it paints at all is decided in the head before the body is parsed, so
-a first load shows it in the first frame and a later load never paints it. It
-goes when `data-matches-loaded` says matches.json was answered, which is a
-signal the list now makes: `data-match-rendered` is the stronger claim and the
-list never makes it, because Prelude renders no match until the fan has
-picked. It never outlives two seconds, it does not fade under
-`prefers-reduced-motion`, and it is one `role="img"` named Prelude.
+**The docs** (`25bb4a6`). `docs/DESIGN.md` gains "The mark": what the mark,
+the icon and the tagline are, the two colours as the system's own tokens,
+where each of the four brand files lives and what reads it, and the icon set
+with the size of each file and where it is shown. `README.md` says the app has
+a mark and that the first frame of a load is it.
 
-**The API rebuilds only when something it serves changes** (`7db7c14`).
-`render.yaml` carries a build filter on `app/**`, `pyproject.toml`, `uv.lock`
-and itself; every push used to rebuild it, and a doc, a test, a workflow or a
-script is a push it has no stake in. `app/**` is broad on purpose: it is the
-service, the modules it imports, and `matches.json`, `narrations.json` and
-`narrators.json` under `app/web/`, which `app/api.py` reads and answers from.
-The cost is that a change to a screen, which is under `app/web/` too, rebuilds
-a service it does not affect, and the first push after this did exactly that.
-
-**The README lines this made false** (`1a88987`). The Profile line, which had
-been wrong since Bob's Task 10 built the screen, the moments waveform line and
-the paragraph about the hosted API.
-
-**The browser suite stopped forgiving and started asserting.** It allowed
-failures from three CDNs, which Task 30 recorded under "Found, not fixed"
-because a run without them failed anyway. `Fan.offsite` collects every request
-that leaves the suite's origin and there must be none, which is what found
-jsQR. The `/favicon.ico` allowance went the same way: a page that declares an
-icon stops asking. `tests/browser/` is six files and `docs/HARNESS.md` now has
-a row for every file in `tests/`, which closes the last of Task 29's seven.
-
-**The evidence.** `pytest -q` reports `2012 passed`, up from `1906`; `pytest
-tests/browser` reports `86 passed`, up from `71`; all five gates exit 0;
-`git status` is clean after both. Three things a reader should see rather than
-read about are committed: `docs/evidence/task32_launch_screen.png` is the
-shell with matches.json held for 1.5 seconds,
-`docs/evidence/task32_moment_card_claims.png` is the 2022 card for a listener
-with no side, with "23 claims checked against the play data" under the label,
-and the mark at both sizes is
+**The evidence.** `pytest -q` reports `2067 passed`, up from `2012`; `pytest
+tests/browser` reports `88 passed`, up from `86`; all five gates exit 0;
+`git status` is clean after both. Two screenshots are committed, both taken in
+headless Chromium at 390 by 844 at two device pixels per CSS pixel:
+`docs/evidence/task33_launch_screen.png` is the shell with matches.json held
+for three seconds, and
+`docs/evidence/task33_moment_card_below_the_player.png` is the 1986 card
+scrolled to the foot, where the quote block was. The icon at both sizes is
 `app/web/assets/icon/favicon-32.png` and
-`app/web/assets/icon/apple-touch-icon-180.png`, which the screens link. All
-were taken in headless Chromium at 390 by 844 at two device pixels per CSS
-pixel.
+`app/web/assets/icon/apple-touch-icon-180.png`, which every screen links.
 
 **Found, not fixed.**
 
-- **The icon font is 1.14 MB of the 1.34 MB of committed fonts.** Material
-  Symbols Outlined is shipped whole and the app uses 52 of its glyphs.
-  Google's `icon_names=` parameter would subset it to a few KB, at the cost of
-  a missing glyph the first time an icon is added without rerunning the
-  script. The deployed site downloaded the same file from Google before, so
-  this is not a regression.
-- **The Live screen's "PLAY DATA CONNECTED" pill and the Moments cards'
-  "AI AUDIO NARRATION, PLAY DATA SYNC" line** are near neighbours of the four
-  lines that went. Shawn named four and these are not among them, so they
-  stand.
-- **`scripts/fetch_statsbomb.py` is not in the Blueprint's build filter.** The
-  Render build runs it, so a change to it does not redeploy the service and
-  the deployed data stays as it was built. The four paths are the ones Shawn
-  named.
-- **A screen-only push still rebuilds the API.** `app/web/` is inside
-  `app/**`, and it has to be: three files in it are what `/moments` and
-  `/buildup` answer from. Separating the screens from the data would mean
-  `ignoredPaths` listing files, and a file added later and not listed would be
-  a service that never picks it up.
+- **At 32 px the seven bars come back as three runs of amber.** A bar is
+  1.5 px wide there and a gap 1.25 px, so some gaps do not survive the
+  reduction. Nothing can separate them at that size; the vector is what a
+  browser that can read one takes, and `tests/test_the_mark.py` records the
+  measurement rather than asserting a number nobody measured.
+- **`prelude_launch.svg` is committed and nothing at runtime serves it.** It
+  is the layout the CSS was measured against, and the measurements are in the
+  browser suite, so the file could go. It stays because it is what a designer
+  opens.
+- **A claim phrase in `CLAIMS` is a phrase and not a reading of the sentence.**
+  "past" needs a `dribbled_past` key wherever it appears, so a line saying
+  "walks past the bench" would be asked for one. Nothing in the copy says
+  that, and the alternative is parsing.
+- **Nothing holds the Moments cards' `aria-label` to the title it repeats.**
+  The label is built from the title by the renderer and the inline copy
+  carries both, but the check that the inline copy matches
+  `app/web/matches.json` is a substring search, so a stale heading beside a
+  correct label would pass.
+- **The icon font is still 1.14 MB of the 1.34 MB of committed fonts**, and
+  the two variable fonts add 280 KB more under `scripts/brand/fonts/`, which
+  no browser loads. Task 32's finding stands; the fonts beside the generator
+  are the price of the mark being reproducible.
 - **The smoke subset does not open the launch screen.** It checks the moment
   card, the label, the claim count and the three endpoints against the live
   site; the first frame of a visit is checked against the working tree only.
-- **The compiled stylesheet is not rebuilt by CI.** `app/web/tailwind.css` is
-  committed and the step that fails on a dirty tree cannot catch a config
-  block edited without rerunning the script, because the script is not run.
-  Running it in CI would mean an npm install on every push.
-- **CI does not run on a schedule, and the smoke workflow cannot be made to
-  fail by a failing deploy.** Both are Task 30's and both still stand; they
-  are in Current state under "Still open: what the build does not say".
+- **The compiled stylesheet is not rebuilt by CI**, and **CI does not run on a
+  schedule, and the smoke workflow cannot be made to fail by a failing
+  deploy.** All three are Task 32's and Task 30's and all three still stand.
 
 ## History
 
@@ -882,6 +889,7 @@ decision now lives.
 
 | File | What is in it |
 | ---- | ------------- |
+| `docs/history/task_32_what_the_app_claims.md` | the four lines that claimed more than the code does, the claim count under the label, the compiled stylesheet and the committed fonts, one player for both screens, the first mark and the first launch screen |
 | `docs/history/phase1-3_scaffold_data_and_eventfeed.md` | the scaffold, the fetch, the data check, and Bob's EventFeed |
 | `docs/history/phase4_narration_and_orchestrator.md` | the provider layer, the prompt, the grounding check, the personas, the model comparison and the orchestrator |
 | `docs/history/phase5_voice_and_the_six.md` | the Text to Speech probe, the pronunciation table, the hero run that was refused, and the freeze |

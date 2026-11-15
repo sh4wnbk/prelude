@@ -15,7 +15,7 @@ screens are `docs/DESIGN.md`.
 | Python | 3.13 | `.python-version`, and `requires-python` in `pyproject.toml` |
 | Virtualenv | `.venv-prelude`, managed with `uv` | `CLAUDE.md` |
 | Runtime dependencies | `segno`, `fastapi`, `uvicorn` | `pyproject.toml` |
-| Dev dependencies | `pytest`, `pillow`, `zxing-cpp`, `cmudict`, `httpx`, `pyyaml` | `pyproject.toml` |
+| Dev dependencies | `pytest`, `pillow`, `zxing-cpp`, `cmudict`, `httpx`, `pyyaml`, `playwright`, `fonttools` | `pyproject.toml` |
 
 Python is run as `.\.venv-prelude\Scripts\python.exe`, which is what `CLAUDE.md`
 requires and what every script's own docstring shows.
