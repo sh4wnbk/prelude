@@ -286,7 +286,11 @@
         window.clearInterval(poll);
         poll = null;
       }
-      holding = window.setTimeout(leave, left);
+      // Rounded up, because setTimeout truncates a fractional delay: asking
+      // for 1442.5 ms is asking for 1442, which is a hold 0.5 ms short of
+      // what this says it is. CI caught the launch screen starting its fade
+      // at 1,499.7 ms on the runner.
+      holding = window.setTimeout(leave, Math.ceil(left));
     }
 
     function ready() {

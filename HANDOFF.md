@@ -837,6 +837,9 @@ bounds the screen rather than the start of the fade, so the fade begins at
 2,200 ms. The clock is `performance.now()`, which counts from the start of the
 navigation, so both bounds are about the load the fan started rather than
 about whenever the script ran. Reduced motion gets the same hold and no fade.
+What is left of the hold is rounded up before it is asked for, because
+`setTimeout` truncates a fractional delay: CI caught the fade starting at
+1,499.7 ms against a 1,500 ms hold, which is the truncation and nothing else.
 
 Measured in headless Chromium at 390 by 844, as the moment the fade began and
 the moment the screen left the page: 1,507 and 1,809 ms with matches.json
