@@ -839,6 +839,17 @@ where each of the four brand files lives and what reads it, and the icon set
 with the size of each file and where it is shown. `README.md` says the app has
 a mark and that the first frame of a load is it.
 
+**What CI found, which no local run could.** `scripts/make_icons.py --check`
+compared the committed PNGs byte for byte. It passed here and failed on the
+runner with all four reported as DIFFERS. Pillow 12.3.0 is what both sides
+install; it draws the same image and encodes it through whatever zlib its
+wheel was built against. Run under Linux with the same Pillow against the same
+committed files, the four come out 656, 3,085, 3,216 and 9,094 bytes where
+this machine writes 654, 3,049, 3,203 and 8,967, and every pixel of all four
+is identical. The check decodes both sides and compares pixels now; the SVG
+and the manifest are text and are still compared as written. A byte comparison
+there was a claim about zlib rather than about the icon.
+
 **The evidence.** `pytest -q` reports `2067 passed`, up from `2012`; `pytest
 tests/browser` reports `88 passed`, up from `86`; all five gates exit 0;
 `git status` is clean after both. Two screenshots are committed, both taken in
@@ -857,6 +868,11 @@ scrolled to the foot, where the quote block was. The icon at both sizes is
   reduction. Nothing can separate them at that size; the vector is what a
   browser that can read one takes, and `tests/test_the_mark.py` records the
   measurement rather than asserting a number nobody measured.
+- **A committed PNG is only reproducible to the pixel, not to the byte.**
+  `scripts/make_icons.py --check` compares pixels for that reason, so a
+  bitmap re-encoded by a different zlib with the same image in it passes. A
+  file whose bytes changed and whose pixels did not is invisible to the
+  check, which is the right trade and is not free.
 - **`prelude_launch.svg` is committed and nothing at runtime serves it.** It
   is the layout the CSS was measured against, and the measurements are in the
   browser suite, so the file could go. It stays because it is what a designer
