@@ -8,6 +8,34 @@
 <link href="assets/icon/apple-touch-icon-180.png?v=__V__" rel="apple-touch-icon" sizes="180x180"/>
 <link href="manifest.webmanifest?v=__V__" rel="manifest"/>
 <meta content="#101319" name="theme-color"/>
+<!-- Opened from a home screen, Prelude runs without Safari's chrome, and
+     iOS shows a startup image while it starts. The status bar is opaque
+     black rather than translucent: translucent puts the page under the
+     bar, and the screens read their safe-area insets inside this shell's
+     iframe, where env() is 0 and nothing would move out of the way.
+     The manifest carries the same background colour, which is what
+     Android shows in its place. -->
+<meta content="yes" name="apple-mobile-web-app-capable"/>
+<meta content="yes" name="mobile-web-app-capable"/>
+<meta content="black" name="apple-mobile-web-app-status-bar-style"/>
+<!-- The startup images, one per iPhone screen in portrait. iOS takes one
+     only where the file is exactly that screen's own pixel size, which is
+     why there are eleven and why each media query names the pixel ratio:
+     two iPhones share 414 by 896 at two ratios. Drawn by
+     scripts/brand/build_svg.py from the layout below, so the image a fan
+     sees first and the screen that replaces it are one drawing;
+     tests/test_the_mark.py holds these eleven lines to that script. -->
+<link href="assets/launch/launch-750x1334.png?v=__V__" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" rel="apple-touch-startup-image"/>
+<link href="assets/launch/launch-1125x2436.png?v=__V__" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" rel="apple-touch-startup-image"/>
+<link href="assets/launch/launch-1170x2532.png?v=__V__" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" rel="apple-touch-startup-image"/>
+<link href="assets/launch/launch-1179x2556.png?v=__V__" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" rel="apple-touch-startup-image"/>
+<link href="assets/launch/launch-1206x2622.png?v=__V__" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" rel="apple-touch-startup-image"/>
+<link href="assets/launch/launch-828x1792.png?v=__V__" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" rel="apple-touch-startup-image"/>
+<link href="assets/launch/launch-1242x2688.png?v=__V__" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" rel="apple-touch-startup-image"/>
+<link href="assets/launch/launch-1260x2736.png?v=__V__" media="(device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" rel="apple-touch-startup-image"/>
+<link href="assets/launch/launch-1284x2778.png?v=__V__" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" rel="apple-touch-startup-image"/>
+<link href="assets/launch/launch-1290x2796.png?v=__V__" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" rel="apple-touch-startup-image"/>
+<link href="assets/launch/launch-1320x2868.png?v=__V__" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" rel="apple-touch-startup-image"/>
 <link href="fonts.css?v=__V__" rel="stylesheet"/>
 <title>Prelude</title>
 <!--

@@ -34,9 +34,18 @@ about:
   the app's name.
 - **It is announced** as the mark and the tagline together and says nothing
   else.
+- **The startup image iOS shows is this screen.** A web app opened from the
+  home screen shows `apple-touch-startup-image` while it starts, before any
+  of this markup has run, so the drawing in that file and the drawing the CSS
+  paints have to be the same one or the mark moves as the app takes over.
 """
 
+import io
+from pathlib import Path
+
 import pytest
+
+WEB = Path(__file__).resolve().parent.parent.parent / "app" / "web"
 
 SHELL = "index.html"
 
@@ -66,6 +75,13 @@ AFTER_THE_HOLD_SECONDS = 1.9
 #: measurement that matters underneath it is that the screen is gone long
 #: before a fan would wonder.
 SLACK_MS = 600
+
+#: How far apart the shell's painting of the launch screen and the startup
+#: image drawn for the same screen may be, in device pixels. Measured at 1 for
+#: the mark and 3 for the tagline on 2026-11-15; the allowance is what a
+#: different rasteriser's idea of the faintest edge is worth, not room for the
+#: layout to move. Four device pixels is 1.3 CSS pixels.
+SAME_DRAWING_PX = 4
 
 #: Installed before any of the page's own scripts, so what is recorded is
 #: every state the launch screen passed through rather than the one it was
@@ -408,6 +424,72 @@ def test_it_honours_a_request_for_less_motion(playwright_browser, web_server,
         assert gone <= CAP_MS + SLACK_MS, (motion, gone, timeline)
     finally:
         context.close()
+
+
+def ink(image):
+    """The box the near-white pixels fall in and the box the amber ones do.
+
+    A box rather than a pixel comparison: the browser rasterises the tagline
+    with its own hinting and anti-aliasing and the generator fills polygons,
+    so the two agree on where the drawing is and differ in the last shade of
+    an edge. Where it is, is the claim worth making.
+    """
+    rgb = image.convert("RGB")
+    width, height = rgb.size
+    read = rgb.load()
+    found = {"white": None, "amber": None}
+
+    def note(key, x, y):
+        box = found[key]
+        found[key] = ((x, y, x, y) if box is None else
+                      (min(box[0], x), min(box[1], y),
+                       max(box[2], x), max(box[3], y)))
+
+    for y in range(height):
+        for x in range(width):
+            r, g, b = read[x, y]
+            if r > 200 and g > 200 and b > 200:
+                note("white", x, y)
+            elif r > 170 and 90 < g < 200 and b < 90:
+                note("amber", x, y)
+    return found
+
+
+def test_the_startup_image_is_this_screen(fan, plan):
+    """`app/web/assets/launch/launch-1170x2532.png` against a screenshot of
+    the shell at the screen it is drawn for, 390 by 844 at three device
+    pixels to the CSS pixel.
+
+    This is what holds `scripts/brand/build_svg.py`'s `launch_layout` to the
+    CSS in `app/web/index.html`: they are the same rules written twice, and
+    the only way to know they still say the same thing is to draw both and
+    measure. Reading the tagline's type size where the CSS centres its 20 px
+    line box put the mark 2 CSS px out, which is what this found.
+
+    Measured on 2026-11-15: the white box agreed to within 1 device pixel and
+    the amber box to within 3, the amber being the tagline, whose outermost
+    column and lowest descender row the browser leaves fainter than the
+    threshold above.
+    """
+    from PIL import Image
+
+    # Held still: matches.json never answers, so the screen is up until the
+    # cap and the screenshot is of the state rather than of a fade.
+    plan.hang.add("matches.json")
+    page = open_shell(fan, watch=False)
+    page.wait_for_selector("#launch", state="visible")
+    shot = Image.open(io.BytesIO(page.screenshot()))
+
+    drawn = Image.open(WEB / "assets" / "launch" / "launch-1170x2532.png")
+    assert shot.size == drawn.size == (1170, 2532), (shot.size, drawn.size)
+
+    painted, generated = ink(shot), ink(drawn)
+    for key in ("white", "amber"):
+        assert painted[key] is not None, key
+        assert generated[key] is not None, key
+        apart = [abs(a - b) for a, b in zip(painted[key], generated[key])]
+        assert max(apart) <= SAME_DRAWING_PX, (key, painted[key],
+                                               generated[key], apart)
 
 
 def test_the_list_is_reachable_the_moment_it_is_gone(fan, plan):

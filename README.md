@@ -43,9 +43,13 @@ What the demo is, precisely:
 - **The app has a mark, and the first frame of a load is it.** "Prelude." in
   Syne ExtraBold with the "u" drawn as seven amber elements, over the tagline
   "Leave your seat. Stay in the game.", on the app background, while the event
-  list loads behind it. Those seven elements on their own are the icon in the
-  browser tab and on a home screen. [`docs/DESIGN.md`](docs/DESIGN.md) records
-  the mark, the icon, the tagline and where each file lives.
+  list loads behind it. It is held for 1.5 seconds and fades over 300 ms, and
+  it is off the screen by 2.5 seconds whatever the list did. Those seven
+  elements on their own are the icon in the browser tab and on a home screen,
+  and the same screen is drawn as a startup image for each iPhone size, so
+  opening Prelude from a home screen opens on the mark too.
+  [`docs/DESIGN.md`](docs/DESIGN.md) records the mark, the icon, the tagline,
+  the timing and where each file lives.
 - **Nothing is live.** The demo replays StatsBomb historical data: the 1986
   Argentina vs England quarter-final and the 2022 Argentina vs France final,
   each presented as if it were unfolding now. There is no live feed, no venue,
@@ -115,7 +119,8 @@ Everything above it is structure.
   counts as written.
 - `scripts/brand/build_svg.py`: draws every brand file into
   `app/web/assets/brand/` from one set of numbers and the two variable fonts
-  committed beside it, both under the SIL Open Font License.
+  committed beside it, both under the SIL Open Font License, and the launch
+  screen as a startup image per iPhone size into `app/web/assets/launch/`.
 - `scripts/make_icons.py`: writes the icon set the screens link, from two of
   those files. Both scripts take `--check`, which draws everything, compares it
   with what is committed and writes nothing.

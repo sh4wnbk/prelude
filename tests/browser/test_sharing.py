@@ -213,12 +213,19 @@ def test_without_a_share_sheet_the_link_goes_to_the_clipboard(fan, match_ids):
 def test_the_confirmation_stands_down_and_the_button_is_a_share_button_again(
     fan, match_ids
 ):
+    """The confirmation has to arrive before it can stand down. Waiting
+    straight for "SHARE" after the click returns on the state the button was
+    already in: the write has not resolved yet, so nothing has changed."""
     fan.context.grant_permissions(
         ["clipboard-read", "clipboard-write"], origin=fan.server.base,
     )
     for match_id in match_ids:
         page = open_card(fan, match_id, "neutral", NO_SHARE_SHEET)
         page.click("#shareAction")
+        page.wait_for_function(
+            "() => document.getElementById('shareLabel').textContent === %r"
+            % COPIED_LABEL
+        )
         page.wait_for_function(
             "() => document.getElementById('shareLabel').textContent === %r"
             % SHARE_LABEL,

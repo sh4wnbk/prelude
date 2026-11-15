@@ -20,8 +20,17 @@ brand file, the script and that block to one another.
 `scripts/make_mark.py` in Task 32 from a font downloaded at build time. The
 brand settles the question that stood in for: the mark exists, so the icon is
 the mark's own element rather than its first two letters.
+
+**The startup images are the launch screen, drawn.** iOS shows one while a web
+app opened from the home screen is starting, before any of its markup has run,
+and it takes one only where the file is exactly the device's own pixel size.
+So there is one per iPhone screen in portrait, the shell names each behind a
+media query, and the list of screens, the file names and the queries are all
+read out of `scripts/brand/build_svg.py` here rather than written down a
+second time.
 """
 
+import importlib.util
 import json
 import re
 import struct
@@ -38,8 +47,25 @@ SHELL = WEB / "index.html"
 ICON_SCRIPT = ROOT / "scripts" / "make_icons.py"
 BRAND_SCRIPT = ROOT / "scripts" / "brand" / "build_svg.py"
 
+LAUNCH = WEB / "assets" / "launch"
+
 SCREENS = sorted(WEB.glob("prelude_*.html"))
 PAGES = SCREENS + [SHELL]
+
+
+def brand_script():
+    """`scripts/brand/build_svg.py` as a module.
+
+    The startup images are a list of screens, a naming rule and a media query,
+    and all three live in the generator. Importing it is how this asks what
+    they are instead of writing them out again and holding the shell to a
+    second copy. It reads the two fonts at import, which is the second or so
+    this costs.
+    """
+    spec = importlib.util.spec_from_file_location("build_svg", BRAND_SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 #: The two colours of the icon, by the token each one is. The brand files are
 #: written in upper case and the screens' config block in lower.
@@ -335,6 +361,116 @@ class TestEveryScreenLinksIt:
         for page in PAGES:
             for link in re.findall(r'<link href="(assets/icon/[^"]+)"', read(page)):
                 assert link.endswith("?v=__V__"), (page.name, link)
+
+
+class TestTheStartupImages:
+    """One per iPhone screen, linked by the shell and by no other page: the
+    home screen opens `index.html`, which is the manifest's `start_url`."""
+
+    def brand(self):
+        if not hasattr(self, "_brand"):
+            type(self)._brand = brand_script()
+        return self._brand
+
+    def screens(self):
+        return self.brand().IPHONES
+
+    def test_there_is_one_for_every_screen_listed(self):
+        for one in self.screens():
+            name = self.brand().startup_name(*one)
+            assert (LAUNCH / name).is_file(), name
+
+    def test_each_is_exactly_the_pixels_that_screen_has(self):
+        """iOS ignores one that is not the device's own size, so the name and
+        the file have to agree with the screen the query names."""
+        for css_w, css_h, scale in self.screens():
+            name = self.brand().startup_name(css_w, css_h, scale)
+            assert png_size(LAUNCH / name) == (css_w * scale, css_h * scale), name
+
+    def test_nothing_else_is_in_the_directory(self):
+        """A screen taken off the list leaves a file behind otherwise, and a
+        file nothing links is a file nothing checks."""
+        wanted = {self.brand().startup_name(*one) for one in self.screens()}
+        assert {path.name for path in LAUNCH.iterdir()} == wanted
+
+    def test_the_shell_links_every_one_behind_its_own_query(self):
+        markup = read(SHELL)
+        for one in self.screens():
+            link = (
+                '<link href="assets/launch/%s?v=__V__" media="%s" '
+                'rel="apple-touch-startup-image"/>'
+                % (self.brand().startup_name(*one),
+                   self.brand().startup_media(*one))
+            )
+            assert link in markup, link
+
+    def test_the_shell_links_no_others(self):
+        found = re.findall(r'rel="apple-touch-startup-image"', read(SHELL))
+        assert len(found) == len(self.screens()), len(found)
+
+    def test_no_other_page_links_one(self):
+        """The home screen opens the shell, so the shell is where they go."""
+        for page in SCREENS:
+            assert "apple-touch-startup-image" not in read(page), page.name
+
+    def test_the_links_carry_the_deploy_version(self):
+        for link in re.findall(r'<link href="(assets/launch/[^"]+)"', read(SHELL)):
+            assert link.endswith("?v=__V__"), link
+
+    def test_the_shell_says_it_is_a_web_app(self):
+        """Without this iOS opens the home-screen icon in Safari's chrome and
+        shows no startup image at all."""
+        markup = read(SHELL)
+        assert '<meta content="yes" name="apple-mobile-web-app-capable"/>' in markup
+        assert '<meta content="yes" name="mobile-web-app-capable"/>' in markup
+
+    def test_the_status_bar_is_opaque(self):
+        """`black-translucent` would put the page under the status bar, and
+        the screens read their safe-area insets inside this shell's iframe,
+        where `env()` is zero: nothing would move out of the way."""
+        assert (
+            '<meta content="black" name="apple-mobile-web-app-status-bar-style"/>'
+        ) in read(SHELL)
+
+    def test_every_corner_is_the_app_background(self):
+        """Opaque, and the same colour as the manifest's, so a fan opening
+        Prelude from either home screen sees the one background."""
+        from PIL import Image
+
+        for one in self.screens():
+            name = self.brand().startup_name(*one)
+            with Image.open(LAUNCH / name) as image:
+                image = image.convert("RGBA")
+            w, h = image.size
+            for at in ((0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)):
+                assert "#%02x%02x%02x" % image.getpixel(at)[:3] == SURFACE, (name, at)
+                assert image.getpixel(at)[3] == 255, (name, at)
+
+    def test_the_mark_is_on_every_one(self):
+        """The letters in white and the bars, the full stop and the tagline in
+        amber: the two colours of the mark, on the screen the fan opens."""
+        from PIL import Image
+
+        for one in self.screens():
+            name = self.brand().startup_name(*one)
+            with Image.open(LAUNCH / name) as image:
+                colours = {colour for _, colour in
+                           (image.convert("RGB").getcolors(1 << 22) or [])}
+            assert (255, 255, 255) in colours, name
+            assert tuple(int(PRIMARY_CONTAINER[i:i + 2], 16)
+                         for i in (1, 3, 5)) in colours, name
+
+    def test_the_manifest_background_is_the_one_they_are_drawn_on(self):
+        """Android shows the manifest's background colour where iOS shows one
+        of these, so the two have to be the same colour or the app opens two
+        different ways."""
+        from PIL import Image
+
+        name = self.brand().startup_name(*self.screens()[0])
+        with Image.open(LAUNCH / name) as image:
+            corner = image.convert("RGB").getpixel((0, 0))
+        assert "#%02x%02x%02x" % corner == json.loads(
+            read(MANIFEST))["background_color"]
 
 
 class TestTheManifest:

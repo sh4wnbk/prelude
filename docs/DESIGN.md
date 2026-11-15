@@ -67,7 +67,8 @@ an icon and a favicon are rendered where no font is loaded.
 | `app/web/assets/brand/prelude_mark.svg` | the wordmark, no background | inlined into the launch screen in `app/web/index.html` |
 | `app/web/assets/brand/prelude_icon.svg` | the bars on a rounded square | copied to `app/web/assets/icon/favicon.svg` |
 | `app/web/assets/brand/prelude_icon_square.svg` | the bars on a plain square | rasterised into the four PNGs |
-| `app/web/assets/brand/prelude_launch.svg` | the launch screen's layout at 390 by 844 | nothing at runtime; it is what the CSS was measured against |
+| `app/web/assets/brand/prelude_launch.svg` | the launch screen's layout at 390 by 844 | nothing at runtime; it is what a designer opens |
+| `app/web/assets/launch/launch-<w>x<h>.png` | the launch screen drawn for one iPhone screen, eleven of them | `app/web/index.html`, as an `apple-touch-startup-image` |
 | `scripts/brand/fonts/Syne-wght.ttf`, `scripts/brand/fonts/HankenGrotesk-wght.ttf` | the variable fonts the mark is the outlines of | `scripts/brand/build_svg.py` |
 
 ### The icon set
@@ -83,6 +84,53 @@ last two.
 | `app/web/assets/icon/apple-touch-icon-180.png` | 180 px | an iPhone home screen |
 | `app/web/assets/icon/icon-192.png` | 192 px | `app/web/manifest.webmanifest`, `any` |
 | `app/web/assets/icon/icon-512.png` | 512 px | `app/web/manifest.webmanifest`, `any maskable` |
+
+### The startup images
+
+iOS shows an `apple-touch-startup-image` while a web app opened from the home
+screen is starting, before any of the app's own markup has run, and it takes
+one only where the file is exactly that screen's own pixel size. So there is
+one per iPhone screen in portrait, eleven files in
+`app/web/assets/launch/`, each named for the pixels in it and linked by
+`app/web/index.html` behind a media query naming the screen's CSS size, its
+pixel ratio and portrait. The ratio is part of the query because two iPhones
+share 414 by 896 at two ratios, and the wrong one of those is a quarter of the
+pixels. The screens are read off Apple's point sizes and cover every iPhone
+running a current iOS; `IPHONES` in `scripts/brand/build_svg.py` is the list
+and names the models on each line.
+
+| Screen | Image | Models |
+| ------ | ----- | ------ |
+| 375 x 667 at 2x | `launch-750x1334.png` | SE, 2nd and 3rd generation |
+| 375 x 812 at 3x | `launch-1125x2436.png` | 11 Pro, 12 mini, 13 mini |
+| 390 x 844 at 3x | `launch-1170x2532.png` | 12, 12 Pro, 13, 13 Pro, 14, 16e |
+| 393 x 852 at 3x | `launch-1179x2556.png` | 14 Pro, 15, 15 Pro, 16 |
+| 402 x 874 at 3x | `launch-1206x2622.png` | 16 Pro, 17, 17 Pro |
+| 414 x 896 at 2x | `launch-828x1792.png` | XR, 11 |
+| 414 x 896 at 3x | `launch-1242x2688.png` | 11 Pro Max |
+| 420 x 912 at 3x | `launch-1260x2736.png` | Air |
+| 428 x 926 at 3x | `launch-1284x2778.png` | 12 Pro Max, 13 Pro Max, 14 Plus |
+| 430 x 932 at 3x | `launch-1290x2796.png` | 14 Pro Max, 15 Plus, 15 Pro Max, 16 Plus |
+| 440 x 956 at 3x | `launch-1320x2868.png` | 16 Pro Max, 17 Pro Max |
+
+They are drawn from the layout rather than from `prelude_launch.svg`: a
+screen that is not 390 by 844 is not that file stretched, because the mark
+stays 300 CSS px wide on every screen and the CSS does not scale it.
+`launch_layout` in `scripts/brand/build_svg.py` is those rules as numbers and
+`app/web/index.html` is the same rules in CSS, which is two copies, so
+`tests/browser/test_the_launch_screen.py` screenshots the shell at 390 by 844
+and measures the drawing in it against `launch-1170x2532.png`. Measured on
+2026-11-15 the mark agreed to within one device pixel and the tagline to
+within three.
+
+The shell also carries `apple-mobile-web-app-capable` and
+`mobile-web-app-capable`, without which iOS opens the home-screen icon inside
+Safari's chrome and shows no startup image at all, and an opaque black status
+bar. `black-translucent` would put the page under the status bar, and the
+screens read their safe-area insets inside the shell's iframe, where `env()`
+is zero and nothing would move out of the way. The manifest's
+`background_color` is the same `#101319` these are drawn on, which is what
+Android shows in their place.
 
 The vector rounds its own corners and the PNGs do not, because every platform
 that shows a PNG rounds or crops it and a second rounding reads as a shrunken

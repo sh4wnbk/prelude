@@ -10,7 +10,7 @@ bars are the icon: on its own, the row of seven is what a home screen shows.
 | the seven bars and the full stop | `#FFB703` |
 | the background of the icon and the launch screen | `#101319` |
 
-What it writes, all under `app/web/assets/brand/`:
+What it writes, under `app/web/assets/brand/`:
 
 | File | What uses it |
 | ---- | ------------ |
@@ -18,6 +18,21 @@ What it writes, all under `app/web/assets/brand/`:
 | `prelude_icon.svg` | the bars on a rounded square; copied to `favicon.svg` |
 | `prelude_icon_square.svg` | the bars on a plain square; the source of the PNGs |
 | `prelude_launch.svg` | the launch screen's layout, 390 by 844 |
+
+and under `app/web/assets/launch/`, one PNG per iPhone screen:
+
+| File | What uses it |
+| ---- | ------------ |
+| `launch-<w>x<h>.png` | `app/web/index.html`, as an `apple-touch-startup-image` behind the media query for that screen |
+
+**The startup images are the launch screen, drawn.** iOS shows one while a web
+app opened from the home screen is starting, before any of its markup has run,
+and it is shown only where the file is exactly the device's own pixel size.
+They are drawn here rather than read out of `prelude_launch.svg`, from the
+layout both come from: a screen taller or wider than 390 by 844 is not that
+file stretched, because the mark stays 300 CSS px wide on every screen and the
+CSS does not scale it. `launch_layout` is that layout as numbers, and
+`app/web/index.html` is the same rules in CSS.
 
 `scripts/make_icons.py` reads the two icon files and writes the icon set the
 screens link. Nothing else reads these.
@@ -46,16 +61,23 @@ Run it:
 
 `--check` draws everything and compares it with what is committed, writing
 nothing; it is how `tests/test_the_mark.py` asks whether the committed files
-are still what these numbers draw. Needs `fonttools`, in the dev group.
+are still what these numbers draw. A PNG is compared pixel by pixel rather
+than byte by byte, for the reason `scripts/make_icons.py` records: Pillow
+encodes the same image a few bytes differently on Windows and on the Linux
+runner CI uses, so a byte comparison there is a claim about zlib. Needs
+`fonttools` and `pillow`, both in the dev group.
 
 A billboard panel was drawn from the same numbers for the pitch deck. It is
 not in this repo and this does not write it: nothing in the app serves it.
 """
 
 import argparse
+import io
+import math
 import sys
 from pathlib import Path
 
+from fontTools.pens.basePen import BasePen
 from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
@@ -65,6 +87,7 @@ from fontTools.varLib import instancer
 ROOT = Path(__file__).resolve().parent.parent.parent
 FONTS = ROOT / "scripts" / "brand" / "fonts"
 OUT = ROOT / "app" / "web" / "assets" / "brand"
+LAUNCH_OUT = ROOT / "app" / "web" / "assets" / "launch"
 
 WHITE, AMBER, BG = "#FFFFFF", "#FFB703", "#101319"
 BARS = (0.55, 1.0, 0.70, 0.92, 0.58, 0.32, 0.14)   # bar heights as a share of the x-height, left to right
@@ -95,33 +118,56 @@ def rrect(x, y, w, h):
             f"A{f(r)} {f(r)} 0 0 1 {f(x)} {f(y+h-r)}Z")
 
 
-def mark(x0=0.0, base=0.0, s=1.0):
-    """The wordmark at scale s (font units * s), baseline at y=base. Returns (white path, amber path, bbox)."""
+def mark_pieces(x0=0.0, base=0.0, s=1.0):
+    """The wordmark as geometry rather than as a path string.
+
+    Returns `(letters, bars, stop, bbox)`: the six white glyphs as
+    `(character, x)` on the baseline, the seven amber bars as `(x, y, w, h)`
+    boxes, the amber full stop as one `(character, x)`, and the tight box
+    around the lot. `mark` writes the SVG path from this and the bitmaps are
+    drawn from the same list, so the two renderings cannot be of different
+    marks.
+    """
     xh = bounds(SYNE, "x")[3] * s
     ub = bounds(SYNE, "u"); uw = (ub[2] - ub[0]) * s
     bw = uw / (6 * BAR_THIN); g = (uw - 6 * bw) / 5; need = 7 * bw + 6 * g - uw
-    mid = base - xh / 2; white, amber = [], []; x = x0
+    mid = base - xh / 2; letters, bars = [], []; x = x0
     for ch in "Prelude":
         if ch == "u":
             bx0 = x + ub[0] * s
             for k, hk in enumerate(BARS):
-                h = max(bw, xh * hk); amber.append(rrect(bx0 + k * (bw + g), mid - h / 2, bw, h))
+                h = max(bw, xh * hk); bars.append((bx0 + k * (bw + g), mid - h / 2, bw, h))
             x += glyph(SYNE, "u")[1] * s + need
         else:
-            d, adv = path(SYNE, ch, x, base, s); white.append(d); x += adv
-    d, adv = path(SYNE, ".", x, base, s); amber.append(d)
+            letters.append((ch, x)); x += glyph(SYNE, ch)[1] * s
+    stop = (".", x)
     # tight box from the outlines
     top = base - bounds(SYNE, "l")[3] * s; bottom = base - min(bounds(SYNE, c)[1] for c in "Preld.") * s
     left = x0 + bounds(SYNE, "P")[0] * s; right = x + bounds(SYNE, ".")[2] * s
-    return "".join(white), "".join(amber), (left, top, right, bottom)
+    return letters, bars, stop, (left, top, right, bottom)
+
+
+def mark(x0=0.0, base=0.0, s=1.0):
+    """The wordmark at scale s (font units * s), baseline at y=base. Returns (white path, amber path, bbox)."""
+    letters, bars, stop, box = mark_pieces(x0, base, s)
+    white = [path(SYNE, ch, x, base, s)[0] for ch, x in letters]
+    amber = [rrect(*one) for one in bars] + [path(SYNE, stop[0], stop[1], base, s)[0]]
+    return "".join(white), "".join(amber), box
+
+
+def line_pieces(font, string, size, x):
+    """A line of text as `([(character, x)], width)`, spaces left out."""
+    upm = font["head"].unitsPerEm; s = size / upm; out = []; cx = x
+    for ch in string:
+        if ch != " ": out.append((ch, cx))
+        cx += glyph(font, ch)[1] * s
+    return out, cx - x
 
 
 def line(font, string, size, x, base):
-    upm = font["head"].unitsPerEm; s = size / upm; out = []; cx = x
-    for ch in string:
-        if ch == " ": cx += glyph(font, ch)[1] * s; continue
-        d, adv = path(font, ch, cx, base, s); out.append(d); cx += adv
-    return "".join(out), cx - x
+    upm = font["head"].unitsPerEm; s = size / upm
+    glyphs, width = line_pieces(font, string, size, x)
+    return "".join(path(font, ch, cx, base, s)[0] for ch, cx in glyphs), width
 
 
 def svg(w, h, body, bg=None, title="Prelude"):
@@ -145,6 +191,260 @@ def place_mark(width, x, y):
 TAG = "Leave your seat. Stay in the game."
 HUPM = HANK["head"].unitsPerEm
 HASC = HANK["hhea"].ascent
+
+#: The launch screen, as `app/web/index.html` lays it out in CSS: the mark
+#: 300 px wide, 20 px of air, then the tagline at 16 px in a 20 px line box,
+#: and the pair lifted 24 px off the middle of the screen. The reference
+#: screen is 390 by 844, which is the one `prelude_launch.svg` is drawn at,
+#: but none of these is a share of it: the mark is 300 px wide on a 375 px
+#: screen and on a 440 px one alike, because the CSS does not scale it.
+LAUNCH_W, LAUNCH_H = 390, 844
+LAUNCH_MARK_W = 300
+LAUNCH_GAP = 20
+LAUNCH_LIFT = 24
+TAG_SIZE = 16
+TAG_LINE = 20
+HDESC = HANK["hhea"].descent
+
+
+def launch_layout(width, height):
+    """Where the mark and the tagline sit on a launch screen of this size.
+
+    In CSS pixels from the top left, and the one place those rules are
+    written as numbers: `app/web/index.html` is the same rules in CSS, and
+    both `prelude_launch.svg` and the startup images are drawn from this.
+
+    **The block is measured with the tagline's line box and not its type
+    size**, because a flex column centres line boxes: the box is 20 px and the
+    glyphs are 16 px. The baseline inside it is the box's top plus half the
+    leading plus the ascent, and for Hanken Grotesk at 16 px the half-leading
+    is negative, by 0.42 px, because the font's own ascent and descent come to
+    20.85 px and overflow the 20 px box. Reading the glyph height instead put
+    the mark 2 px below where the shell paints it, which is what the startup
+    images found: an image that is not the screen it covers shows the fan the
+    mark moving as the app takes over.
+    """
+    mw = LAUNCH_MARK_W
+    mh = MH * mw / MW
+    top = (height - (mh + LAUNCH_GAP + TAG_LINE)) / 2 - LAUNCH_LIFT
+    line_top = top + mh + LAUNCH_GAP
+    content = (HASC - HDESC) * TAG_SIZE / HUPM
+    _, tw = line_pieces(HANK, TAG, TAG_SIZE, 0)
+    return {
+        "mark": ((width - mw) / 2, top, mw, mh),
+        "line_top": line_top,
+        "line_left": (width - tw) / 2,
+        "baseline": line_top + (TAG_LINE - content) / 2 + HASC * TAG_SIZE / HUPM,
+    }
+
+
+#: The iPhone screens a startup image is drawn for, as (CSS width, CSS height,
+#: device pixels per CSS pixel) in portrait. iOS takes one only where the file
+#: is exactly that screen's own pixel size, so this is a list of screens
+#: rather than of models and the models sharing a line are named beside it.
+#: Read on 2026-11-15 off Apple's point sizes as
+#: https://useyourloaf.com/blog/iphone-17-screen-sizes/ tabulates them, and it
+#: covers every iPhone that runs a current iOS.
+IPHONES = (
+    (375, 667, 2),   # SE, 2nd and 3rd generation
+    (375, 812, 3),   # 11 Pro, 12 mini, 13 mini
+    (390, 844, 3),   # 12, 12 Pro, 13, 13 Pro, 14, 16e
+    (393, 852, 3),   # 14 Pro, 15, 15 Pro, 16
+    (402, 874, 3),   # 16 Pro, 17, 17 Pro
+    (414, 896, 2),   # XR, 11
+    (414, 896, 3),   # 11 Pro Max
+    (420, 912, 3),   # Air
+    (428, 926, 3),   # 12 Pro Max, 13 Pro Max, 14 Plus
+    (430, 932, 3),   # 14 Pro Max, 15 Plus, 15 Pro Max, 16 Plus
+    (440, 956, 3),   # 16 Pro Max, 17 Pro Max
+)
+
+
+def startup_name(css_w, css_h, scale):
+    """The file one screen's startup image is written to, named for the pixels
+    in it, because the pixels are what iOS matches the file against."""
+    return "launch-%dx%d.png" % (round(css_w * scale), round(css_h * scale))
+
+
+def startup_media(css_w, css_h, scale):
+    """The media query that picks it. The pixel ratio is part of it because
+    two screens share 414 by 896 at two ratios, and the wrong one of those is
+    a quarter of the pixels."""
+    return ("(device-width: %dpx) and (device-height: %dpx) and "
+            "(-webkit-device-pixel-ratio: %d) and (orientation: portrait)"
+            % (css_w, css_h, scale))
+
+
+#: How many straight segments one curve becomes in a bitmap. The mark is at
+#: most 900 device pixels wide here and a curve in it a few tens of those, so
+#: sixteen is below what the reduction could show.
+CURVE_STEPS = 16
+
+#: The mark and the tagline are drawn this many times larger and reduced, so
+#: an edge is the outline's own curve rather than a polygon fill's idea of it.
+#: `scripts/make_icons.py` oversamples the icon by the same factor.
+OVERSAMPLE = 4
+
+
+class Outline(BasePen):
+    """A glyph's contours as closed polygons, curves flattened.
+
+    `BasePen` turns a TrueType quadratic into a cubic for us, so one curve
+    method is the whole of it.
+    """
+
+    def __init__(self, glyph_set, steps=CURVE_STEPS):
+        super().__init__(glyph_set)
+        self.steps = steps
+        self.contours = []
+        self.here = []
+
+    def _moveTo(self, pt):
+        self._shut(); self.here = [pt]
+
+    def _lineTo(self, pt):
+        self.here.append(pt)
+
+    def _curveToOne(self, one, two, pt):
+        x0, y0 = self.here[-1]
+        (x1, y1), (x2, y2), (x3, y3) = one, two, pt
+        for i in range(1, self.steps + 1):
+            t = i / self.steps; u = 1 - t
+            self.here.append((
+                u*u*u*x0 + 3*u*u*t*x1 + 3*u*t*t*x2 + t*t*t*x3,
+                u*u*u*y0 + 3*u*u*t*y1 + 3*u*t*t*y2 + t*t*t*y3))
+
+    def _closePath(self):
+        self._shut()
+
+    def _endPath(self):
+        self._shut()
+
+    def _shut(self):
+        if len(self.here) > 2:
+            self.contours.append(self.here)
+        self.here = []
+
+
+def outline(font, ch):
+    """One glyph as a list of contours, in font units with y pointing up."""
+    pen = Outline(font.getGlyphSet())
+    glyph(font, ch)[0].draw(pen)
+    return pen.contours
+
+
+def shape_mask(contours):
+    """One shape as (mask, left, top), filled even-odd so a counter is a hole.
+
+    The mask is no bigger than the shape. A glyph is a few hundred pixels
+    across and the band it is drawn into is thousands, and every contour costs
+    one of these.
+    """
+    from PIL import Image, ImageChops, ImageDraw
+
+    xs = [x for one in contours for x, _ in one]
+    ys = [y for one in contours for _, y in one]
+    left, top = math.floor(min(xs)) - 1, math.floor(min(ys)) - 1
+    size = (math.ceil(max(xs)) - left + 2, math.ceil(max(ys)) - top + 2)
+    mask = Image.new("1", size, 0)
+    for points in contours:
+        one = Image.new("1", size, 0)
+        ImageDraw.Draw(one).polygon(
+            [(x - left, y - top) for x, y in points], fill=1)
+        mask = ImageChops.logical_xor(mask, one)
+    return mask, left, top
+
+
+def ink(size, shapes, capsules=()):
+    """Every shape in one colour, as a mask: even-odd inside a shape, taken
+    together across them, so two shapes that touch do not cancel out."""
+    from PIL import Image, ImageDraw
+
+    mask = Image.new("1", size, 0)
+    for contours in shapes:
+        one, left, top = shape_mask(contours)
+        mask.paste(1, (left, top), one)
+    draw = ImageDraw.Draw(mask)
+    for x0, y0, x1, y1 in capsules:
+        draw.rounded_rectangle((x0, y0, x1 - 1, y1 - 1),
+                               radius=(x1 - x0) / 2, fill=1)
+    return mask
+
+
+def launch_png(css_w, css_h, scale):
+    """One startup image, as PNG bytes: the launch screen at this screen size.
+
+    The background is a flat fill at the image's own size, because the rest of
+    a launch screen is one colour. The mark and the tagline are drawn into a
+    band across it, OVERSAMPLE times larger and reduced. The band's top is
+    floored to a whole device pixel and the remainder stays in the
+    coordinates, so the drawing lands where the layout puts it rather than on
+    a rounded row.
+    """
+    from PIL import Image
+
+    at = launch_layout(css_w, css_h)
+    mx, my, mw, mh = at["mark"]
+    width, height = round(css_w * scale), round(css_h * scale)
+    top = math.floor(my * scale)
+    band_h = math.ceil((at["line_top"] + TAG_LINE) * scale) - top
+    band = (width * OVERSAMPLE, band_h * OVERSAMPLE)
+    k = scale * OVERSAMPLE
+
+    def at_px(x, y):
+        """CSS pixels on the screen to pixels in the band."""
+        return (x * k, y * k - top * OVERSAMPLE)
+
+    letters, bars, stop, (l, t, _, _) = mark_pieces()
+    s = mw / MW                                   # font units to CSS pixels
+
+    def of_mark(px, py):
+        """A point in the mark's own space, as a point in the band."""
+        return at_px(px * s + mx - l * s, py * s + my - t * s)
+
+    def mark_glyph(ch, ox):
+        return [[of_mark(fx + ox, -fy) for fx, fy in one]
+                for one in outline(SYNE, ch)]
+
+    capsules = []
+    for bx, by, bwide, bhigh in bars:
+        x0, y0 = of_mark(bx, by)
+        x1, y1 = of_mark(bx + bwide, by + bhigh)
+        capsules.append((x0, y0, x1, y1))
+
+    sh = TAG_SIZE / HUPM
+    glyphs, _ = line_pieces(HANK, TAG, TAG_SIZE, at["line_left"])
+
+    def tag_glyph(ch, cx):
+        return [[at_px(fx * sh + cx, at["baseline"] - fy * sh) for fx, fy in one]
+                for one in outline(HANK, ch)]
+
+    white = ink(band, [mark_glyph(ch, ox) for ch, ox in letters])
+    amber = ink(band,
+                [mark_glyph(*stop)] + [tag_glyph(ch, cx) for ch, cx in glyphs],
+                capsules)
+
+    canvas = Image.new("RGB", (width, height), BG)
+    for mask, colour in ((white, WHITE), (amber, AMBER)):
+        canvas.paste(colour, (0, top),
+                     mask.convert("L").resize((width, band_h), Image.LANCZOS))
+    out = io.BytesIO()
+    canvas.save(out, "PNG", optimize=True)
+    return out.getvalue()
+
+
+def startup():
+    """Every startup image, as {filename: bytes}. Nothing touches the disk."""
+    return {startup_name(*screen): launch_png(*screen) for screen in IPHONES}
+
+
+def pixels(blob):
+    """Every pixel of a PNG, with no encoder in the way."""
+    from PIL import Image
+
+    with Image.open(io.BytesIO(blob)) as image:
+        return image.convert("RGBA").tobytes()
+
 
 #: The icon's square, in SVG user units, and how much of it the bars fill.
 ICON = 1024
@@ -182,18 +482,16 @@ def drawn():
         files[name] = svg(ICON, ICON, back + f'<path fill="{AMBER}" d="{bars}"/>',
                           title="Prelude icon")
 
-    # 3. The launch screen, 390 by 844: the mark 300 wide above centre, the
-    #    tagline under it. app/web/index.html draws this layout in CSS with
-    #    the mark inlined and the tagline as real text; this file is what it
-    #    was measured against.
-    W, H = 390, 844; mw = 300; mx = (W - mw) / 2
-    fs = 16; gap = 20
-    block = MH * mw / MW + gap + fs; my = (H - block) / 2 - 24
-    body, mh = place_mark(mw, mx, my)
-    tag, tw = line(HANK, TAG, fs, 0, 0)
-    tag, tw = line(HANK, TAG, fs, (W - tw) / 2, my + mh + gap + HASC * fs / HUPM)
+    # 3. The launch screen at the reference size, from `launch_layout`, which
+    #    is also what the startup images and app/web/index.html's CSS lay the
+    #    screen out by. This file is what a designer opens; nothing at runtime
+    #    serves it.
+    at = launch_layout(LAUNCH_W, LAUNCH_H)
+    mx, my, mw, _ = at["mark"]
+    body, _ = place_mark(mw, mx, my)
+    tag, _ = line(HANK, TAG, TAG_SIZE, at["line_left"], at["baseline"])
     files["prelude_launch.svg"] = svg(
-        W, H, body + f'<path fill="{AMBER}" d="{tag}"/>', bg=BG,
+        LAUNCH_W, LAUNCH_H, body + f'<path fill="{AMBER}" d="{tag}"/>', bg=BG,
         title="Prelude. Leave your seat. Stay in the game.")
     return files
 
@@ -209,9 +507,12 @@ def main(argv):
     args = parser.parse_args(argv)
 
     files = drawn()
+    shots = startup()
     print("mark     {:.0f} x {:.0f} font units, Syne wght 800".format(MW, MH))
     print("tagline  {!r}, Hanken Grotesk wght 500".format(TAG))
     print("out      {}".format(OUT.relative_to(ROOT).as_posix()))
+    print("startup  {} iPhone screens into {}".format(
+        len(shots), LAUNCH_OUT.relative_to(ROOT).as_posix()))
     print()
 
     if args.check:
@@ -224,6 +525,19 @@ def main(argv):
                 print("  DIFFERS  {}".format(name)); bad += 1
             else:
                 print("  same     {:<26} {:>6,} bytes".format(name, len(text)))
+        # A PNG is compared pixel by pixel: Pillow encodes the same image a
+        # few bytes differently on Windows and on the Linux runner, which
+        # scripts/make_icons.py measured. The SVGs above are text and are
+        # compared as they are written.
+        for name, blob in shots.items():
+            there = LAUNCH_OUT / name
+            if not there.is_file():
+                print("  MISSING  {}".format(name)); bad += 1
+            elif pixels(there.read_bytes()) != pixels(blob):
+                print("  DIFFERS  {}".format(name)); bad += 1
+            else:
+                print("  same     {:<26} {:>6,} bytes".format(
+                    name, there.stat().st_size))
         print()
         if bad:
             print("{} file(s) are not what these numbers draw; "
@@ -235,6 +549,8 @@ def main(argv):
     if args.plan or not args.confirm:
         for name, text in files.items():
             print("  would write {:<26} {:>6,} bytes".format(name, len(text)))
+        for name, blob in shots.items():
+            print("  would write {:<26} {:>6,} bytes".format(name, len(blob)))
         print()
         print("nothing was written. --confirm is what writes it.")
         return 0
@@ -243,8 +559,13 @@ def main(argv):
     for name, text in files.items():
         (OUT / name).write_text(text, encoding="utf-8", newline="\n")
         print("  {:>6,} bytes  {}".format(len(text), name))
+    LAUNCH_OUT.mkdir(parents=True, exist_ok=True)
+    for name, blob in shots.items():
+        (LAUNCH_OUT / name).write_bytes(blob)
+        print("  {:>6,} bytes  {}".format(len(blob), name))
     print()
-    print("wrote {}".format(OUT.relative_to(ROOT).as_posix()))
+    print("wrote {} and {}".format(OUT.relative_to(ROOT).as_posix(),
+                                   LAUNCH_OUT.relative_to(ROOT).as_posix()))
     return 0
 
 
