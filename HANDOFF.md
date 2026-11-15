@@ -46,7 +46,8 @@ card (`03`), Moments (`04`), the scanner (`05`), the ticket (`06`) and Profile
 **Nothing is loaded from anywhere else.** `tailwind.css` is compiled from the
 config block the screens share, `fonts.css` and `assets/fonts/` are the four
 families, `assets/vendor/jsQR.js` is the scanner's reader, `assets/brand/` is
-the mark and `assets/icon/` is the icon set drawn from it, all committed and
+the mark, `assets/icon/` is the icon set drawn from it and `assets/launch/` is
+the eleven iPhone startup images drawn from the same layout, all committed and
 all served from this repo.
 `tests/browser/test_every_screen.py` asserts that no screen leaves its own
 origin and that nothing 404s.
@@ -82,7 +83,7 @@ frozen narrations, one per match per listener slot (`buddy_scored`,
 each one. The words on the card and the words the voice reads are one text,
 resolved by one lookup.
 
-**The test harness** is 42 files in `tests/` and six in `tests/browser/`. The
+**The test harness** is 42 files in `tests/` and seven in `tests/browser/`. The
 unit suite is run by `pytest`, which leaves the browser suite out through
 `norecursedirs`; the browser suite is run by naming it, `pytest tests/browser`,
 and drives headless Chromium at 390 by 844 over a local server.
@@ -302,14 +303,37 @@ app claims.
   numbers, with the two variable fonts committed beside it, and
   `scripts/make_icons.py` writes the icon set from two of them, reaching
   nothing. Both compare with `--check`, which `tests/test_the_mark.py` runs,
-  and the two colours are read back out of the config block there.
+  and the two colours are read back out of the config block there. A PNG is
+  compared pixel by pixel and not byte by byte, because Pillow encodes the
+  same image a few bytes differently on Windows and on the Linux runner.
 - The launch screen is the first frame of every load of the shell. The markup
   ships visible and the mark is inline, so it is up before any script has run
-  and before any request of its own has been answered; it goes when
-  `data-matches-loaded` says matches.json was answered, it never outlives two
-  seconds, and it is one `role="img"` named "Prelude. Leave your seat. Stay in
-  the game." that claims nothing. It painted once per tab until Task 33, out
-  of `sessionStorage`, and the shell now reads no storage at all.
+  and before any request of its own has been answered; it is one `role="img"`
+  named "Prelude. Leave your seat. Stay in the game." that claims nothing, and
+  the shell reads no storage at all. It is held 1.5 seconds on every full
+  load, then fades over 300 ms once `data-matches-loaded` says matches.json
+  was answered, and it is off the screen by 2.5 seconds whatever the list did:
+  the cap bounds the screen rather than the start of the fade, so the fade
+  begins at 2.2 seconds. Reduced motion gets the same hold and no fade.
+- The launch screen is also eleven PNGs, one per iPhone screen in portrait,
+  linked by the shell as `apple-touch-startup-image` behind a media query
+  naming the screen's CSS size, its pixel ratio and portrait. iOS takes one
+  only where the file is exactly that screen's own pixel size, and shows it
+  while a web app opened from the home screen is starting. They are drawn by
+  the brand script from `launch_layout`, which is the shell's own CSS rules as
+  numbers, rather than from `prelude_launch.svg`: a screen that is not 390 by
+  844 is not that file stretched, because the mark stays 300 CSS px wide and
+  the CSS does not scale it. The two copies of those rules are held to each
+  other by a screenshot: `tests/browser/test_the_launch_screen.py` measures
+  the drawing the shell paints against `launch-1170x2532.png`.
+- The shell says it is a web app, in `apple-mobile-web-app-capable` and
+  `mobile-web-app-capable`, without which iOS opens the home-screen icon in
+  Safari's chrome and shows no startup image at all. Its status bar is opaque
+  black and not translucent: translucent puts the page under the bar, and the
+  screens read their safe-area insets inside the shell's iframe, where `env()`
+  is zero and nothing would move out of the way. The manifest's
+  `background_color` is the colour the startup images are drawn on, so Android
+  opens the same way.
 - The desktop stadium backdrop applies only above 501 px, and `body` is
   transparent above that breakpoint or the shell's base layer paints over it.
 - The repo is private and the site is public. Pages from a private repo is a
@@ -321,6 +345,19 @@ app claims.
   return, and `scripts/check_match_copy.py` fails on any screen carrying the
   GPS badge. Both pills read "PLAY-BY-PLAY DATA" now, which is the phrase the
   list card already used for what the app holds.
+- The share button sends a link and a line of text, and says so. It offered a
+  clip, and there is no clip in this repo and no code that cuts one; the old
+  label is a banned string in `scripts/scan_copy.py`. With a share sheet the
+  sheet is handed the title, the match's own line and the card's URL. Without
+  one the link goes to the clipboard and the button says "LINK COPIED" only
+  once that write has resolved: `navigator.clipboard` is undefined outside a
+  secure context and `writeText` can be refused, and neither says anything.
+- A Material Symbol span holds a ligature, not a word, so one inside a control
+  whose name comes from its contents is read out before the label. The two
+  buttons in the moment card's deck were named "ios_share SHARE" and
+  "replay_10 REPLAY 10S"; both icons carry `aria-hidden` now. Every other
+  icon in the app is still inside its control's name, which is under Open
+  items.
 - A line of match copy that describes the play carries a `grounding` block,
   and the block is a claim about those words rather than about the goal:
   every key in it is read against `data/raw/`, every key has to be said in the
@@ -676,6 +713,15 @@ is rule 18 and `opener_missing`.
 #### Phase 5 backlog
 Items found during Phase 2 that belong with the wiring, not before it:
 
+- **Every icon in the app is inside its control's accessible name.** A
+  Material Symbol span holds a ligature, and Chromium reads it as a word:
+  measured on 2026-11-15, the Live nav link is named "sensors LIVE" and the
+  Moments one "auto_awesome_motion MOMENTS". Task 34 fixed the two buttons in
+  the deck it was changing, by adding `aria-hidden="true"` to the icon span,
+  and the same one attribute fixes every other one. It is a sweep over seven
+  screens and the markup `app/web/match-content.js` builds, and it wants the
+  browser suite to assert the names rather than the text, which
+  `tests/browser/test_sharing.py` shows the shape of.
 - **Keyboard focus states.** `docs/DESIGN.md` records that focus is defined only
   on the picker's text inputs. Every button in the system has no focus style,
   and the toggle at `prelude_04_moments.html:263` sets `focus:outline-none` with
@@ -710,10 +756,11 @@ build checks it.** The four overclaiming lines and the two pills beside them
 are gone, every line that describes the play is held to the feed both ways,
 the moment card says how many claims the check traced, the screens carry their
 own stylesheet, fonts, icon and QR reader, the Moments hero card's waveform
-follows the voice, the shell opens on the mark and the tagline, and the API
-rebuilds only when something it serves changes. CI runs both suites and the
-five gates on every push and the smoke workflow checks the deployed site and
-the hosted API after every deploy.
+follows the voice, the shell opens on the mark and the tagline and holds them
+there, a home screen opens on the same screen drawn as a startup image, and
+the API rebuilds only when something it serves changes. CI runs both suites
+and the five gates on every push and the smoke workflow checks the deployed
+site and the hosted API after every deploy.
 
 **The first action is the Phase 7 README pass.** `README.md` is the document a
 judge reads first and the one that has been edited least against the code.
@@ -733,8 +780,9 @@ copy gate. What the pass still needs, in this order:
 3. **Say what the app now shows.** The claim count under the label is the
    metric the audit asked for and `README.md` does not mention it; neither
    does it say that no screen loads anything from another origin. The mark,
-   the launch screen and the tagline went in with Task 33 and are the one part
-   of this item that is done.
+   the launch screen and the tagline went in with Task 33 and the launch
+   screen's timing and the home-screen startup images with Task 34, and those
+   are the one part of this item that is done.
 4. **The four "holds no values" passages** in `.env.example` line 1,
    `docs/bob_brief.md`, `docs/IBM_STACK.md` and `README.md`, which the open
    item above has been carrying since Phase 5.
@@ -746,156 +794,140 @@ submits; Claude Code fills the judging-criteria-to-evidence table and does a
 final recon from a fresh session. The Bobcoin figures for eleven of the
 sixteen rows in `bob_sessions/README.md` come from that export.
 
-## Last task: Task 33, the brand, and the copy that was not read
+## Last task: Task 34, the share button and the launch screen
 
-**What Shawn asked for on 2026-11-14.** The brand was settled in the pitch
-thread and had never been given to the build: the mark is "Prelude." in Syne
-with the "u" drawn as seven amber elements, the icon is those elements alone,
-and the tagline is "Leave your seat. Stay in the game." The source files were
-outside the repo. Beside that, the moment card still carried the mockup's
-broadcast quote, whose 2022 text said "Álvarez back to Mac Allister" over a ball
-the feed records going 36 yards forward.
+**What Shawn asked for on 2026-11-15.** Four things, two about the moment
+card's share button and two about the launch screen. The button said "SHARE
+CLIP" (`removed`) and shared a link and a line of text; where the browser had
+no share sheet it flashed a confirmation for 1.5 seconds and did nothing. The launch
+screen had no hold, so a fast load painted the mark and took it away inside a
+couple of hundred milliseconds. And a home-screen icon opened on a white
+screen, because nothing told iOS the app was one.
 
-**The brand source** (`b57dc7e`). `scripts/brand/build_svg.py` draws all four
-files the app serves into `app/web/assets/brand/` from one set of numbers:
-the wordmark, the icon rounded and square, and the launch screen's layout at
-390 by 844. Two changes from the copy in the pitch thread: it writes
-`prelude_icon_square.svg` too, which that copy had produced and then lost, and
-it drops a dead function that referenced an undefined name and could not have
-run. The billboard panel is not written, because nothing in the app serves it.
-`--check` draws everything and compares; all four committed files, the square
-icon included, are byte for byte what the numbers draw. The mark is the
-outlines of two fonts, so both variable fonts are committed beside the script
-with their licences, both SIL Open Font License 1.1, and
-`scripts/brand/README.md` records each source URL and checksum.
+**The share button** (`84dcbeb`). It reads "SHARE", which is what it does.
+With a share sheet, `navigator.share` is handed the title, the match's own
+line out of `hero.share_text` and the card's URL, unchanged. Without one the
+link goes to the clipboard and the button says "LINK COPIED" only once that
+write has resolved. There are two ways for nothing to have been copied, and
+the old branch announced success in both: `navigator.clipboard` is undefined
+outside a secure context, so reaching `writeText` throws, and `writeText`
+itself can be refused, so it rejects. Neither says anything now. "SHARE CLIP"
+is a banned string in `scripts/scan_copy.py`, which caught the comment that
+explained the change and is why that comment does not quote it.
 
-**The icon** (`d98d781`). Task 32's "P." was a placeholder for a brand that
-had not arrived. The icon is the seven bars, which is the part of the mark
-that survives being 32 px. `scripts/make_icons.py` replaces
-`scripts/make_mark.py` and reaches nothing: `favicon.svg` is
-`prelude_icon.svg` itself, corners rounded because a tab draws an icon as it
-is given, and the four PNGs are rasterised from `prelude_icon_square.svg`,
-whose corners are square because iOS, Android and a maskable install each
-round or crop one themselves. The bitmaps are drawn from that file's own path,
-matched whole against capsules and read back, so a file the script cannot read
-is one it refuses to rasterise rather than guess at. The manifest offers the
-512 as "any maskable": the outermost corner of the widest bar is 30% of the
-square from the centre, against a safe radius of 40%. Every screen links the
-same four paths, so no screen changed.
+`tests/browser/test_sharing.py` drives both paths on both matches: the sheet
+stubbed and recording what it was given, the sheet absent and the clipboard
+read back with `readText`, the clipboard refusing, and the clipboard gone
+altogether. The line is read out of `app/web/matches.json` rather than written
+down. The confirmation is asked of every frame a `MutationObserver` recorded,
+because a line that flashed for 80 ms is a line a fan can read.
 
-**The launch screen** (`6c4e515`). The mark is inlined from
-`prelude_mark.svg`, so the white letters and the amber bars are the drawing
-rather than a font the machine may not have, and it costs no request of its
-own in the first frame. Under it is the tagline as real text in Hanken Grotesk
-500 at 16 px in amber. The layout is `prelude_launch.svg`'s own and was
-measured in Chromium at 390 by 844: the mark 300 by 32, the gap 20, the pair
-24 px above the middle. It is announced as one image named "Prelude. Leave
-your seat. Stay in the game.", and the inlined mark carries `aria-hidden` and
-no title, because a name inside something already named is a second name for
-one thing. It now paints on every full load of the root page; it painted once
-per tab, decided in the head out of `sessionStorage`, and the shell reads no
-storage at all now.
+**The accessible name, found while writing that test** (`84dcbeb`). A Material
+Symbol span holds a ligature, not a word, and it was inside the button's name:
+Chromium computed "ios_share SHARE" for this button and "replay_10 REPLAY 10S"
+for the one beside it, measured through the role selector rather than read off
+the markup. Both icons carry `aria-hidden="true"` now. Every other icon in the
+app is still inside its control's name, which is one attribute each over seven
+screens and is under Open items rather than done here.
 
-**The quote, and the lines nothing had read** (`6abc2ab`). The broadcast quote
-is gone from the card, from `hero.quote` and `hero.quote_names`, from the
-renderer, from the gate that checked the names in it, and from the set of
-fields a grounding label may stand over, which is the narration alone now. Its
-two openings and the guillemet are banned copy.
+**The launch screen's timing** (`84dcbeb`). Three numbers instead of two, in
+`app/web/index.html` and in `docs/DESIGN.md`: a 1,500 ms hold on every full
+load, a 300 ms fade, and 2,500 ms as the last moment a fan can see it. The cap
+bounds the screen rather than the start of the fade, so the fade begins at
+2,200 ms. The clock is `performance.now()`, which counts from the start of the
+navigation, so both bounds are about the load the fan started rather than
+about whenever the script ran. Reduced motion gets the same hold and no fade.
 
-Then the search Shawn asked for, over every screen and `app/web/matches.json`.
-Six lines described the play and were not held to the feed:
+Measured in headless Chromium at 390 by 844, as the moment the fade began and
+the moment the screen left the page: 1,507 and 1,809 ms with matches.json
+answered at once, 1,589 and 1,891 ms with it delayed 1.5 s, 2,209 and 2,510 ms
+with it refused, and no fade and 1,507 ms with reduced motion.
 
-| Line | What was unheld |
-| ---- | --------------- |
-| the 1986 hero caption | "solo run from his own half, past four England players"; only the clock in front of it was checked |
-| the 1986 hero share text | "solo goal"; only that it names the scorer was checked |
-| the 1986 opener's title and body | "opener", "Reid's error", "nine yards"; that moment carried no grounding block at all |
-| the 1986 solo goal's title and body | the same claims as the caption, and no block |
-| the 2022 hero caption and share text | "a counter", "began in Argentina's own half"; the hero had no block |
-| the 2022 "Di María doubles it" title | "doubles"; the block behind it said nothing about which goal of the match it was |
+**The startup images** (`71dbc4c`). iOS shows an `apple-touch-startup-image`
+while a web app opened from the home screen is starting, and it takes one only
+where the file is exactly that screen's own pixel size. `IPHONES` in
+`scripts/brand/build_svg.py` is eleven screens in portrait, read off Apple's
+point sizes, covering every iPhone on a current iOS; the script draws one PNG
+each into `app/web/assets/launch/`, 560 KB in all, and the shell links each
+behind a media query naming the CSS size, the pixel ratio and portrait. The
+ratio is in the query because two iPhones share 414 by 896 at two ratios and
+the wrong one of those is a quarter of the pixels. The shell also carries
+`apple-mobile-web-app-capable` and `mobile-web-app-capable`, without which iOS
+opens the icon in Safari's chrome and shows no startup image, and an opaque
+black status bar rather than a translucent one: translucent puts the page
+under the bar, and the screens read their safe-area insets inside the shell's
+iframe, where `env()` is zero. The manifest's `background_color` was already
+`#101319`, which is the colour these are drawn on, and a test now reads the
+corner pixel of one against it rather than taking both from the same constant.
 
-All six are held rather than removed, because each one is true and the feed
-says so. The three rules are in Current state. Six grounding keys are new:
-`solo_run`, `own_half`, `dribbled_past`, `yards_from_goal`, `recovers_error`
-and `match_goal_number`.
+**They are drawn from the layout, not from `prelude_launch.svg`.** A screen
+that is not 390 by 844 is not that file stretched: the mark stays 300 CSS px
+wide on every screen because the CSS does not scale it. `launch_layout` is
+those rules as numbers and `app/web/index.html` is the same rules in CSS,
+which is two copies of one thing, so
+`tests/browser/test_the_launch_screen.py` screenshots the shell at 390 by 844
+at three device pixels to the CSS pixel and measures the drawing in it against
+`launch-1170x2532.png`.
 
-Two readings were wrong on the first pass and the tests found both. `solo_run`
-as "nobody else of his team touched it" is satisfied by a one-touch finish,
-which is exactly what the 2022 hero is, so it also asks the feed for a carry
-or a dribble of the scorer's own. And a name was read as the last word of a
-player's name, which for "Jorge Alberto Francisco Valdano Castellano" is
-"Castellano": a line saying "Valdano" matched nothing, so that check had never
-fired. Every part of a name long enough to be one is read now.
+**That comparison found the one real difference.** The block was being centred
+on the tagline's 16 px type where the CSS centres its 20 px line box, which
+put the mark 2 CSS px below where the shell paints it. `prelude_launch.svg`
+moves by those 2 px and the three renderings are one layout now. Measured
+after the fix: the white box agreed to within 1 device pixel and the amber box
+to within 3, the amber being the tagline, whose outermost column and lowest
+descender row the browser leaves fainter than the threshold.
 
-**The two pills** (`ed129f4`). Live's "PLAY DATA CONNECTED" and both Moments
-cards' "AI AUDIO NARRATION, PLAY DATA SYNC" were Task 32's second "Found, not
-fixed" line. Nothing checks a connection and nothing synchronises. Both say
-"PLAY-BY-PLAY DATA" now, which is the phrase the list card and the ticket
-already use, and both old phrases are banned copy.
+**The glyphs are rasterised from their own outlines.** No font is loaded to
+draw a startup image: `fontTools` gives the contours, a pen flattens the
+curves, and Pillow fills each shape even-odd so a counter in a letter is a
+hole, oversampled four times and reduced. The seven bars are capsules, as the
+icon's are. `--check` compares a PNG pixel by pixel and not byte by byte, for
+the reason `scripts/make_icons.py` measured in Task 33, and the Linux runner
+agreed with this machine on all eleven.
 
-**The docs** (`25bb4a6`). `docs/DESIGN.md` gains "The mark": what the mark,
-the icon and the tagline are, the two colours as the system's own tokens,
-where each of the four brand files lives and what reads it, and the icon set
-with the size of each file and where it is shown. `README.md` says the app has
-a mark and that the first frame of a load is it.
-
-**What CI found, which no local run could.** `scripts/make_icons.py --check`
-compared the committed PNGs byte for byte. It passed here and failed on the
-runner with all four reported as DIFFERS. Pillow 12.3.0 is what both sides
-install; it draws the same image and encodes it through whatever zlib its
-wheel was built against. Run under Linux with the same Pillow against the same
-committed files, the four come out 656, 3,085, 3,216 and 9,094 bytes where
-this machine writes 654, 3,049, 3,203 and 8,967, and every pixel of all four
-is identical. The check decodes both sides and compares pixels now; the SVG
-and the manifest are text and are still compared as written. A byte comparison
-there was a claim about zlib rather than about the icon.
-
-**The evidence.** `pytest -q` reports `2067 passed`, up from `2012`; `pytest
-tests/browser` reports `88 passed`, up from `86`; all five gates exit 0;
-`git status` is clean after both. Two screenshots are committed, both taken in
-headless Chromium at 390 by 844 at two device pixels per CSS pixel:
-`docs/evidence/task33_launch_screen.png` is the shell with matches.json held
-for three seconds, and
-`docs/evidence/task33_moment_card_below_the_player.png` is the 1986 card
-scrolled to the foot, where the quote block was. The icon at both sizes is
-`app/web/assets/icon/favicon-32.png` and
-`app/web/assets/icon/apple-touch-icon-180.png`, which every screen links.
+**The evidence.** `pytest -q` reports `2085 passed`, up from `2067`; `pytest
+tests/browser` reports `100 passed`, up from `88`; all five gates exit 0;
+`git status` is clean after both. `scripts/brand/build_svg.py --check` reports
+every committed brand file is what the numbers draw, the eleven startup images
+included, and the Linux runner agreed with this machine on all eleven. CI is
+green on the last commit of this task.
 
 **Found, not fixed.**
 
-- **At 32 px the seven bars come back as three runs of amber.** A bar is
-  1.5 px wide there and a gap 1.25 px, so some gaps do not survive the
-  reduction. Nothing can separate them at that size; the vector is what a
-  browser that can read one takes, and `tests/test_the_mark.py` records the
-  measurement rather than asserting a number nobody measured.
-- **A committed PNG is only reproducible to the pixel, not to the byte.**
-  `scripts/make_icons.py --check` compares pixels for that reason, so a
-  bitmap re-encoded by a different zlib with the same image in it passes. A
-  file whose bytes changed and whose pixels did not is invisible to the
-  check, which is the right trade and is not free.
-- **`prelude_launch.svg` is committed and nothing at runtime serves it.** It
-  is the layout the CSS was measured against, and the measurements are in the
-  browser suite, so the file could go. It stays because it is what a designer
-  opens.
-- **A claim phrase in `CLAIMS` is a phrase and not a reading of the sentence.**
-  "past" needs a `dribbled_past` key wherever it appears, so a line saying
-  "walks past the bench" would be asked for one. Nothing in the copy says
-  that, and the alternative is parsing.
-- **Nothing holds the Moments cards' `aria-label` to the title it repeats.**
-  The label is built from the title by the renderer and the inline copy
-  carries both, but the check that the inline copy matches
-  `app/web/matches.json` is a substring search, so a stale heading beside a
-  correct label would pass.
-- **The icon font is still 1.14 MB of the 1.34 MB of committed fonts**, and
-  the two variable fonts add 280 KB more under `scripts/brand/fonts/`, which
-  no browser loads. Task 32's finding stands; the fonts beside the generator
-  are the price of the mark being reproducible.
-- **The smoke subset does not open the launch screen.** It checks the moment
-  card, the label, the claim count and the three endpoints against the live
-  site; the first frame of a visit is checked against the working tree only.
-- **The compiled stylesheet is not rebuilt by CI**, and **CI does not run on a
-  schedule, and the smoke workflow cannot be made to fail by a failing
-  deploy.** All three are Task 32's and Task 30's and all three still stand.
+- **Every icon in the app is still inside its control's accessible name.**
+  Measured on 2026-11-15: the Live nav link is named "sensors LIVE" and the
+  Moments one "auto_awesome_motion MOMENTS". The two in the deck Task 34
+  changed are fixed and the rest are a sweep over seven screens plus the
+  markup `app/web/match-content.js` builds. It is under Open items with what
+  it would take.
+- **The startup images are 560 KB.** Each is a flat background and a band of
+  anti-aliased drawing, and it is the band that costs: measured on
+  2026-11-15, quantising one to a 256-colour palette took it from 51,633
+  bytes to 24,665, which would halve the set. It was not taken, because it
+  puts a quantiser between the drawing and the check that says the committed
+  file is what the numbers draw, and the whole set is reproducible to the
+  pixel as it stands.
+- **Nothing here has run on an iPhone.** Every claim about the startup images
+  is about the files, the links and the media queries: that each file is the
+  pixel size its query names, that the drawing in it is the drawing the shell
+  paints, and that the shell says it is a web app. Whether iOS picks the
+  right one of the eleven is a thing only a device shows, and no device was
+  used. The eleven screens and the query form are read from Apple's point
+  sizes rather than measured here.
+- **The cap is 2,500 ms and the screen left the page at 2,510.** A
+  `setTimeout` is a floor and not a ceiling, so 10 ms is what nothing in the
+  page can take off; the browser suite allows the runner's own scheduling on
+  top of that and the measurement is in `docs/DESIGN.md`.
+- **A launch screen that is interrupted is not covered.** The suite drives a
+  load, a reload, a new tab, a slow list, a refused list and a list that
+  never answers. A fan who navigates away inside the hold, or whose tab is
+  backgrounded so the timers are throttled, is not among them.
+- **`prelude_launch.svg` is committed and nothing at runtime serves it**, and
+  **the icon font is still 1.14 MB of the committed fonts**, and **the smoke
+  subset does not open the launch screen**, and **the compiled stylesheet is
+  not rebuilt by CI**, and **CI does not run on a schedule**, and **the smoke
+  workflow cannot be made to fail by a failing deploy**. All six are Task
+  33's, Task 32's and Task 30's, and all six still stand.
 
 ## History
 
@@ -906,6 +938,7 @@ decision now lives.
 | File | What is in it |
 | ---- | ------------- |
 | `docs/history/task_32_what_the_app_claims.md` | the four lines that claimed more than the code does, the claim count under the label, the compiled stylesheet and the committed fonts, one player for both screens, the first mark and the first launch screen |
+| `docs/history/task_33_the_brand.md` | the brand given to the build, the icon set drawn from it, the launch screen, the broadcast quote removed and the six lines of match copy that were not held to the feed |
 | `docs/history/phase1-3_scaffold_data_and_eventfeed.md` | the scaffold, the fetch, the data check, and Bob's EventFeed |
 | `docs/history/phase4_narration_and_orchestrator.md` | the provider layer, the prompt, the grounding check, the personas, the model comparison and the orchestrator |
 | `docs/history/phase5_voice_and_the_six.md` | the Text to Speech probe, the pronunciation table, the hero run that was refused, and the freeze |

@@ -26,6 +26,7 @@ that describes the repo now.
 | `docs/history/task_30_the_browser_suite_and_the_build.md` | the play button that waits for its words, the Moments hero card's recording, `tests/browser/`, CI on every push and the smoke workflow after a deploy |
 | `docs/history/tasks_7_to_10_and_bob_sessions.md` | the candidate runs later runs replaced, every Bob session from task 7 to task 13 with its brief, and what tasks 4b, 6 and 6d settled |
 | `docs/history/task_32_what_the_app_claims.md` | the four lines that claimed more than the code does, the claim count under the label, the compiled stylesheet and the fonts, jsQR and the icon brought into the repo, one player for both screens, and the first mark and launch screen |
+| `docs/history/task_33_the_brand.md` | the brand given to the build: the mark, the icon set drawn from it, the launch screen, the broadcast quote removed, the six lines of match copy that described the play and were not held to the feed, and the two pills |
 
 ## Where each archived decision now lives
 
@@ -207,3 +208,22 @@ was about work that is finished and constrains nothing further.
 | A screen-only push still rebuilds the API | settled and closed; `app/web/` holds three files the service answers from |
 | The smoke subset does not open the launch screen | `HANDOFF.md`, Last task's Found, not fixed, where it still stands |
 | The compiled stylesheet is not rebuilt by CI | `HANDOFF.md`, Last task's Found, not fixed, where it still stands |
+
+### From Task 33
+
+| Decision, rule or open item | Now lives |
+| --------------------------- | --------- |
+| The mark, the icon and the tagline, drawn by `scripts/brand/build_svg.py` | Current state, under the ticket, the site and the type |
+| The launch screen paints on every full load and the shell reads no storage | Current state, same section |
+| The launch screen never outlives two seconds | **superseded by Task 34**: it is held 1.5 seconds, fades over 300 ms and is off the screen by 2.5 |
+| `prelude_launch.svg` is the layout the CSS was measured against | **superseded by Task 34**: `launch_layout` in the brand script is the layout, and a screenshot holds it to the CSS |
+| A committed PNG is compared pixel by pixel and not byte by byte | Current state, same section; `scripts/brand/build_svg.py` compares the startup images the same way |
+| The broadcast quote, its two openings and the guillemet are banned copy | Current state, The label, and `scripts/scan_copy.py` |
+| A line of match copy that describes the play carries a `grounding` block | Current state, under the ticket, the site and the type |
+| The two pills now read "PLAY-BY-PLAY DATA" | Current state, same section |
+| At 32 px the seven bars come back as three runs of amber | settled and closed; `tests/test_the_mark.py` records the measurement |
+| `prelude_launch.svg` is committed and nothing at runtime serves it | still true, and `docs/DESIGN.md` says so; the startup images are drawn from its layout rather than from the file |
+| A claim phrase in `CLAIMS` is a phrase and not a reading of the sentence | `docs/history/task_33_the_brand.md`, Found, not fixed |
+| Nothing holds the Moments cards' `aria-label` to the title it repeats | `docs/history/task_33_the_brand.md`, Found, not fixed |
+| The icon font is 1.14 MB of the committed fonts | `HANDOFF.md`, Last task's Found, not fixed, where it still stands |
+| The smoke subset does not open the launch screen | Current state, Still open: what the build does not say |
