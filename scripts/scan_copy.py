@@ -51,6 +51,12 @@ BANNED = [
      r"Play data connected\s*·\s*AI narration ready"),
     ("a synchronisation that does not happen", r"Synchronizing Play Data"),
     ("a venue feed that does not exist", r"Connected to Venue Feed"),
+    # The mockup's broadcast quote, removed in Task 33. The guillemets are the
+    # block's own opening mark and nothing else in the app uses one; the two
+    # openings are there so that the line cannot come back without them.
+    ("the mockup's broadcast quote", r"\u00ab\s*\.\.\."),
+    ("the mockup's broadcast quote", r"Maradona, inside his own half"),
+    ("the mockup's broadcast quote", r"Molina to Mac Allister"),
 ]
 
 COMPILED = [(label, re.compile(pattern, re.IGNORECASE)) for label, pattern in BANNED]
@@ -72,9 +78,13 @@ COMPILED = [(label, re.compile(pattern, re.IGNORECASE)) for label, pattern in BA
 GROUNDING_LABEL = "Verified from play data"
 
 # Elements that hold narration. A label is grounded when it shares a card with
-# one of these. If Phase 5 adds another narration field, add it here too, or a
+# one of these. If another narration field is added, add it here too, or a
 # correct placement will be reported as a violation.
-NARRATION_FIELDS = {"hero_quote", "hero_narration"}
+#
+# `hero_quote` was here until Task 33 and is not any more: a broadcast quote
+# from the mockup is not narration this app produced or checked, so a label
+# standing over one was standing over words nothing had read against the data.
+NARRATION_FIELDS = {"hero_narration"}
 
 # Walking out of the card and into the page shell would let any label anywhere
 # on a screen count as grounded, so the walk stops at these.

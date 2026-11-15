@@ -183,10 +183,22 @@ one up in `data/raw/`: every name, minute, score, count, body part, play pattern
 and assist. It does not search the data for goals or buildups, because finding
 moments is the EventFeed module's job.
 
-Its last run checked both matches and reported that the quoted 1986 hero names
-(Maradona, Beardsley, Butcher, Fenwick, Shilton) are all recorded in possession
-117, and that the index scores reconcile with the feed. `HANDOFF.md` carries
-that output.
+**It also reads the words.** A line of match copy that describes the play
+carries a `grounding` block, every key in it is checked against the feed, every
+key has to be said in the words beside it, and every claim in the words has to
+have a key. The phrases that count as claims are `CLAIMS` in that script:
+"solo", "own half", "counter", "past", "yards", "error", a body part, an assist,
+"opener" and "doubles", and a penalty, which is backed by the shot type rather
+than by a key. A line anywhere else in `app/web/matches.json` that uses one of
+them fails, because no block stands behind it. Any player the match's own feed
+knows who is named in a line has to be recorded in that goal's possession, which
+is what held the broadcast quote that Task 33 removed.
+
+Its last run checked both matches and reported the 1986 hero's three keys, the
+1986 opener's three, the 2022 hero's two and the 2022 moments' five, with every
+claim in those lines accounted for, and that the index scores reconcile with the
+feed. `tests/test_match_copy_claims.py` is what says the rules bite: it moves
+one value at a time off the feed and asserts the gate reports it.
 
 The seats on the ticket screens are not checked against the data, and that is
 deliberate: `scripts/make_tickets.py` records why, which is that a seat is the

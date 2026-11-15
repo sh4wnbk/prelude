@@ -490,28 +490,28 @@ class TestTheNarrationOnTheMomentCard:
         )
 
     def test_the_grounding_label_sits_beside_the_narration(self):
-        """One label on the card, after the narration and before the quote.
+        """One label on the card, directly after the narration.
 
-        It used to sit at the foot of the card beside the quote. A second copy
-        of it would not be a second guarantee, so the one label moved to the
-        narration rather than being duplicated.
+        It used to sit at the foot of the card beside a broadcast quote. A
+        second copy of it would not be a second guarantee, so the one label
+        moved to the narration rather than being duplicated.
         """
         markup = self.card()
         assert markup.count(GROUNDING_LABEL) == 1
         assert markup.index('data-field="hero_narration"') < markup.index(
             GROUNDING_LABEL
         )
-        assert markup.index(GROUNDING_LABEL) < markup.index(
-            'data-field="hero_quote"'
-        )
 
-    def test_the_quote_block_is_still_there(self):
-        """Kept: it does not conflict with the narration.
-
-        The quote names the same players in the same order as the facts the
-        narration cites, so the two say the same thing in different registers.
-        """
-        assert 'data-field="hero_quote"' in self.card()
+    def test_the_broadcast_quote_is_gone(self):
+        """A commentary line in guillemets stood under the label, from the
+        mockup. Nothing read it out of the data, and the 2022 one was wrong
+        about the play: it said a pass went "back to Mac Allister" where the
+        feed records it going 36 yards forward. The narration above says what
+        happened and carries the label that says it was checked."""
+        markup = self.card()
+        assert 'data-field="hero_quote"' not in markup
+        assert "\u00ab" not in markup
+        assert "format_quote" not in markup
 
     def test_the_renderer_fills_the_narration_for_the_chosen_match(self):
         """Otherwise the 2022 card would show the 1986 narration."""

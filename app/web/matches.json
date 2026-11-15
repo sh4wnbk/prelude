@@ -60,14 +60,6 @@
         "period_label": "2H",
         "display_minute": 55,
         "caption": "2H · 55' · Maradona's solo run from his own half, past four England players",
-        "quote": "«...Maradona, inside his own half, past Beardsley, past Butcher, past Fenwick, rounds Shilton, and finishes.»",
-        "quote_names": [
-          "Maradona",
-          "Beardsley",
-          "Butcher",
-          "Fenwick",
-          "Shilton"
-        ],
         "share_text": "Maradona's solo goal as it happened.",
         "opening": {
           "greeting": "tonight",
@@ -82,6 +74,11 @@
           "buddy_conceded": "assets/audio/3750191_buddy_conceded.mp3",
           "buddy_scored": "assets/audio/3750191_buddy_scored.mp3",
           "storyteller_neutral": "assets/audio/3750191_storyteller_neutral.mp3"
+        },
+        "grounding": {
+          "solo_run": true,
+          "own_half": "first touch",
+          "dribbled_past": 4
         }
       },
       "moments_subtitle": "ARGENTINA vs ENGLAND · TONIGHT SO FAR",
@@ -100,7 +97,12 @@
             "shot_type": "Open Play"
           },
           "title": "Maradona's opener",
-          "body": "Maradona recovers Reid's error and scores from nine yards."
+          "body": "Maradona recovers Reid's error and scores from nine yards.",
+          "grounding": {
+            "match_goal_number": 1,
+            "recovers_error": "Peter Reid",
+            "yards_from_goal": 9
+          }
         },
         {
           "tag": "GOAL",
@@ -115,7 +117,12 @@
             "shot_type": "Open Play"
           },
           "title": "Maradona's solo goal",
-          "body": "Maradona's solo run from his own half, past four England players."
+          "body": "Maradona's solo run from his own half, past four England players.",
+          "grounding": {
+            "solo_run": true,
+            "own_half": "first touch",
+            "dribbled_past": 4
+          }
         }
       ],
       "session_clock": {
@@ -185,14 +192,6 @@
         "period_label": "1H",
         "display_minute": 36,
         "caption": "1H · 36' · Di María finishes a counter that began in Argentina's own half",
-        "quote": "«...Molina to Mac Allister, on to Messi, Messi to Álvarez, Álvarez back to Mac Allister, and Mac Allister squares it for Di María, who finishes.»",
-        "quote_names": [
-          "Molina",
-          "Mac Allister",
-          "Messi",
-          "Álvarez",
-          "Di María"
-        ],
         "share_text": "Di María's counter goal as it happened.",
         "opening": {
           "greeting": "tonight",
@@ -207,6 +206,10 @@
           "buddy_conceded": "assets/audio/3869685_buddy_conceded.mp3",
           "buddy_scored": "assets/audio/3869685_buddy_scored.mp3",
           "storyteller_neutral": "assets/audio/3869685_storyteller_neutral.mp3"
+        },
+        "grounding": {
+          "play_pattern": "From Counter",
+          "own_half": "possession start"
         }
       },
       "moments_subtitle": "ARGENTINA vs FRANCE · TONIGHT SO FAR",
@@ -247,7 +250,8 @@
           "grounding": {
             "body_part": "Left Foot",
             "play_pattern": "From Counter",
-            "assist": "Alexis Mac Allister"
+            "assist": "Alexis Mac Allister",
+            "match_goal_number": 2
           }
         }
       ],

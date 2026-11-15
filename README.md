@@ -101,7 +101,9 @@ Everything above it is structure.
   Exits non-zero on any hit.
 - `scripts/check_match_copy.py`: checks every name, minute, score and count in
   `app/web/matches.json` against `data/raw/`, and the inline copy in the screens
-  against `app/web/matches.json`.
+  against `app/web/matches.json`. A line that describes the play carries a
+  `grounding` block: every key in it is read against the feed, every key has to
+  be said in the words, and every claim in the words has to have a key.
 - `scripts/make_tickets.py`: writes a demo ticket QR code per match into
   `app/web/assets/tickets/`, and reads each one back with a decoder before it
   counts as written.

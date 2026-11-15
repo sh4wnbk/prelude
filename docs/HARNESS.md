@@ -104,7 +104,7 @@ collector from
 | `scripts/write_served_matches.py` | the matches the agent is told it serves, from `app/web/matches.json` and `data/raw/matches/`, with `--check` as the gate on drift | the list inside `docs/orchestrate_agent.md` | nothing |
 | `scripts/story_beats_report.py` | the beat list for both hero goals, beside the records it was curated from | nothing | nothing |
 | `scripts/scan_copy.py` | gate: banned copy, and the grounding label's placement | nothing | nothing |
-| `scripts/check_match_copy.py` | gate: every factual value in `app/web/matches.json` against `data/raw/` | nothing | nothing |
+| `scripts/check_match_copy.py` | gate: every factual value in `app/web/matches.json` against `data/raw/`, and every line that describes the play against the `grounding` block behind it, both ways | nothing | nothing |
 | `scripts/check_docs.py` | gate: the claims these docs make against the code | nothing | runs `pytest` |
 | `scripts/record_narration_golden.py` | records one Ollama request and response | `tests/golden/ollama_development_model.json` | a local Ollama server |
 | `scripts/narrate_once.py` | narrates one goal and prints every attempt | nothing | a local Ollama server |
@@ -212,7 +212,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 2030 tests in forty one files. Any failure means something is
+The suite is 2062 tests in forty two files. Any failure means something is
 wrong. It is run from the repo root:
 
 ```
@@ -252,7 +252,8 @@ wrote that file as Task 15; it exists now and they pass.
 | `tests/test_the_mark.py` | the mark: the brand files and the icon set, both generators re-run with `--check` against what is committed, the bars read out of the bitmaps with a decoder, the two colours against the screens' own tokens, the links on every screen and the manifest |
 | `tests/test_the_claims_checked_line.py` | the claim count beside the label: one per slot in `app/web/narrations.json`, read from the file rather than typed, and shown and hidden with the label |
 | `tests/test_the_screens_claim_only_the_code.py` | the four lines Task 32 removed because they claimed more than the code does: the GPS badge, the live audio sync button, the status line and the confirm button's sequence |
-| `tests/test_screen_copy.py` | the copy Shawn settled on 2026-10-29: the card's label, the Live helper after Heading out, the share title and texts, built by Bob in Task 7; and the seated caption Shawn settled on 2026-11-12 |
+| `tests/test_screen_copy.py` | the copy Shawn settled on 2026-10-29: the card's label, the Live helper after Heading out, the share title and texts, built by Bob in Task 7; the seated caption Shawn settled on 2026-11-12; and the launch screen, the mark inlined from the brand file and the tagline under it |
+| `tests/test_match_copy_claims.py` | the copy gate's hold on lines that describe the play: each grounding key moved off the feed one at a time, a key the words stop saying, a claim with no key behind it, a claim written into a line no block stands behind, and a player named who was not in the possession |
 | `tests/test_orchestrator.py` | the greeting, the phase, the score state, the transition, the game focused header, the default persona and `opening`, against `app/orchestrator.py` |
 | `tests/test_personas.py` | the persona config: the three ids, the fields, the three picked voices, the unconfirmed prosody and the Profile copy |
 | `tests/test_pronunciation.py` | the pronunciation table, the markup it builds, the round trip that proves it says the same words, and the seven modules forbidden to import it |

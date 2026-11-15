@@ -423,6 +423,18 @@ QUOTED_SCREEN_COPY = re.compile(
 )
 QUOTE_CITATION = re.compile(r"`(0[1-4])`|`(removed)`")
 
+#: Screen copy a task record quotes with the screen it was on, and a later
+#: task took off that screen. The record stands as it was written and this
+#: says the line is gone; the check reads it both ways, so a line here that
+#: comes back to a screen fails until this entry goes.
+#:
+#: Task 33 removed the moment card's broadcast quote: nothing read it out of
+#: the data, and the 2022 one was wrong about the play.
+SINCE_REMOVED = {
+    "\u00ab...Maradona, inside his own half, past Beardsley, past Butcher, "
+    "past Fenwick, rounds Shilton, and finishes.\u00bb",
+}
+
 
 def check_quoted_screen_copy(fail):
     """A doc that quotes screen copy says which screen it is on.
@@ -436,9 +448,21 @@ def check_quoted_screen_copy(fail):
     carrying most of those quotes are now under `docs/history/`. Both are read,
     and the total is what has to be non-zero: a convention that disappeared
     from every doc at once is a convention that has quietly changed.
+
+    A record is not edited as the code moves on, so a record quoting a line
+    that a later task removed would fail here for being right about the day it
+    was written. `SINCE_REMOVED` is where that is recorded instead, and it is
+    read in both directions: writing one of those lines back into a screen
+    fails until the entry goes.
     """
     sources = [ROOT / "HANDOFF.md"] + HISTORY
     text = {k: " ".join(v.read_text(encoding="utf-8").split()) for k, v in SCREENS.items()}
+
+    for gone in SINCE_REMOVED:
+        still = [k for k, body in text.items() if gone in body]
+        if still:
+            fail("the screens", f"{gone[:50]!r} is recorded as removed but is in "
+                                f"{', '.join(still)}")
 
     found = 0
     for doc in sources:
@@ -453,6 +477,8 @@ def check_quoted_screen_copy(fail):
                         fail(doc.name,
                              f"{wanted[:50]!r} is marked removed but is still in "
                              f"{', '.join(still)}")
+                elif wanted in SINCE_REMOVED:
+                    continue
                 elif wanted not in text[key]:
                     fail(doc.name, f"{wanted[:50]!r} is not in {SCREENS[key].name}")
     if not found:

@@ -414,7 +414,6 @@
     if (match.hero.opening) {
       setText("hero_header", headerWithName(match.hero.opening.header, nameFor()));
     }
-    setText("hero_quote", match.hero.quote);
     // The share sheet must describe this match, not the one in the markup.
     var share = document.getElementById("shareAction");
     if (share && match.hero.share_text) {

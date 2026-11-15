@@ -8,10 +8,33 @@ can gate a commit.
 It does not search the data for goals or buildups. It is handed the values the
 copy claims and checks each one. Finding moments is the EventFeed module's job.
 
+**A line that describes the play says so in a `grounding` block.** Task 33
+asked what in the app describes the play, who passed, dribbled or scored and
+how, without anything holding it to the feed, and found the moment card's
+caption, its share text and both 1986 moments. Three rules keep that from
+coming back, and together they make the block a claim about these words rather
+than about the goal:
+
+1. **Every key in a `grounding` block is checked against the feed.** That was
+   already true of `body_part`, `play_pattern` and `assist`; `solo_run`,
+   `own_half`, `dribbled_past`, `yards_from_goal`, `recovers_error` and
+   `match_goal_number` are the keys Task 33 added for the lines it found.
+2. **Every key has to be said in the words beside it**, in the form `SAYS`
+   gives. A key nothing says is a fact nobody reads, and a block of them
+   would be a grounding score rather than a grounded line.
+3. **Every claim in the words has to have a key.** `CLAIMS` is the list of
+   phrases that are claims about the play: a line using one with no key
+   behind it fails, wherever in matches.json it is written.
+
+On top of those, any player this repo's own data knows who is named in a line
+has to be recorded in that goal's possession, which is how the removed
+broadcast quote was held before it went.
+
     .\.venv-prelude\Scripts\python.exe -I scripts\check_match_copy.py
 """
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -27,6 +50,58 @@ INDEXES = {
 # Period 5 is a shootout and is never a moment of the match.
 LAST_MATCH_PERIOD = 4
 PERIOD_LABELS = {1: "1H", 2: "2H", 3: "ET", 4: "ET"}
+
+#: StatsBomb's pitch, in yards, with the attacking goal at the right. A team
+#: attacks towards x = 120 in its own event co-ordinates, so its own half is
+#: everything short of the halfway line.
+PITCH_LENGTH = 120.0
+PITCH_WIDTH = 80.0
+HALFWAY = PITCH_LENGTH / 2
+
+#: How a number may be written in a line of copy. Only as far as the copy
+#: goes: a line claiming more than a dozen of anything can add to this.
+IN_WORDS = {
+    1: ("one", "first", "opener"),
+    2: ("two", "second", "doubles"),
+    3: ("three", "third"),
+    4: ("four", "fourth"),
+    5: ("five", "fifth"),
+    6: ("six", "sixth"),
+    7: ("seven", "seventh"),
+    8: ("eight", "eighth"),
+    9: ("nine", "ninth"),
+    10: ("ten", "tenth"),
+    11: ("eleven", "eleventh"),
+    12: ("twelve", "twelfth"),
+}
+
+
+def says_name(prose, full):
+    """Whether a line names this player, by any part of their name."""
+    return any(re.search(r"\b%s\b" % re.escape(part), prose, re.IGNORECASE)
+               for part in name_parts(full))
+
+
+def says_number(prose, n):
+    """Whether a line says the number n, as a digit or as a word."""
+    forms = [str(n)] + list(IN_WORDS.get(n, ()))
+    return any(re.search(r"\b%s\b" % form, prose, re.IGNORECASE) for form in forms)
+
+
+#: A name token shorter than this matches too much to be a name: "Di" is in
+#: "Di María" and in nothing else here, but it is also two letters.
+SHORTEST_NAME = 4
+
+
+def name_parts(full):
+    """The parts of a player's name a line of copy might use.
+
+    Not the last word. StatsBomb records both surnames, so Valdano is
+    "Jorge Alberto Francisco Valdano Castellano" and Messi is "Lionel Andrés
+    Messi Cuccittini": a line saying "Valdano" or "Messi" is naming the last
+    word of neither. Every part long enough to be a name is read instead.
+    """
+    return [part for part in full.split() if len(part) >= SHORTEST_NAME]
 
 
 def load(path):
@@ -84,7 +159,30 @@ def check_labels(tag, block, g, fail):
         )
 
 
-def check_grounding(tag, grounding, g, goals, events, home_team, fail):
+def other_team(g, home_team, away_team):
+    """The team that was not on the ball for this goal, by name."""
+    return away_team if g["team"]["name"] == home_team else home_team
+
+
+def in_possession(events, g):
+    """Every event of the goal's possession, in order."""
+    return [e for e in events if e["possession"] == g["possession"]]
+
+
+def on_the_ball(events, g):
+    """The scoring team's own events in the possession, in order.
+
+    An opponent's Pressure, Duel or Dribbled Past is recorded in the same
+    possession and is not that player having the ball, so the team is what
+    this reads rather than the possession alone.
+    """
+    return [e for e in in_possession(events, g)
+            if e.get("team", {}).get("name") == g["team"]["name"]
+            and "player" in e]
+
+
+def check_grounding(tag, grounding, g, goals, events, home_team, away_team,
+                    fail):
     if "body_part" in grounding and grounding["body_part"] != g["shot"]["body_part"]["name"]:
         fail(tag, f"body_part {grounding['body_part']!r}, the feed says "
                   f"{g['shot']['body_part']['name']!r}")
@@ -124,6 +222,227 @@ def check_grounding(tag, grounding, g, goals, events, home_team, fail):
         actual = [home, len(upto) - home]
         if grounding["score_after"] != actual:
             fail(tag, f"claims the score was {grounding['score_after']}, the feed says {actual}")
+    if "match_goal_number" in grounding:
+        n = goals.index(g) + 1
+        if n != grounding["match_goal_number"]:
+            fail(tag, f"claims goal number {grounding['match_goal_number']} of the match, "
+                      f"the feed says {n}")
+    if "solo_run" in grounding:
+        own = on_the_ball(events, g)
+        mine = [e for e in own if e["player"]["name"] == g["player"]["name"]]
+        if not grounding["solo_run"]:
+            fail(tag, "solo_run is there and false; a key is a claim, so leave it out")
+        elif not mine:
+            fail(tag, "solo_run, but the scorer is not on the ball in that possession")
+        else:
+            after = own[own.index(mine[0]):]
+            others = sorted({e["player"]["name"] for e in after
+                             if e["player"]["name"] != g["player"]["name"]})
+            if others:
+                fail(tag, f"solo_run, but from the scorer's first touch to the shot the "
+                          f"feed also records {', '.join(others)} on the ball")
+            # Nobody else on the ball is not yet a run: a one-touch finish
+            # satisfies it on its own, and the 2022 hero is exactly that. So
+            # the scorer has to have moved with the ball himself as well.
+            moved = [e for e in after if e["type"]["name"] in ("Carry", "Dribble")]
+            if not moved:
+                fail(tag, "solo_run, but the feed records no carry or dribble by the "
+                          "scorer between his first touch and the shot")
+    if "own_half" in grounding:
+        where = grounding["own_half"]
+        if where == "first touch":
+            mine = [e for e in on_the_ball(events, g)
+                    if e["player"]["name"] == g["player"]["name"] and e.get("location")]
+            at = mine[0]["location"][0] if mine else None
+        elif where == "possession start":
+            started = [e for e in in_possession(events, g)
+                       if e.get("location")
+                       and e.get("team", {}).get("name") == g["team"]["name"]]
+            at = started[0]["location"][0] if started else None
+        else:
+            at = None
+            fail(tag, f"own_half {where!r} is neither 'first touch' nor "
+                      "'possession start'")
+        if at is not None and at >= HALFWAY:
+            fail(tag, f"own_half {where!r}, but the feed puts it at x={at}, which is "
+                      f"past the halfway line at {HALFWAY:.0f}")
+    if "dribbled_past" in grounding:
+        beaten = [e for e in in_possession(events, g)
+                  if e["type"]["name"] == "Dribbled Past"]
+        if len(beaten) != grounding["dribbled_past"]:
+            fail(tag, f"claims {grounding['dribbled_past']} player(s) dribbled past, the "
+                      f"feed records {len(beaten)} in that possession")
+        theirs = sorted({e["team"]["name"] for e in beaten})
+        if theirs and theirs != [other_team(g, home_team, away_team)]:
+            fail(tag, f"the players dribbled past are {theirs}, not the other team alone")
+    if "yards_from_goal" in grounding:
+        x, y = g["location"][:2]
+        far = ((PITCH_LENGTH - x) ** 2 + (PITCH_WIDTH / 2 - y) ** 2) ** 0.5
+        if round(far) != grounding["yards_from_goal"]:
+            fail(tag, f"claims {grounding['yards_from_goal']} yards from goal, the feed "
+                      f"puts the shot at {far:.1f}")
+    if "recovers_error" in grounding:
+        said = grounding["recovers_error"]
+        run = in_possession(events, g)
+        errors = [e for e in run if e["type"]["name"] == "Error"]
+        if not any(said == e["player"]["name"] for e in errors):
+            fail(tag, f"claims {said!r} made an error, the feed records "
+                      f"{[e['player']['name'] for e in errors] or 'none'} in that possession")
+        else:
+            at = max(run.index(e) for e in errors if e["player"]["name"] == said)
+            got = [e for e in run[at:]
+                   if e["type"]["name"] == "Ball Recovery"
+                   and e.get("team", {}).get("name") == g["team"]["name"]]
+            if not got:
+                fail(tag, f"claims the error by {said!r} was recovered, and the feed "
+                          "records no recovery by the scoring team after it")
+
+
+#: What a line has to say for each grounding key beside it, as a reading of
+#: the key's value against the words. A key with no reading here is a key
+#: this cannot hold the words to, and `WITHOUT_WORDS` is where it says so.
+SAYS = {
+    "body_part": lambda v, prose, g: v.lower() in prose.lower(),
+    "play_pattern": lambda v, prose, g: v.split()[-1].lower() in prose.lower(),
+    "assist": lambda v, prose, g: says_name(prose, v),
+    "solo_run": lambda v, prose, g: "solo" in prose.lower(),
+    "own_half": lambda v, prose, g: "own half" in prose.lower(),
+    "dribbled_past": lambda v, prose, g: says_number(prose, v),
+    "yards_from_goal": lambda v, prose, g: says_number(prose, v),
+    "recovers_error": lambda v, prose, g: says_name(prose, v),
+    "match_goal_number": lambda v, prose, g: says_number(prose, v),
+    "player_goal_number": lambda v, prose, g: says_number(prose, v),
+    "seconds_after_previous_goal": lambda v, prose, g: says_number(prose, v),
+}
+
+#: Keys with no reading of their own. `score_after` is two numbers and a line
+#: carrying a score says it in whatever shape it likes, so this holds the
+#: numbers to the feed and says nothing about the words.
+WITHOUT_WORDS = {"score_after"}
+
+#: Every phrase in match copy that is a claim about the play, and the key
+#: that has to be behind it. A phrase here with no key is a line saying
+#: something nothing read out of the feed.
+CLAIMS = (
+    (r"\bsolo\b", "solo_run"),
+    (r"\bown half\b", "own_half"),
+    (r"\bcounter\b", "play_pattern"),
+    (r"\bdribbl\w*\b|\bpast\b|\brounds\b|\bbeats\b", "dribbled_past"),
+    (r"\byards?\b", "yards_from_goal"),
+    (r"\berror\b|\bmistake\b", "recovers_error"),
+    (r"\b(left|right) foot\b|\bhis head\b|\bheader\b", "body_part"),
+    (r"\bset up by\b|\bassist\w*\b", "assist"),
+    (r"\bopener\b|\bdoubles\b", "match_goal_number"),
+    (r"\bpenalt\w+\b|\bfrom the spot\b", "shot type Penalty"),
+)
+
+#: Copy that is not about the play and is checked elsewhere. `opening` is the
+#: orchestrator's header, written by `scripts/write_headers.py` and held to a
+#: rerun of it by `tests/test_moment_card_header.py`; `audio` and `voice_for`
+#: are file names and slot keys.
+#: `tag` is GOAL or PENALTY and is held to the feed's shot type by
+#: `check_match`, so it is a value rather than a line of copy.
+NOT_PROSE = {"opening", "audio", "voice_for", "event", "grounding",
+             "session_clock", "tag"}
+
+
+def claims_in(prose):
+    """Every claim about the play in one line, with the key each one needs."""
+    return [(re.search(pattern, prose, re.IGNORECASE).group(0), key)
+            for pattern, key in CLAIMS
+            if re.search(pattern, prose, re.IGNORECASE)]
+
+
+def check_prose(tag, prose, block, g, events, fail, note):
+    """One line of copy, both ways: every key said, and every claim keyed.
+
+    `block` is the object the line belongs to, so its `grounding` and its
+    `event` are what back it.
+    """
+    grounding = block.get("grounding", {})
+    claimed = block.get("event", {})
+    for key, value in sorted(grounding.items()):
+        if key in WITHOUT_WORDS:
+            continue
+        reading = SAYS.get(key)
+        if reading is None:
+            fail(tag, f"grounding key {key!r} has no reading in SAYS, so nothing "
+                      "holds the words to it")
+        elif not reading(value, prose, g):
+            fail(tag, f"grounding says {key}={value!r} and the words do not: {prose!r}")
+    for said, key in claims_in(prose):
+        if key == "shot type Penalty":
+            backed = claimed.get("shot_type") == "Penalty"
+        else:
+            backed = key in grounding
+        if not backed:
+            fail(tag, f"says {said!r}, which is a claim about the play, with no "
+                      f"{key} behind it: {prose!r}")
+    note(f"  {tag}: {len(grounding)} key(s), "
+         f"{len(claims_in(prose))} claim(s) in the words")
+
+
+def check_names(tag, prose, g, events, players, fail):
+    """A player named in a line was on the ball in that goal's possession.
+
+    This is what held the removed broadcast quote: it listed the players it
+    named and each one had to be recorded in the possession. The quote is
+    gone and the rule is not, and it reads the line itself now rather than a
+    list beside it, so a name added to a caption is read the same way.
+    """
+    there = {e["player"]["name"] for e in in_possession(events, g) if "player" in e}
+    among = {part for one in there for part in name_parts(one)}
+    for full in sorted(players):
+        for part in name_parts(full):
+            if not re.search(r"\b%s\b" % re.escape(part), prose, re.IGNORECASE):
+                continue
+            if part not in among:
+                fail(tag, f"names {part!r}, who the feed does not record in "
+                          f"possession {g['possession']}")
+
+
+def check_other_copy(entry, fail, note):
+    """No line anywhere else in the entry makes a claim about the play.
+
+    The two blocks above are where a description belongs and where one is
+    held. This is the other direction: a description moved into the list
+    card's status line, or a Live helper, or a moments subtitle, would be out
+    of their reach, so it is a failure wherever it is written.
+    """
+    found = 0
+
+    def walk(value, path):
+        nonlocal found
+        if isinstance(value, dict):
+            for key, inner in value.items():
+                if key not in NOT_PROSE:
+                    walk(inner, f"{path}.{key}" if path else key)
+        elif isinstance(value, list):
+            for i, inner in enumerate(value):
+                walk(inner, f"{path}[{i}]")
+        elif isinstance(value, str) and path not in HELD_PROSE:
+            found += 1
+            for said, key in claims_in(value):
+                fail(f"match {entry['match_id']} {path}",
+                     f"says {said!r}, which is a claim about the play, on a line "
+                     f"no grounding block stands behind: {value!r}")
+
+    walk(entry, "")
+    note(f"  {found} other line(s) of copy carry no claim about the play")
+
+
+#: The lines a grounding block stands behind. They are read together, because
+#: one block is the facts behind one goal's copy and a claim may be made in
+#: either line: the hero's share text says "solo goal" and its caption is
+#: where "solo" is traced.
+HERO_PROSE = ("caption", "share_text")
+MOMENT_PROSE = ("title", "body")
+
+#: The same lines by their path in the entry. Everything else in matches.json
+#: is held by `check_other_copy` to making no claim about the play at all.
+HELD_PROSE = {f"hero.{field}" for field in HERO_PROSE} | {
+    f"moments[{i}].{field}" for i in range(8) for field in MOMENT_PROSE
+}
 
 
 def check_match(entry, fail, note):
@@ -132,7 +451,11 @@ def check_match(entry, fail, note):
     index = next(m for m in load(INDEXES[mid]) if m["match_id"] == mid)
     goals = goals_of(events)
     home_team = entry["home_team"]
+    away_team = entry["away_team"]
     where = f"match {mid}"
+    # Every player this match's own feed records, which is the universe a
+    # name in a line of copy is read against.
+    players = {e["player"]["name"] for e in events if "player" in e}
 
     for key, actual in (("home_team", index["home_team"]["home_team_name"]),
                         ("away_team", index["away_team"]["away_team_name"])):
@@ -188,14 +511,6 @@ def check_match(entry, fail, note):
             fail(where + " hero", "caption does not open with the period label")
         if f"{hero['display_minute']}'" not in hero["caption"]:
             fail(where + " hero", f"caption does not carry display minute {hero['display_minute']}")
-        in_poss = {e["player"]["name"] for e in events
-                   if e["possession"] == g["possession"] and "player" in e}
-        for name in hero["quote_names"]:
-            if not any(name in full for full in in_poss):
-                fail(where + " hero",
-                     f"quote names {name!r}, who is not recorded in possession {g['possession']}")
-            if name not in hero["quote"]:
-                fail(where + " hero", f"quote_names lists {name!r} but the quote does not say it")
         # The share sheet must describe this match, so it has to name the scorer.
         share = hero.get("share_text", "")
         named = [w.strip(".,'’s") for w in share.split()
@@ -205,10 +520,14 @@ def check_match(entry, fail, note):
         elif not named:
             fail(where + " hero",
                  f"share_text {share!r} names nobody from {g['player']['name']!r}")
+        check_grounding(where + " hero", hero.get("grounding", {}), g, goals, events,
+                        home_team, away_team, fail)
+        said = " ".join(hero[field] for field in HERO_PROSE)
+        check_prose(where + " hero", said, hero, g, events, fail, note)
+        check_names(where + " hero", said, g, events, players, fail)
         note(f"  hero: {g['player']['name']} at {g['minute']}:{g['second']:02d} p{g['period']} "
              f"shown as {hero['period_label']} {hero['display_minute']}'")
         note(f"  share text names {named}")
-        note(f"  quote names {hero['quote_names']} all recorded in possession {g['possession']}")
 
     # One session clock, sitting at the hero moment.
     sc = entry["session_clock"]
@@ -284,7 +603,11 @@ def check_match(entry, fail, note):
         named = m["title"].split()[0].rstrip("'s")
         if named not in g["player"]["name"]:
             fail(tag, f"title names {named!r}, the scorer is {g['player']['name']!r}")
-        check_grounding(tag, m.get("grounding", {}), g, goals, events, home_team, fail)
+        check_grounding(tag, m.get("grounding", {}), g, goals, events, home_team,
+                        away_team, fail)
+        said = " ".join(m[field] for field in MOMENT_PROSE)
+        check_prose(tag, said, m, g, events, fail, note)
+        check_names(tag, said, g, events, players, fail)
         note(f"  {m['tag']:<8} {m['period_label']} {m['display_minute']:>3}'  "
              f"{g['player']['name']} ({g['shot']['type']['name']}, "
              f"{g['shot']['body_part']['name']})")
@@ -297,6 +620,7 @@ def check_match(entry, fail, note):
     if late:
         fail(where, f"Moments shows {late}, which is after the session clock {session}")
     note(f"  Moments stops at the session clock: {len(seen)} of {len(goals)} goals")
+    check_other_copy(entry, fail, note)
 
 
 WEB = ROOT / "app" / "web"
@@ -452,9 +776,7 @@ def check_screens(doc, fail, note):
             default["live_seated"]["venue"], default["live_seated"]["ticket"],
             default["live_seated"]["caption"],
         ],
-        CARD: [
-            default["hero"]["caption"], default["hero"]["quote"],
-        ],
+        CARD: [default["hero"]["caption"]],
         "prelude_04_moments.html": [default["moments_subtitle"]]
             + [m["title"] for m in default["moments"]]
             + [m["body"] for m in default["moments"]],
