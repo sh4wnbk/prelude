@@ -999,9 +999,9 @@ the check fails above 0.10, and the forced defect measures above 0.9.
 
 **The evidence.** `pytest -q` reports `2106 passed`, up from `2085`; `pytest
 tests/browser` reports `146 passed`, up from `100`; all five gates exit 0;
-`git status` is clean after both. CI is green on `061e2ee`: `2106 passed`
-in 57.60 s, the five gates one step each, `146 passed` in 225.18 s, and the
-step that fails on a tracked file the run changed.
+`git status` is clean after both. CI is green on the last commit of this task:
+`2106 passed`, the five gates one step each, `146 passed`, and the step that
+fails on a tracked file the run changed.
 
 The smoke workflow ran against <https://sh4wnbk.github.io/prelude/> at
 `061e2ee` and every check held, the launch screen's eight among them: the mark
