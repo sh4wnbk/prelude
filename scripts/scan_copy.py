@@ -57,6 +57,15 @@ BANNED = [
     ("the mockup's broadcast quote", r"\u00ab\s*\.\.\."),
     ("the mockup's broadcast quote", r"Maradona, inside his own half"),
     ("the mockup's broadcast quote", r"Molina to Mac Allister"),
+    # Two pills that said what the data was doing rather than what it is.
+    # Nothing checks a connection, and nothing synchronises: the play data is
+    # a file in this repo and the recordings are six more. The lines read
+    # "PLAY-BY-PLAY DATA" now, which is what the data is. The space around a
+    # separator is matched rather than written out, so a hit does not depend
+    # on how the copy is spaced.
+    ("a connection nothing checks", r"PLAY DATA CONNECTED"),
+    ("a synchronisation that does not happen", r"PLAY DATA\s*·\s*SYNC"),
+    ("a synchronisation that does not happen", r"PLAY DATA SYNC"),
 ]
 
 COMPILED = [(label, re.compile(pattern, re.IGNORECASE)) for label, pattern in BANNED]

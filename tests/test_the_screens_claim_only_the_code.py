@@ -132,3 +132,46 @@ class TestTheStatusLineClaimsNoState:
             text = read(path)
             assert "Play data connected" not in text, path.name
             assert "AI narration ready" not in text, path.name
+
+
+class TestTheTwoPillsNameTheDataRatherThanItsState:
+    """Shawn's decision of 2026-11-14, and the end of Task 32's second
+    "Found, not fixed" line.
+
+    Live's pill read "PLAY DATA CONNECTED" and the Moments cards read
+    "AI AUDIO NARRATION, PLAY DATA SYNC". They were near neighbours of the
+    four lines above and were left standing because Shawn had named four.
+    Nothing checks a connection and nothing synchronises: the play data is a
+    file in this repo and the recordings are six more. Both lines name the
+    data now, in the words the list card already used for it.
+    """
+
+    #: What each pill says instead.
+    LIVE_PILL = "PLAY-BY-PLAY DATA"
+    MOMENTS_PILL = "AI AUDIO NARRATION · PLAY-BY-PLAY DATA"
+
+    def test_the_live_pill(self):
+        assert self.LIVE_PILL in read(WEB / "prelude_02_live_seated.html")
+
+    def test_the_moments_pill_on_both_cards(self):
+        assert read(WEB / "prelude_04_moments.html").count(self.MOMENTS_PILL) == 2
+
+    def test_it_is_the_same_phrase_the_list_card_uses(self):
+        """"Play-by-play data" is already the first half of the status line
+        on the list and the ticket, so the app now says one thing about what
+        it holds."""
+        assert STATUS.lower().startswith(self.LIVE_PILL.lower())
+
+    def test_no_screen_or_copy_file_says_either_old_line(self):
+        copy_files = SCREENS + sorted(WEB.glob("*.json")) + sorted(WEB.glob("*.js"))
+        for path in copy_files:
+            text = read(path)
+            assert "PLAY DATA CONNECTED" not in text, path.name
+            assert "PLAY DATA SYNC" not in text, path.name
+
+    def test_the_scan_holds_both_of_them(self):
+        """A string scan is what stops the words coming back, and this is
+        what stops the patterns being dropped from it."""
+        scan = read(ROOT / "scripts" / "scan_copy.py")
+        assert r'r"PLAY DATA CONNECTED"' in scan
+        assert r'r"PLAY DATA SYNC"' in scan
