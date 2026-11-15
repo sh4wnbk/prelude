@@ -90,9 +90,15 @@ DOCS += HISTORY
 # `9f98e91`.
 #
 # Task 15's export went back on it when the brief was written, and came off on
-# 2026-11-07 when the session was run and the export committed. The list is
-# empty again, which is its resting state: every path a doc names exists.
-DELIBERATELY_ABSENT: set[str] = set()
+# 2026-11-07 when the session was run and the export committed.
+#
+# It holds the other direction too, which Task 33 was the first to need: a
+# path a task record names because the file existed when that record was
+# written, and a later task removed. A record is not edited as the code moves
+# on, so the record goes on saying `scripts/make_mark.py` and this says the
+# file is gone on purpose. The check still runs both ways: writing that script
+# again fails here until this line goes.
+DELIBERATELY_ABSENT: set[str] = {"scripts/make_mark.py"}
 
 PATH_IN_BACKTICKS = re.compile(
     r"`((?:app|docs|scripts|tests|bob_sessions)/[A-Za-z0-9_./-]+)`"

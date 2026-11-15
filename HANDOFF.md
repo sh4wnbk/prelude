@@ -289,15 +289,18 @@ app claims.
   a dirty tree is what catches a stylesheet that no longer matches its config.
 - Nothing a screen loads comes from another origin. The stylesheet, the four
   font families with every subset, jsQR and the icon set are committed, and
-  `scripts/fetch_fonts.py`, `scripts/fetch_vendor.py` and
-  `scripts/make_mark.py` are the three scripts that reach outside to refresh
-  them. jsQR's Subresource Integrity hash is checked at fetch time rather than
-  at load time, because the script is same origin now.
-- The mark is "P." in Syne Bold, off-white with the full stop in amber, and
-  its glyphs are outlines rather than text: a favicon is rendered with no font
-  loading. `scripts/make_mark.py` draws the SVG and the four PNGs from one
-  font, and the three colours are read back out of the config block by
-  `tests/test_the_mark.py`.
+  `scripts/fetch_fonts.py` and `scripts/fetch_vendor.py` are the two scripts
+  that reach outside to refresh them. jsQR's Subresource Integrity hash is
+  checked at fetch time rather than at load time, because the script is same
+  origin now.
+- The mark is "Prelude." in Syne ExtraBold, white, with the "u" drawn as seven
+  amber bars and the full stop amber. The icon is those seven bars alone, and
+  they are outlines rather than text: an icon is rendered with no font
+  loading. `scripts/brand/build_svg.py` draws every brand file from one set of
+  numbers, with the two variable fonts committed beside it, and
+  `scripts/make_icons.py` writes the icon set from two of them, reaching
+  nothing. Both compare with `--check`, which `tests/test_the_mark.py` runs,
+  and the two colours are read back out of the config block there.
 - The launch screen is the first frame of a visit and nothing else. Whether it
   paints is decided in the head before the body is parsed, it goes when
   `data-matches-loaded` says matches.json was answered, it never outlives two
