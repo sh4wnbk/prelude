@@ -265,12 +265,24 @@ class TestTheLaunchScreen:
             assert 'id="launch"' not in text, path.name
             assert TAGLINE not in text, path.name
 
-    def test_it_honours_a_request_for_less_motion(self):
+    def test_the_fade_is_kept_for_a_fan_who_asked_for_less_motion(self):
+        """An opacity fade is not motion, so there is no rule under
+        `prefers-reduced-motion` and no branch in the script.
+
+        The spec for Task 34 said no fade under `reduce` and that was wrong:
+        nothing on this screen or on the list behind it moves, scales, slides
+        or spins, and what a fan who asked for less motion got instead was a
+        hard cut from the mark to the list, which is the one thing in the
+        sequence that reads as a jolt. Shawn saw that cut on an iPhone XR on
+        2026-11-15, with Reduce Motion on.
+        """
         shell = self.shell()
-        at = shell.index("@media (prefers-reduced-motion: reduce)")
-        block = shell[at:shell.index("}", shell.index("{", at + 40)) + 1]
-        assert "#launch" in block
-        assert "transition: none" in block
+        # No rule, and the reasoning is written down where the rule was.
+        assert "@media (prefers-reduced-motion" not in shell
+        assert "prefers-reduced-motion" in shell
+        # And no branch: the script asked `matchMedia` and took the fade away.
+        assert "matchMedia" not in shell
+        assert "transition: opacity 300ms ease;" in shell
 
     def test_it_is_up_before_any_script_has_run(self):
         """The markup ships visible and nothing decides whether to paint it,

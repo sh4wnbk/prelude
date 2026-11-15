@@ -130,11 +130,14 @@
     color: #ffb703;                   /* primary-container */
   }
 
-  /* A fan who has asked for less motion gets the same screen and no fade:
-     it is shown, and then it is not. */
-  @media (prefers-reduced-motion: reduce) {
-    #launch { transition: none; }
-  }
+  /* There is no prefers-reduced-motion rule here, and that is the decision
+     rather than an omission: an opacity fade is not motion. Nothing on this
+     screen or on the list behind it moves, scales, slides or spins, so a fan
+     who asked for less motion is asking about something this crossfade does
+     not do; what they would get instead is a hard cut from the mark to the
+     list, which is the one thing here that reads as a jolt. The spec said no
+     fade under reduce and that was wrong.
+     Anything added here that does move belongs behind that query. */
 
   /* The insets, applied once, to the frame the screens load into. A screen
      is inside the iframe, where env() is 0, so this is the only page that
@@ -244,11 +247,21 @@
    * only question left is how it goes, which is the rest of this.
    *
    * It stays until the screen behind it is ready, which on a normal visit is
-   * the event list: `data-matches-loaded` on that document is the renderer
-   * saying matches.json was answered. It is not `data-match-rendered`, which
-   * is the stronger claim that one match's copy is on the screen; the list
-   * never makes it, because Prelude renders no match until the fan has
-   * picked one. The frame is same origin, so the shell can read it.
+   * the event list, and ready is two things. `data-matches-loaded` on that
+   * document is the renderer saying matches.json was answered. It is not
+   * `data-match-rendered`, which is the stronger claim that one match's copy
+   * is on the screen; the list never makes it, because Prelude renders no
+   * match until the fan has picked one. `data-painted` is the screen's own
+   * and is about the drawing rather than the data: one frame has been
+   * painted with the app background and its stylesheet applied. The frame is
+   * same origin, so the shell can read both.
+   *
+   * Then the two cross. The mark fades out over FADE_MS while the list fades
+   * in over the same FADE_MS, both opacity and nothing else, and the list is
+   * revealed in the step that starts the fade rather than before it: a list
+   * already up behind a fading mark is a fade and not a crossfade, and a
+   * list revealed before it has painted is the white a browser paints an
+   * empty frame.
    *
    * Three numbers bound it, settled on 2026-11-15.
    *
@@ -270,6 +283,10 @@
    * The clock is performance.now(), which counts from the start of the
    * navigation rather than from whenever this script ran, so both bounds are
    * measured from the load the fan started.
+   *
+   * A request for less motion changes none of this. An opacity fade is not
+   * motion: nothing here moves, and the alternative is a hard cut, which is
+   * the one thing in this sequence that reads as a jolt.
    */
   (function () {
     var MIN_HOLD_MS = 1500;
@@ -295,20 +312,13 @@
       }
     }
 
-    function reduced() {
-      try {
-        return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      } catch (e) {
-        return false;
-      }
-    }
-
     function gone() {
       launch.hidden = true;
     }
 
-    // Take it away. A fan who has asked for less motion gets the same hold
-    // and no fade: it is shown, and then it is not.
+    // Take it away, and bring the list up as it goes: the two opacities
+    // cross over FADE_MS. Every fan gets this, a request for less motion
+    // included, because an opacity fade is not motion.
     function leave() {
       if (going) return;
       going = true;
@@ -316,10 +326,6 @@
       if (poll) window.clearInterval(poll);
       if (cap) window.clearTimeout(cap);
       if (holding) window.clearTimeout(holding);
-      if (reduced()) {
-        gone();
-        return;
-      }
       launch.setAttribute('data-going', '');
       window.setTimeout(gone, FADE_MS);
     }

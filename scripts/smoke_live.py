@@ -16,6 +16,14 @@ What it asks of the site, for both matches:
 - and under two seconds of latency the card shows no narration, no label and
   no offer of the voice.
 
+And once, not per match, of the shell a home screen opens:
+
+- the launch screen is up, it says it is a web app with a translucent status
+  bar, and it links a startup image for the screen it is opened at,
+- no sampled frame of the top of the screen is white, from the navigation to
+  past the cap,
+- and the mark gives way to the event list, which is up when it is gone.
+
 The latency is set through the DevTools protocol rather than in a route
 handler. `tests/browser/server.py` records why: a sleep inside the driver
 blocks its own event loop, so the page is read after it has moved on. There is
@@ -132,10 +140,118 @@ def check_site(site, version):
     with sync_playwright() as driver:
         browser = driver.chromium.launch()
         try:
+            bad += check_the_launch(browser, base)
             for match_id, listener in sorted(LISTENERS.items()):
                 bad += check_one_match(browser, base, match_id, listener, version)
         finally:
             browser.close()
+    return bad
+
+
+# The launch screen, on the deployed site. It is the first thing a fan sees and
+# it was the one part of a visit nothing checked here: Task 34 built it and
+# Task 35 corrected it, and both were checked against the working tree only.
+# The numbers are the shell's own, read in `app/web/index.html`.
+
+#: The top of the screen, in CSS pixels: where the white flash was.
+TOP_BAND = {"x": 0, "y": 0, "width": 390, "height": 40}
+
+#: A pixel is near-white when its darkest channel is above this, and this much
+#: of the band may be. `tests/browser/test_the_launch_screen.py` carries the
+#: measurement the threshold comes from: the worst the app itself reaches is
+#: the light text in the list's own header.
+NEAR_WHITE = 170
+WHITE_SHARE = 0.10
+
+#: Past the shell's 2,500 ms cap, so the samples cover the whole launch.
+SAMPLE_UNTIL_MS = 3200
+
+LAUNCH_GONE = (
+    "() => { const el = document.getElementById('launch'); "
+    "return !!el && el.hidden; }"
+)
+
+
+def check_the_launch(browser, base):
+    """Returns the number of failures."""
+    import io
+
+    from PIL import Image
+
+    bad = 0
+    print("  the launch screen")
+    context = browser.new_context(
+        viewport=VIEWPORT, has_touch=True, is_mobile=True, device_scale_factor=1,
+    )
+    try:
+        page = context.new_page()
+        page.goto(base + "/index.html", wait_until="commit")
+        page.wait_for_selector("#launch", state="visible", timeout=15000)
+
+        state = page.evaluate(
+            """() => {
+                 const el = document.getElementById('launch');
+                 const frame = document.getElementById('screen');
+                 return {
+                   label: el.getAttribute('aria-label'),
+                   marked: !!el.querySelector('#launch-mark path'),
+                   listOpacity: Number(getComputedStyle(frame).opacity),
+                   webapp: !!document.querySelector(
+                     'meta[name="apple-mobile-web-app-capable"][content="yes"]'),
+                   bar: (document.querySelector(
+                     'meta[name="apple-mobile-web-app-status-bar-style"]')
+                     || {}).content,
+                   startup: document.querySelectorAll(
+                     'link[rel="apple-touch-startup-image"]').length,
+                 };
+               }"""
+        )
+        bad += not say(state["marked"], "the mark is drawn in it")
+        bad += not say(state["label"].startswith("Prelude. "),
+                   "it is announced as the mark and the tagline")
+        bad += not say(state["webapp"], "the shell says it is a web app")
+        bad += not say(state["bar"] == "black-translucent",
+                   "the status bar is translucent, so the page is the screen")
+        bad += not say(state["startup"] == 11,
+                   "it links %d startup images" % state["startup"])
+        bad += not say(state["listOpacity"] == 0,
+                   "the list behind it is not yet visible")
+
+        # No white frame, sampled from here to past the cap.
+        worst, samples = 0.0, 0
+        while True:
+            at = page.evaluate("() => performance.now()")
+            shot = Image.open(io.BytesIO(page.screenshot(clip=TOP_BAND)))
+            colours = shot.convert("RGB").getcolors(1 << 22) or []
+            total = sum(count for count, _ in colours) or 1
+            light = sum(count for count, colour in colours
+                        if min(colour) > NEAR_WHITE)
+            worst = max(worst, light / total)
+            samples += 1
+            if at > SAMPLE_UNTIL_MS:
+                break
+        bad += not say(worst <= WHITE_SHARE,
+                   "no white frame in the top of the screen: worst %.4f of the "
+                   "band over %d samples" % (worst, samples))
+
+        page.wait_for_function(LAUNCH_GONE, timeout=15000)
+        after = page.evaluate(
+            """() => {
+                 const frame = document.getElementById('screen');
+                 let cards = 0;
+                 try {
+                   cards = frame.contentDocument
+                     .querySelectorAll('.event-card').length;
+                 } catch (e) { cards = 0; }
+                 return {opacity: Number(getComputedStyle(frame).opacity),
+                         cards: cards};
+               }"""
+        )
+        bad += not say(after["opacity"] == 1, "the list is visible once it is gone")
+        bad += not say(after["cards"] == 2,
+                   "and holds both events: %d" % after["cards"])
+    finally:
+        context.close()
     return bad
 
 

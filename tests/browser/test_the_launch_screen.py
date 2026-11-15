@@ -29,9 +29,17 @@ about:
 - **Every full load paints it**, a reload in the same tab included. It used to
   paint once per tab, out of `sessionStorage`, which made the mark something a
   fan saw once and could not get back to.
-- **It honours `prefers-reduced-motion`** by not fading. The hold is the
-  same: a fan who asked for less motion is not a fan who asked for less of
-  the app's name.
+- **It crossfades with the list.** The mark fades out over 300 ms while the
+  list fades in over the same 300 ms, both opacity and nothing else, and the
+  list is revealed in the step that starts the fade rather than before it: a
+  list already up behind a fading mark is a fade and not a crossfade.
+- **The list is never visible before it has painted**, which is
+  `data-painted` on the framed document: one frame drawn with the app
+  background and its own stylesheet applied. A browser paints an empty frame
+  white.
+- **A request for less motion keeps the fade.** An opacity fade is not
+  motion, and nothing on either screen moves; what `reduce` used to get was
+  a hard cut, which is the one thing in the sequence that reads as a jolt.
 - **It is announced** as the mark and the tagline together and says nothing
   else.
 - **The startup image iOS shows is this screen.** A web app opened from the
@@ -118,6 +126,13 @@ window.__launchFrames = [];
     // screen. Task 30 found the same thing in a wait predicate.
     const root = document.documentElement;
     const el = root ? document.getElementById('launch') : null;
+    const frame = root ? document.getElementById('screen') : null;
+    let painted = false;
+    try {
+      const doc = frame && frame.contentDocument;
+      painted = !!doc && !!doc.documentElement &&
+                doc.documentElement.hasAttribute('data-painted');
+    } catch (e) { painted = false; }
     window.__launchFrames.push({
       // Milliseconds since the navigation started, which is the clock the
       // shell's own hold and cap are measured on.
@@ -126,6 +141,12 @@ window.__launchFrames = [];
       shown: el ? (getComputedStyle(el).display !== 'none' && !el.hidden) : false,
       going: el ? el.hasAttribute('data-going') : false,
       marked: !!(el && el.querySelector('#launch-mark path')),
+      // The list behind it: whether it has been revealed, and whether it had
+      // painted by the time it was. The second is the rule, asked of every
+      // frame rather than of the state the shell settled in.
+      listShown: frame ? frame.hasAttribute('data-shown') : false,
+      listOpacity: frame ? Number(getComputedStyle(frame).opacity) : null,
+      listPainted: painted,
     });
   }
   read();
@@ -153,6 +174,9 @@ STATE = """() => {
     role: el ? el.getAttribute('role') : null,
     label: el ? el.getAttribute('aria-label') : null,
     transition: el ? getComputedStyle(el).transitionDuration : null,
+    listTransition: frame ? getComputedStyle(frame).transitionDuration : null,
+    listShown: frame ? frame.hasAttribute('data-shown') : null,
+    listOpacity: frame ? Number(getComputedStyle(frame).opacity) : null,
     markIsSvg: !!mark && mark.tagName.toLowerCase() === 'svg',
     markHidden: mark ? mark.getAttribute('aria-hidden') : null,
     markFills: mark
@@ -415,10 +439,16 @@ def test_a_new_tab_paints_it_too(fan, plan):
 
 
 @pytest.mark.parametrize("motion", ["reduce", "no-preference"])
-def test_it_honours_a_request_for_less_motion(playwright_browser, web_server,
-                                              plan, motion):
-    """With `reduce` it is shown and then it is not: no fade, so the state in
-    between never exists."""
+def test_the_crossfade_runs_for_a_fan_who_asked_for_less_motion(
+        playwright_browser, web_server, plan, motion):
+    """The same crossfade either way, which is the correction Task 35 made.
+
+    Task 34 took the fade away under `reduce` and that was wrong: an opacity
+    fade is not motion. Nothing on the launch screen or on the list behind it
+    moves, scales, slides or spins, so there is nothing for the preference to
+    be about, and what it got instead was a hard cut from the mark to the
+    list. Shawn saw that cut on an iPhone XR with Reduce Motion on.
+    """
     plan.delay["matches.json"] = SLOW_SECONDS
     context = playwright_browser.new_context(
         viewport={"width": 390, "height": 844}, reduced_motion=motion,
@@ -428,22 +458,22 @@ def test_it_honours_a_request_for_less_motion(playwright_browser, web_server,
         page.add_init_script(WATCH)
         page.goto(web_server.url(SHELL), wait_until="commit")
         page.wait_for_selector("#launch", state="visible")
-        if motion == "reduce":
-            assert page.evaluate(STATE)["transition"] == "0s"
-        else:
-            assert page.evaluate(STATE)["transition"] != "0s"
+        # The fade is the shell's one number, under either preference.
+        assert page.evaluate(STATE)["transition"] == "%gs" % (FADE_MS / 1000)
+        assert page.evaluate(STATE)["listTransition"] == "%gs" % (FADE_MS / 1000)
         page.wait_for_function(GONE, timeout=(SLOW_SECONDS + 8) * 1000)
         timeline = recorded(page)
-        faded = [one for one in timeline if one["going"]]
-        if motion == "reduce":
-            assert not faded, faded
-        else:
-            assert faded, timeline
-        # The hold is the same either way. With `reduce` there is no fade, so
-        # the screen goes at the hold rather than a fade after it.
+        assert [one for one in timeline if one["going"]], (motion, timeline)
+        # And the two cross: the list is revealed in the frame the fade
+        # starts in, not before it and not after it.
+        faded = first(timeline, going=True)
+        shown = first(timeline, listShown=True)
+        assert faded is not None, timeline
+        assert shown is not None, timeline
+        assert shown == faded, (motion, shown, faded, timeline)
         gone = first(timeline, present=True, shown=False)
         assert gone is not None, timeline
-        assert gone >= MIN_HOLD_MS, (motion, gone, timeline)
+        assert gone >= MIN_HOLD_MS + FADE_MS, (motion, gone, timeline)
         assert gone <= CAP_MS + SLACK_MS, (motion, gone, timeline)
     finally:
         context.close()
@@ -624,6 +654,278 @@ def test_nothing_sits_under_the_clock_or_the_home_indicator(
             >= FORCED_INSETS["right"]), state
     assert (state["screen"]["height"] - block["bottom"]
             >= FORCED_INSETS["bottom"]), state
+
+
+# --------------------------------------------------------------------------
+# No white frame, and a list that has painted before it is seen.
+#
+# The two rules Task 35 added, and the two the iPhone found. Shawn opened the
+# app from the home-screen icon on an iPhone XR on 2026-11-15 and got a brief
+# white flash at the top of the screen between the mark and the event list.
+# Nothing in the suite was looking at pixels, so nothing had anything to say
+# about it.
+# --------------------------------------------------------------------------
+
+#: The top of the screen, in CSS pixels. Where the flash was, and the band a
+#: status bar sits over: it is the part of a load a fan is looking at.
+TOP_BAND = {"x": 0, "y": 0, "width": 390, "height": 40}
+
+#: A pixel is near-white when its darkest channel is above this. The app
+#: background's three channels are 16, 19 and 25.
+NEAR_WHITE = 170
+
+#: How much of that band may be near-white in a sampled frame. Measured on
+#: 2026-11-15 with the samples below: the worst any state reached was 0.0201,
+#: which is the light text in the list's own header once the list is up. A
+#: flash is the whole band, so a tenth of it is a long way above what the app
+#: draws and a long way below what the defect drew.
+WHITE_SHARE = 0.10
+
+#: How long to keep sampling, in milliseconds on the page's own clock: past
+#: the cap, so the samples cover the launch and the frames after it.
+SAMPLE_UNTIL_MS = 3200
+
+#: The defect, forced, so the sampler is known to be able to see one: the
+#: launch screen taken away and the frame left white and visible. With the
+#: list's own page never answering, nothing paints over it.
+FORCE_A_WHITE_FRAME = """
+document.addEventListener('DOMContentLoaded', function () {
+  const style = document.createElement('style');
+  style.textContent = '#launch { display: none !important; }' +
+    '#screen { background-color: #fff !important; opacity: 1 !important; }';
+  document.head.appendChild(style);
+});
+"""
+
+
+def band_samples(page, band=None, until=SAMPLE_UNTIL_MS):
+    """(when, share of near-white) for as many frames as can be screenshotted.
+
+    A sample is a screenshot, so this is a sample of the load and not every
+    frame of it: `CLAUDE.md` asks the rules of every frame a `MutationObserver`
+    recorded, and an observer records attributes rather than pixels. What this
+    can say is that none of the frames it caught was white, across a window
+    that covers the hold, the crossfade and the frames after it.
+    """
+    from PIL import Image
+
+    got = []
+    while True:
+        at = page.evaluate("() => performance.now()")
+        shot = Image.open(io.BytesIO(page.screenshot(clip=band or TOP_BAND)))
+        # A colour histogram rather than every pixel: the same arithmetic over
+        # a few hundred entries instead of a few hundred thousand, which is
+        # more samples over the same window.
+        colours = shot.convert("RGB").getcolors(1 << 22)
+        assert colours is not None, "more colours in the band than expected"
+        total = sum(count for count, _ in colours)
+        light = sum(count for count, colour in colours
+                    if min(colour) > NEAR_WHITE)
+        got.append((at, light / total))
+        if at > until:
+            return got
+
+
+def sampling_context(playwright_browser):
+    """A tab for the pixel samples, at one device pixel to the CSS pixel.
+
+    The band's colour is the claim, not its resolution, and a screenshot at
+    three device pixels is nine times the pixels to read per sample, which is
+    fewer samples over the same window.
+    """
+    return playwright_browser.new_context(
+        viewport={"width": 390, "height": 844}, has_touch=True, is_mobile=True,
+        device_scale_factor=1,
+    )
+
+
+#: The four states the top of the screen is sampled in, as what to do to the
+#: plan. The last is the one the white frame was hiding in: the list's own page
+#: never answers, so nothing ever paints inside the frame and what a fan sees
+#: after the cap is the frame's own colour.
+WHITE_STATES = {
+    "answered at once": lambda plan: None,
+    "answered late": lambda plan: plan.delay.__setitem__("matches.json",
+                                                         SLOW_SECONDS),
+    "refused": lambda plan: plan.status.__setitem__("matches.json", 503),
+    "the list never answers": lambda plan: plan.hang.add("matches.json"),
+    "the list's page never answers": lambda plan: plan.hang.add(
+        "prelude_01_picker.html"),
+}
+
+
+@pytest.mark.parametrize("state", sorted(WHITE_STATES))
+def test_no_frame_of_the_top_of_the_screen_is_white(playwright_browser,
+                                                    web_server, plan, state):
+    """From the navigation to past the cap, in five states.
+
+    The three things that make this true are in markup rather than in script,
+    so they hold in the frames before any script has run: every page sets the
+    app background in its own head in front of every stylesheet, the shell's
+    iframe carries the same colour on the element, and it is invisible until
+    the screen inside it says it has painted.
+
+    The last state is the one the flash was hiding in. With the list's own
+    page never answering there is no document in the frame to paint it, so
+    what is left after the cap is the frame's own background: the app's
+    colour, and not the white a browser paints an empty frame.
+    """
+    WHITE_STATES[state](plan)
+    context = sampling_context(playwright_browser)
+    try:
+        page = context.new_page()
+        page.goto(web_server.url(SHELL), wait_until="commit")
+        samples = band_samples(page)
+    finally:
+        context.close()
+
+    assert len(samples) > 8, (state, len(samples))
+    worst = max(samples, key=lambda one: one[1])
+    assert worst[1] <= WHITE_SHARE, (state, worst, len(samples))
+
+
+def test_the_sampler_can_see_a_white_frame(playwright_browser, web_server,
+                                           plan):
+    """The check above, checked: the defect forced, and found.
+
+    A sampler that reads the wrong pixels, or a threshold above what a white
+    screen measures, passes everything. So the launch screen is taken away and
+    the frame is left white and visible, with the list's own page never
+    answering so nothing paints over it, and the same sampler is asked.
+    """
+    plan.hang.add("prelude_01_picker.html")
+    context = sampling_context(playwright_browser)
+    try:
+        page = context.new_page()
+        page.add_init_script(FORCE_A_WHITE_FRAME)
+        page.goto(web_server.url(SHELL), wait_until="commit")
+        samples = band_samples(page, until=1200)
+    finally:
+        context.close()
+
+    worst = max(one[1] for one in samples)
+    assert worst > 0.9, (worst, samples)
+    assert worst > WHITE_SHARE, (worst, WHITE_SHARE)
+
+
+@pytest.mark.parametrize("state", ["answered at once", "answered late",
+                                   "refused", "the list never answers"])
+def test_the_list_has_painted_before_it_is_ever_visible(fan, plan, state):
+    """Asked of every frame the observer recorded, not of the state it
+    settled in: `data-painted` on the framed document is true in every frame
+    where the frame was revealed or had any opacity at all.
+
+    `data-painted` is the screen's own and is about the drawing rather than
+    the data: one frame drawn with the app background and its own stylesheet
+    applied. It does not wait on matches.json, which is why it is true in all
+    four of these states well before the cap, and why the cap's own reveal
+    (which does not wait for it) is not a state the suite can reach. The one
+    way to reach it is a screen whose page never answers, and
+    `test_no_frame_of_the_top_of_the_screen_is_white` shows what a fan sees
+    then: the frame's own background.
+    """
+    WHITE_STATES[state](plan)
+    page = open_shell(fan)
+    page.wait_for_function(GONE, timeout=CAP_MS + 4000)
+    timeline = recorded(page)
+    assert timeline, "the observer recorded nothing"
+    seen = [one for one in timeline
+            if one["listShown"] or (one["listOpacity"] or 0) > 0]
+    assert seen, (state, timeline)
+    for one in seen:
+        assert one["listPainted"], (state, one)
+
+
+def test_the_frame_is_invisible_until_the_launch_screen_goes(fan, plan):
+    """The other half of the crossfade: the list is not up behind the mark
+    waiting to be uncovered, it comes up as the mark goes.
+
+    Measured as opacity rather than as the attribute, because the attribute
+    is the cause and the opacity is what a fan sees.
+    """
+    plan.delay["matches.json"] = SLOW_SECONDS
+    page = open_shell(fan)
+    page.wait_for_selector("#launch", state="visible")
+    assert page.evaluate(STATE)["listOpacity"] == 0
+    page.wait_for_function(GONE, timeout=(SLOW_SECONDS + 8) * 1000)
+    assert page.evaluate(STATE)["listOpacity"] == 1
+
+    timeline = recorded(page)
+    # No frame has the list up while the mark is still solid.
+    for one in timeline:
+        if (one["listOpacity"] or 0) > 0:
+            assert one["going"] or not one["shown"], one
+
+
+def test_no_white_frame_at_an_android_viewport(playwright_browser, web_server,
+                                              plan):
+    """The same sampling at 412 by 915, where Chrome draws its own launch
+    screen from the manifest and then hands the page over.
+
+    Chrome's part is the manifest's `background_color` with the icon on it,
+    which `tests/test_the_mark.py` holds to the app background and to holding
+    no white pixel. This is the page's own part, after the hand over.
+    """
+    css_w, css_h, scale = ANDROID
+    context = playwright_browser.new_context(
+        viewport={"width": css_w, "height": css_h}, has_touch=True,
+        is_mobile=True, device_scale_factor=1,
+    )
+    try:
+        page = context.new_page()
+        page.goto(web_server.url(SHELL), wait_until="commit")
+        samples = band_samples(
+            page, band={"x": 0, "y": 0, "width": css_w, "height": 40})
+    finally:
+        context.close()
+
+    worst = max(samples, key=lambda one: one[1])
+    assert worst[1] <= WHITE_SHARE, (worst, len(samples))
+
+
+@pytest.mark.parametrize("screen", brand().IPHONES + (ANDROID,),
+                         ids=lambda one: "%dx%d@%dx" % one)
+def test_the_launch_runs_the_same_at_every_screen_size(playwright_browser,
+                                                       web_server, plan,
+                                                       screen):
+    """The hold, the crossfade and the cap, on all eleven iPhone screens and
+    at an Android viewport.
+
+    None of the three numbers is a share of anything, so none of them should
+    move with the screen; this is what says they do not. The Android row is
+    what makes the claim about Chrome on Android the page's own rather than
+    an inference from the iPhone sizes.
+    """
+    css_w, css_h, scale = screen
+    plan.delay["matches.json"] = SLOW_SECONDS
+    context = playwright_browser.new_context(
+        viewport={"width": css_w, "height": css_h}, has_touch=True,
+        is_mobile=True, device_scale_factor=scale,
+    )
+    try:
+        page = context.new_page()
+        page.add_init_script(WATCH)
+        page.goto(web_server.url(SHELL), wait_until="commit")
+        page.wait_for_selector("#launch", state="visible")
+        assert page.evaluate(STATE)["listOpacity"] == 0
+        page.wait_for_function(GONE, timeout=(SLOW_SECONDS + 8) * 1000)
+        timeline = recorded(page)
+        state = page.evaluate(STATE)
+    finally:
+        context.close()
+
+    faded = first(timeline, going=True)
+    shown = first(timeline, listShown=True)
+    gone = first(timeline, present=True, shown=False)
+    assert faded is not None, (screen, timeline)
+    assert shown == faded, (screen, shown, faded, timeline)
+    assert faded >= MIN_HOLD_MS, (screen, faded, timeline)
+    assert gone >= MIN_HOLD_MS + FADE_MS, (screen, gone, timeline)
+    assert gone <= CAP_MS + SLACK_MS, (screen, gone, timeline)
+    assert state["listOpacity"] == 1, (screen, state)
+    for one in timeline:
+        if (one["listOpacity"] or 0) > 0:
+            assert one["listPainted"], (screen, one)
 
 
 def test_the_list_is_reachable_the_moment_it_is_gone(fan, plan):

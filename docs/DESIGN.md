@@ -469,24 +469,48 @@ reads as a fault rather than as the app opening. The cap is what a failed or
 unanswered matches.json runs into: the list behind has its own inline copy, so
 a fan who waits past the cap is waiting on a wordmark for nothing.
 
-Under `prefers-reduced-motion: reduce` the hold is the same and there is no
-fade: the screen is shown, and then it is not. A fan who asked for less motion
-did not ask for less of the app's name.
+**It is a crossfade.** The mark fades out over `FADE_MS` while the event list
+fades in over the same `FADE_MS`, both opacity and nothing else. The list is
+revealed in the step that starts the fade, not before it: a list already up
+behind a fading mark is a fade and not a crossfade, and the two are different
+pictures. The shell's `#screen` carries the same 300 ms `transition` the
+launch screen does, and `#screen[data-shown]` is the one attribute that
+reveals it.
+
+**Ready is two things**, and the fade waits for both: `data-matches-loaded`,
+which is the renderer saying matches.json was answered, and `data-painted`,
+which is the framed screen's own and says one frame has been drawn with the
+app background and its stylesheet applied. The second is what keeps the list
+from being revealed white, because a browser paints an empty frame that
+colour. `tests/test_the_first_frame.py` holds the markup all three rest on.
+
+**A request for less motion keeps the fade.** An opacity fade is not motion:
+nothing on the launch screen or on the list behind it moves, scales, slides or
+spins, so `prefers-reduced-motion` has nothing here to be about, and what the
+preference used to get instead was a hard cut from the mark to the list, which
+is the one thing in the sequence that reads as a jolt. Shawn saw that cut on
+an iPhone XR with Reduce Motion on, on 2026-11-15. There is no
+`prefers-reduced-motion` rule in the shell and no `matchMedia` branch in its
+script; anything added later that does move belongs behind that query.
 
 Measured in headless Chromium at 390 by 844 on 2026-11-15, as the moment the
-fade began and the moment the screen left the page:
+fade began, the moment the list was revealed and the moment the screen left
+the page:
 
-| matches.json | Fade starts | Gone |
-| ------------ | ----------- | ---- |
-| answered at once | 1,507 ms | 1,809 ms |
-| answered after 1.5 s | 1,589 ms | 1,891 ms |
-| refused 503 | 2,209 ms | 2,510 ms |
-| answered at once, reduced motion | no fade | 1,507 ms |
+| matches.json | Fade starts | List revealed | Gone |
+| ------------ | ----------- | ------------- | ---- |
+| answered at once | 1,502 ms | 1,502 ms | 1,815 ms |
+| answered after 1.5 s | 1,588 ms | 1,588 ms | 1,902 ms |
+| refused 503 | 2,214 ms | 2,214 ms | 2,514 ms |
+| never answered | 2,211 ms | 2,211 ms | 2,518 ms |
+| answered at once, reduced motion | 1,511 ms | 1,511 ms | 1,825 ms |
 
-The 2,510 ms is the cap plus the browser's own timer slack: a `setTimeout` is
-a floor and not a ceiling, so 10 ms is what nothing in the page can take off.
-`tests/browser/test_the_launch_screen.py` asks these of every frame a
-`MutationObserver` recorded rather than of the state the screen settled in.
+The fade and the reveal are the same number in every row, which is the
+crossfade. The 2,514 ms is the cap plus the browser's own timer slack: a
+`setTimeout` is a floor and not a ceiling, so 14 ms is what nothing in the
+page can take off. `tests/browser/test_the_launch_screen.py` asks these of
+every frame a `MutationObserver` recorded rather than of the state the screen
+settled in.
 
 The mark is inline rather than fetched because the first frame is before any
 request of its own could have been answered. `tests/test_screen_copy.py` holds
