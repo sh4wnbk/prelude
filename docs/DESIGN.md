@@ -37,6 +37,64 @@ the system described here, but their own components (the viewfinder, the
 reticle, the scan line, the ticket card and its perforation) are not documented
 below.
 
+## The mark
+
+Settled on 2026-11-14 and drawn by `scripts/brand/build_svg.py`, which is the
+one source: every brand file comes from the same numbers and the same two
+fonts, and `--check` says whether what is committed is still what they draw.
+`scripts/brand/README.md` carries the fonts, their licences and their
+checksums.
+
+| Piece | What it is |
+| ----- | ---------- |
+| the mark | "Prelude." in Syne ExtraBold, `#FFFFFF`, with the "u" redrawn as seven amber bars and the full stop amber |
+| the icon | those seven bars alone, amber on `#101319`, centred and filling 56% of a square |
+| the tagline | "Leave your seat. Stay in the game." in Hanken Grotesk 500, amber |
+
+The two colours are the system's own: `#FFB703` is `primary-container` and
+`#101319` is `surface`. The white is the mark's and is not a token: the
+screens' off-white is `on-surface`, `#e1e2ea`, and nothing in the app draws
+the mark in it. `tests/test_the_mark.py` holds all three copies of the two
+colours to one another.
+
+The glyphs are outlines rather than text everywhere the mark appears, because
+an icon and a favicon are rendered where no font is loaded.
+
+### Where each file lives
+
+| File | What it is | What reads it |
+| ---- | ---------- | ------------- |
+| `app/web/assets/brand/prelude_mark.svg` | the wordmark, no background | inlined into the launch screen in `app/web/index.html` |
+| `app/web/assets/brand/prelude_icon.svg` | the bars on a rounded square | copied to `app/web/assets/icon/favicon.svg` |
+| `app/web/assets/brand/prelude_icon_square.svg` | the bars on a plain square | rasterised into the four PNGs |
+| `app/web/assets/brand/prelude_launch.svg` | the launch screen's layout at 390 by 844 | nothing at runtime; it is what the CSS was measured against |
+| `scripts/brand/fonts/Syne-wght.ttf`, `scripts/brand/fonts/HankenGrotesk-wght.ttf` | the variable fonts the mark is the outlines of | `scripts/brand/build_svg.py` |
+
+### The icon set
+
+`scripts/make_icons.py` writes it, from the two icon files above and nothing
+else. Every screen and the shell link the first three; the manifest names the
+last two.
+
+| File | Size | Where it is shown |
+| ---- | ---- | ----------------- |
+| `app/web/assets/icon/favicon.svg` | vector | a browser tab, as the first `icon` |
+| `app/web/assets/icon/favicon-32.png` | 32 px | a browser with no SVG icon |
+| `app/web/assets/icon/apple-touch-icon-180.png` | 180 px | an iPhone home screen |
+| `app/web/assets/icon/icon-192.png` | 192 px | `app/web/manifest.webmanifest`, `any` |
+| `app/web/assets/icon/icon-512.png` | 512 px | `app/web/manifest.webmanifest`, `any maskable` |
+
+The vector rounds its own corners and the PNGs do not, because every platform
+that shows a PNG rounds or crops it and a second rounding reads as a shrunken
+badge. The 512 is maskable because the bars sit inside the safe circle: the
+outermost corner of the widest bar is 30% of the square from the centre,
+against a safe radius of 40%.
+
+At 32 px a bar is 1.5 px wide and a gap 1.25 px, so the reduction merges some
+of them: measured on 2026-11-14 the seven come back as three runs of amber
+across the middle of that bitmap. It is the fallback, and a browser that can
+read the vector never sees it.
+
 ## Foundations
 
 | Property | Value | Source |

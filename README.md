@@ -40,6 +40,12 @@ What the demo is, precisely:
   scrubs the same way, because both screens hand their markup to one player.
   Every other card's play button is disabled and says so, and its bars do not
   move, because those moments have no recording.
+- **The app has a mark, and the first frame of a load is it.** "Prelude." in
+  Syne ExtraBold with the "u" drawn as seven amber elements, over the tagline
+  "Leave your seat. Stay in the game.", on the app background, while the event
+  list loads behind it. Those seven elements on their own are the icon in the
+  browser tab and on a home screen. [`docs/DESIGN.md`](docs/DESIGN.md) records
+  the mark, the icon, the tagline and where each file lives.
 - **Nothing is live.** The demo replays StatsBomb historical data: the 1986
   Argentina vs England quarter-final and the 2022 Argentina vs France final,
   each presented as if it were unfolding now. There is no live feed, no venue,
@@ -107,6 +113,12 @@ Everything above it is structure.
 - `scripts/make_tickets.py`: writes a demo ticket QR code per match into
   `app/web/assets/tickets/`, and reads each one back with a decoder before it
   counts as written.
+- `scripts/brand/build_svg.py`: draws every brand file into
+  `app/web/assets/brand/` from one set of numbers and the two variable fonts
+  committed beside it, both under the SIL Open Font License.
+- `scripts/make_icons.py`: writes the icon set the screens link, from two of
+  those files. Both scripts take `--check`, which draws everything, compares it
+  with what is committed and writes nothing.
 - `scripts/check_docs.py`: checks that these docs still match the code they
   describe, and exits non-zero when one has gone stale.
 - `scripts/narration_compare.py`: the paid comparison of the two watsonx
