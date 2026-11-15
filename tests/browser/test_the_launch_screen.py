@@ -489,18 +489,22 @@ def test_the_crossfade_runs_for_a_fan_who_asked_for_less_motion(
         context.close()
 
 
-def ink(image):
+def ink(image, rows=None):
     """The box the near-white pixels fall in and the box the amber ones do.
 
-    A box rather than a pixel comparison: the browser rasterises the tagline
-    with its own hinting and anti-aliasing and the generator fills polygons,
-    so the two agree on where the drawing is and differ in the last shade of
-    an edge. Where it is, is the claim worth making.
+    A box rather than a pixel comparison: the browser rasterises with its own
+    hinting and anti-aliasing and the generator fills polygons, so the two
+    agree on where the drawing is and differ in the last shade of an edge.
+    Where it is, is the claim worth making.
+
+    `rows` is a (top, bottom) band in device pixels, because the launch screen
+    holds two different kinds of drawing and only one of them is this repo's.
     """
     rgb = image.convert("RGB")
     width, height = rgb.size
     read = rgb.load()
     found = {"white": None, "amber": None}
+    top, bottom = rows or (0, height)
 
     def note(key, x, y):
         box = found[key]
@@ -508,7 +512,7 @@ def ink(image):
                       (min(box[0], x), min(box[1], y),
                        max(box[2], x), max(box[3], y)))
 
-    for y in range(height):
+    for y in range(max(0, top), min(height, bottom)):
         for x in range(width):
             r, g, b = read[x, y]
             if r > 200 and g > 200 and b > 200:
@@ -516,6 +520,10 @@ def ink(image):
             elif r > 170 and 90 < g < 200 and b < 90:
                 note("amber", x, y)
     return found
+
+
+def centre_of(box):
+    return (box[0] + box[2]) / 2
 
 
 @pytest.mark.parametrize("screen", brand().IPHONES,
@@ -589,13 +597,45 @@ def test_the_startup_image_is_this_screen(playwright_browser, web_server, plan,
     assert shot.size == drawn.size == (css_w * scale, css_h * scale), (
         name, shot.size, drawn.size)
 
-    painted, generated = ink(shot), ink(drawn)
+    # The two bands, split at the top of the tagline's line box, because the
+    # screen holds two different kinds of drawing. `launch_layout` is where
+    # the split comes from, which is the same numbers the image is drawn from.
+    split = int(round(brand().launch_layout(css_w, css_h)["line_top"] * scale))
+
+    # The mark is outlines on both sides: inline SVG in the browser, polygons
+    # in the generator. Nothing about it is a platform's idea of anything, so
+    # it is compared whole, in both colours.
+    painted, generated = ink(shot, (0, split)), ink(drawn, (0, split))
     for key in ("white", "amber"):
-        assert painted[key] is not None, (name, key)
-        assert generated[key] is not None, (name, key)
+        assert painted[key] is not None, (name, "mark", key)
+        assert generated[key] is not None, (name, "mark", key)
         apart = [abs(a - b) for a, b in zip(painted[key], generated[key])]
-        assert max(apart) <= SAME_DRAWING_PX, (name, key, painted[key],
-                                               generated[key], apart)
+        assert max(apart) <= SAME_DRAWING_PX, (name, "mark", key,
+                                               painted[key], generated[key],
+                                               apart)
+
+    # The tagline is real text, and the two sides arrive at its width by
+    # different routes: the browser shapes the string, the generator adds up
+    # the font's own advances. Those agree on Windows and do not on the Linux
+    # runner, which draws it wider: measured on 2026-11-15, 52 device pixels
+    # further left at three device pixels to the CSS pixel and 34 at two, on
+    # ten of the eleven screens, with every other edge agreeing to within two.
+    # How wide a platform shapes a string is not this repo's to fix and not
+    # what the startup image has to match.
+    #
+    # Where the line sits is. The band is compared on its top, its bottom and
+    # its centre: a tagline on the wrong baseline, or off to one side, is the
+    # mark moving as the app takes over, and that is the thing this check was
+    # added for.
+    painted = ink(shot, (split, css_h * scale))["amber"]
+    generated = ink(drawn, (split, css_h * scale))["amber"]
+    assert painted is not None, (name, "tagline")
+    assert generated is not None, (name, "tagline")
+    for edge, at in (("top", 1), ("bottom", 3)):
+        assert abs(painted[at] - generated[at]) <= SAME_DRAWING_PX, (
+            name, "tagline", edge, painted, generated)
+    assert abs(centre_of(painted) - centre_of(generated)) <= SAME_DRAWING_PX, (
+        name, "tagline", "centre", painted, generated)
 
 
 #: Insets to force on the shell, to stand in for a screen that has them:

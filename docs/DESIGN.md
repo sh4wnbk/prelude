@@ -124,8 +124,33 @@ drawing in it against that screen's own image. The eleven rather than the one,
 because the layout is not a share of the screen: the mark is 300 CSS px wide
 on a 375 px screen and on a 440 px one alike and the block is lifted a fixed
 24 px, so one screen agreeing says nothing about the arithmetic on the other
-ten. Measured on 2026-11-15 the mark agreed to within one device pixel and the
-tagline to within three.
+ten.
+
+**The comparison is in two bands**, split at the top of the tagline's line
+box, because the screen holds two different kinds of drawing:
+
+- **The mark** is outlines on both sides, inline SVG in the browser and filled
+  polygons in the generator, so nothing about it is a platform's idea of
+  anything. Both of its colours are compared whole, and agreed to within one
+  device pixel on 2026-11-15.
+- **The tagline** is real text, and the two sides reach its width by different
+  routes: the browser shapes the string and the generator adds up the font's
+  own advances. Those agree on Windows and do not on the Linux runner, which
+  draws it wider: 52 device pixels further left at three device pixels to the
+  CSS pixel and 34 at two, on ten of the eleven screens, with every other edge
+  agreeing to within two. How wide a platform shapes a string is not this
+  repo's to fix and is not what a startup image has to match, so what is
+  compared is where the line sits: its top, its bottom and its centre, each to
+  within four device pixels. A tagline on the wrong baseline, or off to one
+  side, is the mark moving as the app takes over, which is what this check
+  exists for.
+
+The screenshot also waits for the font. The markup ships visible and the mark
+is inline, so the launch screen is up before any request of its own has been
+answered, and a screenshot taken in that window catches the tagline before it
+has any ink. The weight is part of the wait: `document.fonts.check` is asked
+whether a font matching the whole shorthand is ready, and the 400 faces of
+this family stay unloaded because nothing on this screen is set in them.
 
 The shell also carries `apple-mobile-web-app-capable` and
 `mobile-web-app-capable`, without which iOS opens the home-screen icon inside

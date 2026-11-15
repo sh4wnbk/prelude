@@ -940,19 +940,34 @@ short of settled in that frame: 0.992923 at 412 by 915. It is waited for now,
 and the crossfade itself is still asserted on the recorded timeline, which is
 where that claim belongs.
 
-**CI found the second of the two races**, which this machine never lost. The
-eleven comparisons screenshot the shell, and the tagline is real text in a web
-font that arrives after the screen does: the markup ships visible and the mark
-is inline, so the launch screen is up before any request of its own has been
-answered, which is the point of it. A screenshot taken in that window is a
-screenshot of the fallback family, which is a different width. The Linux
-runner drew the tagline 52 device pixels wider on the left of
-`launch-1206x2622.png` and `launch-1290x2796.png` and agreed to the pixel on
-every other edge of all eleven. The comparison waits for the font now, and the
-weight is part of the question: `document.fonts.check` is asked whether a font
-matching the whole shorthand is ready, and the 400 faces of this family stay
-unloaded because nothing on this screen is set in them, so asking without the
-500 is asking about a face that never arrives and waiting until the timeout.
+**CI found what this machine could not**, and it took three runs to read it
+right. The eleven comparisons screenshot the shell, and the first run failed
+two of them on the Linux runner with the tagline's amber reaching 52 device
+pixels further left than the generator draws it, every other edge agreeing to
+within two.
+
+The first reading was a race: the tagline is real text in a web font that
+arrives after the screen does, because the markup ships visible and the mark
+is inline, so a screenshot can catch the tagline before it has any ink. That
+reading was right about the race and wrong about the cause. Waiting for the
+font failed ten of the eleven rather than none: the wait did not create the
+difference, it stopped hiding it behind a tagline that had not been drawn yet.
+The weight is part of that wait, too, and the first attempt at it failed all
+eleven here: `document.fonts.check` is asked whether a font matching the whole
+shorthand is ready, and the 400 faces of this family stay unloaded because
+nothing on this screen is set in them, so asking without the 500 waits for a
+face that never arrives.
+
+**What it is.** The browser shapes the string and the generator adds up the
+font's own advances, and those agree on Windows and not on the Linux runner,
+which draws the tagline about 35 CSS px wider. How wide a platform shapes a
+string is not this repo's to fix and is not what a startup image has to match.
+So the comparison is in two bands now, split at the top of the tagline's line
+box. The mark is outlines on both sides and is compared whole in both colours.
+The tagline is compared on where it sits: its top, its bottom and its centre,
+each to within four device pixels, because a tagline on the wrong baseline or
+off to one side is the mark moving as the app takes over, and that is what the
+check exists for.
 
 **`scripts/check_docs.py` collects `tests/browser` too**, in a second pass, so
 a doc may cite a browser test by name. The two collections stay apart: the
