@@ -609,7 +609,7 @@ caller. The seven rows they answer are in
 | [`docs/IBM_STACK.md`](docs/IBM_STACK.md) | which IBM parts are built, and which are planned |
 | [`docs/VOICE.md`](docs/VOICE.md) | the narration voice the prompt and the grounding check enforce |
 | [`docs/narration.md`](docs/narration.md) | the narration modules, where their shapes came from, and what they are not |
-| [`docs/DESIGN.md`](docs/DESIGN.md) | the screens, cited against the markup |
+| [`docs/DESIGN.md`](docs/DESIGN.md) | the mark, and the screens cited against the markup |
 | [`docs/bob_brief.md`](docs/bob_brief.md) | the brief IBM Bob built the EventFeed module to |
 | [`docs/data_check.md`](docs/data_check.md) | generated: the 1986 goals and shot counts, from the data |
 | [`HANDOFF.md`](HANDOFF.md) | what was built when, what was deviated from, and what is next |
