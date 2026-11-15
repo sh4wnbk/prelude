@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<!-- The app background, set before any stylesheet is linked, so the
+     first style the parser sees is the one that keeps a frame from
+     being white. The same bytes are in the head of every screen. -->
+<style>html,body{background-color:#101319;}</style>
 <link href="assets/icon/favicon.svg?v=__V__" rel="icon" type="image/svg+xml"/>
 <link href="assets/icon/favicon-32.png?v=__V__" rel="icon" sizes="32x32" type="image/png"/>
 <link href="assets/icon/apple-touch-icon-180.png?v=__V__" rel="apple-touch-icon" sizes="180x180"/>
@@ -142,7 +146,25 @@
     box-sizing: border-box;
     padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
   }
-  #screen { display: block; width: 100%; height: 100%; border: 0; }
+  /* The frame carries the app background and is invisible until the screen
+     inside it says it has painted.
+
+     A browser paints an empty frame white, and the launch screen covers it
+     only until the fade starts, so without this the white is what the fade
+     uncovers: a flash at the top of the screen, which is what Shawn saw on
+     an iPhone XR on 2026-11-15. The colour is on the element as well as in
+     the screen's own head, because the element is painted by this page and
+     the head is painted by the screen's. */
+  #screen {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background-color: #101319;        /* surface */
+    opacity: 0;
+    transition: opacity 300ms ease;   /* FADE_MS below; the two are one number */
+  }
+  #screen[data-shown] { opacity: 1; }
 
   /* Above the breakpoint, the same bezel phone-frame.css draws. */
   @media (min-width: 501px) {
@@ -290,6 +312,7 @@
     function leave() {
       if (going) return;
       going = true;
+      show();
       if (poll) window.clearInterval(poll);
       if (cap) window.clearTimeout(cap);
       if (holding) window.clearTimeout(holding);
@@ -322,17 +345,34 @@
       holding = window.setTimeout(leave, Math.ceil(left));
     }
 
-    function ready() {
-      // A predicate that throws is a predicate that stops the poll, and the
-      // frame's document is null while it is navigating, so every step of
-      // this answers false rather than throwing.
+    // What the framed document says about itself. A predicate that throws is
+    // a predicate that stops the poll, and the frame's document is null while
+    // it is navigating, so this answers false rather than throwing.
+    function says(attribute) {
       try {
         var doc = screen && screen.contentDocument;
         return !!doc && !!doc.documentElement &&
-               doc.documentElement.hasAttribute('data-matches-loaded');
+               doc.documentElement.hasAttribute(attribute);
       } catch (e) {
         return false;
       }
+    }
+
+    // Reveal the frame. It is invisible until this runs, and this runs in the
+    // same step that starts the fade, so the list comes up as the mark goes.
+    function show() {
+      if (screen && !screen.hasAttribute('data-shown')) {
+        screen.setAttribute('data-shown', '');
+      }
+    }
+
+    // Two things, and the screen waits for both. `data-matches-loaded` is the
+    // renderer saying matches.json was answered; `data-painted` is the
+    // screen's own, one frame drawn with the app background and its
+    // stylesheet applied. The second is what keeps the list from being
+    // revealed white: a browser paints an empty frame that colour.
+    function ready() {
+      return says('data-matches-loaded') && says('data-painted');
     }
 
     if (ready()) {
@@ -340,6 +380,11 @@
     } else {
       poll = window.setInterval(function () { if (ready()) go(); }, POLL_MS);
     }
+    // The cap ends the screen whatever the frame said, and reveals it with
+    // it: an unpainted frame is still the app background, which is the colour
+    // behind it either way, and a fan past the cap is better off looking at
+    // the app than at a wordmark. Nothing in the suite reaches that case: a
+    // screen paints whether or not matches.json ever answers.
     cap = window.setTimeout(go, Math.max(0, CAP_MS - FADE_MS - elapsed()));
   })();
 </script>

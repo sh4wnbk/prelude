@@ -212,7 +212,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 2092 tests in forty two files. Any failure means something is
+The suite is 2106 tests in forty three files. Any failure means something is
 wrong. It is run from the repo root:
 
 ```
@@ -249,6 +249,7 @@ wrote that file as Task 15; it exists now and they pass.
 | `tests/test_live_before.py` | where the 1986 fan steps away: 52' at 1 to 0, in `app/web/matches.json` and inline on the Live screen, built by Bob in Task 8 |
 | `tests/test_moment_card_header.py` | the header on the moment card: `hero.opening` in `app/web/matches.json`, the script that writes and checks it, the card's field and the renderer, built by Bob in Task 6 |
 | `tests/test_profile.py` | the Profile screen, the Profile tab and person icon leading to it, and the card reopening from it, built by Bob in Task 10 |
+| `tests/test_the_first_frame.py` | what every page does before anything it links has loaded: the app background in all eight heads in front of every stylesheet, `data-painted` on every screen, and the shell's iframe carrying that background and starting invisible |
 | `tests/test_the_mark.py` | the mark: the brand files and the icon set, both generators re-run with `--check` against what is committed, the bars read out of the bitmaps with a decoder, the two colours against the screens' own tokens, the links on every screen and the manifest |
 | `tests/test_the_claims_checked_line.py` | the claim count beside the label: one per slot in `app/web/narrations.json`, read from the file rather than typed, and shown and hidden with the label |
 | `tests/test_the_screens_claim_only_the_code.py` | the four lines Task 32 removed because they claimed more than the code does: the GPS badge, the live audio sync button, the status line and the confirm button's sequence; and the two pills Task 33 rewrote to name the data rather than its state |
