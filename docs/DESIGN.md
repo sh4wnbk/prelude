@@ -118,19 +118,46 @@ screen that is not 390 by 844 is not that file stretched, because the mark
 stays 300 CSS px wide on every screen and the CSS does not scale it.
 `launch_layout` in `scripts/brand/build_svg.py` is those rules as numbers and
 `app/web/index.html` is the same rules in CSS, which is two copies, so
-`tests/browser/test_the_launch_screen.py` screenshots the shell at 390 by 844
-and measures the drawing in it against `launch-1170x2532.png`. Measured on
-2026-11-15 the mark agreed to within one device pixel and the tagline to
-within three.
+`tests/browser/test_the_launch_screen.py` screenshots the shell at each of the
+eleven screens, at that screen's own device pixel ratio, and measures the
+drawing in it against that screen's own image. The eleven rather than the one,
+because the layout is not a share of the screen: the mark is 300 CSS px wide
+on a 375 px screen and on a 440 px one alike and the block is lifted a fixed
+24 px, so one screen agreeing says nothing about the arithmetic on the other
+ten. Measured on 2026-11-15 the mark agreed to within one device pixel and the
+tagline to within three.
 
 The shell also carries `apple-mobile-web-app-capable` and
 `mobile-web-app-capable`, without which iOS opens the home-screen icon inside
-Safari's chrome and shows no startup image at all, and an opaque black status
-bar. `black-translucent` would put the page under the status bar, and the
-screens read their safe-area insets inside the shell's iframe, where `env()`
-is zero and nothing would move out of the way. The manifest's
-`background_color` is the same `#101319` these are drawn on, which is what
-Android shows in their place.
+Safari's chrome and shows no startup image at all, and a **translucent**
+status bar, `black-translucent`, with `viewport-fit=cover` on the viewport.
+Those two together are what make the page the whole screen, and that is what
+makes the comparison above the right one: an opaque bar gives the page the
+area below it and leaves iOS to fit the full-screen startup image into that
+smaller area, so the mark comes up smaller in the image than the page draws
+it and moves as the app takes over. Shawn saw exactly that on an iPhone XR on
+2026-11-15.
+
+**The insets are the shell's to apply.** iOS reports them to the shell and
+not to the screens, which are inside its iframe where `env()` is zero, so the
+shell reads the four into `--safe-top`, `--safe-right`, `--safe-bottom` and
+`--safe-left` and pads `#frame` by them: that keeps all seven screens out
+from under the clock and the home indicator at once. The launch screen is
+deliberately not inset, because it is the drawing the startup image has to
+match and that image is drawn for the whole screen; what is asked of it
+instead is that the mark and the tagline clear the insets where they sit,
+which `test_nothing_sits_under_the_clock_or_the_home_indicator` measures with
+the insets forced to 64 px at the top and 48 px at the bottom, more room than
+a status bar and a home indicator take.
+
+The manifest's `background_color` is the same `#101319` these are drawn on,
+which is what Android shows in their place: Chrome draws its own launch screen
+from the manifest, the icon centred on `background_color` with the name under
+it, and only for a `standalone` or `fullscreen` display. All three fields are
+asserted, and so is the absence of white: both icon PNGs are drawn on
+`#101319` and hold no white pixel, so the first frame on Android is the colour
+the first frame on iOS is. The browser suite runs the launch at an Android
+viewport, 412 by 915, as well as at the iPhone sizes.
 
 The vector rounds its own corners and the PNGs do not, because every platform
 that shows a PNG rounds or crops it and a second rounding reads as a shrunken

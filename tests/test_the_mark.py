@@ -424,13 +424,26 @@ class TestTheStartupImages:
         assert '<meta content="yes" name="apple-mobile-web-app-capable"/>' in markup
         assert '<meta content="yes" name="mobile-web-app-capable"/>' in markup
 
-    def test_the_status_bar_is_opaque(self):
-        """`black-translucent` would put the page under the status bar, and
-        the screens read their safe-area insets inside this shell's iframe,
-        where `env()` is zero: nothing would move out of the way."""
+    def test_the_status_bar_is_translucent(self):
+        """So the page is the whole screen, which is what makes the startup
+        image and the screen behind it one drawing.
+
+        An opaque bar gives the page the area below it and leaves iOS to fit
+        a full-screen startup image into that smaller area: the mark comes up
+        smaller than the shell draws it and then moves as the app takes over,
+        which is what Shawn saw on an iPhone XR on 2026-11-15. The insets are
+        the shell's to apply, which `TestTheShellAppliesTheInsets` is about.
+        """
         assert (
-            '<meta content="black" name="apple-mobile-web-app-status-bar-style"/>'
+            '<meta content="black-translucent" '
+            'name="apple-mobile-web-app-status-bar-style"/>'
         ) in read(SHELL)
+
+    def test_the_viewport_covers_the_screen(self):
+        """`viewport-fit=cover` is the other half of it: without it a
+        translucent bar still leaves the page inset, and the drawing moves."""
+        assert "viewport-fit=cover" in read(SHELL)
+
 
     def test_every_corner_is_the_app_background(self):
         """Opaque, and the same colour as the manifest's, so a fan opening
@@ -473,6 +486,52 @@ class TestTheStartupImages:
             read(MANIFEST))["background_color"]
 
 
+class TestTheShellAppliesTheInsets:
+    """The shell is the one page iOS reports a safe area to.
+
+    A screen is inside the iframe, where `env()` is 0, so a screen that asked
+    would be told there is nothing to move out of the way. The shell reads the
+    four insets into variables and pads the frame by them, which keeps all
+    seven screens out from under the clock and the home indicator at once.
+
+    The launch screen is deliberately not inset: it is the drawing the startup
+    image has to match, and that image is drawn for the whole screen.
+    `tests/browser/test_the_launch_screen.py` is where the block is measured
+    against the insets rather than assumed to clear them.
+    """
+
+    def shell(self):
+        return read(SHELL)
+
+    def test_the_four_insets_are_read_into_variables(self):
+        block = self.shell().split(":root {")[1].split("}")[0]
+        for side in ("top", "right", "bottom", "left"):
+            assert ("--safe-%s: env(safe-area-inset-%s, 0px);" % (side, side)
+                    in block), side
+
+    def test_the_frame_is_padded_by_them(self):
+        block = self.shell().split("  #frame {")[1].split("}")[0]
+        assert "box-sizing: border-box;" in block, block
+        assert ("padding: var(--safe-top) var(--safe-right) "
+                "var(--safe-bottom) var(--safe-left);") in block, block
+
+    def test_the_desktop_frame_takes_none(self):
+        """Above the breakpoint the bezel is the frame's own box and a
+        desktop reports no insets, so the padding comes off rather than
+        being left to resolve to zero."""
+        at = self.shell().index("@media (min-width: 501px)")
+        block = self.shell()[at:].split("    #frame {")[1].split("}")[0]
+        assert "padding: 0;" in block, block
+
+    def test_the_launch_screen_is_not_inset(self):
+        """It covers the whole screen, because the startup image it has to
+        match is drawn for the whole screen. Insetting it would move the mark
+        down by the status bar on the way from one to the other."""
+        block = self.shell().split("#launch {")[1].split("}")[0]
+        assert "inset: 0;" in block, block
+        assert "--safe-" not in block, block
+
+
 class TestTheManifest:
     def doc(self):
         return json.loads(read(MANIFEST))
@@ -493,6 +552,35 @@ class TestTheManifest:
     def test_it_takes_the_app_background(self):
         assert self.doc()["background_color"] == SURFACE
         assert self.doc()["theme_color"] == SURFACE
+
+    def test_it_asks_for_the_splash_android_draws(self):
+        """Chrome on Android draws its own launch screen from this file: the
+        icon on `background_color` with the name under it, and it draws one
+        only for a `standalone` or `fullscreen` display. The three fields it
+        reads are the three asserted here and above."""
+        assert self.doc()["display"] == "standalone"
+        assert self.doc()["name"] == "Prelude"
+
+    def test_nothing_in_that_splash_is_white(self):
+        """The background is the app's, and the icon Chrome centres on it is
+        drawn on the same colour: so the first frame on Android is the colour
+        the first frame on iOS is, and neither has a white edge around the
+        icon. Read off the files rather than from the drawing's numbers."""
+        from PIL import Image
+
+        assert self.doc()["background_color"] == SURFACE
+        for one in self.doc()["icons"]:
+            with Image.open(WEB / one["src"]) as image:
+                image = image.convert("RGB")
+            width, height = image.size
+            corners = ((0, 0), (width - 1, 0), (0, height - 1),
+                       (width - 1, height - 1))
+            for at in corners:
+                assert "#%02x%02x%02x" % image.getpixel(at) == SURFACE, (
+                    one["src"], at)
+            assert (255, 255, 255) not in {
+                colour for _, colour in (image.getcolors(1 << 22) or [])
+            }, one["src"]
 
     def test_it_offers_the_two_install_sizes(self):
         icons = self.doc()["icons"]

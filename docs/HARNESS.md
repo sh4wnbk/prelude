@@ -105,7 +105,7 @@ collector from
 | `scripts/story_beats_report.py` | the beat list for both hero goals, beside the records it was curated from | nothing | nothing |
 | `scripts/scan_copy.py` | gate: banned copy, and the grounding label's placement | nothing | nothing |
 | `scripts/check_match_copy.py` | gate: every factual value in `app/web/matches.json` against `data/raw/`, and every line that describes the play against the `grounding` block behind it, both ways | nothing | nothing |
-| `scripts/check_docs.py` | gate: the claims these docs make against the code | nothing | runs `pytest` |
+| `scripts/check_docs.py` | gate: the claims these docs make against the code | nothing | runs `pytest`, twice: once for the unit suite and once for `tests/browser` |
 | `scripts/record_narration_golden.py` | records one Ollama request and response | `tests/golden/ollama_development_model.json` | a local Ollama server |
 | `scripts/narrate_once.py` | narrates one goal and prints every attempt | nothing | a local Ollama server |
 | `scripts/narration_eval.py` | narrates goals several times in one or more personas and measures the result | `docs/narration_eval.md`, and records with `--json` | a local Ollama server |
@@ -212,7 +212,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 2085 tests in forty two files. Any failure means something is
+The suite is 2092 tests in forty two files. Any failure means something is
 wrong. It is run from the repo root:
 
 ```
@@ -414,7 +414,8 @@ because a skip would have let the suite go green with nothing built.
 - **No continuous integration runs the suite.** The only workflow in the repo is
   `.github/workflows/pages.yml`, which uploads `app/web/` to GitHub Pages and
   runs no tests and no gates. The five gates are run by hand before a commit.
-- **No gate runs the other gates.** `scripts/check_docs.py` runs `pytest`, and
+- **No gate runs the other gates.** `scripts/check_docs.py` runs `pytest`
+  twice, the unit suite and `tests/browser`, both with `--collect-only`, and
   nothing runs `scripts/scan_copy.py` or `scripts/check_match_copy.py` for you.
 - **No test measures the narration pass rate; a script does.**
   `app/narration.py` exposes `pass_rate` and

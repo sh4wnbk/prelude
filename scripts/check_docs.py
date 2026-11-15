@@ -266,6 +266,41 @@ TEST_NODE_CITE = re.compile(
 BARE_TEST_CITE = re.compile(r"`(test_[a-z0-9_]+|Test[A-Za-z0-9_]*)`")
 
 _COLLECTED = None
+_BROWSER = None
+
+
+def browser_collected():
+    """Every node id in `tests/browser/`, which the default run leaves out.
+
+    `norecursedirs` keeps the browser suite out of `pytest`, so the collection
+    `collected()` does is the unit suite and its total is the number the count
+    claims are about. The browser suite is still a place a doc cites a test
+    by name, so it is collected separately and read by the citation check and
+    by nothing else: a count claim stays a claim about the unit suite.
+    """
+    global _BROWSER
+    if _BROWSER is not None:
+        return _BROWSER
+    _BROWSER = tuple(
+        line.strip().replace("\\", "/")
+        for line in run_pytest("tests/browser", "--collect-only", "-q").splitlines()
+        if "::" in line
+    )
+    return _BROWSER
+
+
+def targets_for(nodes):
+    """The three ways pytest addresses a test, for every node id given: the
+    file, the class in the file, and the node itself."""
+    found = set()
+    for node in nodes:
+        path, _, rest = node.partition("::")
+        found.add(path)
+        if "::" in rest:
+            found.add(f"{path}::{rest.split('::', 1)[0]}")
+        found.add(node)
+        found.add(node.split("[")[0])
+    return found
 
 
 def collected():
@@ -374,8 +409,17 @@ def check_cited_tests(fail):
         fail("tests", "pytest collected no tests")
         return
 
-    classes = {part for node in nodes for part in node.split("::")[1:-1]}
-    names = {node.split("::")[-1] for node in nodes}
+    # The browser suite joins the names and node ids a citation may resolve
+    # against, and not the total: a count claim is about the unit suite, which
+    # is what `pytest` with no path runs.
+    browser = browser_collected()
+    if not browser:
+        fail("tests", "pytest collected nothing in tests/browser")
+        return
+    everything = tuple(nodes) + browser
+    targets = set(counts) | targets_for(browser)
+    classes = {part for node in everything for part in node.split("::")[1:-1]}
+    names = {node.split("::")[-1].split("[")[0] for node in everything}
 
     checked = 0
     for doc in DOCS:
@@ -388,7 +432,7 @@ def check_cited_tests(fail):
             if cite in DELIBERATELY_ABSENT:
                 continue
             checked += 1
-            if cite not in counts:
+            if cite not in targets:
                 fail(doc.name, f"cites {cite}, which pytest does not collect")
         for cite in sorted(set(BARE_TEST_CITE.findall(text))):
             checked += 1
@@ -399,7 +443,8 @@ def check_cited_tests(fail):
             elif cite not in classes:
                 fail(doc.name,
                      f"cites the test class {cite}, which pytest does not collect")
-    print(f"  tests cited: {checked} citation(s) resolved against {total} collected")
+    print(f"  tests cited: {checked} citation(s) resolved against "
+          f"{total} collected and {len(browser)} in tests/browser")
 
 
 def check_referenced_paths(fail):

@@ -40,12 +40,35 @@ about:
   paints have to be the same one or the mark moves as the app takes over.
 """
 
+import importlib.util
 import io
 from pathlib import Path
 
 import pytest
 
-WEB = Path(__file__).resolve().parent.parent.parent / "app" / "web"
+ROOT = Path(__file__).resolve().parent.parent.parent
+WEB = ROOT / "app" / "web"
+BRAND_SCRIPT = ROOT / "scripts" / "brand" / "build_svg.py"
+
+
+def brand():
+    """`scripts/brand/build_svg.py`, imported for its own device table.
+
+    The eleven screens and the name of each one's file are read out of the
+    script that draws them rather than written down here, so a screen added
+    to `IPHONES` arrives in this comparison with it.
+    """
+    spec = importlib.util.spec_from_file_location("build_svg", BRAND_SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+#: Chrome on Android draws its own launch screen out of the manifest and then
+#: hands the page over, so this page's own launch screen and crossfade have to
+#: behave there too. A Pixel-sized viewport, which is not in `IPHONES` and is
+#: not a screen a startup image is drawn for.
+ANDROID = (412, 915, 3)
 
 SHELL = "index.html"
 
@@ -455,41 +478,152 @@ def ink(image):
     return found
 
 
-def test_the_startup_image_is_this_screen(fan, plan):
-    """`app/web/assets/launch/launch-1170x2532.png` against a screenshot of
-    the shell at the screen it is drawn for, 390 by 844 at three device
-    pixels to the CSS pixel.
+@pytest.mark.parametrize("screen", brand().IPHONES,
+                         ids=lambda one: "%dx%d@%dx" % one)
+def test_the_startup_image_is_this_screen(playwright_browser, web_server, plan,
+                                          screen):
+    """Every one of the eleven startup images against a screenshot of the
+    shell at the screen that image is drawn for, at that screen's own device
+    pixel ratio.
 
     This is what holds `scripts/brand/build_svg.py`'s `launch_layout` to the
     CSS in `app/web/index.html`: they are the same rules written twice, and
     the only way to know they still say the same thing is to draw both and
     measure. Reading the tagline's type size where the CSS centres its 20 px
-    line box put the mark 2 CSS px out, which is what this found.
+    line box put the mark 2 CSS px out, which is what the first of these
+    found.
 
-    Measured on 2026-11-15: the white box agreed to within 1 device pixel and
-    the amber box to within 3, the amber being the tagline, whose outermost
-    column and lowest descender row the browser leaves fainter than the
-    threshold above.
+    It is the eleven rather than the one because the layout is not a share of
+    the screen: the mark is 300 CSS px wide on a 375 px screen and on a 440 px
+    one alike, and the block is centred on the height and lifted a fixed
+    24 px. One screen agreeing says nothing about the arithmetic on the other
+    ten, and the iPhone a fan opened it on was not the one that was checked.
+
+    The shell is the whole screen here, which is what makes the comparison
+    the right one to make: `black-translucent` and `viewport-fit=cover` mean
+    the page covers the status bar, so the image iOS shows while the app
+    starts and the screen the app paints are drawings of one rectangle.
     """
     from PIL import Image
+
+    css_w, css_h, scale = screen
+    name = brand().startup_name(*screen)
 
     # Held still: matches.json never answers, so the screen is up until the
     # cap and the screenshot is of the state rather than of a fade.
     plan.hang.add("matches.json")
-    page = open_shell(fan, watch=False)
-    page.wait_for_selector("#launch", state="visible")
-    shot = Image.open(io.BytesIO(page.screenshot()))
+    context = playwright_browser.new_context(
+        viewport={"width": css_w, "height": css_h}, has_touch=True,
+        is_mobile=True, device_scale_factor=scale,
+    )
+    try:
+        page = context.new_page()
+        page.goto(web_server.url(SHELL), wait_until="commit")
+        page.wait_for_selector("#launch", state="visible")
+        shot = Image.open(io.BytesIO(page.screenshot()))
+    finally:
+        context.close()
 
-    drawn = Image.open(WEB / "assets" / "launch" / "launch-1170x2532.png")
-    assert shot.size == drawn.size == (1170, 2532), (shot.size, drawn.size)
+    drawn = Image.open(WEB / "assets" / "launch" / name)
+    assert shot.size == drawn.size == (css_w * scale, css_h * scale), (
+        name, shot.size, drawn.size)
 
     painted, generated = ink(shot), ink(drawn)
     for key in ("white", "amber"):
-        assert painted[key] is not None, key
-        assert generated[key] is not None, key
+        assert painted[key] is not None, (name, key)
+        assert generated[key] is not None, (name, key)
         apart = [abs(a - b) for a, b in zip(painted[key], generated[key])]
-        assert max(apart) <= SAME_DRAWING_PX, (key, painted[key],
+        assert max(apart) <= SAME_DRAWING_PX, (name, key, painted[key],
                                                generated[key], apart)
+
+
+#: Insets to force on the shell, to stand in for a screen that has them:
+#: Chromium reports 0 for all four, and a layout that has moved out of the way
+#: of nothing is not a layout that has been checked. They are a bound and not
+#: a device's own numbers: more room than a status bar and a home indicator
+#: take on any of the screens above.
+FORCED_INSETS = {"top": 64, "right": 16, "bottom": 48, "left": 16}
+
+#: The shell's four variables, set to `FORCED_INSETS` on the root element,
+#: which beats the `:root` rule the stylesheet carries.
+FORCE_INSETS = (
+    "() => { const r = document.documentElement; "
+    + " ".join(
+        "r.style.setProperty('--safe-%s', '%dpx');" % (side, size)
+        for side, size in FORCED_INSETS.items()
+    )
+    + " }"
+)
+
+INSET_STATE = """() => {
+  const frame = document.getElementById('frame').getBoundingClientRect();
+  const inner = document.getElementById('screen').getBoundingClientRect();
+  const mark = document.getElementById('launch-mark').getBoundingClientRect();
+  const line = document.getElementById('launch-line').getBoundingClientRect();
+  return {
+    screen: {width: window.innerWidth, height: window.innerHeight},
+    frame: {top: frame.top, left: frame.left,
+            right: frame.right, bottom: frame.bottom},
+    inner: {top: inner.top, left: inner.left,
+            right: inner.right, bottom: inner.bottom},
+    block: {top: Math.min(mark.top, line.top),
+            left: Math.min(mark.left, line.left),
+            right: Math.max(mark.right, line.right),
+            bottom: Math.max(mark.bottom, line.bottom)},
+  };
+}"""
+
+
+@pytest.mark.parametrize("screen", brand().IPHONES + (ANDROID,),
+                         ids=lambda one: "%dx%d@%dx" % one)
+def test_nothing_sits_under_the_clock_or_the_home_indicator(
+        playwright_browser, web_server, plan, screen):
+    """With the insets forced, on every screen in the table and on Android.
+
+    The shell is the one page iOS reports a safe area to: a screen is inside
+    the iframe, where `env()` is 0, so a screen that asked would be told
+    there is nothing to move out of the way. So the shell reads the four
+    insets and pads the frame by them, and this is that padding measured.
+
+    **The launch screen is deliberately not inset**, because it is the
+    drawing the startup image has to match and that image is drawn for the
+    whole screen. What is asked of it instead is that the mark and the
+    tagline clear the insets where they sit, which they do on every screen
+    here with room to spare: the block is a little above the middle and the
+    insets are at the two ends.
+    """
+    css_w, css_h, scale = screen
+    plan.hang.add("matches.json")
+    context = playwright_browser.new_context(
+        viewport={"width": css_w, "height": css_h}, has_touch=True,
+        is_mobile=True, device_scale_factor=scale,
+    )
+    try:
+        page = context.new_page()
+        page.goto(web_server.url(SHELL), wait_until="commit")
+        page.wait_for_selector("#launch", state="visible")
+        page.evaluate(FORCE_INSETS)
+        state = page.evaluate(INSET_STATE)
+    finally:
+        context.close()
+
+    # The frame fills the screen, and the screens inside it start below the
+    # clock and stop above the home indicator.
+    assert state["inner"]["top"] >= FORCED_INSETS["top"], state
+    assert state["inner"]["left"] >= FORCED_INSETS["left"], state
+    assert (state["screen"]["width"] - state["inner"]["right"]
+            >= FORCED_INSETS["right"]), state
+    assert (state["screen"]["height"] - state["inner"]["bottom"]
+            >= FORCED_INSETS["bottom"]), state
+
+    # And the launch screen's own words clear them where they sit.
+    block = state["block"]
+    assert block["top"] >= FORCED_INSETS["top"], state
+    assert block["left"] >= FORCED_INSETS["left"], state
+    assert (state["screen"]["width"] - block["right"]
+            >= FORCED_INSETS["right"]), state
+    assert (state["screen"]["height"] - block["bottom"]
+            >= FORCED_INSETS["bottom"]), state
 
 
 def test_the_list_is_reachable_the_moment_it_is_gone(fan, plan):

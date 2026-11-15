@@ -236,6 +236,12 @@ nowhere. It accepts the three forms pytest addresses, a file, a class in a file
 and one test, and it also checks a class or test named on its own where the
 sentence around it makes the file clear.
 
+It collects `tests/browser/` as well, in a second pass, because the default run
+leaves that directory out and a browser test is still a thing a doc cites by
+name. The two collections are kept apart: `check_test_count` reads the unit
+suite's total, so a count claim stays a claim about what `pytest` with no path
+runs, and only the citation check sees the browser names.
+
 Nothing tests `scripts/check_docs.py` itself. It is a gate: its evidence is the
 count it prints and its exit code.
 

@@ -9,15 +9,22 @@
 <link href="manifest.webmanifest?v=__V__" rel="manifest"/>
 <meta content="#101319" name="theme-color"/>
 <!-- Opened from a home screen, Prelude runs without Safari's chrome, and
-     iOS shows a startup image while it starts. The status bar is opaque
-     black rather than translucent: translucent puts the page under the
-     bar, and the screens read their safe-area insets inside this shell's
-     iframe, where env() is 0 and nothing would move out of the way.
-     The manifest carries the same background colour, which is what
-     Android shows in its place. -->
+     iOS shows a startup image while it starts. The status bar is
+     translucent, so the page is the whole screen: an opaque bar gives the
+     page the area below it and leaves iOS to fit the full-screen startup
+     image into that smaller area, which draws the mark smaller than the
+     screen behind it draws it and then moves it as the app takes over.
+     With viewport-fit=cover on the viewport above, this page is the
+     screen and the two drawings are one.
+
+     The insets are this page's to apply. iOS reports them here and not to
+     the screens, which are inside the iframe where env() is 0, so the
+     shell pads the frame by them and nothing inside it sits under the
+     clock or the home indicator. The manifest carries the same background
+     colour, which is what Android shows in place of a startup image. -->
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="yes" name="mobile-web-app-capable"/>
-<meta content="black" name="apple-mobile-web-app-status-bar-style"/>
+<meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <!-- The startup images, one per iPhone screen in portrait. iOS takes one
      only where the file is exactly that screen's own pixel size, which is
      why there are eleven and why each media query names the pixel ratio:
@@ -48,7 +55,18 @@
   wide, below that stylesheet's 501px breakpoint, so the two never both apply.
 -->
 <style>
-  :root { color-scheme: dark; }
+  :root {
+    color-scheme: dark;
+    /* The safe areas, read once here. They are variables rather than env()
+       at each use so there is one place they come from, and so a check can
+       replace them with a screen's own numbers: Chromium reports 0 for all
+       four, and a layout that moves out of the way of nothing is not a
+       layout that has been checked. */
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+  }
   html, body {
     margin: 0;
     padding: 0;
@@ -114,7 +132,16 @@
     #launch { transition: none; }
   }
 
-  #frame { width: 100%; height: 100%; }
+  /* The insets, applied once, to the frame the screens load into. A screen
+     is inside the iframe, where env() is 0, so this is the only page that
+     can move them out from under the clock and the home indicator, and
+     padding the frame does it for all seven at once. */
+  #frame {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+  }
   #screen { display: block; width: 100%; height: 100%; border: 0; }
 
   /* Above the breakpoint, the same bezel phone-frame.css draws. */
@@ -157,6 +184,8 @@
 
     #frame {
       box-sizing: content-box;
+      /* No insets on a desktop, and the bezel is the frame's own box here. */
+      padding: 0;
       flex: none;
       width: 390px;
       height: 844px;
