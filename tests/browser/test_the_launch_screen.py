@@ -201,6 +201,16 @@ GONE = (
     "return !!el && el.hidden; }"
 )
 
+#: The list at full opacity. Waited for rather than asserted on the frame the
+#: mark was hidden in: the mark is hidden by a `setTimeout` at FADE_MS and the
+#: list's own transition of the same length can still be a thousandth short of
+#: settled in that frame. Measured on 2026-11-15: 0.992923 at 412 by 915.
+LIST_UP = (
+    "() => { const f = document.getElementById('screen'); "
+    "return !!f && Number(getComputedStyle(f).opacity) === 1; }"
+)
+
+
 LIST_READY = """() => {
   const frame = document.getElementById('screen');
   try {
@@ -848,6 +858,7 @@ def test_the_frame_is_invisible_until_the_launch_screen_goes(fan, plan):
     page.wait_for_selector("#launch", state="visible")
     assert page.evaluate(STATE)["listOpacity"] == 0
     page.wait_for_function(GONE, timeout=(SLOW_SECONDS + 8) * 1000)
+    page.wait_for_function(LIST_UP, timeout=4000)
     assert page.evaluate(STATE)["listOpacity"] == 1
 
     timeline = recorded(page)
@@ -910,6 +921,7 @@ def test_the_launch_runs_the_same_at_every_screen_size(playwright_browser,
         assert page.evaluate(STATE)["listOpacity"] == 0
         page.wait_for_function(GONE, timeout=(SLOW_SECONDS + 8) * 1000)
         timeline = recorded(page)
+        page.wait_for_function(LIST_UP, timeout=4000)
         state = page.evaluate(STATE)
     finally:
         context.close()
