@@ -125,6 +125,13 @@ class TestTheCommittedFilesAreWhatTheNumbersDraw:
         assert "every committed brand file is what these numbers draw" in done.stdout
 
     def test_the_icon_set(self):
+        """The PNGs are compared pixel by pixel rather than byte by byte.
+        Pillow 12.3.0 draws the same image on Windows and on the Linux runner
+        and encodes it a few bytes differently: measured on 2026-11-14, the
+        four bitmaps came out 656, 3,085, 3,216 and 9,094 bytes there against
+        654, 3,049, 3,203 and 8,967 here, with every pixel identical. A byte
+        comparison made this test pass on one machine and fail on the other,
+        which is a claim about zlib rather than about the icon."""
         done = run(ICON_SCRIPT, "--check")
         assert done.returncode == 0, done.stdout + done.stderr
         assert "every committed icon is what the brand icon draws" in done.stdout

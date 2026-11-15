@@ -95,6 +95,11 @@ of them: measured on 2026-11-14 the seven come back as three runs of amber
 across the middle of that bitmap. It is the fallback, and a browser that can
 read the vector never sees it.
 
+`scripts/make_icons.py --check` compares the four PNGs pixel by pixel and not
+byte by byte. Pillow draws the same image on Windows and on the Linux runner
+CI uses and encodes it a few bytes differently, so a byte comparison is a
+claim about zlib rather than about the icon.
+
 ## Foundations
 
 | Property | Value | Source |

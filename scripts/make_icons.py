@@ -40,8 +40,10 @@ Run it:
     .\.venv-prelude\Scripts\python.exe -I scripts\make_icons.py --confirm
 
 `--check` draws everything and compares it with what is committed, writing
-nothing. Needs `pillow`, in the dev group. It reaches nothing: both sources
-are in this repo.
+nothing. A PNG is compared pixel by pixel rather than byte by byte, because
+Pillow encodes the same image a few bytes differently on Windows and on the
+Linux runner CI uses. Needs `pillow`, in the dev group. It reaches nothing:
+both sources are in this repo.
 """
 
 import argparse
@@ -171,6 +173,30 @@ def png(icon, size):
     return out.getvalue()
 
 
+def pixels(blob):
+    """Every pixel of a PNG, as bytes, with no encoder in the way."""
+    from PIL import Image
+
+    with Image.open(io.BytesIO(blob)) as image:
+        return image.convert("RGBA").tobytes()
+
+
+def same(there, blob):
+    """Whether the committed file is the file this draws.
+
+    **A PNG is compared pixel by pixel and not byte by byte.** Pillow writes
+    the same image through whatever zlib its wheel was built against, so the
+    four bitmaps come out a few bytes different on Windows and on the Linux
+    runner CI uses from the same Pillow version and the same drawing. The
+    claim worth making is about the image, so the bytes are decoded and the
+    pixels are compared; everything else here is text and is compared as it
+    is written.
+    """
+    if there.suffix != ".png":
+        return there.read_bytes() == blob
+    return pixels(there.read_bytes()) == pixels(blob)
+
+
 def manifest():
     """The manifest. `display: standalone` and the icons are what an install
     prompt asks for; nothing here claims anything about the app."""
@@ -248,10 +274,11 @@ def main(argv):
             there = ICONS / name
             if not there.is_file():
                 print("  MISSING  {}".format(name)); bad += 1
-            elif there.read_bytes() != blob:
+            elif not same(there, blob):
                 print("  DIFFERS  {}".format(name)); bad += 1
             else:
-                print("  same     {:<26} {:>6,} bytes".format(name, len(blob)))
+                print("  same     {:<26} {:>6,} bytes".format(
+                    name, there.stat().st_size))
         if not MANIFEST.is_file():
             print("  MISSING  manifest.webmanifest"); bad += 1
         elif MANIFEST.read_text(encoding="utf-8") != body:
