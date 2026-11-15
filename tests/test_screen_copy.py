@@ -181,7 +181,7 @@ MARK = WEB / "assets" / "brand" / "prelude_mark.svg"
 #: The tagline, settled with the rest of the brand on 2026-11-14. It replaces
 #: "Be there. Even when you're not.", which was the launch screen's line while
 #: the brand was still only in the pitch thread.
-TAGLINE = "Leave your seat. Stay in the game."
+TAGLINE = "Leave your seat. Not the game."
 
 
 class TestTheLaunchScreen:

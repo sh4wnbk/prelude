@@ -13,6 +13,7 @@ that describes the repo now.
 
 | File | What is in it |
 | ---- | ------------- |
+| `docs/history/task_35_the_launch_on_a_phone.md` | the status bar, the safe-area insets, all eleven startup images checked, the no-white guarantee and the crossfade |
 | `docs/history/phase1-3_scaffold_data_and_eventfeed.md` | the scaffold, the fetch, the first data check, and Bob's EventFeed in two sessions |
 | `docs/history/phase4_narration_and_orchestrator.md` | the provider layer, the prompt, the grounding check, the personas, the paid model comparison, and the orchestrator in two Bob sessions |
 | `docs/history/phase5_voice_and_the_six.md` | the Text to Speech facts and probe, the pronunciation table, the hero run the service refused, and the freeze |
@@ -248,3 +249,28 @@ was about work that is finished and constrains nothing further.
 | A launch screen that is interrupted is not covered | `HANDOFF.md`, Last task's Found, not fixed, where it still stands |
 | The cap is 2,500 ms and the screen left the page at 2,510 | settled and closed; the measurement is `docs/DESIGN.md`'s and the slack is the browser's |
 | The smoke subset does not open the launch screen | **closed by Task 35**: `scripts/smoke_live.py` opens it, and the checks run after the next deploy |
+
+### From Task 35
+
+| Decision, rule or open item | Now lives |
+| --------------------------- | --------- |
+| The status bar is `black-translucent` and the page is the whole screen | Current state, under the ticket, the site and the type |
+| The safe-area insets are the shell's to apply, via CSS variables on `#frame` | Current state, same section |
+| All eleven startup images are checked at their own size and pixel ratio | Current state, same section |
+| The tagline comparison is split into two bands at the tagline's line box | `docs/history/task_35_the_launch_on_a_phone.md`, What it is |
+| The fade is kept under reduced motion, because an opacity fade is not motion | Current state, same section |
+| No frame of a load is white, and three things in markup make it so | Current state, same section |
+| `data-painted` is what keeps the list from being revealed white | Current state, same section |
+| `scripts/check_docs.py` collects `tests/browser` in a second pass | Current state, How work is checked |
+| `scripts/smoke_live.py` opens the launch screen on the deployed site | settled and closed; the check runs after every deploy |
+| Nothing has run on an iPhone | `HANDOFF.md`, Last task's Found, not fixed, where it still stands |
+| The startup images are 560 KB | `HANDOFF.md`, Last task's Found, not fixed, where it still stands |
+| A launch screen that is interrupted is not covered | `HANDOFF.md`, Last task's Found, not fixed, where it still stands |
+
+### From Task 36
+
+| Decision, rule or open item | Now lives |
+| --------------------------- | --------- |
+| The tagline is "Leave your seat. Not the game." | Current state, under the ticket, the site and the type, via `scripts/brand/build_svg.py` |
+| `prelude_launch.svg`'s title uses `TAG` rather than a string literal | `scripts/brand/build_svg.py`, in `drawn()` |
+| "Stay in the game" is banned copy in `scripts/scan_copy.py` | `scripts/scan_copy.py`, `BANNED` |

@@ -188,7 +188,7 @@ def place_mark(width, x, y):
                             f'<path fill="{WHITE}" d="{w0}"/><path fill="{AMBER}" d="{a0}"/></g>'), MH * s
 
 
-TAG = "Leave your seat. Stay in the game."
+TAG = "Leave your seat. Not the game."
 HUPM = HANK["head"].unitsPerEm
 HASC = HANK["hhea"].ascent
 
@@ -492,7 +492,7 @@ def drawn():
     tag, _ = line(HANK, TAG, TAG_SIZE, at["line_left"], at["baseline"])
     files["prelude_launch.svg"] = svg(
         LAUNCH_W, LAUNCH_H, body + f'<path fill="{AMBER}" d="{tag}"/>', bg=BG,
-        title="Prelude. Leave your seat. Stay in the game.")
+        title=f"Prelude. {TAG}")
     return files
 
 

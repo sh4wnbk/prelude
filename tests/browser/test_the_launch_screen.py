@@ -81,7 +81,7 @@ ANDROID = (412, 915, 3)
 SHELL = "index.html"
 
 #: The tagline, as the brand file draws it and the shell writes it.
-TAGLINE = "Leave your seat. Stay in the game."
+TAGLINE = "Leave your seat. Not the game."
 
 #: Long enough to read the screen while matches.json is still in the air.
 SLOW_SECONDS = 1.5

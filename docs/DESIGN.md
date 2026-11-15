@@ -49,7 +49,7 @@ checksums.
 | ----- | ---------- |
 | the mark | "Prelude." in Syne ExtraBold, `#FFFFFF`, with the "u" redrawn as seven amber bars and the full stop amber |
 | the icon | those seven bars alone, amber on `#101319`, centred and filling 56% of a square |
-| the tagline | "Leave your seat. Stay in the game." in Hanken Grotesk 500, amber |
+| the tagline | "Leave your seat. Not the game." in Hanken Grotesk 500, amber |
 
 The two colours are the system's own: `#FFB703` is `primary-container` and
 `#101319` is `surface`. The white is the mark's and is not a token: the
@@ -472,12 +472,12 @@ Card headers also carry a decorative bar field at `opacity-25` with
 
 The first frame of every load of the shell, in `app/web/index.html` and on no
 screen. The mark, inlined from `app/web/assets/brand/prelude_mark.svg` at
-300 px wide, over the tagline "Leave your seat. Stay in the game." at 16px /
+300 px wide, over the tagline "Leave your seat. Not the game." at 16px /
 20px in Hanken Grotesk 500, `primary-container`, with 20 px between them and
 the pair 24 px above the middle of `surface`. Those are
 `app/web/assets/brand/prelude_launch.svg`'s own numbers, read in CSS rather
 than served as that file. It is one `role="img"` named "Prelude. Leave your
-seat. Stay in the game.", so the mark and the tagline are one thing seen; the
+seat. Not the game.", so the mark and the tagline are one thing seen; the
 inlined mark carries `aria-hidden` and no title of its own.
 
 **The timing**, settled on 2026-11-15 and three numbers in `app/web/index.html`:

@@ -3,7 +3,7 @@
 `scripts/brand/build_svg.py` draws every brand file the app serves, from one
 set of numbers, into `app/web/assets/brand/`. The mark is "Prelude." in Syne
 ExtraBold with the "u" redrawn as seven amber bars; the icon is those bars
-alone; the tagline is "Leave your seat. Stay in the game."
+alone; the tagline is "Leave your seat. Not the game."
 
     .\.venv-prelude\Scripts\python.exe -I scripts\brand\build_svg.py --plan
     .\.venv-prelude\Scripts\python.exe -I scripts\brand\build_svg.py --check

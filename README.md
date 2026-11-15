@@ -42,7 +42,7 @@ What the demo is, precisely:
   move, because those moments have no recording.
 - **The app has a mark, and the first frame of a load is it.** "Prelude." in
   Syne ExtraBold with the "u" drawn as seven amber elements, over the tagline
-  "Leave your seat. Stay in the game.", on the app background, while the event
+  "Leave your seat. Not the game.", on the app background, while the event
   list loads behind it. It is held for 1.5 seconds and then crossfades with
   the list over 300 ms, the mark going as the list comes up, and it is off the
   screen by 2.5 seconds whatever the list did. Those seven

@@ -70,6 +70,9 @@ BANNED = [
     # and a line of text; there is no clip in this repo and no code that cuts
     # one. It reads "SHARE" now.
     ("a clip the app does not have", r"SHARE CLIP"),
+    # The old tagline, retired in Task 36. The new one is "Leave your seat.
+    # Not the game." A hit here means the old line came back.
+    ("retired tagline", r"Stay in the game"),
 ]
 
 COMPILED = [(label, re.compile(pattern, re.IGNORECASE)) for label, pattern in BANNED]
