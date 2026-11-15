@@ -560,6 +560,27 @@ def test_the_startup_image_is_this_screen(playwright_browser, web_server, plan,
         page = context.new_page()
         page.goto(web_server.url(SHELL), wait_until="commit")
         page.wait_for_selector("#launch", state="visible")
+        # The tagline is real text in a web font, and the font arrives after
+        # the screen does: the markup ships visible and the mark is inline, so
+        # the launch screen is up before any request of its own is answered,
+        # which is the point of it. A screenshot taken in that window is a
+        # screenshot of the fallback family, which is a different width.
+        #
+        # CI found it, on two of the eleven and not on the nine: the Linux
+        # runner drew the tagline 52 device pixels wider on the left of
+        # launch-1206x2622 and launch-1290x2796 and agreed to the pixel on
+        # every other edge, which is a race and not a layout. This machine won
+        # it eleven times out of eleven.
+        #
+        # The weight is part of the question. `document.fonts.check` is asked
+        # whether a font matching the whole shorthand is ready, and the 400
+        # faces of this family stay unloaded because nothing on this screen is
+        # set in them: asking without the 500 is asking about a face that
+        # never arrives.
+        page.wait_for_function(
+            "() => document.fonts.check('500 16px \"Hanken Grotesk\"')",
+            timeout=10000,
+        )
         shot = Image.open(io.BytesIO(page.screenshot()))
     finally:
         context.close()

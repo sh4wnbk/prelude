@@ -940,6 +940,20 @@ short of settled in that frame: 0.992923 at 412 by 915. It is waited for now,
 and the crossfade itself is still asserted on the recorded timeline, which is
 where that claim belongs.
 
+**CI found the second of the two races**, which this machine never lost. The
+eleven comparisons screenshot the shell, and the tagline is real text in a web
+font that arrives after the screen does: the markup ships visible and the mark
+is inline, so the launch screen is up before any request of its own has been
+answered, which is the point of it. A screenshot taken in that window is a
+screenshot of the fallback family, which is a different width. The Linux
+runner drew the tagline 52 device pixels wider on the left of
+`launch-1206x2622.png` and `launch-1290x2796.png` and agreed to the pixel on
+every other edge of all eleven. The comparison waits for the font now, and the
+weight is part of the question: `document.fonts.check` is asked whether a font
+matching the whole shorthand is ready, and the 400 faces of this family stay
+unloaded because nothing on this screen is set in them, so asking without the
+500 is asking about a face that never arrives and waiting until the timeout.
+
 **`scripts/check_docs.py` collects `tests/browser` too**, in a second pass, so
 a doc may cite a browser test by name. The two collections stay apart: the
 count claims are read against the unit suite, which is what `pytest` with no
