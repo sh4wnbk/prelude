@@ -111,15 +111,22 @@
 </div>
 <!-- Secondary Actions Deck -->
 <div class="grid grid-cols-2 gap-space-xs w-full">
-<!-- Replay Audio -->
+<!-- Replay Audio. The icon span holds a ligature, not a word: "replay_10"
+     was part of this button's accessible name, so a reader heard the name of
+     the glyph before the label. It is hidden from a reader, which leaves the
+     name the label a fan reads. -->
 <button class="flex flex-col items-center justify-center h-16 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors active:scale-98 border border-surface-container-highest/20" id="replayAction" type="button">
-<span class="material-symbols-outlined text-on-surface text-[20px]">replay_10</span>
+<span aria-hidden="true" class="material-symbols-outlined text-on-surface text-[20px]">replay_10</span>
 <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mt-1">REPLAY 10S</span>
 </button>
-<!-- Share Clip -->
+<!-- Share. This button offered a clip and shared none: there is no clip in
+     this repo and no code that cuts one. What it sends is the link to this
+     card and one line of text, and that is what it says. The old label is a
+     banned string in scripts/scan_copy.py, which is why it is not written
+     out here. -->
 <button class="flex flex-col items-center justify-center h-16 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors active:scale-98 border border-surface-container-highest/20" id="shareAction" type="button" data-share-text="Maradona's solo goal as it happened.">
-<span class="material-symbols-outlined text-on-surface text-[20px]">ios_share</span>
-<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mt-1">SHARE CLIP</span>
+<span aria-hidden="true" class="material-symbols-outlined text-on-surface text-[20px]" id="shareIcon">ios_share</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mt-1" id="shareLabel">SHARE</span>
 </button>
 <!-- There was a third button in this deck offering to sync the audio with
      the live match. It changed its own label for 1.8 seconds and changed
@@ -128,22 +135,55 @@
 </div>
 </div>
 <script>
+  /* The share button sends a link and a line of text, which is what this app
+   * has to send. There is no clip.
+   *
+   * With a share sheet, the sheet is handed the title, the line for the match
+   * on screen and this card's own URL, and the sheet does the rest.
+   *
+   * Without one, the link goes to the clipboard and the button says "LINK
+   * COPIED" only once the write has resolved. It used to say "COPIED" for
+   * 1.5 seconds on every click of that branch, whether anything had been
+   * copied or not: `navigator.clipboard` is undefined outside a secure
+   * context, and `writeText` can be refused. A confirmation that is not about
+   * anything that happened is a line a fan can read and cannot trust, so a
+   * refusal shows nothing instead.
+   */
   (function initMomentCardInteraction() {
     const shareAction = document.getElementById('shareAction');
+    const shareIcon = document.getElementById('shareIcon');
+    const shareLabel = document.getElementById('shareLabel');
+
+    //: How long the confirmation stands before the button is a share button
+    //: again.
+    const COPIED_MS = 1500;
+    let reverting = null;
+
+    function confirmCopied() {
+      shareIcon.textContent = 'done';
+      shareLabel.textContent = 'LINK COPIED';
+      if (reverting) window.clearTimeout(reverting);
+      reverting = window.setTimeout(() => {
+        shareIcon.textContent = 'ios_share';
+        shareLabel.textContent = 'SHARE';
+        reverting = null;
+      }, COPIED_MS);
+    }
 
     shareAction?.addEventListener('click', () => {
+      const link = window.location.href;
       if (navigator.share) {
         navigator.share({
           title: 'Listen on Prelude.',
           text: shareAction.dataset.shareText || '',
-          url: window.location.href
+          url: link
         }).catch(() => {});
-      } else {
-        const originalText = shareAction.innerHTML;
-        shareAction.innerHTML = '<span class="material-symbols-outlined text-on-surface text-[20px]">done</span><span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mt-1">COPIED</span>';
-        setTimeout(() => {
-          shareAction.innerHTML = originalText;
-        }, 1500);
+        return;
+      }
+      try {
+        navigator.clipboard.writeText(link).then(confirmCopied, () => {});
+      } catch (nothingToCopyWith) {
+        /* no clipboard, so nothing says there was one */
       }
     });
   })();

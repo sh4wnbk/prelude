@@ -212,7 +212,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 2067 tests in forty two files. Any failure means something is
+The suite is 2073 tests in forty two files. Any failure means something is
 wrong. It is run from the repo root:
 
 ```
@@ -304,8 +304,9 @@ that says so rather than a failure.
 | `tests/browser/test_the_label_waits.py` | `narrations.json` slow, refused and never answered, and `matches.json` slow and refused: three rules asked of every frame the card passed through |
 | `tests/browser/test_the_first_load.py` | nothing stored: no match chosen, the list's pill hidden, the five match screens sending the fan to the list, and the narrator outliving the tab while the allegiance does not |
 | `tests/browser/test_the_player_works.py` | the recording playing, the clock, the amber fill, the bars moving with the voice, the waveform seeking, the arrow keys and Replay 10s |
-| `tests/browser/test_the_launch_screen.py` | the shell's launch screen: the first frame of a visit, the class decided in the head, the fade when matches.json lands, the cap when it fails or never answers, a reload that never paints it and a new tab that does |
-| `tests/browser/test_every_screen.py` | every screen by both matches by four listener states: no page error, no console error and no 404 but the browser's own `/favicon.ico`, with the three CDNs the screens load Tailwind and their fonts from not counted against them |
+| `tests/browser/test_the_launch_screen.py` | the shell's launch screen: the first frame of a visit, the 1.5 s hold and the 300 ms fade, the cap when matches.json fails or never answers, the same hold and no fade under reduced motion, and a reload and a new tab that both paint it |
+| `tests/browser/test_sharing.py` | the moment card's share button on both paths: the share sheet handed the link and the match's own line, the clipboard holding the link with the confirmation over it, and a refused or absent clipboard confirming nothing |
+| `tests/browser/test_every_screen.py` | every screen by both matches by four listener states: no page error, no console error, no 404 at all, and no request that left this suite's own origin |
 
 The states are read with a `MutationObserver` installed before any of the
 page's own scripts, so every state the card passed through is recorded rather

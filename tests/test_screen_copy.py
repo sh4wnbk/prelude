@@ -23,6 +23,10 @@ MOMENT_CARD = WEB / "prelude_03_moment_card.html"
 LIVE = WEB / "prelude_02_live_seated.html"
 
 SHARE_TITLE = "Listen on Prelude."
+#: The button's own label, and the line that stands over a clipboard write
+#: that resolved.
+SHARE_LABEL = "SHARE"
+COPIED_LABEL = "LINK COPIED"
 SHARE_TEXT = {
     3750191: "Maradona's solo goal as it happened.",
     3869685: "Di María's counter goal as it happened.",
@@ -75,6 +79,45 @@ class TestTheShareSheet:
         """The button carries the default match's text before the renderer
         runs, as every other inline field on the card does."""
         assert f'data-share-text="{SHARE_TEXT[3750191]}"' in card()
+
+
+class TestTheShareButtonOffersNoClip:
+    """Shawn's reading of 2026-11-15: the button said it shared a clip and
+    shared a link and a line of text. There is no clip in this repo and no
+    code that cuts one, so the label is the thing it sends.
+
+    The confirmation is the other half. The old fallback branch said "COPIED"
+    for 1.5 seconds on every click whether anything had been copied or not,
+    and a clipboard write can be refused outright. The line a fan reads now
+    stands only over a write that resolved.
+    """
+
+    def test_the_label_is_the_thing_it_does(self):
+        assert f'id="shareLabel">{SHARE_LABEL}<' in card()
+
+    def test_it_no_longer_offers_a_clip(self):
+        assert "SHARE CLIP" not in card()
+
+    def test_the_banned_label_is_in_the_copy_gate(self):
+        """`scripts/scan_copy.py` is what keeps it from coming back, so the
+        pattern is read here rather than assumed."""
+        gate = (ROOT / "scripts" / "scan_copy.py").read_text(encoding="utf-8")
+        assert '("a clip the app does not have", r"SHARE CLIP")' in gate
+
+    def test_the_confirmation_says_what_was_copied(self):
+        assert f"'{COPIED_LABEL}'" in card()
+
+    def test_the_confirmation_is_only_set_where_the_write_resolved(self):
+        """`then(confirmCopied, ...)` and nothing else sets it: a rejected
+        write takes the second branch, which says nothing."""
+        assert "navigator.clipboard.writeText(link).then(confirmCopied" in card()
+        assert card().count(COPIED_LABEL) == 1
+
+    def test_nothing_claims_a_copy_without_a_clipboard(self):
+        """`navigator.clipboard` is undefined outside a secure context, so
+        reaching it at all is inside a try with an empty handler."""
+        assert "try {" in card()
+        assert "catch (nothingToCopyWith)" in card()
 
 
 class TestNothingSaysYouMissedIt:

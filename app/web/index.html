@@ -49,7 +49,7 @@
     padding: 0 24px;
     text-align: center;
     background-color: #101319;        /* surface */
-    transition: opacity 280ms ease;
+    transition: opacity 300ms ease;   /* FADE_MS below; the two are one number */
   }
   /* The 24 px the brand file lifts the block by, so the pair sits above the
      middle of the screen rather than on it. */
@@ -171,25 +171,50 @@
    * never makes it, because Prelude renders no match until the fan has
    * picked one. The frame is same origin, so the shell can read it.
    *
-   * Two things bound it. It never outlives LAUNCH_CAP_MS, so a fetch that
-   * fails or never answers leaves a fan looking at the app rather than at a
-   * wordmark: the screen behind has its own inline copy for exactly that
-   * case. And once the list is ready it is gone within the fade, which is
-   * well under a second, so being shown costs no waiting that the list did
-   * not already cost.
+   * Three numbers bound it, settled on 2026-11-15.
+   *
+   * MIN_HOLD_MS is the hold: the mark is on screen for at least this long on
+   * every full load, even where the list behind it was answered out of a
+   * cache before the first frame. Without a hold the same screen is a flicker
+   * on a fast load and a launch screen on a slow one, which reads as a fault
+   * rather than as the app being called something.
+   *
+   * FADE_MS is the fade, and it is the number in the stylesheet above.
+   *
+   * CAP_MS is the last moment a fan can see it, whatever the list did: a
+   * fetch that fails or never answers leaves a fan looking at the app rather
+   * than at a wordmark, and the screen behind has its own inline copy for
+   * exactly that case. So the fade starts CAP_MS - FADE_MS in, and the cap
+   * bounds the screen rather than the start of the fade. The cap is later
+   * than the hold, which is why the hold is always served first.
+   *
+   * The clock is performance.now(), which counts from the start of the
+   * navigation rather than from whenever this script ran, so both bounds are
+   * measured from the load the fan started.
    */
   (function () {
-    var LAUNCH_CAP_MS = 2000;
-    var FADE_MS = 280;
+    var MIN_HOLD_MS = 1500;
+    var FADE_MS = 300;
+    var CAP_MS = 2500;
     var POLL_MS = 60;
 
     var launch = document.getElementById('launch');
     if (!launch) return;
 
     var screen = document.getElementById('screen');
+    var started = Date.now();
     var going = false;
     var poll = null;
     var cap = null;
+    var holding = null;
+
+    function elapsed() {
+      try {
+        return performance.now();
+      } catch (e) {
+        return Date.now() - started;
+      }
+    }
 
     function reduced() {
       try {
@@ -203,17 +228,37 @@
       launch.hidden = true;
     }
 
-    function go() {
+    // Take it away. A fan who has asked for less motion gets the same hold
+    // and no fade: it is shown, and then it is not.
+    function leave() {
       if (going) return;
       going = true;
       if (poll) window.clearInterval(poll);
       if (cap) window.clearTimeout(cap);
+      if (holding) window.clearTimeout(holding);
       if (reduced()) {
         gone();
         return;
       }
       launch.setAttribute('data-going', '');
       window.setTimeout(gone, FADE_MS);
+    }
+
+    // The list is ready, or the cap has come up. Either way what is left of
+    // the hold is waited out first.
+    function go() {
+      if (going) return;
+      var left = MIN_HOLD_MS - elapsed();
+      if (left <= 0) {
+        leave();
+        return;
+      }
+      if (holding) return;
+      if (poll) {
+        window.clearInterval(poll);
+        poll = null;
+      }
+      holding = window.setTimeout(leave, left);
     }
 
     function ready() {
@@ -231,10 +276,10 @@
 
     if (ready()) {
       go();
-      return;
+    } else {
+      poll = window.setInterval(function () { if (ready()) go(); }, POLL_MS);
     }
-    poll = window.setInterval(function () { if (ready()) go(); }, POLL_MS);
-    cap = window.setTimeout(go, LAUNCH_CAP_MS);
+    cap = window.setTimeout(go, Math.max(0, CAP_MS - FADE_MS - elapsed()));
   })();
 </script>
 <script>

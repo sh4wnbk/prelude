@@ -15,17 +15,25 @@ about:
   framed document: matches.json was answered. It is not
   `data-match-rendered`, which the list never sets, because Prelude renders no
   match until the fan has picked one.
-- **It costs no waiting the list did not already cost.** From the list being
-  ready to the screen being gone is the fade and nothing else, well inside a
-  second.
+- **It is held, and then it fades.** The hold is 1.5 seconds on every full
+  load, so the same screen is not a flicker on a fast load and a launch
+  screen on a slow one; then it fades over 300 ms. Settled on 2026-11-15.
+- **It costs no waiting the list did not already cost.** With the list
+  answered after the hold has been served, from the list being ready to the
+  screen being gone is the fade and nothing else.
 - **It never outlives its cap.** A matches.json that fails or never answers
   would otherwise leave a fan looking at a mark; the list behind it has its
-  own inline copy for exactly that case.
+  own inline copy for exactly that case. The cap is the last moment a fan can
+  see it and not the moment the fade starts, so the shell begins the fade a
+  fade's length before it.
 - **Every full load paints it**, a reload in the same tab included. It used to
   paint once per tab, out of `sessionStorage`, which made the mark something a
   fan saw once and could not get back to.
-- **It honours `prefers-reduced-motion`** by not fading, and it is announced
-  as the mark and the tagline together and says nothing else.
+- **It honours `prefers-reduced-motion`** by not fading. The hold is the
+  same: a fan who asked for less motion is not a fan who asked for less of
+  the app's name.
+- **It is announced** as the mark and the tagline together and says nothing
+  else.
 """
 
 import pytest
@@ -38,8 +46,26 @@ TAGLINE = "Leave your seat. Stay in the game."
 #: Long enough to read the screen while matches.json is still in the air.
 SLOW_SECONDS = 1.5
 
-#: What the shell's own script allows itself, from `LAUNCH_CAP_MS`.
-CAP_MS = 2000
+#: The shell's own three numbers, from `MIN_HOLD_MS`, `FADE_MS` and `CAP_MS`.
+#: The hold is measured from the start of the navigation, which is what
+#: `performance.now()` counts from, so a frame's timestamp is comparable with
+#: it directly.
+MIN_HOLD_MS = 1500
+FADE_MS = 300
+CAP_MS = 2500
+
+#: matches.json answered after the hold has been served, so that what is
+#: measured from the list being ready is the fade and nothing left of the
+#: hold. It is inside the cap, so the list and not the cap is what releases
+#: the screen.
+AFTER_THE_HOLD_SECONDS = 1.9
+
+#: A `setTimeout` is a floor and not a ceiling: the browser runs it no earlier
+#: than asked and no promise about later, and a loaded runner is later. So the
+#: cap is asserted with the runner's own scheduling allowed for, and the
+#: measurement that matters underneath it is that the screen is gone long
+#: before a fan would wonder.
+SLACK_MS = 600
 
 #: Installed before any of the page's own scripts, so what is recorded is
 #: every state the launch screen passed through rather than the one it was
@@ -54,6 +80,9 @@ window.__launchFrames = [];
     const root = document.documentElement;
     const el = root ? document.getElementById('launch') : null;
     window.__launchFrames.push({
+      // Milliseconds since the navigation started, which is the clock the
+      // shell's own hold and cap are measured on.
+      at: performance.now(),
       present: !!el,
       shown: el ? (getComputedStyle(el).display !== 'none' && !el.hidden) : false,
       going: el ? el.hasAttribute('data-going') : false,
@@ -130,6 +159,23 @@ def frames(fan):
     return fan.page.evaluate("() => window.__launchFrames || []")
 
 
+def recorded(page):
+    return page.evaluate("() => window.__launchFrames || []")
+
+
+def first(timeline, **wanted):
+    """When the first recorded frame matching `wanted` happened, or None.
+
+    The timeline is what the `MutationObserver` recorded, so this reads the
+    moment a state was entered rather than sampling the state the screen
+    settled in. `CLAUDE.md` asks the rules of every frame a fan could see.
+    """
+    for one in timeline:
+        if all(one.get(key) == value for key, value in wanted.items()):
+            return one["at"]
+    return None
+
+
 def test_it_is_up_in_the_first_frame_of_a_visit(fan, plan):
     """Held still by delaying matches.json, so the screen can be read rather
     than raced."""
@@ -187,13 +233,57 @@ def test_it_is_laid_out_the_way_the_brand_file_is(fan, plan):
     assert state["gap"] == 20, state
 
 
-def test_it_goes_when_the_list_is_ready_and_costs_no_more_than_the_fade(fan, plan):
-    """The measurement Shawn asked for: from the list being ready to the
-    screen being gone."""
+def test_the_fade_is_the_one_the_shell_says_it_is(fan, plan):
+    """The stylesheet and the script carry the same number, and the script's
+    cap arithmetic is written against it, so the two cannot be read apart."""
     plan.delay["matches.json"] = SLOW_SECONDS
     page = open_shell(fan)
     page.wait_for_selector("#launch", state="visible")
-    page.wait_for_function(LIST_READY, timeout=(SLOW_SECONDS + 8) * 1000)
+    assert page.evaluate(STATE)["transition"] == "%gs" % (FADE_MS / 1000)
+
+
+def test_it_is_held_for_the_hold_even_when_the_list_is_ready_at_once(fan, plan):
+    """No delay at all: matches.json is answered off a local server while the
+    shell is still parsing. The mark is still on screen for the hold.
+
+    This is the case the hold was added for. Before it, a fast load painted
+    the mark and took it away inside a couple of hundred milliseconds, which
+    reads as something going wrong rather than as the app opening.
+    """
+    page = open_shell(fan)
+    page.wait_for_function(GONE, timeout=CAP_MS + 4000)
+    timeline = recorded(page)
+    faded = first(timeline, going=True)
+    gone = first(timeline, present=True, shown=False)
+    assert faded is not None, timeline
+    assert gone is not None, timeline
+    assert faded >= MIN_HOLD_MS, (faded, timeline)
+    assert gone >= MIN_HOLD_MS + FADE_MS, (gone, timeline)
+    assert gone <= CAP_MS + SLACK_MS, (gone, timeline)
+
+
+def test_the_hold_is_served_before_the_fade_however_slow_the_list_is(fan, plan):
+    """The other side of the same rule: a list that lands inside the hold does
+    not shorten it, and one that lands after it does not extend it past the
+    fade."""
+    plan.delay["matches.json"] = SLOW_SECONDS
+    page = open_shell(fan)
+    page.wait_for_function(GONE, timeout=(SLOW_SECONDS + 8) * 1000)
+    timeline = recorded(page)
+    faded = first(timeline, going=True)
+    assert faded >= MIN_HOLD_MS, (faded, timeline)
+    assert faded <= CAP_MS - FADE_MS + SLACK_MS, (faded, timeline)
+
+
+def test_it_goes_when_the_list_is_ready_and_costs_no_more_than_the_fade(fan, plan):
+    """The measurement Shawn asked for: from the list being ready to the
+    screen being gone. The list is answered after the hold has been served,
+    so what is left to measure is the fade."""
+    plan.delay["matches.json"] = AFTER_THE_HOLD_SECONDS
+    page = open_shell(fan)
+    page.wait_for_selector("#launch", state="visible")
+    page.wait_for_function(LIST_READY,
+                           timeout=(AFTER_THE_HOLD_SECONDS + 8) * 1000)
     took = page.evaluate(
         """() => new Promise(resolve => {
              const started = performance.now();
@@ -213,12 +303,19 @@ def test_it_goes_when_the_list_is_ready_and_costs_no_more_than_the_fade(fan, pla
 
 def test_it_never_outlives_its_cap_when_the_list_fails(fan, plan):
     """matches.json refused. The list falls back to its inline copy, which is
-    a correct screen, and the launch screen has to get out of its way."""
+    a correct screen, and the launch screen has to get out of its way.
+
+    The cap is the last moment a fan can see the screen, so the frame that
+    hid it is what is measured and not the frame that started the fade."""
     plan.status["matches.json"] = 503
     page = open_shell(fan)
     page.wait_for_selector("#launch", state="visible")
     page.wait_for_function(GONE, timeout=CAP_MS + 4000)
     assert page.evaluate(STATE)["shown"] is False
+    timeline = recorded(page)
+    gone = first(timeline, present=True, shown=False)
+    assert gone is not None, timeline
+    assert MIN_HOLD_MS <= gone <= CAP_MS + SLACK_MS, (gone, timeline)
     assert not fan.errors, fan.errors
 
 
@@ -228,6 +325,10 @@ def test_it_never_outlives_its_cap_when_the_list_never_answers(fan, plan):
     page.wait_for_selector("#launch", state="visible")
     page.wait_for_function(GONE, timeout=CAP_MS + 4000)
     assert page.evaluate(STATE)["shown"] is False
+    timeline = recorded(page)
+    gone = first(timeline, present=True, shown=False)
+    assert gone is not None, timeline
+    assert MIN_HOLD_MS <= gone <= CAP_MS + SLACK_MS, (gone, timeline)
 
 
 def test_a_second_load_in_the_same_tab_paints_it_again(fan, plan):
@@ -293,12 +394,18 @@ def test_it_honours_a_request_for_less_motion(playwright_browser, web_server,
         else:
             assert page.evaluate(STATE)["transition"] != "0s"
         page.wait_for_function(GONE, timeout=(SLOW_SECONDS + 8) * 1000)
-        recorded = page.evaluate("() => window.__launchFrames || []")
-        faded = [one for one in recorded if one["going"]]
+        timeline = recorded(page)
+        faded = [one for one in timeline if one["going"]]
         if motion == "reduce":
             assert not faded, faded
         else:
-            assert faded, recorded
+            assert faded, timeline
+        # The hold is the same either way. With `reduce` there is no fade, so
+        # the screen goes at the hold rather than a fade after it.
+        gone = first(timeline, present=True, shown=False)
+        assert gone is not None, timeline
+        assert gone >= MIN_HOLD_MS, (motion, gone, timeline)
+        assert gone <= CAP_MS + SLACK_MS, (motion, gone, timeline)
     finally:
         context.close()
 

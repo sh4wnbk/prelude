@@ -66,6 +66,10 @@ BANNED = [
     ("a connection nothing checks", r"PLAY DATA CONNECTED"),
     ("a synchronisation that does not happen", r"PLAY DATA\s*·\s*SYNC"),
     ("a synchronisation that does not happen", r"PLAY DATA SYNC"),
+    # The moment card's share button, which offered a clip. It shares a link
+    # and a line of text; there is no clip in this repo and no code that cuts
+    # one. It reads "SHARE" now.
+    ("a clip the app does not have", r"SHARE CLIP"),
 ]
 
 COMPILED = [(label, re.compile(pattern, re.IGNORECASE)) for label, pattern in BANNED]

@@ -328,6 +328,12 @@ Press feedback is a scale transform in every case: 0.99, 0.95 or 0.98. The
 minimum touch target is 2.75rem (44px), which `touch-target-min` and the
 `min-w-[44px] min-h-[44px]` nav items both honor.
 
+A tertiary action's icon is a Material Symbol span and carries
+`aria-hidden="true"`, so the name a reader hears is the caption under it. The
+span holds a ligature rather than a word: without that attribute the two
+buttons in the moment card's deck were named "ios_share SHARE" and "replay_10
+REPLAY 10S", measured on 2026-11-15. `03`.
+
 ### Filter chips
 
 Single row, horizontally scrollable: `overflow-x-auto pb-1 select-none no-scrollbar`.
@@ -370,11 +376,42 @@ screen. The mark, inlined from `app/web/assets/brand/prelude_mark.svg` at
 20px in Hanken Grotesk 500, `primary-container`, with 20 px between them and
 the pair 24 px above the middle of `surface`. Those are
 `app/web/assets/brand/prelude_launch.svg`'s own numbers, read in CSS rather
-than served as that file. It fades over 280 ms once matches.json has been
-answered behind it, holds for at most 2 seconds if it never is, and does not
-fade at all under `prefers-reduced-motion`. It is one `role="img"` named
-"Prelude. Leave your seat. Stay in the game.", so the mark and the tagline are
-one thing seen; the inlined mark carries `aria-hidden` and no title of its own.
+than served as that file. It is one `role="img"` named "Prelude. Leave your
+seat. Stay in the game.", so the mark and the tagline are one thing seen; the
+inlined mark carries `aria-hidden` and no title of its own.
+
+**The timing**, settled on 2026-11-15 and three numbers in `app/web/index.html`:
+
+| Number | Value | What it is |
+| ------ | ----- | ---------- |
+| `MIN_HOLD_MS` | 1,500 ms | the hold. The mark is on screen at least this long on every full load of the root page, measured from the start of the navigation, even where matches.json was answered before the first frame |
+| `FADE_MS` | 300 ms | the fade, and the `transition` on `#launch`. The two are one number |
+| `CAP_MS` | 2,500 ms | the last moment a fan can see it, whatever matches.json did. The fade therefore starts a fade's length before it, at 2,200 ms |
+
+The hold is why the numbers are three rather than two. Without one the same
+screen is a flicker on a fast load and a launch screen on a slow one, which
+reads as a fault rather than as the app opening. The cap is what a failed or
+unanswered matches.json runs into: the list behind has its own inline copy, so
+a fan who waits past the cap is waiting on a wordmark for nothing.
+
+Under `prefers-reduced-motion: reduce` the hold is the same and there is no
+fade: the screen is shown, and then it is not. A fan who asked for less motion
+did not ask for less of the app's name.
+
+Measured in headless Chromium at 390 by 844 on 2026-11-15, as the moment the
+fade began and the moment the screen left the page:
+
+| matches.json | Fade starts | Gone |
+| ------------ | ----------- | ---- |
+| answered at once | 1,507 ms | 1,809 ms |
+| answered after 1.5 s | 1,589 ms | 1,891 ms |
+| refused 503 | 2,209 ms | 2,510 ms |
+| answered at once, reduced motion | no fade | 1,507 ms |
+
+The 2,510 ms is the cap plus the browser's own timer slack: a `setTimeout` is
+a floor and not a ceiling, so 10 ms is what nothing in the page can take off.
+`tests/browser/test_the_launch_screen.py` asks these of every frame a
+`MutationObserver` recorded rather than of the state the screen settled in.
 
 The mark is inline rather than fetched because the first frame is before any
 request of its own could have been answered. `tests/test_screen_copy.py` holds
