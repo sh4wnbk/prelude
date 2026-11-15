@@ -10,30 +10,6 @@
 <meta content="#101319" name="theme-color"/>
 <link href="fonts.css?v=__V__" rel="stylesheet"/>
 <title>Prelude</title>
-<script>
-  /* The launch screen is the first frame of a visit and nothing else, so
-   * whether it paints at all is decided here, before the body is parsed. A
-   * class on <html> is what the stylesheet reads: the markup below ships
-   * visible, so the first load of a visit shows it in the first frame with no
-   * script having run, and a second load never paints it at all. Deciding it
-   * later would be a flash of one state before the other.
-   *
-   * Blocked storage answers nothing, and the launch screen then shows on
-   * every load rather than on none: it claims nothing and costs a fraction of
-   * a second, so showing it twice is the safer way to be wrong.
-   */
-  (function () {
-    try {
-      if (window.sessionStorage.getItem('prelude.launched') === '1') {
-        document.documentElement.className += ' launched';
-        return;
-      }
-      window.sessionStorage.setItem('prelude.launched', '1');
-    } catch (e) {
-      /* nothing stored; it shows */
-    }
-  })();
-</script>
 <!--
   Entry point. Opens on the picker and holds every screen in one phone frame.
 
@@ -52,13 +28,15 @@
     background-color: #101319;        /* surface */
     overflow: hidden;
   }
-  /* The launch screen: the wordmark over the line, on the app background.
+  /* The launch screen: the mark over the tagline, on the app background.
      It covers the frame rather than replacing it, so the picker loads behind
      it and is ready the moment this goes.
 
-     The type is the design system's `display-lg` and `body-lg`, in the
-     families the screens use, so the wordmark here and the one on the icon
-     are the same letterforms. */
+     The layout is `app/web/assets/brand/prelude_launch.svg`, read in CSS: the
+     mark 300 px wide, 20 px of air, the tagline at 16 px, and the block 24 px
+     above the middle of the screen. The mark is inlined below rather than
+     fetched, so the first frame of a visit costs no request the list did not
+     already cost. */
   #launch {
     position: fixed;
     inset: 0;
@@ -67,37 +45,38 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 16px;
+    gap: 20px;
     padding: 0 24px;
     text-align: center;
     background-color: #101319;        /* surface */
     transition: opacity 280ms ease;
   }
-  /* Set in the head on any load but the first of a visit, so the screen
-     never paints a frame it should not. */
-  html.launched #launch { display: none; }
+  /* The 24 px the brand file lifts the block by, so the pair sits above the
+     middle of the screen rather than on it. */
+  #launch > * { transform: translateY(-24px); }
   /* `hidden` alone loses to the display above, which is why this is here. */
   #launch[hidden] { display: none; }
   /* The one step of the fade. Pointer events go first, so the frame behind is
      reachable from the moment the fade starts. */
   #launch[data-going] { opacity: 0; pointer-events: none; }
 
+  /* The mark is an image with its own colours: white letters, the seven bars
+     and the full stop amber. It is drawn by scripts/brand/build_svg.py and
+     copied in from app/web/assets/brand/prelude_mark.svg, which
+     tests/test_the_mark.py holds this copy to. */
   #launch-mark {
-    font-family: "Syne", system-ui, sans-serif;
-    font-weight: 700;
-    font-size: 48px;
-    line-height: 52px;
-    letter-spacing: -0.03em;
-    color: #e1e2ea;                   /* on-surface */
+    display: block;
+    width: 300px;
+    max-width: 100%;
+    height: auto;
   }
-  #launch-stop { color: #ffb703; }    /* primary-container */
 
   #launch-line {
     margin: 0;
     font-family: "Hanken Grotesk", system-ui, sans-serif;
-    font-weight: 400;
+    font-weight: 500;
     font-size: 16px;
-    line-height: 24px;
+    line-height: 20px;
     color: #ffb703;                   /* primary-container */
   }
 
@@ -162,18 +141,28 @@
 </style>
 </head>
 <body>
-<!-- The launch screen. One image to a screen reader, announced as Prelude:
-     the wordmark and the line are one thing seen, not two things read. It
-     claims nothing about the match, the data or the fan. -->
-<div aria-label="Prelude" id="launch" role="img">
-<div id="launch-mark">Prelude<span id="launch-stop">.</span></div>
-<p id="launch-line">Be there. Even when you're not.</p>
+<!-- The launch screen. One image to a screen reader, announced as the mark
+     and the tagline together: they are one thing seen, not two things read.
+     It claims nothing about the match, the data or the fan.
+
+     The mark is inline, so it is there in the first frame with no request of
+     its own. It is the paths out of app/web/assets/brand/prelude_mark.svg and
+     nothing else: no title and no label, because the name is on the div. -->
+<div aria-label="Prelude. Leave your seat. Stay in the game." id="launch" role="img">
+<svg aria-hidden="true" id="launch-mark" viewBox="0 0 6583.80 705.00" xmlns="http://www.w3.org/2000/svg"><g transform="translate(-68.00 690.00) scale(1.000000)"><path fill="#FFFFFF" d="M302 -165V-340H801Q831 -340 851.5 -349.5Q872 -359 872 -389.98Q872 -422 851.5 -431Q831 -440 801 -440H318V0H68V-640H762Q837.37 -640 902.68 -629.5Q968 -619 1017 -592Q1066 -565 1094 -516Q1122 -467 1122 -390Q1122 -313 1094 -268Q1066 -223 1017 -201Q968 -179 902.68 -172Q837.37 -165 762 -165ZM1222 -490H1462V0H1222ZM1720 -305Q1655 -305 1601 -293Q1547 -281 1509 -264.5Q1471 -248 1452 -232L1450 -280Q1453 -301 1466 -329.5Q1479 -358 1501 -388.5Q1523 -419 1555 -445.5Q1587 -472 1628.5 -488.5Q1670 -505 1720 -505ZM2461 -176H2697Q2688 -118 2639.5 -75Q2591 -32 2498.5 -8.5Q2406 15 2263 15Q2112 15 2002.5 -9Q1893 -33 1834 -90Q1775 -147 1775 -244Q1775 -340 1832.5 -397.5Q1890 -455 1999 -480Q2108 -505 2263 -505Q2415 -505 2512 -478Q2609 -451 2655 -390.5Q2701 -330 2699 -227H2019Q2024 -201 2047.5 -179Q2071 -157 2120.5 -143.5Q2170 -130 2253 -130Q2339 -130 2394.5 -142Q2450 -154 2461 -176ZM2253 -360Q2147 -360 2091.5 -337Q2036 -314 2026 -291H2466Q2459 -317 2410 -338.5Q2361 -360 2253 -360ZM2794 -690H3034V0H2794ZM4663.8 14Q4555.8 14 4471.8 -16.5Q4387.8 -47 4339.3 -105Q4290.8 -163 4290.8 -245Q4290.8 -331 4339.3 -389Q4387.8 -447 4471.8 -476Q4555.8 -505 4663.8 -505Q4753.8 -505 4825.8 -486.5Q4897.8 -468 4948.8 -433.5Q4999.8 -399 5026.8 -351Q5053.8 -303 5053.8 -245Q5053.8 -187 5026.8 -139.5Q4999.8 -92 4948.8 -57.5Q4897.8 -23 4825.8 -4.5Q4753.8 14 4663.8 14ZM4753.8 -138Q4829.8 -138 4893.3 -147.5Q4956.8 -157 4995.3 -180Q5033.8 -203 5033.8 -245Q5033.8 -288 4995.3 -311Q4956.8 -334 4893.3 -343Q4829.8 -352 4753.8 -352Q4651.8 -352 4595.8 -325.5Q4539.8 -299 4539.8 -245Q4539.8 -210 4564.8 -186Q4589.8 -162 4637.8 -150Q4685.8 -138 4753.8 -138ZM5033.8 -690H5273.8V0H5047.8Q5043.8 -23 5038.8 -74.5Q5033.8 -126 5033.8 -190ZM6074.8 -176H6310.8Q6301.8 -118 6253.3 -75Q6204.8 -32 6112.3 -8.5Q6019.8 15 5876.8 15Q5725.8 15 5616.3 -9Q5506.8 -33 5447.8 -90Q5388.8 -147 5388.8 -244Q5388.8 -340 5446.3 -397.5Q5503.8 -455 5612.8 -480Q5721.8 -505 5876.8 -505Q6028.8 -505 6125.8 -478Q6222.8 -451 6268.8 -390.5Q6314.8 -330 6312.8 -227H5632.8Q5637.8 -201 5661.3 -179Q5684.8 -157 5734.3 -143.5Q5783.8 -130 5866.8 -130Q5952.8 -130 6008.3 -142Q6063.8 -154 6074.8 -176ZM5866.8 -360Q5760.8 -360 5705.3 -337Q5649.8 -314 5639.8 -291H6079.8Q6072.8 -317 6023.8 -338.5Q5974.8 -360 5866.8 -360Z"/><path fill="#FFB703" d="M3139 -335.24A44.51 44.51 0 0 1 3228.02 -335.24V-154.76A44.51 44.51 0 0 1 3139 -154.76ZM3302.8 -445.49A44.51 44.51 0 0 1 3391.82 -445.49V-44.51A44.51 44.51 0 0 1 3302.8 -44.51ZM3466.59 -371.99A44.51 44.51 0 0 1 3555.61 -371.99V-118.01A44.51 44.51 0 0 1 3466.59 -118.01ZM3630.39 -425.89A44.51 44.51 0 0 1 3719.41 -425.89V-64.11A44.51 44.51 0 0 1 3630.39 -64.11ZM3794.18 -342.59A44.51 44.51 0 0 1 3883.2 -342.59V-147.41A44.51 44.51 0 0 1 3794.18 -147.41ZM3957.98 -278.89A44.51 44.51 0 0 1 4047 -278.89V-211.11A44.51 44.51 0 0 1 3957.98 -211.11ZM4121.78 -245A44.51 44.51 0 0 1 4210.8 -245V-245A44.51 44.51 0 0 1 4121.78 -245ZM6651.8 -151V0H6397.8V-151Z"/></g></svg>
+<p id="launch-line">Leave your seat. Stay in the game.</p>
 </div>
 <div id="frame">
 <iframe allow="camera" id="screen" src="prelude_01_picker.html?v=__V__" title="Prelude"></iframe>
 </div>
 <script>
   /* Taking the launch screen away.
+   *
+   * Every full load of this page paints it, a reload included. It used to
+   * paint once per tab, decided in the head out of sessionStorage, which made
+   * the mark something a fan saw once and then could not get back to. It
+   * costs a fraction of a second and it is what the app is called, so the
+   * only question left is how it goes, which is the rest of this.
    *
    * It stays until the screen behind it is ready, which on a normal visit is
    * the event list: `data-matches-loaded` on that document is the renderer
@@ -195,9 +184,7 @@
     var POLL_MS = 60;
 
     var launch = document.getElementById('launch');
-    if (!launch || document.documentElement.className.indexOf('launched') >= 0) {
-      return;
-    }
+    if (!launch) return;
 
     var screen = document.getElementById('screen');
     var going = false;

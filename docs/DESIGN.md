@@ -301,13 +301,22 @@ Card headers also carry a decorative bar field at `opacity-25` with
 
 ### Launch screen
 
-The first frame of a visit, in `app/web/index.html` and on no screen. The
-wordmark "Prelude." at `display-lg` in Syne Bold, `on-surface` with the full
-stop in `primary-container`, over "Be there. Even when you're not." at
-`body-lg` in `primary-container`, centred on `surface`. It fades over 280 ms
-once matches.json has been answered behind it, holds for at most 2 seconds if
-it never is, and does not fade at all under `prefers-reduced-motion`. It is one
-`role="img"` named Prelude, so the two lines are one thing seen.
+The first frame of every load of the shell, in `app/web/index.html` and on no
+screen. The mark, inlined from `app/web/assets/brand/prelude_mark.svg` at
+300 px wide, over the tagline "Leave your seat. Stay in the game." at 16px /
+20px in Hanken Grotesk 500, `primary-container`, with 20 px between them and
+the pair 24 px above the middle of `surface`. Those are
+`app/web/assets/brand/prelude_launch.svg`'s own numbers, read in CSS rather
+than served as that file. It fades over 280 ms once matches.json has been
+answered behind it, holds for at most 2 seconds if it never is, and does not
+fade at all under `prefers-reduced-motion`. It is one `role="img"` named
+"Prelude. Leave your seat. Stay in the game.", so the mark and the tagline are
+one thing seen; the inlined mark carries `aria-hidden` and no title of its own.
+
+The mark is inline rather than fetched because the first frame is before any
+request of its own could have been answered. `tests/test_screen_copy.py` holds
+the inlined paths to the brand file character for character, so the two cannot
+drift.
 
 ### Verified marker
 

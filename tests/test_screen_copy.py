@@ -132,72 +132,95 @@ class TestTheMomentsFooterCarriesNoTagline:
 #: The shell, which is the only page that carries the launch screen.
 SHELL = WEB / "index.html"
 
-#: Shawn's wording of 2026-11-14, as two literals.
-WORDMARK = "Prelude."
-LAUNCH_LINE = "Be there. Even when you're not."
+#: The brand file the shell inlines its mark from.
+MARK = WEB / "assets" / "brand" / "prelude_mark.svg"
+
+#: The tagline, settled with the rest of the brand on 2026-11-14. It replaces
+#: "Be there. Even when you're not.", which was the launch screen's line while
+#: the brand was still only in the pitch thread.
+TAGLINE = "Leave your seat. Stay in the game."
 
 
 class TestTheLaunchScreen:
-    """The first frame of a visit: the wordmark over the line, and nothing else.
+    """Every load of the shell: the mark over the tagline, and nothing else.
 
     It is in `app/web/index.html` and nowhere else, because the shell is what
     a visit opens on and what the manifest's `start_url` names. A screen
     opened on its own is a developer's path and shows no launch screen.
 
     **It claims nothing.** There is no match on it, no clock, no score, no
-    data and no label: the only two lines are the app's own name and the line
-    Shawn settled on. `tests/browser/test_the_launch_screen.py` is what holds
-    its behaviour, the first frame, the fade, the cap and the one visit.
+    data and no label: the mark and the tagline are all of it.
+    `tests/browser/test_the_launch_screen.py` is what holds its behaviour,
+    the first frame, the layout, the fade and the cap.
     """
 
     def shell(self):
         return SHELL.read_text(encoding="utf-8")
 
-    def test_the_wordmark(self):
-        assert '<div id="launch-mark">Prelude<span id="launch-stop">.</span></div>' in (
-            self.shell()
-        )
+    def test_the_mark_is_the_brand_file_inlined(self):
+        """The paths out of `app/web/assets/brand/prelude_mark.svg`, so the
+        mark on the launch screen and the mark the brand carries cannot
+        drift. It is inline rather than fetched because the first frame of a
+        visit is before any request of its own has been answered."""
+        drawn = MARK.read_text(encoding="utf-8")
+        inside = drawn[drawn.index("</title>") + len("</title>"):drawn.rindex("</svg>")]
+        assert inside in self.shell()
 
-    def test_the_line(self):
-        assert '<p id="launch-line">%s</p>' % LAUNCH_LINE in self.shell()
-
-    def test_it_is_announced_as_prelude(self):
-        assert '<div aria-label="Prelude" id="launch" role="img">' in self.shell()
-
-    def test_the_wordmark_is_syne(self):
-        """The same family the icon's two glyphs are drawn from, so the
-        launch screen and the home screen icon are one letterform."""
-        block = self.shell().split("#launch-mark {")[1].split("}")[0]
-        assert '"Syne"' in block
-        assert "font-weight: 700" in block
-
-    def test_the_stop_is_the_amber_and_the_word_is_not(self):
+    def test_the_mark_carries_no_second_name(self):
+        """The brand file is an image in its own right, with a title and a
+        label. Inlined inside something already named, those would be a
+        second name for one thing, so they come off."""
         shell = self.shell()
-        assert "#launch-stop { color: #ffb703; }" in shell
-        assert "color: #e1e2ea;" in shell.split("#launch-mark {")[1].split("}")[0]
+        at = shell.index('id="launch-mark"')
+        tag = shell[shell.rindex("<", 0, at):shell.index(">", at) + 1]
+        assert 'aria-hidden="true"' in tag, tag
+        assert "aria-label" not in tag, tag
+        assert "<title>" not in shell[at:shell.index("</svg>", at)]
 
-    def test_the_line_is_the_amber(self):
+    def test_the_tagline(self):
+        assert '<p id="launch-line">%s</p>' % TAGLINE in self.shell()
+
+    def test_it_is_announced_as_the_mark_and_the_tagline(self):
+        assert (
+            '<div aria-label="Prelude. %s" id="launch" role="img">' % TAGLINE
+        ) in self.shell()
+
+    def test_the_tagline_is_hanken_grotesk(self):
+        """The family the brand file sets it in, which is also the family the
+        screens use for body copy."""
+        block = self.shell().split("#launch-line {")[1].split("}")[0]
+        assert '"Hanken Grotesk"' in block
+        assert "font-weight: 500" in block
+        assert "font-size: 16px" in block
+
+    def test_the_tagline_is_the_amber(self):
         block = self.shell().split("#launch-line {")[1].split("}")[0]
         assert "color: #ffb703;" in block
+
+    def test_the_mark_is_the_width_the_brand_file_draws_it(self):
+        block = self.shell().split("#launch-mark {")[1].split("}")[0]
+        assert "width: 300px;" in block
 
     def test_it_sits_on_the_app_background(self):
         block = self.shell().split("#launch {")[1].split("}")[0]
         assert "background-color: #101319;" in block
+        assert "gap: 20px;" in block
 
     def test_it_claims_nothing(self):
-        """Every word on it, which is the app's name and one line."""
+        """Every word on it, which is the tagline and nothing else: the mark
+        is a picture and carries no text at all."""
         shell = self.shell()
         start = shell.index('id="launch"')
         body = shell[start:shell.index("</div>", shell.index("launch-line"))]
         words = " ".join(body.split())
-        for banned in ("LIVE", "Verified", "goal", "match", "data", "narration"):
+        for banned in ("LIVE", "Verified", "goal", "match", "narration"):
             assert banned.lower() not in words.lower(), banned
 
     def test_it_is_on_the_shell_and_on_no_screen(self):
         for path in sorted(WEB.glob("prelude_*.html")):
             text = path.read_text(encoding="utf-8")
             assert 'id="launch"' not in text, path.name
-            assert LAUNCH_LINE not in text, path.name
+            assert TAGLINE not in text, path.name
 
     def test_it_honours_a_request_for_less_motion(self):
         shell = self.shell()
@@ -206,20 +229,26 @@ class TestTheLaunchScreen:
         assert "#launch" in block
         assert "transition: none" in block
 
-    def test_whether_it_paints_is_decided_before_the_body(self):
-        """A class on `<html>`, set in the head. Decided in the body it would
-        be a flash of one state before the other, and `CLAUDE.md` counts the
-        frames before any script has run as a state a fan can see."""
+    def test_it_is_up_before_any_script_has_run(self):
+        """The markup ships visible and nothing decides whether to paint it,
+        so the frames before any script has run have it in them. It used to
+        be decided in the head out of `sessionStorage`."""
         shell = self.shell()
-        decided = shell.index("prelude.launched")
-        parsed = shell.index('id="launch"')
-        assert decided < parsed, "the decision is made after the element exists"
-        assert "html.launched #launch { display: none; }" in shell
+        assert "html.launched" not in shell
+        assert "prelude.launched" not in shell
+        body = shell[shell.index('id="launch"'):]
+        assert "hidden" not in body[:body.index(">")], body[:body.index(">")]
 
-    def test_the_visit_is_a_session(self):
-        """`sessionStorage`, so a new tab is a new visit and a reload is not.
-        Blocked storage shows it rather than hiding it, which the shell says."""
+    def test_the_shell_reads_no_storage_at_all(self):
+        """The one decision it used to make out of storage is gone, so a
+        cleared, blocked or full storage changes nothing about this page.
+        The words still appear in a comment, which is the point: what was
+        there and why it went."""
         shell = self.shell()
-        assert "window.sessionStorage.getItem('prelude.launched')" in shell
-        assert "window.sessionStorage.setItem('prelude.launched', '1')" in shell
-        assert "localStorage" not in shell.split('id="frame"')[0]
+        for call in ("sessionStorage.getItem", "sessionStorage.setItem",
+                     "localStorage.getItem", "localStorage.setItem"):
+            assert call not in shell, call
+
+    def test_the_old_line_is_gone_from_every_screen(self):
+        for path in sorted(WEB.glob("*.html")) + sorted(WEB.glob("*.js")):
+            assert "Be there. Even when" not in path.read_text(encoding="utf-8"), path.name

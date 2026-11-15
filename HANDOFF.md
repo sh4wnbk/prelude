@@ -301,10 +301,13 @@ app claims.
   `scripts/make_icons.py` writes the icon set from two of them, reaching
   nothing. Both compare with `--check`, which `tests/test_the_mark.py` runs,
   and the two colours are read back out of the config block there.
-- The launch screen is the first frame of a visit and nothing else. Whether it
-  paints is decided in the head before the body is parsed, it goes when
+- The launch screen is the first frame of every load of the shell. The markup
+  ships visible and the mark is inline, so it is up before any script has run
+  and before any request of its own has been answered; it goes when
   `data-matches-loaded` says matches.json was answered, it never outlives two
-  seconds, and it is one `role="img"` named Prelude that claims nothing.
+  seconds, and it is one `role="img"` named "Prelude. Leave your seat. Stay in
+  the game." that claims nothing. It painted once per tab until Task 33, out
+  of `sessionStorage`, and the shell now reads no storage at all.
 - The desktop stadium backdrop applies only above 501 px, and `body` is
   transparent above that breakpoint or the shell's base layer paints over it.
 - The repo is private and the site is public. Pages from a private repo is a
