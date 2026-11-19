@@ -490,6 +490,11 @@ app claims.
 - The EventFeed and moment-detection module is Bob's. Further work on moment
   detection is his, including the three orchestrator functions with no caller
   (`phase`, `score_state` and `outcome`), which stay where they are.
+- The fan is the user and the venue operator is the customer, and
+  `README.md` says so under "Who it's for". The operator's benefit is stated
+  as a mechanism with no figure: spreading the rush on concessions and
+  restrooms is for a pilot to measure. Nothing in the repo is built for an
+  operator.
 - Bob's part of Prelude is closed. Shawn took the Bobalytics export on
   2026-11-19, and one read-only session ran after it, a score against the lab
   rubric, whose 1.02 Bobcoins come from its screenshot. No further Bob session

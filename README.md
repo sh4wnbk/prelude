@@ -26,6 +26,18 @@ app to install and nothing to type.
 | :------------------: | :-----------------: |
 | ![QR code for Argentina vs England, section 108, row 14, seat 8](app/web/assets/tickets/3750191.png) | ![QR code for Argentina vs France, section 215, row 9, seat 6](app/web/assets/tickets/3869685.png) |
 
+## Who it's for
+
+The fan is the user: someone at the game who steps away for food or a
+restroom and misses a goal. The venue operator is the customer. Prelude is
+positioned to ship inside a venue's own app rather than as a separate
+download. This repo is the proof of concept for the fan's side; nothing in it
+is built for an operator yet.
+
+For the operator, a fan who no longer fears missing the play can step away
+when they need to, which spreads the rush on concessions and restrooms. That
+effect is for a pilot to measure, and there is no figure for it yet.
+
 ## How it works
 
 ```mermaid
