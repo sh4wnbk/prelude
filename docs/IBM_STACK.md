@@ -70,18 +70,18 @@ scrubbing rule.
 | 6 | a read-only review of the app | `bob_sessions/phase6_review_app.md` | `bob_sessions/phase6_review_app.png` | `927ad9e` |
 | 7 | the tagline | `bob_sessions/phase7_tagline.md` | `bob_sessions/phase7_tagline.png` | `f40af46` |
 | 7 | three README claims, stopped at the cost limit with nothing committed | `bob_sessions/phase7_readme_claims.md` | `bob_sessions/phase7_readme_claims.png` | `788b5a4` |
+| 7 | a read-only score against the lab rubric, run after the Bobalytics export | `bob_sessions/phase7_rubric_review.md` | `bob_sessions/phase7_rubric_review.png` | `00c3110` |
 
 The commit above is the one that added the export, read with
 `git log --diff-filter=A`. The commit the work itself landed in is the status
 line at the head of that task in `docs/bob_brief.md`.
 
-The last two rows carry no numbered task, because `docs/bob_brief.md` ends at
-Task 15 and both were run to a brief written in `HANDOFF.md` and the session
-itself.
+The last four rows carry no numbered task, because `docs/bob_brief.md` ends at
+Task 15 and each was run to a brief written outside it.
 
-`bob_sessions/README.md` carries a Bobcoin figure for every session: six read
-from the task summary in the screenshot, one from Bob's cost-limit message, and
-the rest from the Bobalytics export committed beside them. That export totals
+`bob_sessions/README.md` carries a Bobcoin figure for every session: seven read
+from the screenshots, one from Bob's cost-limit message, and the rest from the
+Bobalytics export committed beside them. That export totals
 by day, so where sessions shared a day the row gives the day's total and says
 which sessions it covers.
 

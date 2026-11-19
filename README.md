@@ -78,7 +78,7 @@ on 2026-11-07.
 
 | Part | What it does here | Evidence |
 | ---- | ----------------- | -------- |
-| IBM Bob | built the EventFeed, the orchestrator, the listener card and Profile, the narrator picker and the Orchestrate tool spec, over eighteen sessions | [`bob_sessions/README.md`](bob_sessions/README.md) |
+| IBM Bob | built the EventFeed, the orchestrator, the listener card and Profile, the narrator picker and the Orchestrate tool spec, in sixteen of its nineteen sessions | [`bob_sessions/README.md`](bob_sessions/README.md) |
 | watsonx.ai | writes a narration from the story beats, and 155 calls compared two models | [`docs/narration_eval.md`](docs/narration_eval.md) |
 | Watson Text to Speech | spoke the six recordings the site plays, for 2,403 billed characters | [`docs/IBM_STACK.md`](docs/IBM_STACK.md) |
 | watsonx Orchestrate | an agent answers about a match from two read-only tools | [`docs/orchestrate_agent.md`](docs/orchestrate_agent.md) |

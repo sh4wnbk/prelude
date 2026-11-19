@@ -70,6 +70,7 @@ alongside another session's.
 | 6 | A read-only review of the app | [`bob_sessions/phase6_review_app.md`](phase6_review_app.md) | [`bob_sessions/phase6_review_app.png`](phase6_review_app.png) | none | `927ad9e` | 2.22 |
 | 7 | The tagline | [`bob_sessions/phase7_tagline.md`](phase7_tagline.md) | [`bob_sessions/phase7_tagline.png`](phase7_tagline.png) | `e1b4d6a` | `f40af46` | 11.18 |
 | 7 | Three README claims: stopped at the 20-coin cost limit, nothing committed, its local changes discarded; the edits were made outside Bob | [`bob_sessions/phase7_readme_claims.md`](phase7_readme_claims.md) | [`bob_sessions/phase7_readme_claims.png`](phase7_readme_claims.png) | none | `788b5a4` | 20.12 by Bob's cost-limit message; the export shows 8.94 for 2026-11-19 |
+| 7 | A read-only score of the app against the lab rubric, run after the Bobalytics export, so the export does not include it | [`bob_sessions/phase7_rubric_review.md`](phase7_rubric_review.md) | [`bob_sessions/phase7_rubric_review.png`](phase7_rubric_review.png) | none | `00c3110` | 1.02 |
 
 Task 1 built the module against `docs/bob_brief.md` and took all 14 acceptance
 tests from failing to passing. Task 2 fixed `event_window`, which filtered by
@@ -147,8 +148,9 @@ call to the public GitHub Actions API. The screenshot shows a workspace, a
 context gauge, a todo list and a Bobcoin figure, none of which authorises
 anything.
 
-The Bobcoin figures come from three places. Six were read from each session's
-task summary, which is what the screenshots record. The README-claims figure,
+The Bobcoin figures come from three places. Seven were read from the
+screenshots: six from a session's task summary, and the rubric review's 1.02
+from its context gauge. The README-claims figure,
 20.12, is Bob's own cost-limit message. The rest come from the Bobalytics
 export, taken once on 2026-11-19 from User scope and committed here as
 [`bob_sessions/bobalytics_activity_pattern.csv`](bobalytics_activity_pattern.csv)
@@ -161,7 +163,9 @@ the sessions it covers. The export's days are UTC, and each session is placed
 on the UTC day of its work commit, or of its export commit when it has no work
 commit. Placed that way, every day's count of completed tasks matches the
 export: 17 in all, and the README-claims session, which completed nothing,
-makes eighteen.
+makes eighteen. The rubric review ran after the export was taken and is not
+in it, which makes nineteen sessions. Sixteen of them built something: Tasks
+1 to 15 and the tagline.
 
 Two kinds of disagreement are kept rather than resolved. The README-claims
 session read 20.12 in Bob, and the export shows 8.94 for its day, which was

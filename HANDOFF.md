@@ -490,9 +490,10 @@ app claims.
 - The EventFeed and moment-detection module is Bob's. Further work on moment
   detection is his, including the three orchestrator functions with no caller
   (`phase`, `score_state` and `outcome`), which stay where they are.
-- Bob's part of Prelude is closed: Shawn took the Bobalytics export on
-  2026-11-19, after the last session, and no further Bob session is planned.
-  The module stays Bob's, and nothing replaces it.
+- Bob's part of Prelude is closed. Shawn took the Bobalytics export on
+  2026-11-19, and one read-only session ran after it, a score against the lab
+  rubric, whose 1.02 Bobcoins come from its screenshot. No further Bob session
+  is planned. The module stays Bob's, and nothing replaces it.
 - 2022 defining moments are periods 1 to 4 only, because a shootout has no
   buildup to narrate. `Moment` carries no period field.
 - A set piece is narrated from `buildup`, which reaches back a possession, not
@@ -889,6 +890,15 @@ directly: the read-only review, 2.22, which had its day to itself. The other
 ten rows give their day's total and the sessions it covers. Days are UTC, and
 placing each session on the UTC day of its commit makes every day's task count
 match the export, 17 completed in all.
+
+**One Bob session ran after the export**: a read-only score of the app
+against the lab rubric, `00c3110`, 1.02 Bobcoins from its screenshot. It
+scored 17 of 20 and suggested four changes. Recording the Caller was declined:
+no Caller narration exists, so it is a build, not a recording. A keyboard
+focus style is under Open items already. Keepalive is checklist item 3. Its
+one wording catch was right: the README said Bob built its part "over
+eighteen sessions", and two of those built nothing, so the line now reads
+"in sixteen of its nineteen sessions".
 
 **Two disagreements are recorded, not resolved.** The README-claims session
 read 20.12 in Bob and the export shows 8.94 for its day, which had not ended
