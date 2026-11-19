@@ -124,26 +124,28 @@ def serve(diagram, mark):
 #: The second line names the part of the stack the box is, which is what makes
 #: the diagram answer "built with what" as well as "what happens next".
 NODES = (
-    ("facts", 16, 40, 206, "StatsBomb play data", "two matches, open data"),
-    ("feed", 262, 40, 206, "EventFeed and orchestrator", "built with IBM Bob"),
-    ("pipe", 508, 40, 206, "Narration pipeline", "watsonx.ai"),
-    ("check", 754, 40, 206, "Grounding check", "every claim traced to a record"),
-    ("six", 1000, 40, 206, "Six frozen narrations", "Watson Text to Speech"),
-    ("agent", 16, 258, 250, "watsonx Orchestrate agent", "asks about a match"),
-    ("api", 508, 258, 206, "The API", "Render"),
-    ("app", 1000, 258, 206, "The app", "GitHub Pages"),
+    ("six", 754, 24, 206, "Six demo narrations", "AI-drafted, Shawn-edited"),
+    ("facts", 16, 176, 206, "StatsBomb play data", "two matches, open data"),
+    ("feed", 262, 176, 206, "EventFeed and orchestrator", "built with IBM Bob"),
+    ("pipe", 508, 176, 206, "Narration pipeline", "watsonx.ai, candidates"),
+    ("check", 754, 176, 206, "Grounding check", "every claim traced to a record"),
+    ("voice", 1000, 176, 206, "Six recordings", "Watson Text to Speech"),
+    ("agent", 16, 394, 250, "watsonx Orchestrate agent", "asks about a match"),
+    ("api", 508, 394, 206, "The API", "Render"),
+    ("app", 1000, 394, 206, "The app", "GitHub Pages"),
 )
 
-#: The same five edges the README's Mermaid block carries, as the sides they
+#: The same edges the README's Mermaid block carries, as the sides they
 #: leave and arrive on. "elbow" goes out of the bottom, across, and into the
 #: top.
 EDGES = (
     ("facts", "feed", "straight"),
     ("feed", "pipe", "straight"),
     ("pipe", "check", "straight"),
-    ("check", "six", "straight"),
-    ("six", "app", "down"),
-    ("six", "api", "elbow"),
+    ("six", "check", "down"),
+    ("check", "voice", "straight"),
+    ("voice", "app", "down"),
+    ("voice", "api", "elbow"),
     ("agent", "api", "straight"),
 )
 
@@ -162,7 +164,7 @@ GUARD = {"check"}
 
 BOX_HEIGHT = 92
 WIDTH = 1222
-HEIGHT = 400
+HEIGHT = 536
 
 
 def box_of(key):

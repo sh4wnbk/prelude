@@ -69,6 +69,7 @@ scrubbing rule.
 | 6 | 15. the OpenAPI file watsonx Orchestrate imports | `bob_sessions/phase6_task15_orchestrate_spec.md` | `bob_sessions/phase6_task15_orchestrate_spec.png` | `39856bd` |
 | 6 | a read-only review of the app | `bob_sessions/phase6_review_app.md` | `bob_sessions/phase6_review_app.png` | `927ad9e` |
 | 7 | the tagline | `bob_sessions/phase7_tagline.md` | `bob_sessions/phase7_tagline.png` | `f40af46` |
+| 7 | three README claims, stopped at the cost limit with nothing committed | `bob_sessions/phase7_readme_claims.md` | `bob_sessions/phase7_readme_claims.png` | `788b5a4` |
 
 The commit above is the one that added the export, read with
 `git log --diff-filter=A`. The commit the work itself landed in is the status
@@ -80,7 +81,7 @@ itself.
 
 The Bobcoin figure for each session is read from its own task summary, which is
 what the screenshots record; `bob_sessions/README.md` carries that figure for
-six of the seventeen.
+seven of the eighteen.
 
 Exports are transcripts, so they are scrubbed of anything secret before every
 commit, by hand. Nothing in the repo scrubs them. The Task 3 export needed no

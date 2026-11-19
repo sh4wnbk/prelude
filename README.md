@@ -25,11 +25,12 @@ app to install and nothing to type.
 ```mermaid
 flowchart LR
   facts["StatsBomb play data"] --> feed["EventFeed and orchestrator<br/>built with IBM Bob"]
-  feed --> pipe["Narration pipeline<br/>watsonx.ai"]
+  feed --> pipe["Narration pipeline<br/>watsonx.ai, candidates"]
   pipe --> check["Grounding check"]
-  check --> six["Six frozen narrations<br/>Watson Text to Speech"]
-  six --> app["The app<br/>GitHub Pages"]
-  six --> api["The API<br/>Render"]
+  six["Six demo narrations<br/>AI-drafted, Shawn-edited"] --> check
+  check --> voice["Six recordings<br/>Watson Text to Speech"]
+  voice --> app["The app<br/>GitHub Pages"]
+  voice --> api["The API<br/>Render"]
   agent["watsonx Orchestrate agent"] --> api
 ```
 
@@ -37,7 +38,9 @@ The same diagram as a picture: [`docs/images/architecture.png`](docs/images/arch
 
 - The play data is StatsBomb open data for two matches, read from `data/raw/`.
 - IBM Bob built the EventFeed and the orchestrator, which find the goals and the run-up to one.
-- watsonx.ai writes the narration; the grounding check reads every claim back against the records.
+- watsonx.ai writes candidate narrations. The six the demo plays were drafted
+  with an AI assistant and edited by Shawn. The grounding check reads every
+  claim of both back against the records.
 - Watson Text to Speech spoke the six narrations the site plays, once, ahead of time.
 - The API on Render exists so a watsonx Orchestrate agent has a stable URL to call.
 
@@ -69,7 +72,7 @@ on 2026-11-07.
 
 | Part | What it does here | Evidence |
 | ---- | ----------------- | -------- |
-| IBM Bob | built the EventFeed and the orchestrator, over seventeen sessions | [`bob_sessions/README.md`](bob_sessions/README.md) |
+| IBM Bob | built the EventFeed, the orchestrator, the listener card and Profile, the narrator picker and the Orchestrate tool spec, over eighteen sessions | [`bob_sessions/README.md`](bob_sessions/README.md) |
 | watsonx.ai | writes a narration from the story beats, and 155 calls compared two models | [`docs/narration_eval.md`](docs/narration_eval.md) |
 | Watson Text to Speech | spoke the six recordings the site plays, for 2,403 billed characters | [`docs/IBM_STACK.md`](docs/IBM_STACK.md) |
 | watsonx Orchestrate | an agent answers about a match from two read-only tools | [`docs/orchestrate_agent.md`](docs/orchestrate_agent.md) |
@@ -96,8 +99,8 @@ on 2026-11-07.
 - One goal per match is narrated. Every other moment's play button is disabled
   and says so.
 - Nothing is live. The two matches are historical StatsBomb data, replayed.
-- The Caller is offered on Profile and has no recording, so two voices are
-  heard rather than three.
+- The Caller is listed on Profile as coming soon and has no recording, so two
+  voices are heard rather than three.
 - GPS presence handling is planned, and nothing in this repo reads it yet.
 - Audio for a moment other than the two hero goals is planned.
 

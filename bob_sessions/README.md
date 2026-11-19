@@ -69,6 +69,7 @@ alongside another session's.
 | 6 | 15. The OpenAPI file watsonx Orchestrate imports | [`bob_sessions/phase6_task15_orchestrate_spec.md`](phase6_task15_orchestrate_spec.md) | [`bob_sessions/phase6_task15_orchestrate_spec.png`](phase6_task15_orchestrate_spec.png) | `39856bd` | `39856bd` | from the Bobalytics export at submission |
 | 6 | A read-only review of the app | [`bob_sessions/phase6_review_app.md`](phase6_review_app.md) | [`bob_sessions/phase6_review_app.png`](phase6_review_app.png) | none | `927ad9e` | from the Bobalytics export at submission |
 | 7 | The tagline | [`bob_sessions/phase7_tagline.md`](phase7_tagline.md) | [`bob_sessions/phase7_tagline.png`](phase7_tagline.png) | `e1b4d6a` | `f40af46` | 11.18 |
+| 7 | Three README claims: stopped at the 20-coin cost limit, nothing committed, its local changes discarded; the edits were made outside Bob | [`bob_sessions/phase7_readme_claims.md`](phase7_readme_claims.md) | [`bob_sessions/phase7_readme_claims.png`](phase7_readme_claims.png) | none | `788b5a4` | 20.12 |
 
 Task 1 built the module against `docs/bob_brief.md` and took all 14 acceptance
 tests from failing to passing. Task 2 fixed `event_window`, which filtered by
