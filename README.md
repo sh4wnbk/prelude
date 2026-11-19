@@ -109,7 +109,7 @@ document in this repo. [`docs/CREDENTIALS.md`](docs/CREDENTIALS.md) is where
 the live credentials are and why they are not here.
 [`HANDOFF.md`](HANDOFF.md) is the state of the repo and what is next.
 
-Every claim above is checked on every push.
+Prelude checks itself on every push.
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs the unit suite,
 five gates and the browser suite.
 [`.github/workflows/smoke.yml`](.github/workflows/smoke.yml) checks the
