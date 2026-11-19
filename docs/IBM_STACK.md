@@ -79,9 +79,11 @@ The last two rows carry no numbered task, because `docs/bob_brief.md` ends at
 Task 15 and both were run to a brief written in `HANDOFF.md` and the session
 itself.
 
-The Bobcoin figure for each session is read from its own task summary, which is
-what the screenshots record; `bob_sessions/README.md` carries that figure for
-seven of the eighteen.
+`bob_sessions/README.md` carries a Bobcoin figure for every session: six read
+from the task summary in the screenshot, one from Bob's cost-limit message, and
+the rest from the Bobalytics export committed beside them. That export totals
+by day, so where sessions shared a day the row gives the day's total and says
+which sessions it covers.
 
 Exports are transcripts, so they are scrubbed of anything secret before every
 commit, by hand. Nothing in the repo scrubs them. The Task 3 export needed no

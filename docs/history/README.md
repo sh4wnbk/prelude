@@ -13,6 +13,7 @@ that describes the repo now.
 
 | File | What is in it |
 | ---- | ------------- |
+| `docs/history/task_37_the_readme.md` | the README cut to 127 lines, the six long sections moved into `docs/`, the pictures drawn by `scripts/make_docs_images.py`, and every Material Symbols span hidden from a screen reader |
 | `docs/history/task_36_the_tagline.md` | the tagline as one constant in the brand script, the fifteen files redrawn from it, the shell's visible line and accessible name, and the retired phrase made banned copy |
 | `docs/history/task_35_the_launch_on_a_phone.md` | the status bar, the safe-area insets, all eleven startup images checked, the no-white guarantee and the crossfade |
 | `docs/history/phase1-3_scaffold_data_and_eventfeed.md` | the scaffold, the fetch, the first data check, and Bob's EventFeed in two sessions |
@@ -275,3 +276,15 @@ was about work that is finished and constrains nothing further.
 | The tagline is "Leave your seat. Not the game." | Current state, under the ticket, the site and the type, via `scripts/brand/build_svg.py` |
 | `prelude_launch.svg`'s title uses `TAG` rather than a string literal | `scripts/brand/build_svg.py`, in `drawn()` |
 | "Stay in the game" is banned copy in `scripts/scan_copy.py` | `scripts/scan_copy.py`, `BANNED` |
+
+### From Task 37
+
+| Decision, rule or open item | Now lives |
+| --------------------------- | --------- |
+| `README.md` is the page a judge reads, and a section moved out goes into `scripts/check_docs.py`'s `DOCS` list | Current state, Decisions still in force |
+| The README's pictures are drawn by `scripts/make_docs_images.py` from the running app | Current state, Decisions still in force |
+| Every Material Symbols span is `aria-hidden="true"`, asked by `tests/browser/test_the_accessible_names.py` | Current state, Decisions still in force |
+| `docs/IBM_STACK.md` lists watsonx Orchestrate as built | settled and closed |
+| `scripts/make_docs_images.py` is not run by CI | Current state, Open items, under what the build does not say |
+| The README's top-row screenshots read small on a phone | Current state, Open items, under what the build does not say |
+| The Task 36 carry-forwards | Current state, Open items |

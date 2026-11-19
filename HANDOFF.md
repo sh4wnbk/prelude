@@ -413,9 +413,8 @@ app claims.
 - A Material Symbol span holds a ligature, not a word, so one inside a control
   whose name comes from its contents is read out before the label. The two
   buttons in the moment card's deck were named "ios_share SHARE" and
-  "replay_10 REPLAY 10S"; both icons carry `aria-hidden` now. Every other
-  icon in the app is still inside its control's name, which is under Open
-  items.
+  "replay_10 REPLAY 10S"; both icons carry `aria-hidden` now, and since
+  Task 37 every other icon span in the app does too.
 - A line of match copy that describes the play carries a `grounding` block,
   and the block is a claim about those words rather than about the goal:
   every key in it is read against `data/raw/`, every key has to be said in the
@@ -491,6 +490,9 @@ app claims.
 - The EventFeed and moment-detection module is Bob's. Further work on moment
   detection is his, including the three orchestrator functions with no caller
   (`phase`, `score_state` and `outcome`), which stay where they are.
+- Bob's part of Prelude is closed: Shawn took the Bobalytics export on
+  2026-11-19, after the last session, and no further Bob session is planned.
+  The module stays Bob's, and nothing replaces it.
 - 2022 defining moments are periods 1 to 4 only, because a shootout has no
   buildup to narrate. `Moment` carries no period field.
 - A set piece is narrated from `buildup`, which reaches back a possession, not
@@ -783,15 +785,6 @@ is rule 18 and `opener_missing`.
 #### Phase 5 backlog
 Items found during Phase 2 that belong with the wiring, not before it:
 
-- **Every icon in the app is inside its control's accessible name.** A
-  Material Symbol span holds a ligature, and Chromium reads it as a word:
-  measured on 2026-11-15, the Live nav link is named "sensors LIVE" and the
-  Moments one "auto_awesome_motion MOMENTS". Task 34 fixed the two buttons in
-  the deck it was changing, by adding `aria-hidden="true"` to the icon span,
-  and the same one attribute fixes every other one. It is a sweep over seven
-  screens and the markup `app/web/match-content.js` builds, and it wants the
-  browser suite to assert the names rather than the text, which
-  `tests/browser/test_sharing.py` shows the shape of.
 - **Keyboard focus states.** `docs/DESIGN.md` records that focus is defined only
   on the picker's text inputs. Every button in the system has no focus style,
   and the toggle at `prelude_04_moments.html:263` sets `focus:outline-none` with
@@ -805,6 +798,12 @@ Items found during Phase 2 that belong with the wiring, not before it:
 
 #### Still open: what the build does not say
 
+- **`scripts/make_docs_images.py` is not run by CI.** A screen that changes
+  leaves the README's pictures stale until someone runs `--check` by hand. It
+  needs a browser, which is why it is not one of the gates.
+- **The README's top row is three 780-pixel screenshots** in a three-column
+  table, so GitHub shows them small. A narrower render, or two rows, would
+  read better on a phone.
 - **CI does not run on a schedule.** A push is the only thing that runs it, so
   a dependency that breaks under a new release is found by the next push
   rather than by a nightly run. That is a decision about Actions minutes on a
@@ -831,9 +830,9 @@ icon is hidden from a screen reader so a control is named by its label. CI
 runs both suites and the five gates on every push, and the smoke workflow
 checks the deployed site and the hosted API after every deploy.
 
-**The first action is the submission checklist below.** Nothing in the app is
-waiting on a change; what is left is the five things only Shawn can do, in the
-order they have to happen.
+**The first action is item 2 of the submission checklist below.** Item 1 is
+done. Nothing in the app is waiting on a change; what is left is the four
+things only Shawn can do, in the order they have to happen.
 
 **Then the rest of Phase 7**, which `docs/history/the_plan_as_agreed.md`
 carries in full: Shawn records the film and finishes the deck, and Claude Code
@@ -851,7 +850,7 @@ three mean anything.
 
 | # | What | Who | Done when |
 | - | ---- | --- | --------- |
-| 1 | Export Bobalytics once, from User scope over the full lab period, and commit the CSV | Shawn | the CSV is in the repo, and the eleven unread Bobcoin figures in `bob_sessions/README.md` are read from it |
+| 1 | Export Bobalytics once, from User scope over the full lab period, and commit the CSV | Shawn | done on 2026-11-19: both CSVs are in `bob_sessions/`, and every row of its table has a figure; the export totals by day, so ten of them are day totals |
 | 2 | Make the repository public | Shawn | <https://github.com/sh4wnbk/prelude> opens signed out |
 | 3 | Turn `PRELUDE_KEEPALIVE` on, under Settings, Secrets and variables, Actions, Variables | Shawn | the variable reads `on`, and the keepalive workflow has a green run after it |
 | 4 | Check the live API and the Orchestrate agent after the flip | Shawn | `/health` answers without a cold wait, and the agent answers on both matches |
@@ -867,100 +866,44 @@ timing is not Shawn's: it is taken once, at the end of the lab period.
 applies: open `/health` by hand and wait for the ok before testing a tool,
 recording the demo or handing the URL to a judge.
 
-## Last task: Task 37, the README
+## Last task: the README's three claims, and the Bobalytics export
 
-**What Shawn asked for on 2026-11-18.** `README.md` was 649 lines of prose,
-one image, four empty placeholder sections and a 400-line capability list. It
-had to read like a product page a judge skims in two minutes: pictures first,
-short sentences, links for depth. Five steps, with a commit between each.
+**What Shawn asked for on 2026-11-18 and 2026-11-19.** Two small changes made
+outside Bob, after a Bob session on the first stopped at its 20-coin cost
+limit with nothing committed.
 
-**Every Material Symbols icon is hidden from a screen reader.** A Material
-Symbols span's text is the glyph's name, so the word was inside its control's
-accessible name: the bottom nav read "sensors LIVE" and the moment card's
-second button read "replay_10 REPLAY 10S". All 58 spans in `app/web/` carry
-`aria-hidden="true"` now, the 56 that did not plus the two Task 34 hid, and
-that includes the one the picker's own script builds on a tap, which is why
-`CHECK_GLYPH` in `tests/test_match_choice.py` changed with them. This was a
-carry-forward in every Found, not fixed since Task 34.
+**`d7337b4` corrected three claims in `README.md`.** The six demo narrations
+were drafted with an AI assistant and edited by Shawn, so the flow now shows
+them entering the grounding check beside the narration pipeline rather than
+coming out of it; `scripts/make_docs_images.py` draws the same two sources and
+`docs/images/architecture.png` was redrawn from it. The Bob row lists what Bob
+built over eighteen sessions. The Caller is described as listed on Profile as
+coming soon with no recording. `bob_sessions/README.md` gained the row for the
+stopped session, and `docs/IBM_STACK.md` the same.
 
-**`tests/browser/test_the_accessible_names.py` asks the browser rather than
-the markup.** Every screen, both matches, three listeners and three narrator
-states: every icon span hidden from the tree, no glyph name inside any
-accessible name, the bottom nav named by its three labels and the moment
-card's four buttons by theirs. The ligatures are read off the live DOM, so
-nothing is written down twice, and the names come from `aria_snapshot`, which
-is the computation a reader does. It fails 9 of 9 on the tree before this
-task.
+**This commit closes Bob's part.** Shawn took the Bobalytics export on
+2026-11-19 and it is committed as `bob_sessions/bobalytics_activity_pattern.csv`
+and `bob_sessions/bobalytics_days_active.csv`. It totals by day, not by
+session, so of the eleven figures that waited for it, one could be read
+directly: the read-only review, 2.22, which had its day to itself. The other
+ten rows give their day's total and the sessions it covers. Days are UTC, and
+placing each session on the UTC day of its commit makes every day's task count
+match the export, 17 completed in all.
 
-**`docs/images/` holds the seven pictures `README.md` shows**, drawn by
-`scripts/make_docs_images.py`. Five are the running app at 390 by 844 with a
-device scale factor of 2, taken through the app's own controls: the script
-serves `app/web/` on a port the operating system picks, opens `index.html`,
-and taps the 2022 card, Confirm event, Argentina, Continue, Profile, the
-Buddy, Live, Heading out and Moments. Nothing writes `sessionStorage`, so a
-screen that cannot be reached by tapping cannot be photographed. The sixth is
-the flow diagram, drawn as one SVG in the app's palette with the app's own
-fonts. The seventh is the committed mark on the app's own background: the mark
-is white letters on nothing, which is right in the app and wrong in a README,
-where GitHub draws it on whichever background the reader's theme sets.
-
-**`README.md` is 127 lines and no sentence in it is over 25 words.** In
-order: the mark, one sentence on what Prelude does, the tagline, the live
-link, three screenshots side by side, the demo tickets, the flow as a Mermaid
-block GitHub renders, the two Orchestrate screenshots with one line each, what
-is verified, what is built with IBM, the judging criteria, what runs where,
-the limits, and the StatsBomb attribution with its logo.
-
-**The six long sections moved into `docs/` intact**, each with one link from
-the README: `docs/CAPABILITIES.md`, which also takes "What the demo is,
-precisely"; `docs/THE_LABEL.md`; `docs/HOSTED_API.md`; `docs/DOCUMENTS.md`;
-`docs/CREDENTIALS.md`; and `docs/DATA.md`. Markdown link targets were
-rewritten one level down; backtick paths, which `scripts/check_docs.py`
-resolves against the repo root, were not. All six are in that script's `DOCS`
-list and `docs/CAPABILITIES.md` is in its test-count list, so every check the
-text had inside `README.md` it still has.
-
-**The four empty placeholder sections are gone**: "The problem", "What makes
-it different", "How it works" with its two empty subheads, and the judging
-table with an empty evidence column. The judging table is back with four rows,
-each a line and a link to evidence that exists.
-
-**`docs/IBM_STACK.md` called watsonx Orchestrate planned** while the agent was
-live, its OpenAPI file was committed and its two screenshots were in
-`docs/evidence/`. It is a Built section now, with the file, seven tests and
-the two screenshots behind it, and Planned is empty and says so.
-
-**`bob_sessions/README.md` has the Phase 7 row**: the tagline session,
-`e1b4d6a` for the work, `f40af46` for the export, and 11.18 Bobcoins read off
-the task summary in the screenshot. It carries no task number, for the same
-reason the read-only review carries none: `docs/bob_brief.md` ends at Task 15
-and both were run to a brief written elsewhere. The scrub scan found nothing.
-`docs/IBM_STACK.md`'s session table stopped at fourteen and holds all
-seventeen now.
+**Two disagreements are recorded, not resolved.** The README-claims session
+read 20.12 in Bob and the export shows 8.94 for its day, which had not ended
+when the export was taken. The first four sessions' task summaries differ
+slightly from their day totals. `bob_sessions/README.md` lists both.
 
 **The evidence.** At the start, on a clean tree: `pytest -q` reported
-`2106 passed`, all five gates exited 0, and `pytest tests/browser` reported
-`146 passed`. At the end: `2106 passed`, all five gates 0, and `155 passed`
-in the browser suite, which is the nine the new file adds.
-`scripts/make_docs_images.py --check` reports every image as what the app
-draws. CI is green on the last commit of this task.
+`2106 passed` and all five gates exited 0. The end-of-task figures and the CI
+run are in the report for this commit.
 
 **Found, not fixed.**
 
-- The three screenshots in the README's top row are 780 pixels wide each and
-  GitHub scales them into a three-column table, so a judge sees them small. A
-  narrower render, or two rows, would read better on a phone.
-- `scripts/make_docs_images.py` is not run by CI, so a screen that changes
-  leaves the committed pictures stale until someone runs `--check` by hand. It
-  needs a browser, which is why it is not in the gate list.
-- The carry-forwards from Task 36, less the icons, which this task fixed: the
-  startup images are 560 KB, a launch screen that is interrupted is not
-  covered, `prelude_launch.svg` is committed and nothing at runtime serves it,
-  the icon font is still 1.14 MB of the committed fonts, the compiled
-  stylesheet is not rebuilt by CI, CI does not run on a schedule, and the
-  smoke workflow cannot be made to fail by a failing deploy.
-- Nothing in this repo has run on an iPhone. Task 35 is still waiting on that,
-  and this task's pictures are headless Chromium at 390 by 844.
+- The Nov 19 row of the export was taken while that UTC day was in progress.
+  A later export could show a different figure for it; nothing here retakes it.
+- Everything under Open items, unchanged by this task.
 
 ## History
 
@@ -970,6 +913,7 @@ decision now lives.
 
 | File | What is in it |
 | ---- | ------------- |
+| `docs/history/task_37_the_readme.md` | the README cut to a page a judge skims, six sections moved into `docs/`, the pictures drawn from the running app, and every icon hidden from a screen reader |
 | `docs/history/task_36_the_tagline.md` | the tagline changed in one constant, every brand file redrawn from it, and the old phrase made banned copy |
 | `docs/history/task_35_the_launch_on_a_phone.md` | the status bar, the safe-area insets, all eleven startup images checked, the no-white guarantee and the crossfade |
 | `docs/history/task_34_the_share_button_and_the_launch_screen.md` | the share button that offered a clip, the accessible name a Material Symbol was inside, the launch screen's hold, fade and cap, and the eleven startup images |

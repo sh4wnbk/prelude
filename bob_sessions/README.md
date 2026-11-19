@@ -57,19 +57,19 @@ alongside another session's.
 | 4 | 3. Add `buildup` | [`bob_sessions/phase4_task3_buildup.md`](phase4_task3_buildup.md) | [`bob_sessions/phase4_task3_buildup.png`](phase4_task3_buildup.png) | `24e1a8d` | `e0bbbdd` | 1.22 |
 | 4 | 4. Build the orchestrator | [`bob_sessions/phase4_task4_orchestrator.md`](phase4_task4_orchestrator.md) | [`bob_sessions/phase4_task4_orchestrator.png`](phase4_task4_orchestrator.png) | `1c4063a` | `be0426f` | 4.02 |
 | 4 | 5. The game-focused header | [`bob_sessions/phase4_task5_header.md`](phase4_task5_header.md) | [`bob_sessions/phase4_task5_header.png`](phase4_task5_header.png) | `7f1b21e` | `4826671` | 3.16 |
-| 4 | 6. The header on the moment card | [`bob_sessions/phase4_task6_card_header.md`](phase4_task6_card_header.md) | [`bob_sessions/phase4_task6_card_header.png`](phase4_task6_card_header.png) | `aab7093` | `95341d1` | from the Bobalytics export at submission |
-| 4 | 7. The screen copy | [`bob_sessions/phase4_task7_screen_copy.md`](phase4_task7_screen_copy.md) | [`bob_sessions/phase4_task7_screen_copy.png`](phase4_task7_screen_copy.png) | `8215108` | `76e0d15` | from the Bobalytics export at submission |
-| 4 | 8. Where the 1986 fan steps away | [`bob_sessions/phase4_task8_step_away.md`](phase4_task8_step_away.md) | [`bob_sessions/phase4_task8_step_away.png`](phase4_task8_step_away.png) | `30116a2` | `3380bf3` | from the Bobalytics export at submission |
-| 4 | 9. The "Who are you with" card | [`bob_sessions/phase4_task9_listener_card.md`](phase4_task9_listener_card.md) | [`bob_sessions/phase4_task9_listener_card.png`](phase4_task9_listener_card.png) | `c6fc1ad` | `4f12bea` | from the Bobalytics export at submission |
-| 4 | 10. The Profile screen | [`bob_sessions/phase4_task10_profile.md`](phase4_task10_profile.md) | [`bob_sessions/phase4_task10_profile.png`](phase4_task10_profile.png) | `4ef3aa0` | `b2d29a2` | from the Bobalytics export at submission |
-| 5 | 11. Audio playback on the moment card | [`bob_sessions/phase5_task11_player.md`](phase5_task11_player.md) | [`bob_sessions/phase5_task11_player.png`](phase5_task11_player.png) | `35708cd` | `076e914` | from the Bobalytics export at submission |
-| 5 | 12. "Your narrator" on Profile | [`bob_sessions/phase5_task12_narrators.md`](phase5_task12_narrators.md) | [`bob_sessions/phase5_task12_narrators.png`](phase5_task12_narrators.png) | `35c91b6` | `d0837ac` | from the Bobalytics export at submission |
-| 5 | 13. Rename the persona id from mate to buddy | [`bob_sessions/phase5_task13_buddy_rename.md`](phase5_task13_buddy_rename.md) | [`bob_sessions/phase5_task13_buddy_rename.png`](phase5_task13_buddy_rename.png) | `4e61a10` | `473b98e` | from the Bobalytics export at submission |
-| 5 | 14. The narrator picker | [`bob_sessions/phase5_task14_narrator_picker.md`](phase5_task14_narrator_picker.md) | [`bob_sessions/phase5_task14_narrator_picker.png`](phase5_task14_narrator_picker.png) | `d5dc9c2` | `9f98e91` | from the Bobalytics export at submission |
-| 6 | 15. The OpenAPI file watsonx Orchestrate imports | [`bob_sessions/phase6_task15_orchestrate_spec.md`](phase6_task15_orchestrate_spec.md) | [`bob_sessions/phase6_task15_orchestrate_spec.png`](phase6_task15_orchestrate_spec.png) | `39856bd` | `39856bd` | from the Bobalytics export at submission |
-| 6 | A read-only review of the app | [`bob_sessions/phase6_review_app.md`](phase6_review_app.md) | [`bob_sessions/phase6_review_app.png`](phase6_review_app.png) | none | `927ad9e` | from the Bobalytics export at submission |
+| 4 | 6. The header on the moment card | [`bob_sessions/phase4_task6_card_header.md`](phase4_task6_card_header.md) | [`bob_sessions/phase4_task6_card_header.png`](phase4_task6_card_header.png) | `aab7093` | `95341d1` | part of 13.33, the 2026-10-29 total for Tasks 5 to 9 |
+| 4 | 7. The screen copy | [`bob_sessions/phase4_task7_screen_copy.md`](phase4_task7_screen_copy.md) | [`bob_sessions/phase4_task7_screen_copy.png`](phase4_task7_screen_copy.png) | `8215108` | `76e0d15` | part of 13.33, the 2026-10-29 total for Tasks 5 to 9 |
+| 4 | 8. Where the 1986 fan steps away | [`bob_sessions/phase4_task8_step_away.md`](phase4_task8_step_away.md) | [`bob_sessions/phase4_task8_step_away.png`](phase4_task8_step_away.png) | `30116a2` | `3380bf3` | part of 13.33, the 2026-10-29 total for Tasks 5 to 9 |
+| 4 | 9. The "Who are you with" card | [`bob_sessions/phase4_task9_listener_card.md`](phase4_task9_listener_card.md) | [`bob_sessions/phase4_task9_listener_card.png`](phase4_task9_listener_card.png) | `c6fc1ad` | `4f12bea` | part of 13.33, the 2026-10-29 total for Tasks 5 to 9 |
+| 4 | 10. The Profile screen | [`bob_sessions/phase4_task10_profile.md`](phase4_task10_profile.md) | [`bob_sessions/phase4_task10_profile.png`](phase4_task10_profile.png) | `4ef3aa0` | `b2d29a2` | part of 33.53, the 2026-10-30 total for Tasks 10 to 13 |
+| 5 | 11. Audio playback on the moment card | [`bob_sessions/phase5_task11_player.md`](phase5_task11_player.md) | [`bob_sessions/phase5_task11_player.png`](phase5_task11_player.png) | `35708cd` | `076e914` | part of 33.53, the 2026-10-30 total for Tasks 10 to 13 |
+| 5 | 12. "Your narrator" on Profile | [`bob_sessions/phase5_task12_narrators.md`](phase5_task12_narrators.md) | [`bob_sessions/phase5_task12_narrators.png`](phase5_task12_narrators.png) | `35c91b6` | `d0837ac` | part of 33.53, the 2026-10-30 total for Tasks 10 to 13 |
+| 5 | 13. Rename the persona id from mate to buddy | [`bob_sessions/phase5_task13_buddy_rename.md`](phase5_task13_buddy_rename.md) | [`bob_sessions/phase5_task13_buddy_rename.png`](phase5_task13_buddy_rename.png) | `4e61a10` | `473b98e` | part of 33.53, the 2026-10-30 total for Tasks 10 to 13 |
+| 5 | 14. The narrator picker | [`bob_sessions/phase5_task14_narrator_picker.md`](phase5_task14_narrator_picker.md) | [`bob_sessions/phase5_task14_narrator_picker.png`](phase5_task14_narrator_picker.png) | `d5dc9c2` | `9f98e91` | part of 7.8, the 2026-11-07 total for Tasks 14 and 15 |
+| 6 | 15. The OpenAPI file watsonx Orchestrate imports | [`bob_sessions/phase6_task15_orchestrate_spec.md`](phase6_task15_orchestrate_spec.md) | [`bob_sessions/phase6_task15_orchestrate_spec.png`](phase6_task15_orchestrate_spec.png) | `39856bd` | `39856bd` | part of 7.8, the 2026-11-07 total for Tasks 14 and 15 |
+| 6 | A read-only review of the app | [`bob_sessions/phase6_review_app.md`](phase6_review_app.md) | [`bob_sessions/phase6_review_app.png`](phase6_review_app.png) | none | `927ad9e` | 2.22 |
 | 7 | The tagline | [`bob_sessions/phase7_tagline.md`](phase7_tagline.md) | [`bob_sessions/phase7_tagline.png`](phase7_tagline.png) | `e1b4d6a` | `f40af46` | 11.18 |
-| 7 | Three README claims: stopped at the 20-coin cost limit, nothing committed, its local changes discarded; the edits were made outside Bob | [`bob_sessions/phase7_readme_claims.md`](phase7_readme_claims.md) | [`bob_sessions/phase7_readme_claims.png`](phase7_readme_claims.png) | none | `788b5a4` | 20.12 |
+| 7 | Three README claims: stopped at the 20-coin cost limit, nothing committed, its local changes discarded; the edits were made outside Bob | [`bob_sessions/phase7_readme_claims.md`](phase7_readme_claims.md) | [`bob_sessions/phase7_readme_claims.png`](phase7_readme_claims.png) | none | `788b5a4` | 20.12 by Bob's cost-limit message; the export shows 8.94 for 2026-11-19 |
 
 Task 1 built the module against `docs/bob_brief.md` and took all 14 acceptance
 tests from failing to passing. Task 2 fixed `event_window`, which filtered by
@@ -147,11 +147,28 @@ call to the public GitHub Actions API. The screenshot shows a workspace, a
 context gauge, a todo list and a Bobcoin figure, none of which authorises
 anything.
 
-The Bobcoin figures are read from each session's task summary, which is what
-the screenshots record. Six were read that way as the sessions ran. The other
-eleven are not guessed and not left blank: Phase 7 exports Bobalytics once, from
-User scope over the full lab period, and the figures for those rows come from
-that export.
+The Bobcoin figures come from three places. Six were read from each session's
+task summary, which is what the screenshots record. The README-claims figure,
+20.12, is Bob's own cost-limit message. The rest come from the Bobalytics
+export, taken once on 2026-11-19 from User scope and committed here as
+[`bob_sessions/bobalytics_activity_pattern.csv`](bobalytics_activity_pattern.csv)
+and [`bob_sessions/bobalytics_days_active.csv`](bobalytics_days_active.csv).
+
+That export gives one total per day, not one per session. A figure is read
+from it only where a session had a day to itself, which is the read-only
+review at 2.22. Where sessions shared a day, the row gives that day's total and
+the sessions it covers. The export's days are UTC, and each session is placed
+on the UTC day of its work commit, or of its export commit when it has no work
+commit. Placed that way, every day's count of completed tasks matches the
+export: 17 in all, and the README-claims session, which completed nothing,
+makes eighteen.
+
+Two kinds of disagreement are kept rather than resolved. The README-claims
+session read 20.12 in Bob, and the export shows 8.94 for its day, which was
+still in progress when the export was taken. The first four sessions' task
+summaries also differ slightly from their day totals: 0.463 and 0.508 against
+1.01 on 2026-10-24, 1.22 against 1.24 on 2026-10-25, and 4.02 against 4.08 on
+2026-10-26. The export totals 83.33 over the 30 days it covers.
 
 The exports are transcripts and are kept verbatim, including the dashes Bob
 typed. The repo's no-em-dash rule covers doc and UI copy written here, not a
