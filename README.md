@@ -7,6 +7,8 @@ can prove.
 
 **[Open the live demo](https://sh4wnbk.github.io/prelude/)**
 
+**[Watch the video](https://drive.google.com/file/d/1ffhGnSRuZfGoVYhSOGU4nKRA5HGi85lk/view?usp=sharing)** · **[See the slides](https://docs.google.com/presentation/d/1jHQDC_digiI2ZV2HbGk1Tfo1PRjEozl6/edit?usp=sharing)**
+
 > [!IMPORTANT]
 > The API runs on Render's free tier, which sleeps when idle. After a quiet
 > spell, the first answer from the API or the Orchestrate agent can take about

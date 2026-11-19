@@ -860,7 +860,7 @@ three mean anything.
 | 2 | Make the repository public | Shawn | <https://github.com/sh4wnbk/prelude> opens signed out |
 | 3 | Turn `PRELUDE_KEEPALIVE` on, under Settings, Secrets and variables, Actions, Variables | Shawn | the variable reads `on`, and the keepalive workflow has a green run after it |
 | 4 | Check the live API and the Orchestrate agent after the flip | Shawn | `/health` answers without a cold wait, and the agent answers on both matches |
-| 5 | Add the demo video link to `README.md` | Shawn, or Claude Code given the link | the link is in `README.md` and opens |
+| 5 | Add the demo video link to `README.md` | Shawn, or Claude Code given the link | done on 2026-11-19: the video and the slides are linked under the live demo link, both on Google Drive |
 
 **Why that order.** The keepalive is metered on a private repository, 144
 minutes a day, which is why item 3 waits for item 2. The agent check in item 4
