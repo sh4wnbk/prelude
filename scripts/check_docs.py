@@ -40,6 +40,15 @@ DOCS = [
     ROOT / "README.md",
     ROOT / "HANDOFF.md",
     ROOT / "CLAUDE.md",
+    # The six long sections `README.md` used to carry inline. Task 37 moved
+    # them out so the README could be a page a judge skims; they are checked
+    # exactly as they were while they were in it.
+    ROOT / "docs" / "CAPABILITIES.md",
+    ROOT / "docs" / "THE_LABEL.md",
+    ROOT / "docs" / "HOSTED_API.md",
+    ROOT / "docs" / "DOCUMENTS.md",
+    ROOT / "docs" / "CREDENTIALS.md",
+    ROOT / "docs" / "DATA.md",
     ROOT / "docs" / "DESIGN.md",
     ROOT / "docs" / "GOVERNANCE.md",
     ROOT / "docs" / "HARNESS.md",
@@ -367,6 +376,9 @@ def check_test_count(fail):
         ROOT / "docs" / "bob_brief.md",
         ROOT / "HANDOFF.md",
         ROOT / "README.md",
+        # The per-file "all N pass" claims moved here with the capability
+        # list; the check moved with them.
+        ROOT / "docs" / "CAPABILITIES.md",
         ROOT / "docs" / "HARNESS.md",
     ] + HISTORY:
         for block in design_blocks(doc.read_text(encoding="utf-8")):

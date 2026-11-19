@@ -1,9 +1,9 @@
 # The IBM stack
 
-Which IBM parts this project runs on. The first half is what is in the repo at
-this commit, with the file and the test behind each statement. The second half
-is planned and is labelled as planned, which is what `CLAUDE.md` requires of
-anything not yet built.
+Which IBM parts this project runs on. Built is what is in the repo at this
+commit, with the file and the test behind each statement. Planned is anything
+not yet built, labelled as planned, which is what `CLAUDE.md` requires; it is
+empty at this commit.
 
 ## Built
 
@@ -331,16 +331,49 @@ working default from before the probe, and it names a voice no persona uses.
 sheet.** `HANDOFF.md` records that, and that the two files in the gitignored
 `voice_test/` are an earlier audition of a different pair.
 
-## Planned
-
-Nothing in this section is in the repo. No code here reads any of it, and no
-test covers it.
-
 ### watsonx Orchestrate
 
-Planned, and nothing about it exists here: no module, no variable in
-`.env.example`, no test. When it arrives it gets a section above this one, with
-the file and the test behind each statement, and this entry goes away.
+An agent in watsonx Orchestrate answers a fan's question about one of the two
+matches. It answers from two read-only tools and from nothing else: it lists
+the goals, and it hands over the narration Prelude already wrote for the one
+goal it narrates, in the voice that fan is entitled to hear. The agent lives
+in Orchestrate's own UI, so what is in this repo is the tools it imports and
+the words it is given.
+
+| What | Where |
+| ---- | ----- |
+| the two tools, as one OpenAPI file the agent imports | `orchestrate/prelude_tools.yaml` |
+| the service they call | `app/api.py`, deployed at <https://prelude-api.onrender.com> |
+| the instructions pasted into the agent, and the reason for each | `docs/orchestrate_agent.md` |
+| the agent answering both matches, live | `docs/evidence/orchestrate_2022_argentina_fan.png` and `docs/evidence/orchestrate_1986_neutral.png` |
+
+The imported file is held to the service it describes rather than to a copy of
+it. `tests/test_orchestrate_spec.py` reads `app.openapi()` and compares: the
+two operations, their parameters, which are required, the enums, the response
+fields and every status code.
+
+| Behaviour | Test |
+| --------- | ---- |
+| the file describes exactly the two tools, and `/health` is not one | `tests/test_orchestrate_spec.py::TestTheTwoOperations::test_the_file_holds_exactly_the_two` |
+| every field, status code and response type it declares is the service's own | `tests/test_orchestrate_spec.py::TestTheResponses` |
+| it asks for no credential and names no other host | `tests/test_orchestrate_spec.py::TestItAsksForNoCredentials`, `tests/test_orchestrate_spec.py::TestWhatTheFileMayNotCarry::test_it_names_no_other_host` |
+| the matches the agent is told it serves are the app's own | `tests/test_orchestrate_agent.py::TestTheMatchesItServes` |
+| the answer is the narration text and nothing added to it | `tests/test_orchestrate_agent.py::TestTheAnswerIsTheNarration` |
+| the narration is handed over word for word | `tests/test_orchestrate_agent.py::TestTheVerbatimRule` |
+| the label is never written by the agent | `tests/test_orchestrate_agent.py::TestTheLabelRule` |
+
+**Nothing here holds an Orchestrate credential.** The tools call a public
+read-only URL, `app/api.py` reads no environment variable and makes no paid
+call, and `.env.example` gains no name for this.
+
+**It is not a fourth input.** The tools serve what `data/raw/` and the frozen
+narrations already hold, which is what `app/api.py` exists for.
+
+## Planned
+
+Nothing. Every IBM part this project uses is in the section above, with the
+file and the test behind each statement. An entry comes back here the day
+something is planned and not yet built.
 
 ## What this document deliberately does not claim
 

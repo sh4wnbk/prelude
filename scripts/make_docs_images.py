@@ -1,10 +1,12 @@
 r"""Draw the pictures `README.md` shows, from the app itself.
 
-Six files into `docs/images/`. Five are screenshots of the running app, taken
-at 390 by 844 with a device scale factor of 2, which is the phone the screens
-are designed for and the phone every browser run in `HANDOFF.md` used. The
-sixth is the flow diagram, drawn here as one SVG and rasterised by the same
-browser so it uses the app's own fonts and the app's own palette.
+Seven files into `docs/images/`. Five are screenshots of the running app,
+taken at 390 by 844 with a device scale factor of 2, which is the phone the
+screens are designed for and the phone every browser run in `HANDOFF.md`
+used. The sixth is the flow diagram, drawn here as one SVG and rasterised by
+the same browser so it uses the app's own fonts and the app's own palette.
+The seventh is the committed mark on the app's own background, for a README
+that is read on whichever background the reader's theme sets.
 
 **The screenshots are taken through the app's own controls.** Nothing writes
 `sessionStorage` and nothing visits a screen with a query string that puts it
@@ -67,6 +69,18 @@ NARRATOR = "The Buddy"
 #: in `app/web/`.
 DIAGRAM_PATH = "/__architecture__.html"
 
+#: The same, for the mark. `app/web/assets/brand/prelude_mark.svg` is white
+#: letters on nothing, which is right in the app, where the background is
+#: always the app's own, and wrong in a README: GitHub renders it on whichever
+#: background the reader's theme sets, and on a light one the wordmark is
+#: invisible and the seven amber elements are not. So the mark is drawn here
+#: on the surface colour it is designed over, and `README.md` shows that.
+MARK_PATH = "/__mark__.html"
+
+#: The mark's width in the picture, and the air around it.
+MARK_WIDTH = 560
+MARK_PADDING = 56
+
 
 # ---------------------------------------------------------------- the server
 
@@ -74,14 +88,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     """`app/web/`, plus the diagram page at `DIAGRAM_PATH`."""
 
     diagram = b""
+    mark = b""
 
     def do_GET(self):
-        if self.path.split("?")[0] == DIAGRAM_PATH:
+        made = {DIAGRAM_PATH: self.diagram, MARK_PATH: self.mark}
+        body = made.get(self.path.split("?")[0])
+        if body is not None:
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Content-Length", str(len(self.diagram)))
+            self.send_header("Content-Length", str(len(body)))
             self.end_headers()
-            self.wfile.write(self.diagram)
+            self.wfile.write(body)
             return
         super().do_GET()
 
@@ -89,11 +106,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         pass
 
 
-def serve(diagram):
+def serve(diagram, mark):
     """`app/web/` on a port the operating system picks."""
     # On the class, not on the partial: the handler instances read it as a
     # class attribute, and a partial's own attributes never reach them.
     Handler.diagram = diagram
+    Handler.mark = mark
     handler = functools.partial(Handler, directory=str(WEB))
     server = socketserver.TCPServer(("127.0.0.1", 0), handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
@@ -259,6 +277,20 @@ def diagram_page():
     ).encode("utf-8")
 
 
+def mark_page():
+    """The committed mark, on the surface colour it is drawn over."""
+    return (
+        "<!DOCTYPE html>"
+        "<html><head><meta charset='utf-8'>"
+        "<style>html,body{margin:0;padding:0;background:%s;}"
+        "#mark{display:inline-block;padding:%dpx;background:%s;line-height:0;}"
+        "#mark img{display:block;width:%dpx;height:auto;}</style>"
+        "</head><body><div id='mark'>"
+        "<img alt='' src='assets/brand/prelude_mark.svg'></div></body></html>"
+        % (SURFACE, MARK_PADDING, SURFACE, MARK_WIDTH)
+    ).encode("utf-8")
+
+
 # ------------------------------------------------------------- the app's taps
 
 #: Predicates about the document inside the shell's iframe, written to answer
@@ -377,8 +409,19 @@ def take_the_diagram(browser, base, into):
         "document.fonts.check('13px \"JetBrains Mono\"')"
     )
     page.locator("#architecture").screenshot(path=str(into / "architecture.png"))
+
+    page.goto(base + MARK_PATH)
+    page.wait_for_selector("#mark img")
+    page.wait_for_function(
+        "() => { const i = document.querySelector('#mark img'); "
+        "return !!i && i.complete && i.naturalWidth > 0; }"
+    )
+    page.locator("#mark").screenshot(path=str(into / "mark.png"))
     context.close()
-    return {"architecture.png": into / "architecture.png"}
+    return {
+        "architecture.png": into / "architecture.png",
+        "mark.png": into / "mark.png",
+    }
 
 
 def draw(into):
@@ -391,7 +434,7 @@ def draw(into):
             "(uv sync --group dev, then python -m playwright install chromium)"
         )
 
-    server, base = serve(diagram_page())
+    server, base = serve(diagram_page(), mark_page())
     try:
         with sync_playwright() as driver:
             browser = driver.chromium.launch()
