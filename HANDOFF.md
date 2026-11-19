@@ -296,6 +296,12 @@ app claims.
   that reach outside to refresh them. jsQR's Subresource Integrity hash is
   checked at fetch time rather than at load time, because the script is same
   origin now.
+- The tagline is one constant, `TAG` in `scripts/brand/build_svg.py`, and
+  every file that carries it is drawn from there: the wordmark, the eleven
+  startup images and `prelude_launch.svg`'s title. The shell's visible line
+  and its `aria-label` are the two places it exists as text, and they are
+  changed together. The retired phrase is a banned pattern in
+  `scripts/scan_copy.py`, so it cannot come back to a screen.
 - The mark is "Prelude." in Syne ExtraBold, white, with the "u" drawn as seven
   amber bars and the full stop amber. The icon is those seven bars alone, and
   they are outlines rather than text: an icon is rendered with no font
@@ -331,6 +337,12 @@ app claims.
   `matchMedia` branch in its script; anything added later that moves belongs
   behind that query. Task 34 specified no fade under `reduce` and that was
   wrong.
+- Every Material Symbols span in `app/web/` is `aria-hidden="true"`, so a
+  control's accessible name is the label a fan reads and never the glyph's
+  own name. The rule is asked of the browser rather than of the markup:
+  `tests/browser/test_the_accessible_names.py` reads the ligatures off the
+  live DOM and the names out of `aria_snapshot`, on every screen, both
+  matches, three listeners and three narrator states.
 - No frame of a load is white, and the three things that make it so are in
   markup rather than in script, because the frames before any script has run
   are a state a fan can see. Every page sets the app background on `html` and
@@ -459,6 +471,18 @@ app claims.
   about the words are a reading of the feed rather than a string comparison:
   `tests/test_match_copy_claims.py` moves one value at a time off the feed
   and asserts the gate reports it.
+- `README.md` is the page a judge reads: pictures first, short sentences and
+  a link wherever depth belongs, at most 150 lines and no sentence over 25
+  words. Everything longer lives in `docs/` with one link from the README,
+  and `docs/DOCUMENTS.md` is the index of all of it. A section moved out of
+  the README goes into `scripts/check_docs.py`'s `DOCS` list in the same
+  commit, so it keeps every check it had while it was in the README.
+- The pictures in `README.md` are drawn by `scripts/make_docs_images.py` from
+  the running app, not taken by hand. It serves `app/web/` itself and reaches
+  each screen by tapping, so a state that cannot be reached by tapping cannot
+  be photographed, and `--check` says whether the committed files are still
+  what the app draws. It needs a browser, so it is not one of the five gates
+  and CI does not run it.
 - Shawn is asked whether to continue at the end of each task, after the exit
   commands have run.
 
@@ -797,106 +821,146 @@ Items found during Phase 2 that belong with the wiring, not before it:
 
 ## Next first action
 
-**The app is finished for the demo, it claims only what the code does, and the
-build checks it.** The four overclaiming lines and the two pills beside them
-are gone, every line that describes the play is held to the feed both ways,
-the moment card says how many claims the check traced, the screens carry their
-own stylesheet, fonts, icon and QR reader, the Moments hero card's waveform
-follows the voice, the shell opens on the mark and the tagline and holds them
-there, a home screen opens on the same screen drawn as a startup image and
-crossfades from it into the event list with no white frame between, and the
-API rebuilds only when something it serves changes. CI runs both suites and
-the five gates on every push, and the smoke workflow checks the deployed
-site, its launch screen and the hosted API after every deploy.
+**The app is finished for the demo, it claims only what the code does, the
+build checks it, and `README.md` is now the page a judge reads.** Every
+overclaiming line is gone, every line that describes the play is held to the
+feed both ways, the moment card says how many claims the check traced, the
+screens carry their own stylesheet, fonts, icon and QR reader, the shell opens
+on the mark and crossfades into the event list with no white frame, and every
+icon is hidden from a screen reader so a control is named by its label. CI
+runs both suites and the five gates on every push, and the smoke workflow
+checks the deployed site and the hosted API after every deploy.
 
-**Before anything else, Shawn opens it on his iPhone from the home-screen
-icon.** Task 35 is about three things only a phone shows, and nothing in this
-repo has run on one: whether the mark holds still from the startup image into
-the page, whether the white flash at the top is gone, and whether the list now
-arrives as a crossfade with Reduce Motion on. If any of the three is still
-there, Task 35's record says what was measured and where.
+**The first action is the submission checklist below.** Nothing in the app is
+waiting on a change; what is left is the five things only Shawn can do, in the
+order they have to happen.
 
-**Then the first action is the Phase 7 README pass.** `README.md` is the document a
-judge reads first and the one that has been edited least against the code.
-Task 32 fixed only the lines it made false, which was the Profile line, the
-moments waveform line and the paragraph about the hosted API, and Task 33 only
-added the mark, the two scripts that draw it and the grounding rule to the
-copy gate. What the pass still needs, in this order:
+**Then the rest of Phase 7**, which `docs/history/the_plan_as_agreed.md`
+carries in full: Shawn records the film and finishes the deck, and Claude Code
+does a final recon from a fresh session.
 
-1. **Read it against the app as it is now.** The playback paragraph and the
-   "what is not built" list were corrected in Task 30, three lines in Task 32,
-   and the rest has not been read since Phase 5. `scripts/check_docs.py`
-   checks the paths, the counts, the test citations and the dashes in it; the
-   prose is not checked and that is where the drift is.
-2. **Say what the build does.** Nothing in `README.md` mentions CI, the
-   browser suite or the smoke workflow, and a judge reading it has no way to
-   know the claims in it are checked on every push.
-3. **Say what the app now shows.** The claim count under the label is the
-   metric the audit asked for and `README.md` does not mention it; neither
-   does it say that no screen loads anything from another origin. The mark,
-   the launch screen and the tagline went in with Task 33 and the launch
-   screen's timing and the home-screen startup images with Task 34, and those
-   are the one part of this item that is done.
-4. **The four "holds no values" passages** in `.env.example` line 1,
-   `docs/bob_brief.md`, `docs/IBM_STACK.md` and `README.md`, which the open
-   item above has been carrying since Phase 5.
+**Still open from Phase 5**, and unchanged by the README pass: Shawn listens
+to the six recordings, and the tuning pass that would follow if one of them is
+wrong. The open items above carry what each one would need.
 
-**Then Phase 7's remaining bullets**, which `docs/history/the_plan_as_agreed.md`
-carries in full: Shawn records the film and finishes the deck, exports
-Bobalytics once at the end of the lab period, makes the repo public and
-submits; Claude Code fills the judging-criteria-to-evidence table and does a
-final recon from a fresh session. The Bobcoin figures for eleven of the
-sixteen rows in `bob_sessions/README.md` come from that export.
+## The submission checklist
 
-## Last task: Task 36, the tagline
+**Kept here until Prelude is submitted, then deleted in the same commit.**
+Five things, in this order, and the first two have to happen before the last
+three mean anything.
 
-**What Shawn asked for on 2026-11-15.** Change the tagline from "Leave your
-seat. Stay in the game." to "Leave your seat. Not the game." and ensure the
-old phrase cannot come back.
+| # | What | Who | Done when |
+| - | ---- | --- | --------- |
+| 1 | Export Bobalytics once, from User scope over the full lab period, and commit the CSV | Shawn | the CSV is in the repo, and the eleven unread Bobcoin figures in `bob_sessions/README.md` are read from it |
+| 2 | Make the repository public | Shawn | <https://github.com/sh4wnbk/prelude> opens signed out |
+| 3 | Turn `PRELUDE_KEEPALIVE` on, under Settings, Secrets and variables, Actions, Variables | Shawn | the variable reads `on`, and the keepalive workflow has a green run after it |
+| 4 | Check the live API and the Orchestrate agent after the flip | Shawn | `/health` answers without a cold wait, and the agent answers on both matches |
+| 5 | Add the demo video link to `README.md` | Shawn, or Claude Code given the link | the link is in `README.md` and opens |
 
-**The change is in one constant** (`TAG` in `scripts/brand/build_svg.py`), and
-everything follows from it. The brand script draws every brand file from one
-set of numbers: the SVG layout, the eleven startup images, and the title and
-`aria-label` of `prelude_launch.svg`. Before this task, the SVG's title was a
-hardcoded string literal rather than a reference to `TAG`, so the script could
-not update it; that literal is now `f"Prelude. {TAG}"`. Running the script with
-`--confirm` regenerated all fifteen files. The brand check (`--check`) confirms
-every committed file is what the script now draws.
+**Why that order.** The keepalive is metered on a private repository, 144
+minutes a day, which is why item 3 waits for item 2. The agent check in item 4
+is what proves the keepalive works, so it comes after the flip rather than
+before it. The Bobalytics export is first because it is the one item whose
+timing is not Shawn's: it is taken once, at the end of the lab period.
 
-**The visible copy and the accessible name in `app/web/index.html` are updated
-together.** The `<p id="launch-line">` text and the `aria-label` on
-`<div id="launch" role="img">` are the two places the tagline exists as text in
-the shell; the mark itself is outlines.
+**Until item 3 is done**, the standing note at the top of Current state still
+applies: open `/health` by hand and wait for the ok before testing a tool,
+recording the demo or handing the URL to a judge.
 
-**The docs updated: `README.md`, `HANDOFF.md`, `docs/DESIGN.md` and
-`scripts/brand/README.md`.** Each carried the old tagline in a present-tense
-description; each is now the new one. `docs/history/task_33_the_brand.md` and
-`bob_sessions/phase6_review_app.md` are records of what was true when they were
-written and are left as they are.
+## Last task: Task 37, the README
 
-**The tests updated: `tests/browser/test_the_launch_screen.py` and
-`tests/test_screen_copy.py`.** Both define `TAGLINE` as a constant and both
-expected the old phrase; both are now the new one.
+**What Shawn asked for on 2026-11-18.** `README.md` was 649 lines of prose,
+one image, four empty placeholder sections and a 400-line capability list. It
+had to read like a product page a judge skims in two minutes: pictures first,
+short sentences, links for depth. Five steps, with a commit between each.
 
-**"Stay in the game" is now banned copy.** A new entry in
-`scripts/scan_copy.py`'s `BANNED` list labelled `"retired tagline"` matches the
-pattern `r"Stay in the game"` and prevents the old phrase from returning to any
-web screen.
+**Every Material Symbols icon is hidden from a screen reader.** A Material
+Symbols span's text is the glyph's name, so the word was inside its control's
+accessible name: the bottom nav read "sensors LIVE" and the moment card's
+second button read "replay_10 REPLAY 10S". All 58 spans in `app/web/` carry
+`aria-hidden="true"` now, the 56 that did not plus the two Task 34 hid, and
+that includes the one the picker's own script builds on a tap, which is why
+`CHECK_GLYPH` in `tests/test_match_choice.py` changed with them. This was a
+carry-forward in every Found, not fixed since Task 34.
 
-**The evidence.** `pytest -q` reports `2106 passed`; all five gates exit 0;
-the brand check exits 0 with every file marked `same`. "Stay in the game"
-appears only in `docs/history/task_33_the_brand.md`,
-`bob_sessions/phase6_review_app.md` and the `BANNED` pattern in
-`scripts/scan_copy.py`. CI is green on the last commit of this task.
+**`tests/browser/test_the_accessible_names.py` asks the browser rather than
+the markup.** Every screen, both matches, three listeners and three narrator
+states: every icon span hidden from the tree, no glyph name inside any
+accessible name, the bottom nav named by its three labels and the moment
+card's four buttons by theirs. The ligatures are read off the live DOM, so
+nothing is written down twice, and the names come from `aria_snapshot`, which
+is the computation a reader does. It fails 9 of 9 on the tree before this
+task.
+
+**`docs/images/` holds the seven pictures `README.md` shows**, drawn by
+`scripts/make_docs_images.py`. Five are the running app at 390 by 844 with a
+device scale factor of 2, taken through the app's own controls: the script
+serves `app/web/` on a port the operating system picks, opens `index.html`,
+and taps the 2022 card, Confirm event, Argentina, Continue, Profile, the
+Buddy, Live, Heading out and Moments. Nothing writes `sessionStorage`, so a
+screen that cannot be reached by tapping cannot be photographed. The sixth is
+the flow diagram, drawn as one SVG in the app's palette with the app's own
+fonts. The seventh is the committed mark on the app's own background: the mark
+is white letters on nothing, which is right in the app and wrong in a README,
+where GitHub draws it on whichever background the reader's theme sets.
+
+**`README.md` is 127 lines and no sentence in it is over 25 words.** In
+order: the mark, one sentence on what Prelude does, the tagline, the live
+link, three screenshots side by side, the demo tickets, the flow as a Mermaid
+block GitHub renders, the two Orchestrate screenshots with one line each, what
+is verified, what is built with IBM, the judging criteria, what runs where,
+the limits, and the StatsBomb attribution with its logo.
+
+**The six long sections moved into `docs/` intact**, each with one link from
+the README: `docs/CAPABILITIES.md`, which also takes "What the demo is,
+precisely"; `docs/THE_LABEL.md`; `docs/HOSTED_API.md`; `docs/DOCUMENTS.md`;
+`docs/CREDENTIALS.md`; and `docs/DATA.md`. Markdown link targets were
+rewritten one level down; backtick paths, which `scripts/check_docs.py`
+resolves against the repo root, were not. All six are in that script's `DOCS`
+list and `docs/CAPABILITIES.md` is in its test-count list, so every check the
+text had inside `README.md` it still has.
+
+**The four empty placeholder sections are gone**: "The problem", "What makes
+it different", "How it works" with its two empty subheads, and the judging
+table with an empty evidence column. The judging table is back with four rows,
+each a line and a link to evidence that exists.
+
+**`docs/IBM_STACK.md` called watsonx Orchestrate planned** while the agent was
+live, its OpenAPI file was committed and its two screenshots were in
+`docs/evidence/`. It is a Built section now, with the file, seven tests and
+the two screenshots behind it, and Planned is empty and says so.
+
+**`bob_sessions/README.md` has the Phase 7 row**: the tagline session,
+`e1b4d6a` for the work, `f40af46` for the export, and 11.18 Bobcoins read off
+the task summary in the screenshot. It carries no task number, for the same
+reason the read-only review carries none: `docs/bob_brief.md` ends at Task 15
+and both were run to a brief written elsewhere. The scrub scan found nothing.
+`docs/IBM_STACK.md`'s session table stopped at fourteen and holds all
+seventeen now.
+
+**The evidence.** At the start, on a clean tree: `pytest -q` reported
+`2106 passed`, all five gates exited 0, and `pytest tests/browser` reported
+`146 passed`. At the end: `2106 passed`, all five gates 0, and `155 passed`
+in the browser suite, which is the nine the new file adds.
+`scripts/make_docs_images.py --check` reports every image as what the app
+draws. CI is green on the last commit of this task.
 
 **Found, not fixed.**
 
-- The same carry-forwards as Task 35: every icon in the app is still inside
-  its control's accessible name, the startup images are 560 KB, a launch screen
-  that is interrupted is not covered, `prelude_launch.svg` is committed and
-  nothing at runtime serves it, the icon font is still 1.14 MB of the committed
-  fonts, the compiled stylesheet is not rebuilt by CI, CI does not run on a
-  schedule, and the smoke workflow cannot be made to fail by a failing deploy.
+- The three screenshots in the README's top row are 780 pixels wide each and
+  GitHub scales them into a three-column table, so a judge sees them small. A
+  narrower render, or two rows, would read better on a phone.
+- `scripts/make_docs_images.py` is not run by CI, so a screen that changes
+  leaves the committed pictures stale until someone runs `--check` by hand. It
+  needs a browser, which is why it is not in the gate list.
+- The carry-forwards from Task 36, less the icons, which this task fixed: the
+  startup images are 560 KB, a launch screen that is interrupted is not
+  covered, `prelude_launch.svg` is committed and nothing at runtime serves it,
+  the icon font is still 1.14 MB of the committed fonts, the compiled
+  stylesheet is not rebuilt by CI, CI does not run on a schedule, and the
+  smoke workflow cannot be made to fail by a failing deploy.
+- Nothing in this repo has run on an iPhone. Task 35 is still waiting on that,
+  and this task's pictures are headless Chromium at 390 by 844.
 
 ## History
 
@@ -906,6 +970,7 @@ decision now lives.
 
 | File | What is in it |
 | ---- | ------------- |
+| `docs/history/task_36_the_tagline.md` | the tagline changed in one constant, every brand file redrawn from it, and the old phrase made banned copy |
 | `docs/history/task_35_the_launch_on_a_phone.md` | the status bar, the safe-area insets, all eleven startup images checked, the no-white guarantee and the crossfade |
 | `docs/history/task_34_the_share_button_and_the_launch_screen.md` | the share button that offered a clip, the accessible name a Material Symbol was inside, the launch screen's hold, fade and cap, and the eleven startup images |
 | `docs/history/task_32_what_the_app_claims.md` | the four lines that claimed more than the code does, the claim count under the label, the compiled stylesheet and the committed fonts, one player for both screens, the first mark and the first launch screen |

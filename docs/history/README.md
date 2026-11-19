@@ -13,6 +13,7 @@ that describes the repo now.
 
 | File | What is in it |
 | ---- | ------------- |
+| `docs/history/task_36_the_tagline.md` | the tagline as one constant in the brand script, the fifteen files redrawn from it, the shell's visible line and accessible name, and the retired phrase made banned copy |
 | `docs/history/task_35_the_launch_on_a_phone.md` | the status bar, the safe-area insets, all eleven startup images checked, the no-white guarantee and the crossfade |
 | `docs/history/phase1-3_scaffold_data_and_eventfeed.md` | the scaffold, the fetch, the first data check, and Bob's EventFeed in two sessions |
 | `docs/history/phase4_narration_and_orchestrator.md` | the provider layer, the prompt, the grounding check, the personas, the paid model comparison, and the orchestrator in two Bob sessions |
