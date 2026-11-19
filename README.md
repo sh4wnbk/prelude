@@ -7,6 +7,12 @@ can prove.
 
 **[Open the live demo](https://sh4wnbk.github.io/prelude/)**
 
+> [!IMPORTANT]
+> The API runs on Render's free tier, which sleeps when idle. After a quiet
+> spell, the first answer from the API or the Orchestrate agent can take about
+> a minute. Open [/health](https://prelude-api.onrender.com/health) first and
+> wait until it shows `"status":"ok"`. The live demo does not depend on the API.
+
 | The launch screen | The moment card | Your narrator |
 | :---------------: | :-------------: | :-----------: |
 | ![Prelude's launch screen: the mark over the tagline](docs/images/launch.png) | ![The moment card: the narration, the label and the claim count](docs/images/moment_card.png) | ![Profile, with The Buddy chosen as the narrator](docs/images/profile.png) |
