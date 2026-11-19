@@ -45,7 +45,7 @@ reads its numbered facts off what comes back.
 
 ### The session exports
 
-Fourteen sessions, one export each with the screenshot of its task summary,
+Seventeen sessions, one export each with the screenshot of its task summary,
 committed rather than ignored because the submission guide requires them to be
 present in the final repo. `bob_sessions/README.md` is the index and the
 scrubbing rule.
@@ -66,14 +66,21 @@ scrubbing rule.
 | 5 | 12. the narrators on Profile | `bob_sessions/phase5_task12_narrators.md` | `bob_sessions/phase5_task12_narrators.png` | `d0837ac` |
 | 5 | 13. rename the persona id from mate to buddy | `bob_sessions/phase5_task13_buddy_rename.md` | `bob_sessions/phase5_task13_buddy_rename.png` | `473b98e` |
 | 5 | 14. the narrator picker | `bob_sessions/phase5_task14_narrator_picker.md` | `bob_sessions/phase5_task14_narrator_picker.png` | `9f98e91` |
+| 6 | 15. the OpenAPI file watsonx Orchestrate imports | `bob_sessions/phase6_task15_orchestrate_spec.md` | `bob_sessions/phase6_task15_orchestrate_spec.png` | `39856bd` |
+| 6 | a read-only review of the app | `bob_sessions/phase6_review_app.md` | `bob_sessions/phase6_review_app.png` | `927ad9e` |
+| 7 | the tagline | `bob_sessions/phase7_tagline.md` | `bob_sessions/phase7_tagline.png` | `f40af46` |
 
 The commit above is the one that added the export, read with
 `git log --diff-filter=A`. The commit the work itself landed in is the status
 line at the head of that task in `docs/bob_brief.md`.
 
+The last two rows carry no numbered task, because `docs/bob_brief.md` ends at
+Task 15 and both were run to a brief written in `HANDOFF.md` and the session
+itself.
+
 The Bobcoin figure for each session is read from its own task summary, which is
 what the screenshots record; `bob_sessions/README.md` carries that figure for
-the first five sessions.
+six of the seventeen.
 
 Exports are transcripts, so they are scrubbed of anything secret before every
 commit, by hand. Nothing in the repo scrubs them. The Task 3 export needed no

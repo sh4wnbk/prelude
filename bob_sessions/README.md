@@ -68,6 +68,7 @@ alongside another session's.
 | 5 | 14. The narrator picker | [`bob_sessions/phase5_task14_narrator_picker.md`](phase5_task14_narrator_picker.md) | [`bob_sessions/phase5_task14_narrator_picker.png`](phase5_task14_narrator_picker.png) | `d5dc9c2` | `9f98e91` | from the Bobalytics export at submission |
 | 6 | 15. The OpenAPI file watsonx Orchestrate imports | [`bob_sessions/phase6_task15_orchestrate_spec.md`](phase6_task15_orchestrate_spec.md) | [`bob_sessions/phase6_task15_orchestrate_spec.png`](phase6_task15_orchestrate_spec.png) | `39856bd` | `39856bd` | from the Bobalytics export at submission |
 | 6 | A read-only review of the app | [`bob_sessions/phase6_review_app.md`](phase6_review_app.md) | [`bob_sessions/phase6_review_app.png`](phase6_review_app.png) | none | `927ad9e` | from the Bobalytics export at submission |
+| 7 | The tagline | [`bob_sessions/phase7_tagline.md`](phase7_tagline.md) | [`bob_sessions/phase7_tagline.png`](phase7_tagline.png) | `e1b4d6a` | `f40af46` | 11.18 |
 
 Task 1 built the module against `docs/bob_brief.md` and took all 14 acceptance
 tests from failing to passing. Task 2 fixed `event_window`, which filtered by
@@ -127,8 +128,26 @@ are the rule text telling the session not to open one, not a value read out
 of it. Both screenshots show a workspace, a context gauge and a Bobcoin
 figure, none of which authorises anything.
 
+**The tagline session has no number**, for the same reason the read-only
+review has none: it was run to a brief written in `HANDOFF.md` and the
+session rather than to a numbered task in `docs/bob_brief.md`, which ends at
+Task 15. It changed the tagline from "Leave your seat. Stay in the game." to
+"Leave your seat. Not the game." The change is one constant in
+`scripts/brand/build_svg.py`, and everything else follows from it: the
+wordmark, the eleven startup images, the shell's visible line and its
+accessible name, four docs and two tests. The old phrase is banned copy now,
+so it cannot come back to a screen. Its work landed in `e1b4d6a` as Task 36
+and its export in `f40af46`.
+
+Nothing was scrubbed from the tagline export. The same scan found none of the
+six variable names, no `.env` mention, no bearer token, no key-shaped string
+and no URL carrying a key; its one URL with a query string is an unauthenticated
+call to the public GitHub Actions API. The screenshot shows a workspace, a
+context gauge, a todo list and a Bobcoin figure, none of which authorises
+anything.
+
 The Bobcoin figures are read from each session's task summary, which is what
-the screenshots record. Five were read that way as the sessions ran. The other
+the screenshots record. Six were read that way as the sessions ran. The other
 eleven are not guessed and not left blank: Phase 7 exports Bobalytics once, from
 User scope over the full lab period, and the figures for those rows come from
 that export.
