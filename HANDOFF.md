@@ -83,7 +83,7 @@ frozen narrations, one per match per listener slot (`buddy_scored`,
 each one. The words on the card and the words the voice reads are one text,
 resolved by one lookup.
 
-**The test harness** is 42 files in `tests/` and seven in `tests/browser/`. The
+**The test harness** is 43 files of tests in `tests/` and eight in `tests/browser/`. The
 unit suite is run by `pytest`, which leaves the browser suite out through
 `norecursedirs`; the browser suite is run by naming it, `pytest tests/browser`,
 and drives headless Chromium at 390 by 844 over a local server.

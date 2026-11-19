@@ -307,6 +307,7 @@ that says so rather than a failure.
 | `tests/browser/test_the_player_works.py` | the recording playing, the clock, the amber fill, the bars moving with the voice, the waveform seeking, the arrow keys and Replay 10s |
 | `tests/browser/test_the_launch_screen.py` | the shell's launch screen: the first frame of a visit, the 1.5 s hold and the 300 ms crossfade with the event list, the cap when matches.json fails or never answers, the same crossfade under reduced motion, the list painted before it is ever visible, no white frame in the top of the screen, the eleven startup images against the shell at each screen size, the insets, and a reload and a new tab that both paint it |
 | `tests/browser/test_sharing.py` | the moment card's share button on both paths: the share sheet handed the link and the match's own line, the clipboard holding the link with the confirmation over it, and a refused or absent clipboard confirming nothing |
+| `tests/browser/test_the_accessible_names.py` | every screen by both matches by three listeners by three narrator states: every Material Symbols span hidden from the accessibility tree, no glyph name inside an accessible name, the bottom nav named by its three labels and the moment card's four buttons by theirs |
 | `tests/browser/test_every_screen.py` | every screen by both matches by four listener states: no page error, no console error, no 404 at all, and no request that left this suite's own origin |
 
 The states are read with a `MutationObserver` installed before any of the

@@ -61,8 +61,13 @@ SELECTED_MARKS = [
 #: The radio mark on an unselected card.
 UNSELECTED_MARK = '<span class="w-2 h-2 rounded-full bg-secondary-container"></span>'
 
-#: The radio mark on the selected one.
-CHECK_GLYPH = '<span class="material-symbols-outlined text-[16px] font-bold">check</span>'
+#: The radio mark on the selected one. The glyph is hidden from a screen
+#: reader, like every other Material Symbol in the app: its text is the
+#: ligature `check`, which is a picture to a fan and a word to a reader.
+CHECK_GLYPH = (
+    '<span aria-hidden="true" class="material-symbols-outlined '
+    'text-[16px] font-bold">check</span>'
+)
 
 
 def picker():
