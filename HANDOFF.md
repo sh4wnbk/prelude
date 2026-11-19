@@ -57,11 +57,11 @@ origin and that nothing 404s.
 `tests/test_api.py::TestWhatItDoesNotReach::test_the_only_module_in_app_that_takes_a_third_party_package`
 is what keeps it the only one.
 
-**Thirty-one scripts**, each runnable on its own: thirty directly under
+**Thirty-two scripts**, each runnable on its own: thirty-one directly under
 `scripts/` and `scripts/brand/build_svg.py` beside the two fonts it reads.
 Five are gates: `data_check.py`, `scan_copy.py`, `check_match_copy.py`,
 `check_vocabulary.py` and `check_docs.py`. `docs/HARNESS.md` carries the table
-of all thirty-one, what each writes and what each reaches, and a row for every
+of all thirty-two, what each writes and what each reaches, and a row for every
 file in `tests/`.
 
 **The hosted API** is `app/api.py` on Render at
