@@ -495,6 +495,11 @@ app claims.
   as a mechanism with no figure: spreading the rush on concessions and
   restrooms is for a pilot to measure. Nothing in the repo is built for an
   operator.
+- The code is all rights reserved under a custom notice in `LICENSE`, chosen
+  on 2026-11-21 over PolyForm Noncommercial because it also withholds
+  modification and redistribution. It allows viewing, cloning and running to
+  evaluate, judges named, and personal non-commercial learning. StatsBomb data
+  and narration derived from it stay under StatsBomb's terms.
 - Bob's part of Prelude is closed. Shawn took the Bobalytics export on
   2026-11-19, and one read-only session ran after it, a score against the lab
   rubric, whose 1.02 Bobcoins come from its screenshot. No further Bob session

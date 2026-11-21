@@ -145,6 +145,10 @@ Play data comes from the
 under its terms. [`docs/DATA.md`](docs/DATA.md) carries the attribution in
 full.
 
+The code is all rights reserved. [`LICENSE`](LICENSE) allows viewing, cloning
+and running it to evaluate it or for personal, non-commercial learning, and
+nothing else without written permission.
+
 <img alt="Hudl StatsBomb" src="app/web/assets/hudl-statsbomb-logo-reversed.png" width="200">
 
 Data provided by StatsBomb.
