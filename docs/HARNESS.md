@@ -77,9 +77,9 @@ script to run. So the first command in a new clone is
 
 ## Entry points
 
-Thirty-two scripts, each runnable on its own, and the table below names
-every one of them. Thirty-one are directly under `scripts/`; the
-thirty-second is `scripts/brand/build_svg.py`, which sits beside the two
+Thirty-three scripts, each runnable on its own, and the table below names
+every one of them. Thirty-two are directly under `scripts/`; the
+thirty-third is `scripts/brand/build_svg.py`, which sits beside the two
 fonts it reads.
 
 Several are imported as well as run, always for the same reason: the
@@ -100,6 +100,7 @@ collector from
 | `scripts/data_check.py` | gate: the 1986 goals, the shot counts per team and the 13-of-15 claim | `docs/data_check.md` | nothing |
 | `scripts/make_tickets.py` | one demo ticket QR code per match | `app/web/assets/tickets/` | nothing |
 | `scripts/write_headers.py` | the orchestrator's opening and `hero.voice_for` per match, with `--check` as the gate on drift | `app/web/matches.json` | nothing |
+| `scripts/write_play_segments.py` | each frozen narration's claims that say an event happened, as spans of its words from `app/play_segments.py`, and beside them every event those spans name with six fields copied unchanged from `data/raw/events/`; it prints each slot's segment count, and `--check` is the comparison that writes nothing | `app/web/play_segments.json` | nothing |
 | `scripts/write_narrators.py` | the three narrators as the browser reads them, from `app/personas.py` | `app/web/narrators.json` | nothing |
 | `scripts/write_served_matches.py` | the matches the agent is told it serves, from `app/web/matches.json` and `data/raw/matches/`, with `--check` as the gate on drift | the list inside `docs/orchestrate_agent.md` | nothing |
 | `scripts/story_beats_report.py` | the beat list for both hero goals, beside the records it was curated from | nothing | nothing |
@@ -213,7 +214,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 2145 tests in forty four files. Any failure means something is
+The suite is 2158 tests in forty four files. Any failure means something is
 wrong. It is run from the repo root:
 
 ```
@@ -235,7 +236,7 @@ wrote that file as Task 15; it exists now and they pass.
 | `tests/test_plain_characters.py` | the disguised spaces and hyphens rewritten plainly, and the dashes left alone |
 | `tests/test_grounding.py` | one test per way a narration can be wrong or look wrong and be fine |
 | `tests/test_reference_narrations.py` | the eight reference narrations that are the narration standard, and the lines the check has to keep refusing |
-| `tests/test_play_segments.py` | `app/play_segments.py`, which cuts a narration the check passed into spans of its words and points each at the events that hold it: all six frozen slots against `data/raw/`, spans in order and exact, the finish on the goal shot, "pressed" on both pressers, the 2022 long ball as one span on one pass, a chain opening on its marker, the reader's position keys reading no record, and the refusals |
+| `tests/test_play_segments.py` | `app/play_segments.py`, which cuts a narration the check passed into spans of its words and points each at the events that hold it: all six frozen slots against `data/raw/`, spans in order and exact, the finish on the goal shot, "pressed" on both pressers, the 2022 long ball as one span on one pass, a chain opening on its marker, the reader's position keys reading no record, "under pressure from X" as one segment, the refusals, and `scripts/write_play_segments.py` with its file: `--check` against a copy in pytest's own directory, every event in the goal's buildup, each record as its raw event holds it, and `draw_from` never going back in clock order |
 | `tests/test_narration_grammar.py` | the goal-call grammar one mechanism at a time: the names, the pronoun, the chains, the actor of a claim, "past X", the field positions, the shape of the run and the recorded fields |
 | `tests/test_narrator_candidates.py` | the goal-call prompt: the four styles, the invented match the examples use, the records the prompt shows, the six recorded slots, the price of one recording and the plan the run prints |
 | `tests/test_narration.py` | the pipeline: generate, check, retry, fall back, record |

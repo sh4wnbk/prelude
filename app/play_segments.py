@@ -40,6 +40,12 @@ trace its moves to any record.
 pressed him" is two claims on the one word "pressed", one per presser, and the
 segment carries both events.
 
+**"Under pressure from X" is one segment as well.** It is two claims, the
+carrier's `pressured` flag over "under pressure from" and X's `pressed_by`
+record over "under pressure from X", and the first span sits inside the
+second. They are one segment over the longer span, carrying both claims'
+records. That is the only overlap folded; any other one raises.
+
 **Where a move's words are is computed, never searched for.** Three kinds of
 move are built so that `at` is not where `said` starts, and each is placed
 from the numbers the reader built it from, which it keeps in the move's
@@ -161,6 +167,48 @@ def move_span(
     return start, end
 
 
+def _kinds(segment: dict) -> list[str]:
+    return segment["kind"].split("+")
+
+
+def _fold_pressure_into_presser(spans: dict[tuple[int, int], dict]) -> None:
+    """Make "under pressure from X" one segment, in place.
+
+    The reader reads it as two claims: `pressured`, the carrier's own flag,
+    over "under pressure from", and `pressed_by`, X's own `Pressure` record,
+    over "under pressure from X". The first span sits inside the second, so
+    they are one segment over the `pressed_by` span carrying both claims'
+    records. This is the one overlap that is folded: a `pressured` span
+    inside exactly one `pressed_by` span. Any other overlap is left for the
+    caller to refuse.
+    """
+    for key in sorted(spans):
+        inner = spans[key]
+        if _kinds(inner) != ["pressured"]:
+            continue
+        outer_keys = [
+            other
+            for other in spans
+            if other != key
+            and "pressed_by" in _kinds(spans[other])
+            and other[0] <= key[0]
+            and key[1] <= other[1]
+        ]
+        if len(outer_keys) != 1:
+            continue
+        outer = spans[outer_keys[0]]
+        outer["kind"] = "+".join(
+            ["pressured"]
+            + [kind for kind in _kinds(outer) if kind != "pressured"]
+        )
+        outer["event_ids"] = inner["event_ids"] + [
+            event_id
+            for event_id in outer["event_ids"]
+            if event_id not in inner["event_ids"]
+        ]
+        del spans[key]
+
+
 def segments(
     text: str,
     facts: Facts,
@@ -228,6 +276,7 @@ def segments(
                 if event_id not in segment["event_ids"]:
                     segment["event_ids"].append(event_id)
 
+    _fold_pressure_into_presser(spans)
     ordered = [spans[key] for key in sorted(spans)]
     for before, after in zip(ordered, ordered[1:]):
         if after["start_char"] < before["end_char"]:

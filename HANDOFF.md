@@ -57,11 +57,11 @@ origin and that nothing 404s.
 `tests/test_api.py::TestWhatItDoesNotReach::test_the_only_module_in_app_that_takes_a_third_party_package`
 is what keeps it the only one.
 
-**Thirty-two scripts**, each runnable on its own: thirty-one directly under
+**Thirty-three scripts**, each runnable on its own: thirty-two directly under
 `scripts/` and `scripts/brand/build_svg.py` beside the two fonts it reads.
 Five are gates: `data_check.py`, `scan_copy.py`, `check_match_copy.py`,
 `check_vocabulary.py` and `check_docs.py`. `docs/HARNESS.md` carries the table
-of all thirty-two, what each writes and what each reaches, and a row for every
+of all thirty-three, what each writes and what each reaches, and a row for every
 file in `tests/`.
 
 **The hosted API** is `app/api.py` on Render at
@@ -97,6 +97,15 @@ a Pages deploy succeeds and checks the deployed site and the hosted API.
 switch. Render rebuilds the API only when `app/`, `pyproject.toml`, `uv.lock`
 or `render.yaml` change, which is the build filter in `render.yaml`.
 
+**The play segments, on the `birds-eye` branch only.** `app/play_segments.py`
+cuts each frozen narration into the spans of its words that say an event
+happened and points each span at the events that hold it.
+`scripts/write_play_segments.py` writes them for the six slots into
+`app/web/play_segments.json`, with a `records` map of the fields each named
+event carries in `data/raw/` and a `draw_from` table per slot, and `--check`
+compares without writing. No screen reads the file yet. `main` does not have
+any of it, so the deployed site and the hosted API are unchanged.
+
 ### The interfaces
 
 Code is written against these rather than against each other. The first three
@@ -109,6 +118,7 @@ are the seams that let a module be replaced or be someone else's to build.
 | `NarrationProvider` and `Transport` | `app/narration_provider.py` | `OllamaProvider` and `WatsonxProvider` |
 | the grounding check | `app/grounding.py` | read by `app/narration.py` and by every script that writes a narration |
 | the goal-call grammar | `app/narration_grammar.py` | read by `app/grounding.py` for a narration that cites nothing |
+| the play segments: `segments(text, facts, persona, side)` | `app/play_segments.py` | read by `scripts/write_play_segments.py`, on `birds-eye` |
 | the slot rule, as one table | `tests/slot_rows.json` | `Prelude.slotFor` in `app/web/match-content.js` and `slot_for` in `app/api.py` |
 | the speech request | `app/tts.py` | Watson Text to Speech, with the delivery from `app/delivery.py` |
 | the Orchestrate tool contract | `orchestrate/prelude_tools.yaml` | checked against `app.openapi()` by `tests/test_orchestrate_spec.py` |
@@ -165,6 +175,35 @@ app claims.
 - The pass rate counts first attempts only. Coverage is reported and never
   enforced, and is split by what wrote the narration, because a template
   fallback reaches every beat by construction.
+
+**The play segments**
+
+- A segment is a claim that an event happened: an action, a chain, "past X",
+  a touch, a long pass, the pressure and the presser, the first-time flag and
+  the body part. Names, teams and the pattern are left out because a name is
+  held by every record that player has; places and directions are left out
+  because each describes a move that is already a segment. A final reaction
+  is skipped, because the check traced none of its moves.
+- Only a narration the check passes is cut, and the text has to be plain with
+  straight apostrophes already, so every offset is an offset into the stored
+  text. Anything else raises.
+- Where a move's words are is computed from the numbers the reader built it
+  from, never searched for, and the text there has to read exactly as the
+  move said it. A chain and "under pressure from X" are placed by
+  `receiver_said`, because their `at` is the receiver's name; a long ball
+  merged with its chain is placed by `long_said` and `chain_at` and is the one
+  span whose words are not the move's `said`.
+- `SPAN_KEYS` in `app/narration_grammar.py` are position data only. No claim,
+  refusal or count reads them, and `tests/test_play_segments.py` holds that
+  removing them changes no record a move stands on.
+- Claims said over the same words are one segment, and a `pressured` span
+  wholly inside one `pressed_by` span is folded into it. Any other overlap
+  raises.
+- `draw_from` gives each record the segment it is first drawn at, in clock
+  order: the earliest segment from the previous record's onwards that claims
+  it, or that floor where none does. It never goes back in time.
+- The segments live in their own file, `app/web/play_segments.json`, and not
+  in `app/web/narrations.json`, which `scripts/freeze_narrations.py` writes.
 
 **The narration, as it ships**
 
@@ -503,7 +542,9 @@ app claims.
 - Bob's part of Prelude is closed. Shawn took the Bobalytics export on
   2026-11-19, and one read-only session ran after it, a score against the lab
   rubric, whose 1.02 Bobcoins come from its screenshot. No further Bob session
-  is planned. The module stays Bob's, and nothing replaces it.
+  is planned. The module stays Bob's, and nothing replaces it. The Nov 19 row
+  of the export was taken while that UTC day was in progress, so a later
+  export could show a different figure for it; nothing retakes it.
 - 2022 defining moments are periods 1 to 4 only, because a shootout has no
   buildup to narrate. `Moment` carries no period field.
 - A set piece is narrated from `buildup`, which reaches back a possession, not
@@ -831,6 +872,11 @@ Items found during Phase 2 that belong with the wiring, not before it:
 
 ## Next first action
 
+**On the `birds-eye` branch, the next task is Task 2, the timings, and it
+stops for Shawn to listen.** Tasks 1 and 1b are done and pushed; the record is
+Last task below. `main` is unchanged by the branch, so everything that follows
+in this section still describes `main` and the submission.
+
 **The app is finished for the demo, it claims only what the code does, the
 build checks it, and `README.md` is now the page a judge reads.** Every
 overclaiming line is gone, every line that describes the play is held to the
@@ -877,53 +923,75 @@ timing is not Shawn's: it is taken once, at the end of the lab period.
 applies: open `/health` by hand and wait for the ok before testing a tool,
 recording the demo or handing the URL to a judge.
 
-## Last task: the README's three claims, and the Bobalytics export
+## Last task: the play segments (Tasks 1 and 1b, `birds-eye`)
 
-**What Shawn asked for on 2026-11-18 and 2026-11-19.** Two small changes made
-outside Bob, after a Bob session on the first stopped at its 20-coin cost
-limit with nothing committed.
+**What Shawn asked for on 2026-11-28.** Task 1: a module that says which
+words of a frozen narration stand on which records, with its tests. Task 1b:
+the script that writes those segments for the six slots into a file, a
+`records` map beside them, a `draw_from` table per slot, the "under pressure
+from X" overlap folded, and this handoff.
 
-**`d7337b4` corrected three claims in `README.md`.** The six demo narrations
-were drafted with an AI assistant and edited by Shawn, so the flow now shows
-them entering the grounding check beside the narration pipeline rather than
-coming out of it; `scripts/make_docs_images.py` draws the same two sources and
-`docs/images/architecture.png` was redrawn from it. The Bob row lists what Bob
-built over eighteen sessions. The Caller is described as listed on Profile as
-coming soon with no recording. `bob_sessions/README.md` gained the row for the
-stopped session, and `docs/IBM_STACK.md` the same.
+**What changed.** `app/grounding.py` builds the goal-call reader in a public
+`goal_call_reader(facts, side)`, which `_goal_call` calls, with no change in
+behaviour. `app/play_segments.py` is new, and so are
+`scripts/write_play_segments.py`, `app/web/play_segments.json` and
+`tests/test_play_segments.py`. Current state carries the rules under The play
+segments.
 
-**This commit closes Bob's part.** Shawn took the Bobalytics export on
-2026-11-19 and it is committed as `bob_sessions/bobalytics_activity_pattern.csv`
-and `bob_sessions/bobalytics_days_active.csv`. It totals by day, not by
-session, so of the eleven figures that waited for it, one could be read
-directly: the read-only review, 2.22, which had its day to itself. The other
-ten rows give their day's total and the sessions it covers. Days are UTC, and
-placing each session on the UTC day of its commit makes every day's task count
-match the export, 17 completed in all.
+**Three deviations from Task 1's spec, each agreed with Shawn before it was
+built.**
 
-**One Bob session ran after the export**: a read-only score of the app
-against the lab rubric, `00c3110`, 1.02 Bobcoins from its screenshot. It
-scored 17 of 20 and suggested four changes. Recording the Caller was declined:
-no Caller narration exists, so it is a build, not a recording. A keyboard
-focus style is under Open items already. Keepalive is checklist item 3. Its
-one wording catch was right: the README said Bob built its part "over
-eighteen sessions", and two of those built nothing, so the line now reads
-"in sixteen of its nineteen sessions".
+1. `app/narration_grammar.py` was edited, which the spec did not list. A
+   chain and "under pressure from X" carry `receiver_said` in their detail,
+   and a merged long ball carries `long_said` and `chain_at`. These are
+   `SPAN_KEYS`, position data only. The grammar, grounding and frozen
+   narration tests gave `272 passed` before the edit and `272 passed` after
+   it, and all six `claims_checked` values are unchanged.
+2. The chain rule. The spec put every claim at the sentence's offset plus
+   `move.at`, but the reader builds a chain as its marker and the receiver's
+   name at the name's position, so "found Maradona" has its `at` on
+   "Maradona". The span is `end = at + len(receiver_said)`,
+   `start = end - len(said)`, with the exact match asserted. "Under pressure
+   from X" is built the same way and takes the same rule.
+3. The long-ball rule. The spec asserted that every span reads as its move's
+   `said`, but `_merge_long` joins "long ball" and "to MacAllister" while the
+   text has "forward" between them. That one move, recognised as a chain whose
+   detail says `long`, spans from the long ball to the end of the chain's
+   name, and its segment's `said` is the text there: "long ball forward to
+   MacAllister", on the one long pass. Every other move still matches
+   exactly, and any other mismatch raises.
 
-**Two disagreements are recorded, not resolved.** The README-claims session
-read 20.12 in Bob and the export shows 8.94 for its day, which had not ended
-when the export was taken. The first four sessions' task summaries differ
-slightly from their day totals. `bob_sessions/README.md` lists both.
+**Task 1b's two decisions.** The segments are in a separate file,
+`app/web/play_segments.json`, and not added to `app/web/narrations.json`,
+which `scripts/freeze_narrations.py` writes. And `draw_from` follows the rule
+under The play segments in Current state: in 1986 `buddy_conceded` the shot,
+index 1971, is held by "picked it up" as well, and is drawn at "scored"; in
+1986 `storyteller_neutral` carry 1970 is drawn at "Shilton". The rule
+was read as the earliest claiming segment that is not earlier than the
+floor, because the literal reading, the later of the earliest claim and the
+floor, puts that shot at "Shilton", a segment that does not claim it. The
+two readings differ on that one record in the six slots and nowhere else.
 
-**The evidence.** At the start, on a clean tree: `pytest -q` reported
-`2106 passed` and all five gates exited 0. The end-of-task figures and the CI
-run are in the report for this commit.
+**The evidence.** At the start of Task 1, on a clean tree: `pytest -q`
+reported `2106 passed` and the five gates printed their passing lines.
+`scripts/write_play_segments.py` prints 8, 8 and 9 segments for the 1986
+slots (`buddy_conceded`, `buddy_scored`, `storyteller_neutral`) and 9, 10 and
+9 for 2022, and `--check` exits 0. The end-of-task figures and the CI run are
+in the report for this commit.
 
 **Found, not fixed.**
 
-- The Nov 19 row of the export was taken while that UTC day was in progress.
-  A later export could show a different figure for it; nothing here retakes it.
-- Everything under Open items, unchanged by this task.
+- "Under pressure from Beardsley and Reid" names two pressers, and the reader
+  gives the second the said "under pressure from Reid", which is not one run
+  of the text. `segments` raises on such a narration rather than place it.
+  None of the six says it.
+- In 1986 `storyteller_neutral`, carry 1955 is claimed only by "carried",
+  which comes after "Beardsley" in the text, so the rule draws Beardsley's two
+  records at "carried" and nothing at "Beardsley". That is the rule working
+  as written; whether a later screen wants it is for that screen's task.
+- `docs/HARNESS.md` lists the standard library modules `app/` imports, and the
+  list already left out `datetime`, `base64`, `textwrap` and `time` before
+  this task. `app/play_segments.py` adds no new one.
 
 ## History
 
@@ -933,6 +1001,7 @@ decision now lives.
 
 | File | What is in it |
 | ---- | ------------- |
+| `docs/history/the_readme_claims_and_the_bobalytics_export.md` | the README's three corrected claims, and the Bobalytics export that closed Bob's part |
 | `docs/history/task_37_the_readme.md` | the README cut to a page a judge skims, six sections moved into `docs/`, the pictures drawn from the running app, and every icon hidden from a screen reader |
 | `docs/history/task_36_the_tagline.md` | the tagline changed in one constant, every brand file redrawn from it, and the old phrase made banned copy |
 | `docs/history/task_35_the_launch_on_a_phone.md` | the status bar, the safe-area insets, all eleven startup images checked, the no-white guarantee and the crossfade |

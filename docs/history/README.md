@@ -13,6 +13,7 @@ that describes the repo now.
 
 | File | What is in it |
 | ---- | ------------- |
+| `docs/history/the_readme_claims_and_the_bobalytics_export.md` | the README's three corrected claims, the Bobalytics export committed, and the rubric session that ran after it |
 | `docs/history/task_37_the_readme.md` | the README cut to 127 lines, the six long sections moved into `docs/`, the pictures drawn by `scripts/make_docs_images.py`, and every Material Symbols span hidden from a screen reader |
 | `docs/history/task_36_the_tagline.md` | the tagline as one constant in the brand script, the fifteen files redrawn from it, the shell's visible line and accessible name, and the retired phrase made banned copy |
 | `docs/history/task_35_the_launch_on_a_phone.md` | the status bar, the safe-area insets, all eleven startup images checked, the no-white guarantee and the crossfade |
@@ -288,3 +289,14 @@ was about work that is finished and constrains nothing further.
 | `scripts/make_docs_images.py` is not run by CI | Current state, Open items, under what the build does not say |
 | The README's top-row screenshots read small on a phone | Current state, Open items, under what the build does not say |
 | The Task 36 carry-forwards | Current state, Open items |
+
+### From the README's three claims and the Bobalytics export
+
+| Decision, rule or open item | Now lives |
+| --------------------------- | --------- |
+| The six narrations are shown entering the check beside the pipeline, not coming out of it | `README.md` and `scripts/make_docs_images.py`; settled and closed |
+| Bob's part is closed, and the module stays Bob's | Current state, Decisions still in force |
+| The export totals by day, so ten rows give their day's total | `bob_sessions/README.md` |
+| The two recorded disagreements between Bob and the export | `bob_sessions/README.md` |
+| The Nov 19 row was taken while that UTC day was in progress | Current state, Decisions still in force, beside Bob's part |
+| Everything under Open items | Current state, Open items, unchanged |
