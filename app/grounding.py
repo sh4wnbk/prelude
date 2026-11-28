@@ -1404,6 +1404,26 @@ def _cheer_failures(
     return failures
 
 
+def goal_call_reader(facts: Facts, side: str | None) -> Reader:
+    """The reader the goal-call reading uses, built the one way it is built.
+
+    Public so that anything that has to find the same moves in a narration
+    the check passed reads them with the same vocabulary, and cannot drift
+    from it: `app/play_segments.py` is the one that does.
+    """
+    return Reader(
+        facts=facts,
+        not_a_name=NOT_A_NAME,
+        demonyms=TEAM_DEMONYMS,
+        actions=ACTION_CLAIMS,
+        # "Our half" and "their half" are a different half of the pitch for a
+        # fan of either side, so the reading needs the side the narration was
+        # written for. `_reads_from_the_other_end` in
+        # `app/narration_grammar.py` is the resolution.
+        side=side,
+    )
+
+
 def _goal_call(
     text: str,
     facts: Facts,
@@ -1448,17 +1468,7 @@ def _goal_call(
     anywhere else is a refusal of its own.
     """
     listener_side = fold(side) if side else None
-    reader = Reader(
-        facts=facts,
-        not_a_name=NOT_A_NAME,
-        demonyms=TEAM_DEMONYMS,
-        actions=ACTION_CLAIMS,
-        # "Our half" and "their half" are a different half of the pitch for a
-        # fan of either side, so the reading needs the side the narration was
-        # written for. `_reads_from_the_other_end` in
-        # `app/narration_grammar.py` is the resolution.
-        side=side,
-    )
+    reader = goal_call_reader(facts, side)
     failures: list[Claim] = []
     claims_made = 0
     checked = 0

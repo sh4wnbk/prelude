@@ -23,7 +23,7 @@ requires and what every script's own docstring shows.
 **Every module in `app/` but one imports nothing outside the standard
 library.** Each of them says so in its docstring (`app/credentials.py`,
 `app/grounding.py`, `app/narration_prompt.py`, `app/narration_provider.py`,
-`app/pronunciation.py`), and the imports bear it out: `json`, `os`, `re`,
+`app/play_segments.py`, `app/pronunciation.py`), and the imports bear it out: `json`, `os`, `re`,
 `unicodedata`, `urllib`, `dataclasses`, `pathlib`, `types` and `typing`, and
 nothing else.
 
@@ -213,7 +213,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 2106 tests in forty three files. Any failure means something is
+The suite is 2145 tests in forty four files. Any failure means something is
 wrong. It is run from the repo root:
 
 ```
@@ -235,6 +235,7 @@ wrote that file as Task 15; it exists now and they pass.
 | `tests/test_plain_characters.py` | the disguised spaces and hyphens rewritten plainly, and the dashes left alone |
 | `tests/test_grounding.py` | one test per way a narration can be wrong or look wrong and be fine |
 | `tests/test_reference_narrations.py` | the eight reference narrations that are the narration standard, and the lines the check has to keep refusing |
+| `tests/test_play_segments.py` | `app/play_segments.py`, which cuts a narration the check passed into spans of its words and points each at the events that hold it: all six frozen slots against `data/raw/`, spans in order and exact, the finish on the goal shot, "pressed" on both pressers, the 2022 long ball as one span on one pass, a chain opening on its marker, the reader's position keys reading no record, and the refusals |
 | `tests/test_narration_grammar.py` | the goal-call grammar one mechanism at a time: the names, the pronoun, the chains, the actor of a claim, "past X", the field positions, the shape of the run and the recorded fields |
 | `tests/test_narrator_candidates.py` | the goal-call prompt: the four styles, the invented match the examples use, the records the prompt shows, the six recorded slots, the price of one recording and the plan the run prints |
 | `tests/test_narration.py` | the pipeline: generate, check, retry, fall back, record |

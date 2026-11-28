@@ -457,6 +457,22 @@ class Move:
         return self.said
 
 
+#: Keys a move's `detail` carries only so that `app/play_segments.py` can put
+#: the move's words back where they were said, without searching the text.
+#:
+#: A chain is built as `f"{marker} {hit.said}"` at `hit.at`, and "under
+#: pressure from X" the same way, so `at` is where the receiver's name starts
+#: and not where `said` does. `receiver_said` is that name as written. A long
+#: ball folded into its chain by `Reader._merge_long` takes the long ball's
+#: `at`, so `long_said` is the long ball as written and `chain_at` is where the
+#: chain's own name started.
+#:
+#: **These are position data and nothing else.** No claim, refusal or count
+#: reads them: `support` and `why` read `assist` and `long` and no other key of
+#: a chain's detail, and nothing reads a `pressed_by` move's detail at all.
+SPAN_KEYS = frozenset({"receiver_said", "long_said", "chain_at"})
+
+
 def recorded_spellings(facts: Facts) -> Mapping[str, tuple[str, ...]]:
     """Full recorded player name to every spelling the match records for them.
 
@@ -853,6 +869,8 @@ class Reader:
                             hit.at,
                             actor=self.tracked,
                             target=player,
+                            # Position data only: see `SPAN_KEYS`.
+                            detail={"receiver_said": hit.said},
                         )
                     )
                     continue
@@ -865,7 +883,12 @@ class Reader:
                             hit.at,
                             actor=source,
                             target=player,
-                            detail={"assist": assist, "long": False},
+                            detail={
+                                "assist": assist,
+                                "long": False,
+                                # Position data only: see `SPAN_KEYS`.
+                                "receiver_said": hit.said,
+                            },
                         )
                     )
                     self._merge_long(moves)
@@ -1130,6 +1153,10 @@ class Reader:
             if earlier.kind == "long_pass" and earlier.actor == chain.actor:
                 detail = dict(chain.detail or {})
                 detail["long"] = True
+                # Position data only: see `SPAN_KEYS`. The merged move's `at`
+                # is the long ball's, so the chain's own is kept here.
+                detail["long_said"] = earlier.said
+                detail["chain_at"] = chain.at
                 moves[-1] = Move(
                     chain.kind,
                     f"{earlier.said} {chain.said}",

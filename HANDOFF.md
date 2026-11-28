@@ -52,7 +52,7 @@ all served from this repo.
 `tests/browser/test_every_screen.py` asserts that no screen leaves its own
 origin and that nothing 404s.
 
-**Twenty-one modules in `app/`.** Standard library only, with one exception:
+**Twenty-two modules in `app/`.** Standard library only, with one exception:
 `app/api.py` takes FastAPI, and
 `tests/test_api.py::TestWhatItDoesNotReach::test_the_only_module_in_app_that_takes_a_third_party_package`
 is what keeps it the only one.
@@ -83,7 +83,7 @@ frozen narrations, one per match per listener slot (`buddy_scored`,
 each one. The words on the card and the words the voice reads are one text,
 resolved by one lookup.
 
-**The test harness** is 43 files of tests in `tests/` and eight in `tests/browser/`. The
+**The test harness** is 44 files of tests in `tests/` and eight in `tests/browser/`. The
 unit suite is run by `pytest`, which leaves the browser suite out through
 `norecursedirs`; the browser suite is run by naming it, `pytest tests/browser`,
 and drives headless Chromium at 390 by 844 over a local server.
