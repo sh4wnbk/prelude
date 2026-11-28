@@ -13,6 +13,7 @@ that describes the repo now.
 
 | File | What is in it |
 | ---- | ------------- |
+| `docs/history/task_2_the_segment_timings.md` | Task 2 on `birds-eye`: `scripts/align_segments.py`, its three deviations from the spec, `app/web/segment_timings.json` and `tests/test_segment_timings.py` |
 | `docs/history/tasks_1_and_1b_the_play_segments.md` | Tasks 1 and 1b on `birds-eye`: `app/play_segments.py`, the three deviations from its spec, `scripts/write_play_segments.py`, the records map and `draw_from` |
 | `docs/history/the_readme_claims_and_the_bobalytics_export.md` | the README's three corrected claims, the Bobalytics export committed, and the rubric session that ran after it |
 | `docs/history/task_37_the_readme.md` | the README cut to 127 lines, the six long sections moved into `docs/`, the pictures drawn by `scripts/make_docs_images.py`, and every Material Symbols span hidden from a screen reader |
@@ -315,3 +316,14 @@ was about work that is finished and constrains nothing further.
 | Two pressers make `segments` raise | the archived record's Found, not fixed, where it still stands |
 | "Beardsley" draws nothing in 1986 `storyteller_neutral` | the archived record's Found, not fixed, where it still stands |
 | `docs/HARNESS.md`'s import list was already incomplete | the archived record's Found, not fixed, where it still stands |
+
+### From Task 2, when each segment is spoken
+
+| Decision, rule or open item | Now lives |
+| --------------------------- | --------- |
+| A segment's time is its first word's, as a position in the file, and nothing is interpolated | Current state, The play segments |
+| The one split, a recognised "onto" read as "on to" | Current state, The play segments |
+| `faster-whisper` is a dev dependency only | Current state, The play segments |
+| The audio decoded with PyAV, and `small.en` as the model | the archived record's deviations; settled and closed |
+| The recogniser's misheard names | the archived record's Found, not fixed, where it still stands |
+| The docs name `.venv-prelude` where this worktree runs `.venv` | the archived record's Found, not fixed, where it still stands |

@@ -101,7 +101,7 @@ collector from
 | `scripts/make_tickets.py` | one demo ticket QR code per match | `app/web/assets/tickets/` | nothing |
 | `scripts/write_headers.py` | the orchestrator's opening and `hero.voice_for` per match, with `--check` as the gate on drift | `app/web/matches.json` | nothing |
 | `scripts/align_segments.py` | offline, never run by CI, a test or the app: when each play segment starts in its recording. It decodes each MP3 with PyAV, transcribes it with `faster-whisper` and word timestamps, matches the recognised words to the slot text with `difflib`, and times a segment only by the word matched to its first word, so a segment with none fails the run; it prints a cue sheet per slot and every "onto" it read as "on to" | `app/web/segment_timings.json` | huggingface.co, once, to download `Systran/faster-whisper-small.en` |
-| `scripts/write_play_segments.py` | each frozen narration's claims that say an event happened, as spans of its words from `app/play_segments.py`, and beside them every event those spans name with six fields copied unchanged from `data/raw/events/`; it prints each slot's segment count, and `--check` is the comparison that writes nothing | `app/web/play_segments.json` | nothing |
+| `scripts/write_play_segments.py` | each frozen narration's claims that say an event happened, as spans of its words from `app/play_segments.py`, and beside them every event those spans name with six fields copied unchanged from `data/raw/events/` and a `label`, the player's `player_nickname` from `data/raw/lineups/` or else the recorded name; it prints each slot's segment count, and `--check` is the comparison that writes nothing | `app/web/play_segments.json` | nothing |
 | `scripts/write_narrators.py` | the three narrators as the browser reads them, from `app/personas.py` | `app/web/narrators.json` | nothing |
 | `scripts/write_served_matches.py` | the matches the agent is told it serves, from `app/web/matches.json` and `data/raw/matches/`, with `--check` as the gate on drift | the list inside `docs/orchestrate_agent.md` | nothing |
 | `scripts/story_beats_report.py` | the beat list for both hero goals, beside the records it was curated from | nothing | nothing |
@@ -215,7 +215,7 @@ generating anything:
 
 ## The test harness
 
-The suite is 2177 tests in forty five files. Any failure means something is
+The suite is 2179 tests in forty five files. Any failure means something is
 wrong. It is run from the repo root:
 
 ```
@@ -238,7 +238,7 @@ wrote that file as Task 15; it exists now and they pass.
 | `tests/test_grounding.py` | one test per way a narration can be wrong or look wrong and be fine |
 | `tests/test_reference_narrations.py` | the eight reference narrations that are the narration standard, and the lines the check has to keep refusing |
 | `tests/test_segment_timings.py` | the timings `scripts/align_segments.py` wrote, with no audio tool: every slot timed, the same segments as `app/web/play_segments.json` in the same order, `start_ms` rising strictly and inside the file, and each sha256 the committed recording's |
-| `tests/test_play_segments.py` | `app/play_segments.py`, which cuts a narration the check passed into spans of its words and points each at the events that hold it: all six frozen slots against `data/raw/`, spans in order and exact, the finish on the goal shot, "pressed" on both pressers, the 2022 long ball as one span on one pass, a chain opening on its marker, the reader's position keys reading no record, "under pressure from X" as one segment, the refusals, and `scripts/write_play_segments.py` with its file: `--check` against a copy in pytest's own directory, every event in the goal's buildup, each record as its raw event holds it, and `draw_from` never going back in clock order |
+| `tests/test_play_segments.py` | `app/play_segments.py`, which cuts a narration the check passed into spans of its words and points each at the events that hold it: all six frozen slots against `data/raw/`, spans in order and exact, the finish on the goal shot, "pressed" on both pressers, the 2022 long ball as one span on one pass, a chain opening on its marker, the reader's position keys reading no record, "under pressure from X" as one segment, the refusals, and `scripts/write_play_segments.py` with its file: `--check` against a copy in pytest's own directory, every event in the goal's buildup, each record as its raw event holds it, each label as the lineups file gives it, and `draw_from` never going back in clock order |
 | `tests/test_narration_grammar.py` | the goal-call grammar one mechanism at a time: the names, the pronoun, the chains, the actor of a claim, "past X", the field positions, the shape of the run and the recorded fields |
 | `tests/test_narrator_candidates.py` | the goal-call prompt: the four styles, the invented match the examples use, the records the prompt shows, the six recorded slots, the price of one recording and the plan the run prints |
 | `tests/test_narration.py` | the pipeline: generate, check, retry, fall back, record |
@@ -313,6 +313,8 @@ that says so rather than a failure.
 | `tests/browser/test_the_launch_screen.py` | the shell's launch screen: the first frame of a visit, the 1.5 s hold and the 300 ms crossfade with the event list, the cap when matches.json fails or never answers, the same crossfade under reduced motion, the list painted before it is ever visible, no white frame in the top of the screen, the eleven startup images against the shell at each screen size, the insets, and a reload and a new tab that both paint it |
 | `tests/browser/test_sharing.py` | the moment card's share button on both paths: the share sheet handed the link and the match's own line, the clipboard holding the link with the confirmation over it, and a refused or absent clipboard confirming nothing |
 | `tests/browser/test_the_accessible_names.py` | every screen by both matches by three listeners by three narrator states: every Material Symbols span hidden from the accessibility tree, no glyph name inside an accessible name, the bottom nav named by its three labels and the moment card's four buttons by theirs |
+| `tests/browser/test_birdseye.py` | the bird's-eye renderer and football adapter on `tests/browser/pages/birdseye.html`, served from pytest's temporary directory beside copies of the two scripts and the two files they read, for every slot of both matches: the finished picture exactly the records in `draw_from`, nothing drawn before its segment starts, every mark its record in the one frame (Butcher's Dribbled Past at 87.0, 68.5), the listener's side amber and a neutral listener none, each name from when its segment starts, no sport word in the renderer and no "Verified from play data" in the view |
+| `tests/browser/pages/birdseye.html` | the test page `tests/browser/test_birdseye.py` mounts the view on; not one of the app's screens |
 | `tests/browser/test_every_screen.py` | every screen by both matches by four listener states: no page error, no console error, no 404 at all, and no request that left this suite's own origin |
 
 The states are read with a `MutationObserver` installed before any of the

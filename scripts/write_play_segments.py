@@ -13,8 +13,12 @@ event id a segment names to fields copied unchanged out of
     location      event["location"], or null where the record has none
     end_location  event["pass" | "carry" | "shot"]["end_location"], or null
                   where the record is none of the three
+    label         the player's `player_nickname` in
+                  `data/raw/lineups/<match_id>.json` where that file records
+                  one, else `player`; null where `player` is null
 
-Nothing is derived: every value is a field of one raw record.
+Nothing is derived: every value is a field of one raw record, and `label` is
+the lineups file's field for the same player.
 
 Each slot is `{"segments": [...], "draw_from": {event_id: n}}`. `draw_from`
 says, for every record the slot's segments name, the index of the segment at
@@ -74,19 +78,21 @@ def _name(event: dict, field: str):
     return block["name"] if block else None
 
 
-def _record(event: dict) -> dict:
+def _record(event: dict, nicknames) -> dict:
     end = None
     for field in _ENDS_IN:
         if field in event:
             end = event[field].get("end_location")
             break
+    player = _name(event, "player")
     return {
         "index": event["index"],
         "type": _name(event, "type"),
         "team": _name(event, "team"),
-        "player": _name(event, "player"),
+        "player": player,
         "location": event.get("location"),
         "end_location": end,
+        "label": nicknames.get(player, player) if player else None,
     }
 
 
@@ -114,9 +120,10 @@ def build() -> tuple[dict, list[str]]:
     lines: list[str] = []
     for year, match_id, minute, second in HEROES:
         moment = moment_at(feed, match_id, minute, second)
+        nicknames = recorded_nicknames(match_id)
         facts = facts_from_buildup(
             feed.buildup(match_id, moment),
-            recorded_nicknames(match_id),
+            nicknames,
             recorded_teams(match_id),
         )
         slots = frozen[str(match_id)]["slots"]
@@ -142,7 +149,7 @@ def build() -> tuple[dict, list[str]]:
                 + ", ".join(missing)
             )
         records = {
-            event_id: _record(by_id[event_id])
+            event_id: _record(by_id[event_id], nicknames)
             for event_id in sorted(wanted, key=lambda one: by_id[one]["index"])
         }
         matches[str(match_id)] = {

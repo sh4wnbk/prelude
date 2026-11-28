@@ -106,8 +106,14 @@ event carries in `data/raw/` and a `draw_from` table per slot, and `--check`
 compares without writing. `scripts/align_segments.py`, offline, times each
 segment in its recording and writes `app/web/segment_timings.json`, which
 `tests/test_segment_timings.py` holds to the segments and to the committed
-MP3s. No screen reads either file yet. `main` does not have any of it, so the
-deployed site and the hosted API are unchanged.
+MP3s. Each record carries a `label`, the lineups file's `player_nickname`
+where it has one and the recorded name otherwise. `app/web/birdseye.js` is
+the renderer, which draws five primitives on an SVG surface up to a time and
+names no sport, and `app/web/birdseye-football.js` is the adapter, which reads
+both files and turns each record a slot draws into one of them.
+`tests/browser/test_birdseye.py` checks the two on a test page outside
+`app/web/`. No screen loads either script yet. `main` does not have any of
+it, so the deployed site and the hosted API are unchanged.
 
 ### The interfaces
 
@@ -122,6 +128,7 @@ are the seams that let a module be replaced or be someone else's to build.
 | the grounding check | `app/grounding.py` | read by `app/narration.py` and by every script that writes a narration |
 | the goal-call grammar | `app/narration_grammar.py` | read by `app/grounding.py` for a narration that cites nothing |
 | the play segments: `segments(text, facts, persona, side)` | `app/play_segments.py` | read by `scripts/write_play_segments.py`, on `birds-eye` |
+| the bird's-eye renderer: `Prelude.birdseye(svg, marks)`, answering `picture(ms)` | `app/web/birdseye.js` | `app/web/birdseye-football.js`, on `birds-eye`; no screen loads either yet |
 | the slot rule, as one table | `tests/slot_rows.json` | `Prelude.slotFor` in `app/web/match-content.js` and `slot_for` in `app/api.py` |
 | the speech request | `app/tts.py` | Watson Text to Speech, with the delivery from `app/delivery.py` |
 | the Orchestrate tool contract | `orchestrate/prelude_tools.yaml` | checked against `app.openapi()` by `tests/test_orchestrate_spec.py` |
@@ -218,6 +225,33 @@ app claims.
   fails.
 - `faster-whisper` is a dev dependency only and never runs in CI, a test or
   the app. Render installs with `--no-dev`, so it never reaches the API.
+
+**The bird's-eye view, on the `birds-eye` branch only**
+
+- The renderer knows five primitives (actor dot, plain or with an X; object
+  path; actor path; attempt burst; beat ring) and no sport, and
+  `tests/browser/test_birdseye.py` holds that none of pitch, ball, goal, shot,
+  player, football or soccer is in the file. Everything about football is in
+  the adapter.
+- One mark per record a slot's `draw_from` names, starting at the `start_ms`
+  of the segment `draw_from` gives it. `picture(ms)` draws every mark whose
+  start is at or before `ms`, so the finished picture is exactly `draw_from`.
+- Pass is an object path, Carry an actor path, Dribble and Dribbled Past a
+  beat ring, Shot an attempt burst, and Ball Receipt*, Ball Recovery and
+  Pressure an actor dot. A path is straight from `location` to
+  `end_location`, x and y only.
+- One frame: every record of the side that did not score is turned to
+  (120 - x, 80 - y). The scoring side is the team of the match's one Shot
+  record; the adapter throws if the records hold Shots by more or fewer than
+  one team.
+- The scoring side's actors are plain circles and the other side's carry an
+  X. The listener's side is amber and everything else chalk white; a neutral
+  listener gets no amber. No team colours, because nothing in the repo
+  records them.
+- A name is the record's `label`, written where its actor was last drawn,
+  above a scoring-side mark and below the other side's. A label is the
+  lineups file's `player_nickname` or the recorded name, never a shortening
+  of this repo's.
 
 **The narration, as it ships**
 
@@ -894,12 +928,11 @@ Items found during Phase 2 that belong with the wiring, not before it:
 
 ## Next first action
 
-**On the `birds-eye` branch, Shawn listens next.** Task 2, the timings, is
-done and pushed; the record is Last task below, and its report carries the six
-cue sheets. Shawn plays each recording against its cue sheet and says whether
-each time is where its words begin. **Task 3 waits for his answer.** `main` is
-unchanged by the branch, so everything that follows in this section still
-describes `main`.
+**On the `birds-eye` branch, Task 4 is next: the button and the overlay.**
+Task 3, the renderer and the football adapter, is done and pushed; the record
+is Last task below, and its report carries each slot's finished picture. Task
+4 puts the view on a screen. `main` is unchanged by the branch, so everything
+that follows in this section still describes `main`.
 
 **The app is finished for the demo, it claims only what the code does, the
 build checks it, and `README.md` is now the page a judge reads.** Every
@@ -947,53 +980,51 @@ timing is not Shawn's: it is taken once, at the end of the lab period.
 applies: open `/health` by hand and wait for the ok before testing a tool,
 recording the demo or handing the URL to a judge.
 
-## Last task: when each segment is spoken (Task 2, `birds-eye`)
+## Last task: the renderer and the football adapter (Task 3, `birds-eye`)
 
-**What Shawn asked for on 2026-11-28.** For each of the six recordings, the
-moment each play segment starts, found by transcribing the recording with
-word timestamps and matching the recognised words to the slot's text, with no
-segment timed by a guess. A CI test that needs no audio tools, a cue sheet per
-slot, and a stop for Shawn to listen.
+**What Shawn asked for on 2026-11-28.** A renderer that knows only
+primitives and names no sport, a football adapter that turns each slot's
+records into them in one frame, a label on each record from the lineups file,
+browser tests from a test page outside `app/web/`, and no screen wired yet.
 
-**What changed.** `faster-whisper` is in the dev dependency group.
-`scripts/align_segments.py` is new and offline: it transcribes each MP3,
-aligns the words with `difflib`, takes each segment's `start_ms` from the word
-at its `start_char`, prints a cue sheet per slot and writes
-`app/web/segment_timings.json`, with each recording's sha256 and duration.
-`tests/test_segment_timings.py` holds the file to `app/web/play_segments.json`
-and to the committed MP3s. Current state carries the rules under The play
-segments.
+**What changed.** `scripts/write_play_segments.py` writes a `label` on each
+record, and `app/web/play_segments.json` is regenerated with only that field
+added; `--check` exits 0. `app/web/birdseye.js` and
+`app/web/birdseye-football.js` are new, and so are
+`tests/browser/pages/birdseye.html` and `tests/browser/test_birdseye.py`.
+`tests/test_play_segments.py` holds the labels. Current state carries the
+rules under The bird's-eye view.
 
-**Deviations from the spec, each agreed with Shawn before it was committed.**
+**Choices the spec left open, each recorded in Current state.**
 
-1. The audio is decoded by the script with PyAV, not by `faster-whisper`.
-   `faster_whisper.audio.decode_audio` in 1.2.1 passes `metadata_errors` to
-   `av.open`, which PyAV 19 no longer accepts. The script does the same decode
-   without that argument, 16 kHz mono with nothing trimmed, so times are still
-   positions in the file. No version pin was added.
-2. The model is `small.en`, downloaded once from huggingface.co as
-   `Systran/faster-whisper-small.en`. It is a build tool and not an input to
-   the app.
-3. The first run left two segments unmatched, which was a stop: in both 2022
-   Buddy recordings "on to MacAllister" was heard as "onto macalester". The
-   fix is the one split in Current state, a recognised "onto" against the
-   text's "on to", and nothing wider. Both splits are printed by the script,
-   at 0:09.860 in 2022 `buddy_conceded` and at 0:08.360 in 2022
-   `buddy_scored`.
+1. The scoring side is the team of the match's one Shot record, since the
+   records carry no shot outcome. The adapter throws rather than guess if
+   that is not exactly one team.
+2. A name is written once per actor, where that actor was last drawn, and
+   below a mark of the side that did not score, so the two actors of one
+   duel do not write over each other. The text has a dark halo so it reads
+   where a line crosses it.
+3. The surface is the 120 by 80 area and its edge, with no markings, which
+   is what the spec named.
 
 **The evidence.** At the start, on a clean tree: `pytest -q` reported
-`2158 passed` and all five gates exited 0. The script timed all 52 segments
-by a matched word and exited 0. The end-of-task figures, the cue sheets and
-the CI run are in the report for this commit.
+`2177 passed` and all five gates exited 0. At the end: `2179 passed`, all five
+gates at exit 0, `pytest tests/browser` reported `191 passed`, and the tree
+was clean after the suite. The screenshots and the CI run are in the report
+for this commit.
 
 **Found, not fixed.**
 
-- The recogniser heard "MacAllister" as "macalester" and "mcallister" and
-  "Cuciuffo" as "cusiuffo". No segment starts on either name, so no time
-  depends on it, but a segment that did would fail rather than match.
-- `docs/HARNESS.md` and `CLAUDE.md` name `.venv-prelude` as the virtualenv;
-  this worktree runs its own `.venv`, made by `uv sync`. The docs describe the
-  main checkout and were left as they are.
+- 1986 `buddy_scored` draws no actor path: none of its segments claims a
+  Carry, so `draw_from` holds none and the picture is eleven separate marks
+  with nothing joining them. That is the segments, not the renderer.
+- Names can still touch where two actors stand close: in 1986 the labels
+  for Enrique (or Reid) and Beardsley sit against each other. No placement
+  beyond above and below was attempted.
+- The surface has no markings, so nothing on it says which way the scoring
+  side attacks beyond where the attempt burst is.
+- The renderer sets no font family; the test page sets sans-serif, and the
+  screen in Task 4 will have to set its own.
 
 ## History
 
@@ -1003,6 +1034,7 @@ decision now lives.
 
 | File | What is in it |
 | ---- | ------------- |
+| `docs/history/task_2_the_segment_timings.md` | when each segment is spoken: the alignment script, its three deviations, the timings file and the test that needs no audio tools |
 | `docs/history/tasks_1_and_1b_the_play_segments.md` | the play segments: the module, the three deviations from its spec, the segments file, the records and `draw_from` |
 | `docs/history/the_readme_claims_and_the_bobalytics_export.md` | the README's three corrected claims, and the Bobalytics export that closed Bob's part |
 | `docs/history/task_37_the_readme.md` | the README cut to a page a judge skims, six sections moved into `docs/`, the pictures drawn from the running app, and every icon hidden from a screen reader |

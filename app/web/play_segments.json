@@ -328,7 +328,8 @@
             35.2,
             50.4
           ],
-          "end_location": null
+          "end_location": null,
+          "label": "José Luis Cuciuffo"
         },
         "3c9db676-5edd-49af-8508-ab7d462ce25d": {
           "index": 1953,
@@ -342,7 +343,8 @@
           "end_location": [
             55.2,
             55.6
-          ]
+          ],
+          "label": "Héctor Enrique"
         },
         "5cea303c-cea9-4a04-af72-41382c186159": {
           "index": 1954,
@@ -353,7 +355,8 @@
             55.2,
             55.6
           ],
-          "end_location": null
+          "end_location": null,
+          "label": "Diego Armando Maradona"
         },
         "cf1088ae-4ec8-4a43-b154-f53c3eb90388": {
           "index": 1955,
@@ -367,7 +370,8 @@
           "end_location": [
             54.4,
             56.4
-          ]
+          ],
+          "label": "Diego Armando Maradona"
         },
         "3fa18492-7ff8-46ec-8fce-c045726a8d36": {
           "index": 1956,
@@ -378,7 +382,8 @@
             64.9,
             20.9
           ],
-          "end_location": null
+          "end_location": null,
+          "label": "Peter Beardsley"
         },
         "372c9acf-fe96-467a-8b57-dad6fbd6d50b": {
           "index": 1957,
@@ -389,7 +394,8 @@
             65.7,
             23.7
           ],
-          "end_location": null
+          "end_location": null,
+          "label": "Peter Beardsley"
         },
         "1aca4e20-faca-4edf-bd2b-926c8d47c8e1": {
           "index": 1958,
@@ -400,7 +406,8 @@
             54.4,
             56.4
           ],
-          "end_location": null
+          "end_location": null,
+          "label": "Diego Armando Maradona"
         },
         "d8caa5f4-88e5-4840-87bb-95dc1645cb57": {
           "index": 1959,
@@ -414,7 +421,8 @@
           "end_location": [
             87.1,
             68.6
-          ]
+          ],
+          "label": "Diego Armando Maradona"
         },
         "9acad196-80b8-47ce-8353-1c6cf38563cb": {
           "index": 1960,
@@ -425,7 +433,8 @@
             67.6,
             27.0
           ],
-          "end_location": null
+          "end_location": null,
+          "label": "Peter Reid"
         },
         "044a8cab-3e77-48d3-8410-5aae07c287e6": {
           "index": 1961,
@@ -436,7 +445,8 @@
             33.0,
             11.5
           ],
-          "end_location": null
+          "end_location": null,
+          "label": "Terry Butcher"
         },
         "8452a2e7-343a-4b7a-9602-42450ee4742e": {
           "index": 1962,
@@ -447,7 +457,8 @@
             87.1,
             68.6
           ],
-          "end_location": null
+          "end_location": null,
+          "label": "Diego Armando Maradona"
         },
         "c8798a94-3bc5-4bb7-aa5c-a7c2c393d0ee": {
           "index": 1963,
@@ -461,7 +472,8 @@
           "end_location": [
             97.1,
             55.1
-          ]
+          ],
+          "label": "Diego Armando Maradona"
         },
         "5758ea3c-1ecd-4fe2-b0bf-446a0e5a508b": {
           "index": 1964,
@@ -472,7 +484,8 @@
             23.0,
             25.0
           ],
-          "end_location": null
+          "end_location": null,
+          "label": "Terry Fenwick"
         },
         "b16e026b-f9cf-4ec4-a160-5a1df11afaed": {
           "index": 1965,
@@ -483,7 +496,8 @@
             97.1,
             55.1
           ],
-          "end_location": null
+          "end_location": null,
+          "label": "Diego Armando Maradona"
         },
         "b29fa2f1-ab67-4650-8300-4c7864ca6790": {
           "index": 1966,
@@ -497,7 +511,8 @@
           "end_location": [
             112.8,
             49.4
-          ]
+          ],
+          "label": "Diego Armando Maradona"
         },
         "e2680e54-5d35-4342-91e2-dad88a210011": {
           "index": 1968,
@@ -508,7 +523,8 @@
             7.3,
             30.7
           ],
-          "end_location": null
+          "end_location": null,
+          "label": "Peter Shilton"
         },
         "5573383d-bddb-4785-8a21-39ccc8421f03": {
           "index": 1969,
@@ -519,7 +535,8 @@
             112.8,
             49.4
           ],
-          "end_location": null
+          "end_location": null,
+          "label": "Diego Armando Maradona"
         },
         "abbf4118-3967-4455-8fea-7710c1b322ef": {
           "index": 1970,
@@ -533,7 +550,8 @@
           "end_location": [
             113.4,
             49.5
-          ]
+          ],
+          "label": "Diego Armando Maradona"
         },
         "f7c68c94-1db5-477f-aabe-f97733605571": {
           "index": 1971,
@@ -548,7 +566,8 @@
             120.0,
             41.7,
             0.2
-          ]
+          ],
+          "label": "Diego Armando Maradona"
         }
       }
     },
@@ -856,7 +875,8 @@
           "end_location": [
             41.6,
             59.2
-          ]
+          ],
+          "label": "Nahuel Molina"
         },
         "eedd2a31-c982-4dd2-a0b7-1db4c44639ad": {
           "index": 1168,
@@ -870,7 +890,8 @@
           "end_location": [
             53.1,
             61.8
-          ]
+          ],
+          "label": "Alexis MacAllister"
         },
         "3bfc095a-7e8d-468c-8edd-6739a72a09d3": {
           "index": 1171,
@@ -884,7 +905,8 @@
           "end_location": [
             62.5,
             68.2
-          ]
+          ],
+          "label": "Lionel Messi"
         },
         "5a800227-911a-4490-b828-14ece1f81d76": {
           "index": 1174,
@@ -898,7 +920,8 @@
           "end_location": [
             99.3,
             54.9
-          ]
+          ],
+          "label": "Julián Álvarez"
         },
         "ed70825d-8a40-470d-8b30-fd315ab5f0a6": {
           "index": 1176,
@@ -912,7 +935,8 @@
           "end_location": [
             111.8,
             32.1
-          ]
+          ],
+          "label": "Alexis MacAllister"
         },
         "ef86f4d9-7acd-4ed0-a5ec-9129079e8fbe": {
           "index": 1178,
@@ -927,7 +951,8 @@
             120.0,
             41.7,
             0.5
-          ]
+          ],
+          "label": "Ángel Di María"
         }
       }
     }

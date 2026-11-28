@@ -21,6 +21,7 @@ import pytest
 
 from app.grounding import goal_call_reader, sentences
 from app.narration_grammar import SPAN_KEYS, support
+from app.recorded_names import recorded_nicknames
 from app.play_segments import (
     NotGrounded,
     _fold_pressure_into_presser,
@@ -422,6 +423,7 @@ class TestTheSegmentsFile:
             "player": "Julián Álvarez",
             "location": [63.2, 68.2],
             "end_location": [99.3, 54.9],
+            "label": "Julián Álvarez",
         }
         assert records["3750191"]["records"][GOAL_SHOT["3750191"]] == {
             "index": 1971,
@@ -430,6 +432,7 @@ class TestTheSegmentsFile:
             "player": "Diego Armando Maradona",
             "location": [113.4, 49.5],
             "end_location": [120.0, 41.7, 0.2],
+            "label": "Diego Armando Maradona",
         }
         assert records["3750191"]["records"][
             "3fa18492-7ff8-46ec-8fce-c045726a8d36"
@@ -440,6 +443,7 @@ class TestTheSegmentsFile:
             "player": "Peter Beardsley",
             "location": [64.9, 20.9],
             "end_location": None,
+            "label": "Peter Beardsley",
         }
 
     def test_records_are_exactly_the_events_the_segments_name(self):
@@ -476,3 +480,19 @@ class TestTheSegmentsFile:
                     {},
                 )
                 assert record["end_location"] == block.get("end_location")
+
+    def test_every_label_is_the_lineups_nickname_or_the_recorded_name(self):
+        document = json.loads(SEGMENTS_FILE.read_text(encoding="utf-8"))
+        for match_id, entry in document["matches"].items():
+            nicknames = recorded_nicknames(int(match_id))
+            for record in entry["records"].values():
+                player = record["player"]
+                assert record["label"] == nicknames.get(player, player)
+
+    def test_a_recorded_nickname_is_the_label(self):
+        records = json.loads(SEGMENTS_FILE.read_text(encoding="utf-8"))[
+            "matches"
+        ]["3869685"]["records"]
+        labels = {record["player"]: record["label"] for record in records.values()}
+        assert labels["Lionel Andrés Messi Cuccittini"] == "Lionel Messi"
+        assert labels["Alexis Mac Allister"] == "Alexis MacAllister"

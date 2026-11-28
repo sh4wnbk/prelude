@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bird's-eye test page</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #101512; }
+  svg { display: block; font-family: sans-serif; width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<!-- A test page for tests/browser/test_birdseye.py, served from a temporary
+     directory beside copies of the two scripts and the two files they read.
+     It is not one of the app's screens. ?match=, ?slot= and ?listener= (a
+     team name, or absent for neutral) choose what is mounted. -->
+<svg id="surface" aria-hidden="true" preserveAspectRatio="xMidYMid meet"></svg>
+<script src="birdseye.js"></script>
+<script src="birdseye-football.js"></script>
+<script>
+  (function () {
+    var query = new URLSearchParams(window.location.search);
+    var adapter = window.Prelude.birdseyeFootball;
+    adapter.load("").then(function (data) {
+      window.__data = data;
+      window.__view = adapter.mount(
+        document.getElementById("surface"), data,
+        query.get("match"), query.get("slot"), query.get("listener")
+      );
+      document.documentElement.setAttribute("data-mounted", "");
+    }).catch(function (error) {
+      document.documentElement.setAttribute("data-failed", String(error));
+    });
+  })();
+</script>
+</body>
+</html>
