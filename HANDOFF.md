@@ -57,11 +57,11 @@ origin and that nothing 404s.
 `tests/test_api.py::TestWhatItDoesNotReach::test_the_only_module_in_app_that_takes_a_third_party_package`
 is what keeps it the only one.
 
-**Thirty-three scripts**, each runnable on its own: thirty-two directly under
+**Thirty-four scripts**, each runnable on its own: thirty-three directly under
 `scripts/` and `scripts/brand/build_svg.py` beside the two fonts it reads.
 Five are gates: `data_check.py`, `scan_copy.py`, `check_match_copy.py`,
 `check_vocabulary.py` and `check_docs.py`. `docs/HARNESS.md` carries the table
-of all thirty-three, what each writes and what each reaches, and a row for every
+of all thirty-four, what each writes and what each reaches, and a row for every
 file in `tests/`.
 
 **The hosted API** is `app/api.py` on Render at
@@ -83,7 +83,7 @@ frozen narrations, one per match per listener slot (`buddy_scored`,
 each one. The words on the card and the words the voice reads are one text,
 resolved by one lookup.
 
-**The test harness** is 44 files of tests in `tests/` and eight in `tests/browser/`. The
+**The test harness** is 45 files of tests in `tests/` and eight in `tests/browser/`. The
 unit suite is run by `pytest`, which leaves the browser suite out through
 `norecursedirs`; the browser suite is run by naming it, `pytest tests/browser`,
 and drives headless Chromium at 390 by 844 over a local server.
@@ -103,8 +103,11 @@ happened and points each span at the events that hold it.
 `scripts/write_play_segments.py` writes them for the six slots into
 `app/web/play_segments.json`, with a `records` map of the fields each named
 event carries in `data/raw/` and a `draw_from` table per slot, and `--check`
-compares without writing. No screen reads the file yet. `main` does not have
-any of it, so the deployed site and the hosted API are unchanged.
+compares without writing. `scripts/align_segments.py`, offline, times each
+segment in its recording and writes `app/web/segment_timings.json`, which
+`tests/test_segment_timings.py` holds to the segments and to the committed
+MP3s. No screen reads either file yet. `main` does not have any of it, so the
+deployed site and the hosted API are unchanged.
 
 ### The interfaces
 
@@ -204,6 +207,17 @@ app claims.
   it, or that floor where none does. It never goes back in time.
 - The segments live in their own file, `app/web/play_segments.json`, and not
   in `app/web/narrations.json`, which `scripts/freeze_narrations.py` writes.
+- A segment's time is when its first word is spoken, as a position in the
+  file, so it includes the half-second lead-in. It is the start of the
+  recognised word that word was matched to, word by word with `difflib`, and
+  a segment whose first word matched nothing gets no time: the script reports
+  it and writes nothing. Nothing is interpolated.
+- Each recognised token is one word. The only split is a recognised "onto"
+  where the text says "on to", which is read as both words at the token's
+  start, and every such split is printed. Any other merged or split word
+  fails.
+- `faster-whisper` is a dev dependency only and never runs in CI, a test or
+  the app. Render installs with `--no-dev`, so it never reaches the API.
 
 **The narration, as it ships**
 
@@ -712,11 +726,12 @@ and nothing 404s.
 
 ### Open items
 
-Nothing here is blocking, and each item says what it would take. Six groups:
-the doc pass, Shawn's listening pass over the six recordings, the two narrow
-readings a tuning pass would widen, where the fallback six and the candidate
-runs are, and the two accessibility items from Phase 2. The headings say
-whose each one is.
+Nothing here is blocking, and each item says what it would take. The groups
+are the doc pass, Shawn's listening pass over the six recordings, the two
+narrow readings a tuning pass would widen, where the fallback six and the
+candidate runs are, the two accessibility items from Phase 2, what the build
+does not say, and what the merge of `birds-eye` into `main` has to fix. The
+headings say whose each one is.
 
 #### For Phase 7's doc pass
 
@@ -870,12 +885,21 @@ Items found during Phase 2 that belong with the wiring, not before it:
   against <https://sh4wnbk.github.io/prelude/>. What it still cannot say is
   anything about iOS: it drives headless Chromium, the same as the suite.
 
+#### For Task 6, the merge of `birds-eye` into `main`
+
+- **`main`'s Next first action and the submission checklist are stale.**
+  Prelude was submitted on 2026-11-19, and both still read as though it is
+  waiting to be: the next action points at item 2 of the checklist, and the
+  checklist says it is kept until submission. Fix both in the merge commit.
+
 ## Next first action
 
-**On the `birds-eye` branch, the next task is Task 2, the timings, and it
-stops for Shawn to listen.** Tasks 1 and 1b are done and pushed; the record is
-Last task below. `main` is unchanged by the branch, so everything that follows
-in this section still describes `main` and the submission.
+**On the `birds-eye` branch, Shawn listens next.** Task 2, the timings, is
+done and pushed; the record is Last task below, and its report carries the six
+cue sheets. Shawn plays each recording against its cue sheet and says whether
+each time is where its words begin. **Task 3 waits for his answer.** `main` is
+unchanged by the branch, so everything that follows in this section still
+describes `main`.
 
 **The app is finished for the demo, it claims only what the code does, the
 build checks it, and `README.md` is now the page a judge reads.** Every
@@ -923,75 +947,53 @@ timing is not Shawn's: it is taken once, at the end of the lab period.
 applies: open `/health` by hand and wait for the ok before testing a tool,
 recording the demo or handing the URL to a judge.
 
-## Last task: the play segments (Tasks 1 and 1b, `birds-eye`)
+## Last task: when each segment is spoken (Task 2, `birds-eye`)
 
-**What Shawn asked for on 2026-11-28.** Task 1: a module that says which
-words of a frozen narration stand on which records, with its tests. Task 1b:
-the script that writes those segments for the six slots into a file, a
-`records` map beside them, a `draw_from` table per slot, the "under pressure
-from X" overlap folded, and this handoff.
+**What Shawn asked for on 2026-11-28.** For each of the six recordings, the
+moment each play segment starts, found by transcribing the recording with
+word timestamps and matching the recognised words to the slot's text, with no
+segment timed by a guess. A CI test that needs no audio tools, a cue sheet per
+slot, and a stop for Shawn to listen.
 
-**What changed.** `app/grounding.py` builds the goal-call reader in a public
-`goal_call_reader(facts, side)`, which `_goal_call` calls, with no change in
-behaviour. `app/play_segments.py` is new, and so are
-`scripts/write_play_segments.py`, `app/web/play_segments.json` and
-`tests/test_play_segments.py`. Current state carries the rules under The play
+**What changed.** `faster-whisper` is in the dev dependency group.
+`scripts/align_segments.py` is new and offline: it transcribes each MP3,
+aligns the words with `difflib`, takes each segment's `start_ms` from the word
+at its `start_char`, prints a cue sheet per slot and writes
+`app/web/segment_timings.json`, with each recording's sha256 and duration.
+`tests/test_segment_timings.py` holds the file to `app/web/play_segments.json`
+and to the committed MP3s. Current state carries the rules under The play
 segments.
 
-**Three deviations from Task 1's spec, each agreed with Shawn before it was
-built.**
+**Deviations from the spec, each agreed with Shawn before it was committed.**
 
-1. `app/narration_grammar.py` was edited, which the spec did not list. A
-   chain and "under pressure from X" carry `receiver_said` in their detail,
-   and a merged long ball carries `long_said` and `chain_at`. These are
-   `SPAN_KEYS`, position data only. The grammar, grounding and frozen
-   narration tests gave `272 passed` before the edit and `272 passed` after
-   it, and all six `claims_checked` values are unchanged.
-2. The chain rule. The spec put every claim at the sentence's offset plus
-   `move.at`, but the reader builds a chain as its marker and the receiver's
-   name at the name's position, so "found Maradona" has its `at` on
-   "Maradona". The span is `end = at + len(receiver_said)`,
-   `start = end - len(said)`, with the exact match asserted. "Under pressure
-   from X" is built the same way and takes the same rule.
-3. The long-ball rule. The spec asserted that every span reads as its move's
-   `said`, but `_merge_long` joins "long ball" and "to MacAllister" while the
-   text has "forward" between them. That one move, recognised as a chain whose
-   detail says `long`, spans from the long ball to the end of the chain's
-   name, and its segment's `said` is the text there: "long ball forward to
-   MacAllister", on the one long pass. Every other move still matches
-   exactly, and any other mismatch raises.
+1. The audio is decoded by the script with PyAV, not by `faster-whisper`.
+   `faster_whisper.audio.decode_audio` in 1.2.1 passes `metadata_errors` to
+   `av.open`, which PyAV 19 no longer accepts. The script does the same decode
+   without that argument, 16 kHz mono with nothing trimmed, so times are still
+   positions in the file. No version pin was added.
+2. The model is `small.en`, downloaded once from huggingface.co as
+   `Systran/faster-whisper-small.en`. It is a build tool and not an input to
+   the app.
+3. The first run left two segments unmatched, which was a stop: in both 2022
+   Buddy recordings "on to MacAllister" was heard as "onto macalester". The
+   fix is the one split in Current state, a recognised "onto" against the
+   text's "on to", and nothing wider. Both splits are printed by the script,
+   at 0:09.860 in 2022 `buddy_conceded` and at 0:08.360 in 2022
+   `buddy_scored`.
 
-**Task 1b's two decisions.** The segments are in a separate file,
-`app/web/play_segments.json`, and not added to `app/web/narrations.json`,
-which `scripts/freeze_narrations.py` writes. And `draw_from` follows the rule
-under The play segments in Current state: in 1986 `buddy_conceded` the shot,
-index 1971, is held by "picked it up" as well, and is drawn at "scored"; in
-1986 `storyteller_neutral` carry 1970 is drawn at "Shilton". The rule
-was read as the earliest claiming segment that is not earlier than the
-floor, because the literal reading, the later of the earliest claim and the
-floor, puts that shot at "Shilton", a segment that does not claim it. The
-two readings differ on that one record in the six slots and nowhere else.
-
-**The evidence.** At the start of Task 1, on a clean tree: `pytest -q`
-reported `2106 passed` and the five gates printed their passing lines.
-`scripts/write_play_segments.py` prints 8, 8 and 9 segments for the 1986
-slots (`buddy_conceded`, `buddy_scored`, `storyteller_neutral`) and 9, 10 and
-9 for 2022, and `--check` exits 0. The end-of-task figures and the CI run are
-in the report for this commit.
+**The evidence.** At the start, on a clean tree: `pytest -q` reported
+`2158 passed` and all five gates exited 0. The script timed all 52 segments
+by a matched word and exited 0. The end-of-task figures, the cue sheets and
+the CI run are in the report for this commit.
 
 **Found, not fixed.**
 
-- "Under pressure from Beardsley and Reid" names two pressers, and the reader
-  gives the second the said "under pressure from Reid", which is not one run
-  of the text. `segments` raises on such a narration rather than place it.
-  None of the six says it.
-- In 1986 `storyteller_neutral`, carry 1955 is claimed only by "carried",
-  which comes after "Beardsley" in the text, so the rule draws Beardsley's two
-  records at "carried" and nothing at "Beardsley". That is the rule working
-  as written; whether a later screen wants it is for that screen's task.
-- `docs/HARNESS.md` lists the standard library modules `app/` imports, and the
-  list already left out `datetime`, `base64`, `textwrap` and `time` before
-  this task. `app/play_segments.py` adds no new one.
+- The recogniser heard "MacAllister" as "macalester" and "mcallister" and
+  "Cuciuffo" as "cusiuffo". No segment starts on either name, so no time
+  depends on it, but a segment that did would fail rather than match.
+- `docs/HARNESS.md` and `CLAUDE.md` name `.venv-prelude` as the virtualenv;
+  this worktree runs its own `.venv`, made by `uv sync`. The docs describe the
+  main checkout and were left as they are.
 
 ## History
 
@@ -1001,6 +1003,7 @@ decision now lives.
 
 | File | What is in it |
 | ---- | ------------- |
+| `docs/history/tasks_1_and_1b_the_play_segments.md` | the play segments: the module, the three deviations from its spec, the segments file, the records and `draw_from` |
 | `docs/history/the_readme_claims_and_the_bobalytics_export.md` | the README's three corrected claims, and the Bobalytics export that closed Bob's part |
 | `docs/history/task_37_the_readme.md` | the README cut to a page a judge skims, six sections moved into `docs/`, the pictures drawn from the running app, and every icon hidden from a screen reader |
 | `docs/history/task_36_the_tagline.md` | the tagline changed in one constant, every brand file redrawn from it, and the old phrase made banned copy |

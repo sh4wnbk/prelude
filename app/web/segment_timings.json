@@ -1,0 +1,264 @@
+{
+  "_note": "Written by scripts/align_segments.py, offline. For each recording, when each play segment starts, as a position in the file including the lead-in. A segment is timed only by a recognised word matched to its first word; nothing is interpolated.",
+  "model": "small.en",
+  "matches": {
+    "3750191": {
+      "buddy_conceded": {
+        "audio": "assets/audio/3750191_buddy_conceded.mp3",
+        "sha256": "478f1ff283457c59146536aae61969c74784fd103e4d8b2460c3264a8eee8075",
+        "duration_ms": 21266,
+        "segments": [
+          {
+            "said": "picked it up",
+            "start_ms": 7480
+          },
+          {
+            "said": "pressed",
+            "start_ms": 10700
+          },
+          {
+            "said": "Beardsley",
+            "start_ms": 12300
+          },
+          {
+            "said": "Butcher",
+            "start_ms": 13760
+          },
+          {
+            "said": "Fenwick",
+            "start_ms": 16040
+          },
+          {
+            "said": "Shilton",
+            "start_ms": 18360
+          },
+          {
+            "said": "scored",
+            "start_ms": 19360
+          },
+          {
+            "said": "with his left foot",
+            "start_ms": 19600
+          }
+        ]
+      },
+      "buddy_scored": {
+        "audio": "assets/audio/3750191_buddy_scored.mp3",
+        "sha256": "07899d9ee98747e8aea44de6ffb747f419e1d31c156549abc9443384a9468be3",
+        "duration_ms": 22466,
+        "segments": [
+          {
+            "said": "won it back",
+            "start_ms": 6760
+          },
+          {
+            "said": "found Maradona",
+            "start_ms": 8860
+          },
+          {
+            "said": "Beardsley",
+            "start_ms": 13180
+          },
+          {
+            "said": "Butcher",
+            "start_ms": 14180
+          },
+          {
+            "said": "Fenwick",
+            "start_ms": 16240
+          },
+          {
+            "said": "Shilton",
+            "start_ms": 18680
+          },
+          {
+            "said": "scored",
+            "start_ms": 19640
+          },
+          {
+            "said": "with his left foot",
+            "start_ms": 19860
+          }
+        ]
+      },
+      "storyteller_neutral": {
+        "audio": "assets/audio/3750191_storyteller_neutral.mp3",
+        "sha256": "b648bb4b7e7532e2833f4a8b4e7689b098855761f262bfcac90946f44272478a",
+        "duration_ms": 25226,
+        "segments": [
+          {
+            "said": "won it back",
+            "start_ms": 6860
+          },
+          {
+            "said": "played it to Maradona",
+            "start_ms": 9120
+          },
+          {
+            "said": "Beardsley",
+            "start_ms": 12680
+          },
+          {
+            "said": "carried",
+            "start_ms": 13700
+          },
+          {
+            "said": "Butcher",
+            "start_ms": 15160
+          },
+          {
+            "said": "Fenwick",
+            "start_ms": 17700
+          },
+          {
+            "said": "Shilton",
+            "start_ms": 21600
+          },
+          {
+            "said": "scored",
+            "start_ms": 22300
+          },
+          {
+            "said": "with his left foot",
+            "start_ms": 22600
+          }
+        ]
+      }
+    },
+    "3869685": {
+      "buddy_conceded": {
+        "audio": "assets/audio/3869685_buddy_conceded.mp3",
+        "sha256": "011690eea45ef449136ba146217c165ccd377dae767e69a65e1931dbd1c08a1c",
+        "duration_ms": 26402,
+        "segments": [
+          {
+            "said": "on to MacAllister",
+            "start_ms": 9860
+          },
+          {
+            "said": "to Messi",
+            "start_ms": 11480
+          },
+          {
+            "said": "to Álvarez",
+            "start_ms": 12720
+          },
+          {
+            "said": "hit",
+            "start_ms": 16600
+          },
+          {
+            "said": "long ball forward to MacAllister",
+            "start_ms": 16920
+          },
+          {
+            "said": "set up Di María",
+            "start_ms": 20080
+          },
+          {
+            "said": "hit",
+            "start_ms": 22220
+          },
+          {
+            "said": "first time",
+            "start_ms": 22680
+          },
+          {
+            "said": "with his left foot",
+            "start_ms": 23120
+          }
+        ]
+      },
+      "buddy_scored": {
+        "audio": "assets/audio/3869685_buddy_scored.mp3",
+        "sha256": "951eb973554c307aaa0460c22585fa98b09102448cc52be9811eaaa2ee55e12e",
+        "duration_ms": 24242,
+        "segments": [
+          {
+            "said": "on to MacAllister",
+            "start_ms": 8360
+          },
+          {
+            "said": "to Messi",
+            "start_ms": 9840
+          },
+          {
+            "said": "on to Álvarez",
+            "start_ms": 10940
+          },
+          {
+            "said": "hit",
+            "start_ms": 14780
+          },
+          {
+            "said": "long ball forward to MacAllister",
+            "start_ms": 15140
+          },
+          {
+            "said": "set up Di María",
+            "start_ms": 18100
+          },
+          {
+            "said": "hit",
+            "start_ms": 19980
+          },
+          {
+            "said": "first time",
+            "start_ms": 20320
+          },
+          {
+            "said": "with his left foot",
+            "start_ms": 20700
+          },
+          {
+            "said": "it went in",
+            "start_ms": 21960
+          }
+        ]
+      },
+      "storyteller_neutral": {
+        "audio": "assets/audio/3869685_storyteller_neutral.mp3",
+        "sha256": "275355af14536dc189d1116a6b4fb1e7887b73b99f27f754a82fbcf4aaaf534e",
+        "duration_ms": 25466,
+        "segments": [
+          {
+            "said": "found MacAllister",
+            "start_ms": 9440
+          },
+          {
+            "said": "played it to Messi",
+            "start_ms": 11080
+          },
+          {
+            "said": "moved it on to Álvarez",
+            "start_ms": 12460
+          },
+          {
+            "said": "hit",
+            "start_ms": 16260
+          },
+          {
+            "said": "long ball forward to MacAllister",
+            "start_ms": 16660
+          },
+          {
+            "said": "set up Di María",
+            "start_ms": 19940
+          },
+          {
+            "said": "finished",
+            "start_ms": 22160
+          },
+          {
+            "said": "first time",
+            "start_ms": 22620
+          },
+          {
+            "said": "with his left foot",
+            "start_ms": 23240
+          }
+        ]
+      }
+    }
+  }
+}
